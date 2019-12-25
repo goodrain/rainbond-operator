@@ -3,6 +3,7 @@ module goodrain/rainbond-operator
 go 1.13
 
 require (
+	github.com/coreos/etcd-operator v0.9.4 // indirect
 	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.0.0
