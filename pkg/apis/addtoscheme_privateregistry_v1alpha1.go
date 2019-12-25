@@ -1,7 +1,7 @@
 package apis
 
 import (
-	"GLYASAI/rainbond-operator/pkg/apis/privateregistry/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/apis/privateregistry/v1alpha1"
 )
 
 func init() {

@@ -11,9 +11,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 
-	"GLYASAI/rainbond-operator/pkg/apis"
-	"GLYASAI/rainbond-operator/pkg/controller"
-	"GLYASAI/rainbond-operator/version"
+	"github.com/GLYASAI/rainbond-operator/pkg/apis"
+	"github.com/GLYASAI/rainbond-operator/pkg/controller"
+	"github.com/GLYASAI/rainbond-operator/version"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"

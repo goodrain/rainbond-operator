@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"GLYASAI/rainbond-operator/pkg/controller/privateregistry"
+	"github.com/GLYASAI/rainbond-operator/pkg/controller/privateregistry"
 )
 
 func init() {

@@ -76,4 +76,8 @@ tags
 .history
 # End of https://www.gitignore.io/api/go,vim,emacs,visualstudiocode
 
+# IDE
+.idea
+# End of section
+
 bin
