@@ -1,4 +1,4 @@
-apiVersion: rainbond.goodrain.com/v1alpha1
+apiVersion: rainbond.GLYASAI.com/v1alpha1
 kind: Rainbond
 metadata:
   name: example-rainbond

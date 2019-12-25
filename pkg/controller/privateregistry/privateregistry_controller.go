@@ -3,7 +3,7 @@ package privateregistry
 import (
 	"context"
 
-	privateregistryv1alpha1 "goodrain/rainbond-operator/pkg/apis/privateregistry/v1alpha1"
+	privateregistryv1alpha1 "GLYASAI/rainbond-operator/pkg/apis/privateregistry/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

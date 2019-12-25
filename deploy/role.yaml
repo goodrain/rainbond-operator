@@ -79,7 +79,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - rainbond.goodrain.com
+  - rainbond.GLYASAI.com
   resources:
   - '*'
   verbs:

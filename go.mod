@@ -1,4 +1,4 @@
-module goodrain/rainbond-operator
+module GLYASAI/rainbond-operator
 
 go 1.13
 

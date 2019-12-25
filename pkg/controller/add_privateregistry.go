@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"goodrain/rainbond-operator/pkg/controller/privateregistry"
+	"GLYASAI/rainbond-operator/pkg/controller/privateregistry"
 )
 
 func init() {
