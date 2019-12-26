@@ -20,4 +20,8 @@
 
 package v1alpha1
 
+type PrivateRegistryExpansion interface{}
+
 type RainbondExpansion interface{}
+
+type StorageProvisionerExpansion interface{}

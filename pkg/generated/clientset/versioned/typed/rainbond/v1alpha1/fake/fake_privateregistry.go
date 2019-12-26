@@ -21,7 +21,7 @@
 package fake
 
 import (
-	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/privateregistry/v1alpha1"
+	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,13 +32,13 @@ import (
 
 // FakePrivateRegistries implements PrivateRegistryInterface
 type FakePrivateRegistries struct {
-	Fake *FakePrivateregistryV1alpha1
+	Fake *FakeRainbondV1alpha1
 	ns   string
 }
 
-var privateregistriesResource = schema.GroupVersionResource{Group: "privateregistry.rainbond.io", Version: "v1alpha1", Resource: "privateregistries"}
+var privateregistriesResource = schema.GroupVersionResource{Group: "rainbond.io", Version: "v1alpha1", Resource: "privateregistries"}
 
-var privateregistriesKind = schema.GroupVersionKind{Group: "privateregistry.rainbond.io", Version: "v1alpha1", Kind: "PrivateRegistry"}
+var privateregistriesKind = schema.GroupVersionKind{Group: "rainbond.io", Version: "v1alpha1", Kind: "PrivateRegistry"}
 
 // Get takes name of the privateRegistry, and returns the corresponding privateRegistry object, and an error if there is any.
 func (c *FakePrivateRegistries) Get(name string, options v1.GetOptions) (result *v1alpha1.PrivateRegistry, err error) {

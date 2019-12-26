@@ -23,10 +23,10 @@ package v1alpha1
 import (
 	time "time"
 
-	privateregistryv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/privateregistry/v1alpha1"
+	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	versioned "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
 	internalinterfaces "github.com/GLYASAI/rainbond-operator/pkg/generated/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/generated/listers/privateregistry/v1alpha1"
+	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/generated/listers/rainbond/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -63,16 +63,16 @@ func NewFilteredPrivateRegistryInformer(client versioned.Interface, namespace st
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.PrivateregistryV1alpha1().PrivateRegistries(namespace).List(options)
+				return client.RainbondV1alpha1().PrivateRegistries(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.PrivateregistryV1alpha1().PrivateRegistries(namespace).Watch(options)
+				return client.RainbondV1alpha1().PrivateRegistries(namespace).Watch(options)
 			},
 		},
-		&privateregistryv1alpha1.PrivateRegistry{},
+		&rainbondv1alpha1.PrivateRegistry{},
 		resyncPeriod,
 		indexers,
 	)
@@ -83,7 +83,7 @@ func (f *privateRegistryInformer) defaultInformer(client versioned.Interface, re
 }
 
 func (f *privateRegistryInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&privateregistryv1alpha1.PrivateRegistry{}, f.defaultInformer)
+	return f.factory.InformerFor(&rainbondv1alpha1.PrivateRegistry{}, f.defaultInformer)
 }
 
 func (f *privateRegistryInformer) Lister() v1alpha1.PrivateRegistryLister {

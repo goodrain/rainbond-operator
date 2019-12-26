@@ -22,12 +22,8 @@ package fake
 
 import (
 	clientset "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
-	privateregistryv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned/typed/privateregistry/v1alpha1"
-	fakeprivateregistryv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned/typed/privateregistry/v1alpha1/fake"
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned/typed/rainbond/v1alpha1"
 	fakerainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned/typed/rainbond/v1alpha1/fake"
-	storageprovisionerv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned/typed/storageprovisioner/v1alpha1"
-	fakestorageprovisionerv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned/typed/storageprovisioner/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -82,17 +78,7 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 
 var _ clientset.Interface = &Clientset{}
 
-// PrivateregistryV1alpha1 retrieves the PrivateregistryV1alpha1Client
-func (c *Clientset) PrivateregistryV1alpha1() privateregistryv1alpha1.PrivateregistryV1alpha1Interface {
-	return &fakeprivateregistryv1alpha1.FakePrivateregistryV1alpha1{Fake: &c.Fake}
-}
-
 // RainbondV1alpha1 retrieves the RainbondV1alpha1Client
 func (c *Clientset) RainbondV1alpha1() rainbondv1alpha1.RainbondV1alpha1Interface {
 	return &fakerainbondv1alpha1.FakeRainbondV1alpha1{Fake: &c.Fake}
-}
-
-// StorageprovisionerV1alpha1 retrieves the StorageprovisionerV1alpha1Client
-func (c *Clientset) StorageprovisionerV1alpha1() storageprovisionerv1alpha1.StorageprovisionerV1alpha1Interface {
-	return &fakestorageprovisionerv1alpha1.FakeStorageprovisionerV1alpha1{Fake: &c.Fake}
 }

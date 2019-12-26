@@ -23,7 +23,7 @@ package v1alpha1
 import (
 	"time"
 
-	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/storageprovisioner/v1alpha1"
+	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	scheme "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -58,7 +58,7 @@ type storageProvisioners struct {
 }
 
 // newStorageProvisioners returns a StorageProvisioners
-func newStorageProvisioners(c *StorageprovisionerV1alpha1Client, namespace string) *storageProvisioners {
+func newStorageProvisioners(c *RainbondV1alpha1Client, namespace string) *storageProvisioners {
 	return &storageProvisioners{
 		client: c.RESTClient(),
 		ns:     namespace,

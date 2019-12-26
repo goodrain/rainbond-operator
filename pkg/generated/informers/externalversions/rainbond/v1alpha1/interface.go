@@ -26,8 +26,12 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// PrivateRegistries returns a PrivateRegistryInformer.
+	PrivateRegistries() PrivateRegistryInformer
 	// Rainbonds returns a RainbondInformer.
 	Rainbonds() RainbondInformer
+	// StorageProvisioners returns a StorageProvisionerInformer.
+	StorageProvisioners() StorageProvisionerInformer
 }
 
 type version struct {
@@ -41,7 +45,17 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
+// PrivateRegistries returns a PrivateRegistryInformer.
+func (v *version) PrivateRegistries() PrivateRegistryInformer {
+	return &privateRegistryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // Rainbonds returns a RainbondInformer.
 func (v *version) Rainbonds() RainbondInformer {
 	return &rainbondInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// StorageProvisioners returns a StorageProvisionerInformer.
+func (v *version) StorageProvisioners() StorageProvisionerInformer {
+	return &storageProvisionerInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

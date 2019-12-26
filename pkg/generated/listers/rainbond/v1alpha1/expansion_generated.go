@@ -20,6 +20,14 @@
 
 package v1alpha1
 
+// PrivateRegistryListerExpansion allows custom methods to be added to
+// PrivateRegistryLister.
+type PrivateRegistryListerExpansion interface{}
+
+// PrivateRegistryNamespaceListerExpansion allows custom methods to be added to
+// PrivateRegistryNamespaceLister.
+type PrivateRegistryNamespaceListerExpansion interface{}
+
 // RainbondListerExpansion allows custom methods to be added to
 // RainbondLister.
 type RainbondListerExpansion interface{}
@@ -27,3 +35,11 @@ type RainbondListerExpansion interface{}
 // RainbondNamespaceListerExpansion allows custom methods to be added to
 // RainbondNamespaceLister.
 type RainbondNamespaceListerExpansion interface{}
+
+// StorageProvisionerListerExpansion allows custom methods to be added to
+// StorageProvisionerLister.
+type StorageProvisionerListerExpansion interface{}
+
+// StorageProvisionerNamespaceListerExpansion allows custom methods to be added to
+// StorageProvisionerNamespaceLister.
+type StorageProvisionerNamespaceListerExpansion interface{}

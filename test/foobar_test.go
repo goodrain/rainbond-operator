@@ -21,7 +21,7 @@ func TestFoobar(t *testing.T) {
 		t.Fatalf("create clientset: %v", err)
 	}
 
-	rainbond, err := clientset.PrivateregistryV1alpha1().PrivateRegistries("default").Get("foobar", metav1.GetOptions{})
+	rainbond, err := clientset.RainbondV1alpha1().PrivateRegistries("default").Get("foobar", metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		t.Error(err)
 	}

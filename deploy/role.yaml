@@ -67,21 +67,11 @@ rules:
   verbs:
   - get
 - apiGroups:
-  - privateregistry.rainbond.io
+  - rainbond.io
   resources:
   - '*'
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - rainbond.GLYASAI.com
-  resources:
-  - '*'
+  - rainbonds
+  - privateregistries
   verbs:
   - create
   - delete

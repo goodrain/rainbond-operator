@@ -36,9 +36,9 @@ type FakeRainbonds struct {
 	ns   string
 }
 
-var rainbondsResource = schema.GroupVersionResource{Group: "rainbond.GLYASAI.com", Version: "v1alpha1", Resource: "rainbonds"}
+var rainbondsResource = schema.GroupVersionResource{Group: "rainbond.io", Version: "v1alpha1", Resource: "rainbonds"}
 
-var rainbondsKind = schema.GroupVersionKind{Group: "rainbond.GLYASAI.com", Version: "v1alpha1", Kind: "Rainbond"}
+var rainbondsKind = schema.GroupVersionKind{Group: "rainbond.io", Version: "v1alpha1", Kind: "Rainbond"}
 
 // Get takes name of the rainbond, and returns the corresponding rainbond object, and an error if there is any.
 func (c *FakeRainbonds) Get(name string, options v1.GetOptions) (result *v1alpha1.Rainbond, err error) {

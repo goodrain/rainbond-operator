@@ -23,7 +23,7 @@ package v1alpha1
 import (
 	"time"
 
-	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/privateregistry/v1alpha1"
+	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	scheme "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -58,7 +58,7 @@ type privateRegistries struct {
 }
 
 // newPrivateRegistries returns a PrivateRegistries
-func newPrivateRegistries(c *PrivateregistryV1alpha1Client, namespace string) *privateRegistries {
+func newPrivateRegistries(c *RainbondV1alpha1Client, namespace string) *privateRegistries {
 	return &privateRegistries{
 		client: c.RESTClient(),
 		ns:     namespace,

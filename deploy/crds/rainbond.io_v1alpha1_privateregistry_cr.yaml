@@ -1,5 +1,7 @@
-apiVersion: privateregistry.rainbond.io/v1alpha1
+apiVersion: rainbond.io/v1alpha1
 kind: PrivateRegistry
 metadata:
   name: example-privateregistry
 spec:
+  # Add fields here
+  size: 3

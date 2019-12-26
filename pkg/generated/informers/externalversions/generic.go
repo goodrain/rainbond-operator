@@ -23,9 +23,7 @@ package externalversions
 import (
 	"fmt"
 
-	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/privateregistry/v1alpha1"
-	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	storageprovisionerv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/storageprovisioner/v1alpha1"
+	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -56,17 +54,13 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=privateregistry.rainbond.io, Version=v1alpha1
+	// Group=rainbond.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("privateregistries"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Privateregistry().V1alpha1().PrivateRegistries().Informer()}, nil
-
-		// Group=rainbond.GLYASAI.com, Version=v1alpha1
-	case rainbondv1alpha1.SchemeGroupVersion.WithResource("rainbonds"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Rainbond().V1alpha1().PrivateRegistries().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("rainbonds"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Rainbond().V1alpha1().Rainbonds().Informer()}, nil
-
-		// Group=storageprovisioner.rainbond.io, Version=v1alpha1
-	case storageprovisionerv1alpha1.SchemeGroupVersion.WithResource("storageprovisioners"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Storageprovisioner().V1alpha1().StorageProvisioners().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("storageprovisioners"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Rainbond().V1alpha1().StorageProvisioners().Informer()}, nil
 
 	}
 

@@ -23,10 +23,10 @@ package v1alpha1
 import (
 	time "time"
 
-	storageprovisionerv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/storageprovisioner/v1alpha1"
+	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	versioned "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
 	internalinterfaces "github.com/GLYASAI/rainbond-operator/pkg/generated/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/generated/listers/storageprovisioner/v1alpha1"
+	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/generated/listers/rainbond/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -63,16 +63,16 @@ func NewFilteredStorageProvisionerInformer(client versioned.Interface, namespace
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.StorageprovisionerV1alpha1().StorageProvisioners(namespace).List(options)
+				return client.RainbondV1alpha1().StorageProvisioners(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.StorageprovisionerV1alpha1().StorageProvisioners(namespace).Watch(options)
+				return client.RainbondV1alpha1().StorageProvisioners(namespace).Watch(options)
 			},
 		},
-		&storageprovisionerv1alpha1.StorageProvisioner{},
+		&rainbondv1alpha1.StorageProvisioner{},
 		resyncPeriod,
 		indexers,
 	)
@@ -83,7 +83,7 @@ func (f *storageProvisionerInformer) defaultInformer(client versioned.Interface,
 }
 
 func (f *storageProvisionerInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&storageprovisionerv1alpha1.StorageProvisioner{}, f.defaultInformer)
+	return f.factory.InformerFor(&rainbondv1alpha1.StorageProvisioner{}, f.defaultInformer)
 }
 
 func (f *storageProvisionerInformer) Lister() v1alpha1.StorageProvisionerLister {

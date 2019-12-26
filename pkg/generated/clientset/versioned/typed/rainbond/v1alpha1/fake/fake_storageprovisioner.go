@@ -21,7 +21,7 @@
 package fake
 
 import (
-	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/storageprovisioner/v1alpha1"
+	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,13 +32,13 @@ import (
 
 // FakeStorageProvisioners implements StorageProvisionerInterface
 type FakeStorageProvisioners struct {
-	Fake *FakeStorageprovisionerV1alpha1
+	Fake *FakeRainbondV1alpha1
 	ns   string
 }
 
-var storageprovisionersResource = schema.GroupVersionResource{Group: "storageprovisioner.rainbond.io", Version: "v1alpha1", Resource: "storageprovisioners"}
+var storageprovisionersResource = schema.GroupVersionResource{Group: "rainbond.io", Version: "v1alpha1", Resource: "storageprovisioners"}
 
-var storageprovisionersKind = schema.GroupVersionKind{Group: "storageprovisioner.rainbond.io", Version: "v1alpha1", Kind: "StorageProvisioner"}
+var storageprovisionersKind = schema.GroupVersionKind{Group: "rainbond.io", Version: "v1alpha1", Kind: "StorageProvisioner"}
 
 // Get takes name of the storageProvisioner, and returns the corresponding storageProvisioner object, and an error if there is any.
 func (c *FakeStorageProvisioners) Get(name string, options v1.GetOptions) (result *v1alpha1.StorageProvisioner, err error) {

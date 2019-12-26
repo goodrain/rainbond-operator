@@ -1,9 +1,9 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: rainbonds.rainbond.GLYASAI.com
+  name: rainbonds.rainbond.io
 spec:
-  group: rainbond.GLYASAI.com
+  group: rainbond.io
   names:
     kind: Rainbond
     listKind: RainbondList
