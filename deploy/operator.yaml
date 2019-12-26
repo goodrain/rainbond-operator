@@ -15,8 +15,7 @@ spec:
       serviceAccountName: rainbond-operator
       containers:
         - name: rainbond-operator
-          # Replace this with the built image name
-          image: REPLACE_IMAGE
+          image: abewang/rainbond-operator:v0.0.1
           command:
           - rainbond-operator
           imagePullPolicy: Always

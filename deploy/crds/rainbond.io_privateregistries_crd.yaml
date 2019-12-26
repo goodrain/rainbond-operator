@@ -33,6 +33,13 @@ spec:
           properties:
             custom_private_registry:
               type: string
+            storage_class_name:
+              type: string
+            storage_request:
+              type: string
+          required:
+          - storage_class_name
+          - storage_request
           type: object
         status:
           description: PrivateRegistryStatus defines the observed state of PrivateRegistry

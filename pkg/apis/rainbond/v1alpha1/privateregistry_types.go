@@ -1,12 +1,17 @@
 package v1alpha1
 
 import (
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // PrivateRegistrySpec defines the desired state of PrivateRegistry
 type PrivateRegistrySpec struct {
 	CustomPrivateRegistry string `json:"custom_private_registry,omitempty"`
+
+	StorageRequest resource.Quantity `json:"storage_request"`
+
+	StorageClassName string `json:"storage_class_name"`
 }
 
 // PrivateRegistryPhase is the PrivateRegistry running phase

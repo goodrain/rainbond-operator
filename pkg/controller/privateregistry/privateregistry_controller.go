@@ -4,13 +4,16 @@ import (
 	"context"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -22,6 +25,8 @@ import (
 )
 
 var log = logf.Log.WithName("controller_privateregistry")
+
+var defaultPVCName = "hubdata"
 
 // Add creates a new PrivateRegistry Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -50,6 +55,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for changes to secondary resource DaemonSets and requeue the owner PrivateRegistry
 	err = c.Watch(&source.Kind{Type: &appsv1.DaemonSet{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &rainbondv1alpha1.PrivateRegistry{},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Watch for changes to secondary resource PVC and requeue the owner PrivateRegistry
+	err = c.Watch(&source.Kind{Type: &corev1.PersistentVolumeClaim{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &rainbondv1alpha1.PrivateRegistry{},
 	})
@@ -94,34 +108,92 @@ func (r *ReconcilePrivateRegistry) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	// Define a new daemonset
-	daemonSet := r.daemonSetForPrivateRegistry(instance)
+	{
+		// Check if the pvc already exists, if not create a new one
+		pvc := persistentVolumeClaimForPrivateRegistry(instance)
 
-	// TODO: what for?
-	// Set PrivateRegistry instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, daemonSet, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Check if the daemonset already exists, if not create a new one
-	found := &appsv1.DaemonSet{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new DaemonSet", "DaemonSet.Namespace", daemonSet.Namespace, "DaemonSet.Name", daemonSet.Name)
-		err = r.client.Create(context.TODO(), daemonSet)
-		if err != nil {
-			reqLogger.Error(err, "Failed to create new DaemonSet", "DaemonSet.Namespace", daemonSet.Namespace, "DaemonSet.Name", daemonSet.Name)
+		// Set PrivateRegistry instance as the owner and controller
+		if err := controllerutil.SetControllerReference(instance, pvc, r.scheme); err != nil {
 			return reconcile.Result{}, err
 		}
-		// daemonset created successfully - return and requeue
-		return reconcile.Result{Requeue: true}, nil
-	} else if err != nil {
-		reqLogger.Error(err, "Failed to get DaemonSet")
-		return reconcile.Result{}, err
+
+		found := &corev1.PersistentVolumeClaim{}
+		err := r.client.Get(context.TODO(), types.NamespacedName{Name: pvc.Name, Namespace: pvc.Namespace}, found)
+		if err != nil && errors.IsNotFound(err) {
+			reqLogger.Info("Creating a new PVC", "PVC.Namespace", pvc.Namespace, "PVC.Name", pvc.Name)
+			err = r.client.Create(context.TODO(), pvc)
+			if err != nil {
+				reqLogger.Error(err, "Failed to create new PVC", "PVC.Namespace", pvc.Namespace, "PVC.Name", pvc.Name)
+				return reconcile.Result{}, err
+			}
+			// pvc created successfully - return and requeue
+			return reconcile.Result{Requeue: true}, nil
+		} else if err != nil {
+			reqLogger.Error(err, "Failed to get PVC")
+			return reconcile.Result{}, err
+		}
+		// PVC already exists - don't requeue
+		reqLogger.Info("Skip reconcile: DaemonSet already exists", "DaemonSet.Namespace", found.Namespace, "DaemonSet.Name", found.Name)
 	}
 
-	// DaemonSet already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
+	{
+		// Check if the service already exists, if not create a new one
+		svc := serviceForPrivateRegistry(instance)
+
+		// Set PrivateRegistry instance as the owner and controller
+		if err := controllerutil.SetControllerReference(instance, svc, r.scheme); err != nil {
+			return reconcile.Result{}, err
+		}
+
+		found := &corev1.Service{}
+		err := r.client.Get(context.TODO(), types.NamespacedName{Name: svc.Name, Namespace: svc.Namespace}, found)
+		if err != nil && errors.IsNotFound(err) {
+			reqLogger.Info("Creating a new Service", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)
+			err = r.client.Create(context.TODO(), svc)
+			if err != nil {
+				reqLogger.Error(err, "Failed to create new Service", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)
+				return reconcile.Result{}, err
+			}
+			// svc created successfully - return and requeue
+			return reconcile.Result{Requeue: true}, nil
+		} else if err != nil {
+			reqLogger.Error(err, "Failed to get Service")
+			return reconcile.Result{}, err
+		}
+		// Service already exists - don't requeue
+		reqLogger.Info("Skip reconcile: Service already exists", "Service.Namespace", found.Namespace, "Service.Name", found.Name)
+	}
+
+	{
+		// Define a new daemonset
+		daemonSet := r.daemonSetForPrivateRegistry(instance)
+
+		// TODO: what for?
+		// Set PrivateRegistry instance as the owner and controller
+		if err := controllerutil.SetControllerReference(instance, daemonSet, r.scheme); err != nil {
+			return reconcile.Result{}, err
+		}
+
+		// Check if the daemonset already exists, if not create a new one
+		found := &appsv1.DaemonSet{}
+		err = r.client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, found)
+		if err != nil && errors.IsNotFound(err) {
+			reqLogger.Info("Creating a new DaemonSet", "DaemonSet.Namespace", daemonSet.Namespace, "DaemonSet.Name", daemonSet.Name)
+			err = r.client.Create(context.TODO(), daemonSet)
+			if err != nil {
+				reqLogger.Error(err, "Failed to create new DaemonSet", "DaemonSet.Namespace", daemonSet.Namespace, "DaemonSet.Name", daemonSet.Name)
+				return reconcile.Result{}, err
+			}
+			// daemonset created successfully - return and requeue
+			return reconcile.Result{Requeue: true}, nil
+		} else if err != nil {
+			reqLogger.Error(err, "Failed to get DaemonSet")
+			return reconcile.Result{}, err
+		}
+		// DaemonSet already exists - don't requeue
+		reqLogger.Info("Skip reconcile: DaemonSet already exists", "DaemonSet.Namespace", found.Namespace, "DaemonSet.Name", found.Name)
+	}
+
 	return reconcile.Result{}, nil
 }
 
@@ -140,7 +212,7 @@ func (r *ReconcilePrivateRegistry) daemonSetForPrivateRegistry(p *rainbondv1alph
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "rbd-hub",
+					Name:   "rbd-hub",
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
@@ -148,7 +220,7 @@ func (r *ReconcilePrivateRegistry) daemonSetForPrivateRegistry(p *rainbondv1alph
 						{
 							Name:            "rbd-hub",
 							Image:           "rainbond/rbd-registry:2.6.2",
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							ImagePullPolicy: corev1.PullAlways, // TODO: custom
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "hubdata",
@@ -162,7 +234,7 @@ func (r *ReconcilePrivateRegistry) daemonSetForPrivateRegistry(p *rainbondv1alph
 							Name: "hubdata",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: "hubdata",
+									ClaimName: defaultPVCName,
 								},
 							},
 						},
@@ -175,17 +247,54 @@ func (r *ReconcilePrivateRegistry) daemonSetForPrivateRegistry(p *rainbondv1alph
 	return ds
 }
 
+func persistentVolumeClaimForPrivateRegistry(p *rainbondv1alpha1.PrivateRegistry) *corev1.PersistentVolumeClaim {
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      defaultPVCName,
+			Namespace: p.Namespace,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteMany,
+			},
+			Resources: corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceStorage: p.Spec.StorageRequest,
+				},
+			},
+			StorageClassName: commonutil.String(p.Spec.StorageClassName),
+		},
+	}
+
+	return pvc
+}
+
+func serviceForPrivateRegistry(p *rainbondv1alpha1.PrivateRegistry) *corev1.Service {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      defaultPVCName,
+			Namespace: p.Namespace,
+			Labels:    labelsForPrivateRegistry(p.Name),
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "main",
+					Port: 5000,
+					TargetPort: intstr.IntOrString{
+						IntVal: 5000,
+					},
+				},
+			},
+			Selector: labelsForPrivateRegistry(p.Name),
+		},
+	}
+
+	return svc
+}
+
 // labelsForPrivateRegistry returns the labels for selecting the resources
 // belonging to the given PrivateRegistry CR name.
 func labelsForPrivateRegistry(name string) map[string]string {
-	return map[string]string{"name": "rbd-hub", "privateregistry_cr": name} // TODO: only one rainbond?
-}
-
-// getPodNames returns the pod names of the array of pods passed in
-func getPodNames(pods []corev1.Pod) []string {
-	var podNames []string
-	for _, pod := range pods {
-		podNames = append(podNames, pod.Name)
-	}
-	return podNames
+	return map[string]string{"name": "rbd-hub"} // TODO: only one rainbond?
 }
