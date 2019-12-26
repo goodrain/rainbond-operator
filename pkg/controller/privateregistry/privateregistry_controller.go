@@ -103,6 +103,8 @@ func (r *ReconcilePrivateRegistry) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
+	_ = corev1.PersistentVolume.Spec.
+
 	// Check if the daemonset already exists, if not create a new one
 	found := &appsv1.DaemonSet{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, found)

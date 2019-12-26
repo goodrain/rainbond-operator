@@ -3,5 +3,3 @@ kind: PrivateRegistry
 metadata:
   name: example-privateregistry
 spec:
-  # Add fields here
-  size: 3

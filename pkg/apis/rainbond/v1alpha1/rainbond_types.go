@@ -4,9 +4,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // RainbondSpec defines the desired state of Rainbond
 type RainbondSpec struct {
 	// Rainbond's version
@@ -33,6 +30,7 @@ type RainbondStatus struct {
 	Phase RainbondPhase `json:"phase"`
 }
 
+// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Rainbond is the Schema for the rainbonds API

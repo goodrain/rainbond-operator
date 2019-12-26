@@ -29,6 +29,7 @@ type StorageProvisonerStatus struct {
 	Phase ProvisonerPhase `json:"phase"`
 }
 
+// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // StorageProvisoner is the Schema for the storageprovisoners API

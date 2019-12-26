@@ -32,6 +32,7 @@ type PrivateRegistryStatus struct {
 	Phase PrivateRegistryPhase `json:"phase"`
 }
 
+// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // PrivateRegistry is the Schema for the privateregistries API
