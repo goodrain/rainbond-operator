@@ -1,0 +1,7 @@
+apiVersion: storageprovisioner.rainbond.io/v1alpha1
+kind: StorageProvisioner
+metadata:
+  name: example-storageprovisioner
+spec:
+  # Add fields here
+  size: 3

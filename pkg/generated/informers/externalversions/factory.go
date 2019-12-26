@@ -27,7 +27,9 @@ import (
 
 	versioned "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
 	internalinterfaces "github.com/GLYASAI/rainbond-operator/pkg/generated/informers/externalversions/internalinterfaces"
+	privateregistry "github.com/GLYASAI/rainbond-operator/pkg/generated/informers/externalversions/privateregistry"
 	rainbond "github.com/GLYASAI/rainbond-operator/pkg/generated/informers/externalversions/rainbond"
+	storageprovisioner "github.com/GLYASAI/rainbond-operator/pkg/generated/informers/externalversions/storageprovisioner"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -174,9 +176,19 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
+	Privateregistry() privateregistry.Interface
 	Rainbond() rainbond.Interface
+	Storageprovisioner() storageprovisioner.Interface
+}
+
+func (f *sharedInformerFactory) Privateregistry() privateregistry.Interface {
+	return privateregistry.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Rainbond() rainbond.Interface {
 	return rainbond.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Storageprovisioner() storageprovisioner.Interface {
+	return storageprovisioner.New(f, f.namespace, f.tweakListOptions)
 }

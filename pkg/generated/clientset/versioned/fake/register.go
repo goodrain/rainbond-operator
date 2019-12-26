@@ -21,7 +21,9 @@
 package fake
 
 import (
+	privateregistryv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/privateregistry/v1alpha1"
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	storageprovisionerv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/storageprovisioner/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -33,7 +35,9 @@ var scheme = runtime.NewScheme()
 var codecs = serializer.NewCodecFactory(scheme)
 var parameterCodec = runtime.NewParameterCodec(scheme)
 var localSchemeBuilder = runtime.SchemeBuilder{
+	privateregistryv1alpha1.AddToScheme,
 	rainbondv1alpha1.AddToScheme,
+	storageprovisionerv1alpha1.AddToScheme,
 }
 
 // AddToScheme adds all types of this clientset into the given scheme. This allows composition

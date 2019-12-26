@@ -1,7 +1,7 @@
 package apis
 
 import (
-	"github.com/GLYASAI/rainbond-operator/pkg/apis/storageprovisoner/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/apis/storageprovisioner/v1alpha1"
 )
 
 func init() {
