@@ -7,7 +7,7 @@ import (
 // RainbondSpec defines the desired state of Rainbond
 type RainbondSpec struct {
 	// Rainbond's version
-	Version string `json:"versoin,omitempty"`
+	Version string `json:"version"`
 }
 
 // RainbondPhase is the Rainbond running phase

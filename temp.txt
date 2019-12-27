@@ -8,3 +8,9 @@
 
       # Run openapi-gen for each of your API group/version packages
       ./bin/openapi-gen --logtostderr=true -o "" -i ./pkg/apis/<group>/<version> -O zz_generated.openapi -p ./pkg/apis/<group>/<version> -h ./hack/boilerplate.go.txt -r "-"
+
+      operator-sdk generate k8s
+
+      operator-sdk generate openapi
+
+      operator-sdk build abewang/rainbond-operator:v0.0.1

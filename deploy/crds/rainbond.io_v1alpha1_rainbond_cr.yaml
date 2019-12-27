@@ -3,5 +3,4 @@ kind: Rainbond
 metadata:
   name: example-rainbond
 spec:
-  # Add fields here
-  size: 3
+  version: v5.1.9-release

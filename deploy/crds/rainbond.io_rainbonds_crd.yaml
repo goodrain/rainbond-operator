@@ -31,9 +31,11 @@ spec:
         spec:
           description: RainbondSpec defines the desired state of Rainbond
           properties:
-            versoin:
+            version:
               description: Rainbond's version
               type: string
+          required:
+          - version
           type: object
         status:
           description: RainbondStatus defines the observed state of Rainbond
