@@ -31,7 +31,7 @@ func daemonSetForRainbondMonitor(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet
 					Containers: []corev1.Container{
 						{
 							Name:            monitorName,
-							Image:           "rainbond/rbd-monitor:%s"+r.Spec.Version,
+							Image:           "rainbond/rbd-monitor:"+r.Spec.Version,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{

@@ -8,13 +8,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var rbdEventlogName = "rbd-eventlog"
+var rbdDNSName = "rbd-dns"
 
-func daemonSetForRainbondEventlog(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet {
-	labels := labelsForRainbond(rbdEventlogName) // TODO: only on rainbond
+func daemonSetForRainbondDNS(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet {
+	labels := labelsForRainbond(rbdDNSName) // TODO: only on rainbond
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbdEventlogName,
+			Name:      rbdDNSName,
 			Namespace: r.Namespace, // TODO: can use custom namespace?
 			Labels:    labels,
 		},
@@ -24,7 +24,7 @@ func daemonSetForRainbondEventlog(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSe
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   rbdEventlogName,
+					Name:   rbdDNSName,
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
@@ -36,13 +36,10 @@ func daemonSetForRainbondEventlog(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSe
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",
-					},
 					Containers: []corev1.Container{
 						{
-							Name:            rbdEventlogName,
-							Image:           "rainbond/rbd-eventlog:" + r.Spec.Version,
+							Name:            rbdDNSName,
+							Image:           "rainbond/rbd-dns",
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
@@ -54,21 +51,33 @@ func daemonSetForRainbondEventlog(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSe
 									},
 								},
 								{
-									Name:  "K8S_MASTER",
-									Value: "https://172.20.0.11:6443",
-								},
-								{
-									Name:  "DOCKER_LOG_SAVE_DAY",
-									Value: "7",
+									Name:  "EX_DOMAIN",
+									Value: "foobar.grapps.cn", // TODO: huangrh
 								},
 							},
 							Args: []string{ // TODO: huangrh
-								"--cluster.bind.ip=$(POD_ID)",
-								"--cluster.instance.ip=$(POD_ID)",
-								"--db.url=root:rainbond@tcp(rbd-db-mysql.rbd-system.svc.cluster.local:3306)/region",
-								"--discover.etcd.addr=http://rbd-etcd.rbd-system.svc.cluster.local:2379",
-								"--eventlog.bind.ip=$(POD_ID)",
-								"--websocket.bind.ip=$(POD_ID)",
+								"--kubecfg-file=/opt/rainbond/etc/kubernetes/kubecfg/admin.kubeconfig",
+								"--v=2",
+								"--healthz-port=8089",
+								"--dns-bind-address=$(HOST_IP)",
+								"--nameservers=202.106.0.22,1.2.4.8",
+								"--recoders=goodrain.me=192.168.2.63,*.goodrain.me=192.168.2.63,rainbond.kubernetes.apiserver=192.168.2.63",
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "kubecfg",
+									MountPath: "/opt/rainbond/etc/kubernetes/kubecfg",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "kubecfg",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: "kubecfg",
+								},
 							},
 						},
 					},

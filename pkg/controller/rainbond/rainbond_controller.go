@@ -21,6 +21,20 @@ import (
 
 type daemonSetForRainbond func(p *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet
 
+var daemonSetForRainbondFuncs map[string]daemonSetForRainbond
+
+func init() {
+	daemonSetForRainbondFuncs := make(map[string]daemonSetForRainbond)
+	daemonSetForRainbondFuncs["rbd-worker"] = daemonSetForRainbondWorker
+	daemonSetForRainbondFuncs["rbd-api"] = daemonSetForRainbondAPI
+	daemonSetForRainbondFuncs["rbd-chaos"] = daemonSetForRainbondChaos
+	daemonSetForRainbondFuncs["rbd-eventlog"] = daemonSetForRainbondEventlog
+	daemonSetForRainbondFuncs["rbd-gateway"] = daemonSetForRainbondGateway
+	daemonSetForRainbondFuncs["rbd-monitor"] = daemonSetForRainbondMonitor
+	daemonSetForRainbondFuncs["rbd-mq"] = daemonSetForRainbondMQ
+	daemonSetForRainbondFuncs["rbd-dns"] = daemonSetForRainbondDNS
+}
+
 var log = logf.Log.WithName("controller_rainbond")
 
 // Add creates a new Rainbond Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -79,15 +93,6 @@ type ReconcileRainbond struct {
 func (r *ReconcileRainbond) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling Rainbond")
-
-	daemonSetForRainbondFuncs := make(map[string]daemonSetForRainbond)
-	daemonSetForRainbondFuncs["rbd-worker"] = daemonSetForRainbondWorker
-	daemonSetForRainbondFuncs["rbd-api"] = daemonSetForRainbondAPI
-	daemonSetForRainbondFuncs["rbd-chaos"] = daemonSetForRainbondChaos
-	daemonSetForRainbondFuncs["rbd-eventlog"] = daemonSetForRainbondEventlog
-	daemonSetForRainbondFuncs["rbd-gateway"] = daemonSetForRainbondGateway
-	daemonSetForRainbondFuncs["rbd-monitor"] = daemonSetForRainbondMonitor
-	daemonSetForRainbondFuncs["rbd-mq"] = daemonSetForRainbondMq
 
 	// Fetch the Rainbond instance
 	instance := &rainbondv1alpha1.Rainbond{}

@@ -10,7 +10,7 @@ import (
 
 var mqName = "rbd-mq"
 
-func daemonSetForRainbondMq(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet {
+func daemonSetForRainbondMQ(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet {
 	labels := labelsForRainbond(mqName) // TODO: only on rainbond
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -31,7 +31,7 @@ func daemonSetForRainbondMq(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet {
 					Containers: []corev1.Container{
 						{
 							Name:            mqName,
-							Image:           "rainbond/rbd-mq:%s" + r.Spec.Version,
+							Image:           "rainbond/rbd-mq:" + r.Spec.Version,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
