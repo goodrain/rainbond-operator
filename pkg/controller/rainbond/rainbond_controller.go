@@ -4,9 +4,11 @@ import (
 	"context"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/go-logr/logr"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -19,21 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-type daemonSetForRainbond func(p *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet
-
-var daemonSetForRainbondFuncs map[string]daemonSetForRainbond
-
-func init() {
-	daemonSetForRainbondFuncs := make(map[string]daemonSetForRainbond)
-	daemonSetForRainbondFuncs["rbd-worker"] = daemonSetForRainbondWorker
-	daemonSetForRainbondFuncs["rbd-api"] = daemonSetForRainbondAPI
-	daemonSetForRainbondFuncs["rbd-chaos"] = daemonSetForRainbondChaos
-	daemonSetForRainbondFuncs["rbd-eventlog"] = daemonSetForRainbondEventlog
-	daemonSetForRainbondFuncs["rbd-gateway"] = daemonSetForRainbondGateway
-	daemonSetForRainbondFuncs["rbd-monitor"] = daemonSetForRainbondMonitor
-	daemonSetForRainbondFuncs["rbd-mq"] = daemonSetForRainbondMQ
-	daemonSetForRainbondFuncs["rbd-dns"] = daemonSetForRainbondDNS
-}
+type controllerForRainbond func(p *rainbondv1alpha1.Rainbond) interface{}
 
 var log = logf.Log.WithName("controller_rainbond")
 
@@ -71,6 +59,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	// Watch for changes to secondary resource StatefulSet and requeue the owner Rainbond
+	err = c.Watch(&source.Kind{Type: &appsv1.StatefulSet{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &rainbondv1alpha1.Rainbond{},
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -94,6 +91,20 @@ func (r *ReconcileRainbond) Reconcile(request reconcile.Request) (reconcile.Resu
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling Rainbond")
 
+	controllerForRainbondFuncs := map[string]controllerForRainbond{
+		"rbd-app-ui":     deploymentForRainbondAppUI,
+		"rbd-db":         statefulsetForRainbondDB,
+		"metrics-server": deploymentForMetricsServer,
+		"rbd-worker":     daemonSetForRainbondWorker,
+		"rbd-api":        daemonSetForRainbondAPI,
+		"rbd-chaos":      daemonSetForRainbondChaos,
+		"rbd-eventlog":   daemonSetForRainbondEventlog,
+		"rbd-gateway":    daemonSetForRainbondGateway,
+		"rbd-monitor":    daemonSetForRainbondMonitor,
+		"rbd-mq":         daemonSetForRainbondMQ,
+		"rbd-dns":        daemonSetForRainbondDNS,
+	}
+
 	// Fetch the Rainbond instance
 	instance := &rainbondv1alpha1.Rainbond{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
@@ -108,35 +119,19 @@ func (r *ReconcileRainbond) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	for name := range daemonSetForRainbondFuncs {
-		// Define a new daemonset
-		daemonSetForRainbond := daemonSetForRainbondFuncs[name]
-		daemonSet := daemonSetForRainbond(instance)
-
+	for name := range controllerForRainbondFuncs {
+		generic := controllerForRainbondFuncs[name](instance)
+		reqLogger.Info("Name", name, "Reconciling", generic.(runtime.Object).GetObjectKind().GroupVersionKind().Kind)
 		// Set PrivateRegistry instance as the owner and controller
-		if err := controllerutil.SetControllerReference(instance, daemonSet, r.scheme); err != nil {
+		if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
 			return reconcile.Result{}, err
 		}
 
-		// Check if the daemonset already exists, if not create a new one
-		found := &appsv1.DaemonSet{}
-		err = r.client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, found)
-		if err != nil && errors.IsNotFound(err) {
-			reqLogger.Info("Creating a new DaemonSet", "DaemonSet.Namespace", daemonSet.Namespace, "DaemonSet.Name", daemonSet.Name)
-			err = r.client.Create(context.TODO(), daemonSet)
-			if err != nil {
-				reqLogger.Error(err, "Failed to create new DaemonSet", "DaemonSet.Namespace", daemonSet.Namespace, "DaemonSet.Name", daemonSet.Name)
-				return reconcile.Result{}, err
-			}
-			// daemonset created successfully - return and requeue
-			return reconcile.Result{Requeue: true}, nil
-		} else if err != nil {
-			reqLogger.Error(err, "Failed to get DaemonSet")
-			return reconcile.Result{}, err
+		// Check if the statefulset already exists, if not create a new one
+		reconcileResult, err := r.updateOrCreateResource(reqLogger, generic.(runtime.Object), generic.(metav1.Object))
+		if err != nil {
+			return reconcileResult, err
 		}
-
-		// DaemonSet already exists - don't requeue
-		reqLogger.Info("Skip reconcile: DaemonSet already exists", "DaemonSet.Namespace", found.Namespace, "DaemonSet.Name", found.Name)
 	}
 
 	return reconcile.Result{}, nil
@@ -146,4 +141,30 @@ func (r *ReconcileRainbond) Reconcile(request reconcile.Request) (reconcile.Resu
 // belonging to the given Rainbond CR name.
 func labelsForRainbond(name string) map[string]string {
 	return map[string]string{"name": name} // TODO: only one rainbond?
+}
+
+func (r *ReconcileRainbond) updateOrCreateResource(reqLogger logr.Logger, obj runtime.Object, meta metav1.Object) (reconcile.Result, error) {
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
+	if err != nil && errors.IsNotFound(err) {
+		reqLogger.Info("Creating a new", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+		err = r.client.Create(context.TODO(), obj)
+		if err != nil {
+			reqLogger.Error(err, "Failed to create new", obj.GetObjectKind(), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+			return reconcile.Result{}, err
+		}
+		// daemonset created successfully - return and requeue TODO: why?
+		return reconcile.Result{Requeue: true}, nil
+	} else if err != nil {
+		reqLogger.Error(err, "Failed to get ", obj.GetObjectKind())
+		return reconcile.Result{}, err
+	}
+
+	// obj exsits, update
+	reqLogger.Info("Update ", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+	if err := r.client.Update(context.TODO(), obj); err != nil {
+		reqLogger.Error(err, "Failed to update ", obj.GetObjectKind())
+		return reconcile.Result{}, err
+	}
+
+	return reconcile.Result{}, nil
 }

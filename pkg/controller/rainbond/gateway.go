@@ -10,7 +10,7 @@ import (
 
 var gatewayName = "rbd-gateway"
 
-func daemonSetForRainbondGateway(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet {
+func daemonSetForRainbondGateway(r *rainbondv1alpha1.Rainbond) interface{} {
 	labels := labelsForRainbond(gatewayName) // TODO: only on rainbond
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -37,7 +37,7 @@ func daemonSetForRainbondGateway(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet
 						},
 					},
 					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",  // TODO: not serious
+						"node-role.kubernetes.io/master": "", // TODO: not serious
 					},
 					Containers: []corev1.Container{
 						{
@@ -65,7 +65,7 @@ func daemonSetForRainbondGateway(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet
 							Name: "kubecfg",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: "kubecfg",  // TODO: check before creating
+									SecretName: "kubecfg", // TODO: check before creating
 								},
 							},
 						},

@@ -10,7 +10,7 @@ import (
 
 var monitorName = "rbd-monitor"
 
-func daemonSetForRainbondMonitor(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet {
+func daemonSetForRainbondMonitor(r *rainbondv1alpha1.Rainbond) interface{} {
 	labels := labelsForRainbond(monitorName) // TODO: only on rainbond
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -31,7 +31,7 @@ func daemonSetForRainbondMonitor(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet
 					Containers: []corev1.Container{
 						{
 							Name:            monitorName,
-							Image:           "rainbond/rbd-monitor:"+r.Spec.Version,
+							Image:           "rainbond/rbd-monitor:" + r.Spec.Version,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{

@@ -10,7 +10,7 @@ import (
 
 var rbdWorkerName = "rbd-worker"
 
-func daemonSetForRainbondWorker(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet {
+func daemonSetForRainbondWorker(r *rainbondv1alpha1.Rainbond) interface{} {
 	labels := labelsForRainbond(rbdWorkerName) // TODO: only on rainbond
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{

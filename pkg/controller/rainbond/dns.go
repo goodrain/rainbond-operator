@@ -10,7 +10,7 @@ import (
 
 var rbdDNSName = "rbd-dns"
 
-func daemonSetForRainbondDNS(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet {
+func daemonSetForRainbondDNS(r *rainbondv1alpha1.Rainbond) interface{} {
 	labels := labelsForRainbond(rbdDNSName) // TODO: only on rainbond
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{

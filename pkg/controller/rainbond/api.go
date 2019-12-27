@@ -10,7 +10,7 @@ import (
 
 var rbdAPIName = "rbd-api"
 
-func daemonSetForRainbondAPI(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet {
+func daemonSetForRainbondAPI(r *rainbondv1alpha1.Rainbond) interface{} {
 	labels := labelsForRainbond(rbdAPIName) // TODO: only on rainbond
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{

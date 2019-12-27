@@ -10,7 +10,7 @@ import (
 
 var rbdEventlogName = "rbd-eventlog"
 
-func daemonSetForRainbondEventlog(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet {
+func daemonSetForRainbondEventlog(r *rainbondv1alpha1.Rainbond) interface{} {
 	labels := labelsForRainbond(rbdEventlogName) // TODO: only on rainbond
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{

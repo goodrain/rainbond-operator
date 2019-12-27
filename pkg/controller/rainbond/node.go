@@ -10,7 +10,7 @@ import (
 
 var rbdNodeName = "rbd-node"
 
-func daemonSetForRainbondNode(r *rainbondv1alpha1.Rainbond) *appsv1.DaemonSet {
+func daemonSetForRainbondNode(r *rainbondv1alpha1.Rainbond) interface{} {
 	labels := labelsForRainbond(rbdNodeName) // TODO: only on rainbond
 	hostPathDir := corev1.HostPathDirectory
 	ds := &appsv1.DaemonSet{
