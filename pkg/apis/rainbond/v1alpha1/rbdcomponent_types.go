@@ -41,6 +41,7 @@ type RbdComponentSpec struct {
 type RbdComponentStatus struct {
 }
 
+// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // RbdComponent is the Schema for the rbdcomponents API

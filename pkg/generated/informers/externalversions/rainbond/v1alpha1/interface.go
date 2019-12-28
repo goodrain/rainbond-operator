@@ -26,10 +26,14 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// GlobalConfigs returns a GlobalConfigInformer.
+	GlobalConfigs() GlobalConfigInformer
 	// PrivateRegistries returns a PrivateRegistryInformer.
 	PrivateRegistries() PrivateRegistryInformer
 	// Rainbonds returns a RainbondInformer.
 	Rainbonds() RainbondInformer
+	// RbdComponents returns a RbdComponentInformer.
+	RbdComponents() RbdComponentInformer
 	// StorageProvisioners returns a StorageProvisionerInformer.
 	StorageProvisioners() StorageProvisionerInformer
 }
@@ -45,6 +49,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
+// GlobalConfigs returns a GlobalConfigInformer.
+func (v *version) GlobalConfigs() GlobalConfigInformer {
+	return &globalConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // PrivateRegistries returns a PrivateRegistryInformer.
 func (v *version) PrivateRegistries() PrivateRegistryInformer {
 	return &privateRegistryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
@@ -53,6 +62,11 @@ func (v *version) PrivateRegistries() PrivateRegistryInformer {
 // Rainbonds returns a RainbondInformer.
 func (v *version) Rainbonds() RainbondInformer {
 	return &rainbondInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// RbdComponents returns a RbdComponentInformer.
+func (v *version) RbdComponents() RbdComponentInformer {
+	return &rbdComponentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // StorageProvisioners returns a StorageProvisionerInformer.

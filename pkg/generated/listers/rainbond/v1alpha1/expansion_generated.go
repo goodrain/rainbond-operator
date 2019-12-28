@@ -20,6 +20,14 @@
 
 package v1alpha1
 
+// GlobalConfigListerExpansion allows custom methods to be added to
+// GlobalConfigLister.
+type GlobalConfigListerExpansion interface{}
+
+// GlobalConfigNamespaceListerExpansion allows custom methods to be added to
+// GlobalConfigNamespaceLister.
+type GlobalConfigNamespaceListerExpansion interface{}
+
 // PrivateRegistryListerExpansion allows custom methods to be added to
 // PrivateRegistryLister.
 type PrivateRegistryListerExpansion interface{}
@@ -35,6 +43,14 @@ type RainbondListerExpansion interface{}
 // RainbondNamespaceListerExpansion allows custom methods to be added to
 // RainbondNamespaceLister.
 type RainbondNamespaceListerExpansion interface{}
+
+// RbdComponentListerExpansion allows custom methods to be added to
+// RbdComponentLister.
+type RbdComponentListerExpansion interface{}
+
+// RbdComponentNamespaceListerExpansion allows custom methods to be added to
+// RbdComponentNamespaceLister.
+type RbdComponentNamespaceListerExpansion interface{}
 
 // StorageProvisionerListerExpansion allows custom methods to be added to
 // StorageProvisionerLister.

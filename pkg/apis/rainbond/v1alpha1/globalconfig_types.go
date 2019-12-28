@@ -36,6 +36,7 @@ type EtcdInfo struct {
 type GlobalConfigStatus struct {
 }
 
+// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // GlobalConfig is the Schema for the globalconfigs API

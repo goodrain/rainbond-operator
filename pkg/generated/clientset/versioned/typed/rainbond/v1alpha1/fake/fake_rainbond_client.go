@@ -30,12 +30,20 @@ type FakeRainbondV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeRainbondV1alpha1) GlobalConfigs(namespace string) v1alpha1.GlobalConfigInterface {
+	return &FakeGlobalConfigs{c, namespace}
+}
+
 func (c *FakeRainbondV1alpha1) PrivateRegistries(namespace string) v1alpha1.PrivateRegistryInterface {
 	return &FakePrivateRegistries{c, namespace}
 }
 
 func (c *FakeRainbondV1alpha1) Rainbonds(namespace string) v1alpha1.RainbondInterface {
 	return &FakeRainbonds{c, namespace}
+}
+
+func (c *FakeRainbondV1alpha1) RbdComponents(namespace string) v1alpha1.RbdComponentInterface {
+	return &FakeRbdComponents{c, namespace}
 }
 
 func (c *FakeRainbondV1alpha1) StorageProvisioners(namespace string) v1alpha1.StorageProvisionerInterface {
