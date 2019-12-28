@@ -64,8 +64,8 @@ func daemonSetForRainbondAPI(r *rainbondv1alpha1.Rainbond) interface{} {
 								"--api-ssl-certfile=/etc/goodrain/region.goodrain.me/ssl/server.pem",
 								"--api-ssl-keyfile=/etc/goodrain/region.goodrain.me/ssl/server.key.pem",
 								"--client-ca-file=/etc/goodrain/region.goodrain.me/ssl/ca.pem",
+								"--etcd=http://rbd-etcd.rbd-system.svc.cluster.local:2379",
 							},
-
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "ssl",

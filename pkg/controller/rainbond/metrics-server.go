@@ -37,7 +37,7 @@ func deploymentForMetricsServer(r *rainbondv1alpha1.Rainbond) interface{} {
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Ports: []corev1.ContainerPort{
 								{
-									Name: "main-port",
+									Name:          "main-port",
 									ContainerPort: 4443,
 								},
 							},

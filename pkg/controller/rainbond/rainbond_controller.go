@@ -93,7 +93,6 @@ func (r *ReconcileRainbond) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	controllerForRainbondFuncs := map[string]controllerForRainbond{
 		"rbd-app-ui":     deploymentForRainbondAppUI,
-		"rbd-db":         statefulsetForRainbondDB,
 		"metrics-server": deploymentForMetricsServer,
 		"rbd-worker":     daemonSetForRainbondWorker,
 		"rbd-api":        daemonSetForRainbondAPI,

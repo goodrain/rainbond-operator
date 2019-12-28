@@ -57,6 +57,14 @@ func daemonSetForRainbondWorker(r *rainbondv1alpha1.Rainbond) interface{} {
 									},
 								},
 							},
+							Args: []string{
+								"--log-level=debug",
+								"--host-ip=$(POD_IP)",
+								"--etcd-endpoints=http://rbd-etcd.rbd-system.svc.cluster.local:2379",
+								"--node-name=$(HOST_IP)",
+								"--kube-config=/opt/rainbond/etc/kubernetes/kubecfg/admin.kubeconfig",
+								"--mysql=root:rainbond@tcp(rbd-db-mysql.rbd-system.svc.cluster.local:3306)/region",
+							},
 						},
 					},
 					Volumes: []corev1.Volume{
