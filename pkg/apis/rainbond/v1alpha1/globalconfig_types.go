@@ -11,25 +11,33 @@ type GlobalConfigSpec struct {
 	// the storage class that rainbond component will be used.
 	// rainbond-operator will create one if StorageClassName is empty
 	StorageClassName string `json:"storageClassName,omitempty"`
-	// the db connection information that rainbond component will be used.
+	// the region database information that rainbond component will be used.
 	// rainbond-operator will create one if DBInfo is empty
-	DBInfo DBInfo `json:"dbInfo,omitempty"`
+	RegionDatabase Database `json:"regionDatabase,omitempty"`
+	// the ui database information that rainbond component will be used.
+	// rainbond-operator will create one if DBInfo is empty
+	UIDatabase Database `json:"uiDatabase,omitempty"`
 	// the etcd connection information that rainbond component will be used.
-	// rainbond-operator will create one if EtcdInfo is empty
-	EtcdInfo EtcdInfo `json:"etcdInfo,omitempty"`
+	// rainbond-operator will create one if EtcdConfig is empty
+	EtcdConfig EtcdConfig `json:"etcdConfig,omitempty"`
 }
 
-// DBInfo defines the connection information of database.
-type DBInfo struct {
+// Database defines the connection information of database.
+type Database struct {
 	Host     string `json:"host"`
 	Port     int    `json:"port"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-// EtcdInfo defines the connection information of ETCD.
-type EtcdInfo struct {
+// EtcdConfig defines the configuration of etcd client.
+type EtcdConfig struct {
+	// Endpoints is a list of URLs.
 	Endpoints []string `json:"endpoints"`
+	// Whether to use tls to connect to etcd
+	UseTLS bool `json:"useTLS"`
+	// Secret to mount to read certificate files for tls.
+	CertSecret metav1.LabelSelector `json:"selector"`
 }
 
 // GlobalConfigStatus defines the observed state of GlobalConfig

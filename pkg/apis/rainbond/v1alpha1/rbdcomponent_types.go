@@ -33,8 +33,8 @@ type RbdComponentSpec struct {
 	// type of rainbond component
 	Type RbdComponentType `json:"type"`
 	// version of rainbond component
-	Version string `json:"version"`
-	LogLevel   LogLevel              `json:"logLevel,omitempty"`
+	Version  string   `json:"version"`
+	LogLevel LogLevel `json:"logLevel,omitempty"`
 }
 
 // RbdComponentStatus defines the observed state of RbdComponent

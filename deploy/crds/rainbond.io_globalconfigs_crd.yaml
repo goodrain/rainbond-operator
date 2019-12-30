@@ -31,8 +31,94 @@ spec:
         spec:
           description: GlobalConfigSpec defines the desired state of GlobalConfig
           properties:
-            dbInfo:
-              description: the db connection information that rainbond component will
+            etcdConfig:
+              description: the etcd connection information that rainbond component
+                will be used. rainbond-operator will create one if EtcdConfig is empty
+              properties:
+                endpoints:
+                  description: Endpoints is a list of URLs.
+                  items:
+                    type: string
+                  type: array
+                selector:
+                  description: Secret to mount to read certificate files for tls.
+                  properties:
+                    matchExpressions:
+                      description: matchExpressions is a list of label selector requirements.
+                        The requirements are ANDed.
+                      items:
+                        description: A label selector requirement is a selector that
+                          contains values, a key, and an operator that relates the
+                          key and values.
+                        properties:
+                          key:
+                            description: key is the label key that the selector applies
+                              to.
+                            type: string
+                          operator:
+                            description: operator represents a key's relationship
+                              to a set of values. Valid operators are In, NotIn, Exists
+                              and DoesNotExist.
+                            type: string
+                          values:
+                            description: values is an array of string values. If the
+                              operator is In or NotIn, the values array must be non-empty.
+                              If the operator is Exists or DoesNotExist, the values
+                              array must be empty. This array is replaced during a
+                              strategic merge patch.
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - key
+                        - operator
+                        type: object
+                      type: array
+                    matchLabels:
+                      additionalProperties:
+                        type: string
+                      description: matchLabels is a map of {key,value} pairs. A single
+                        {key,value} in the matchLabels map is equivalent to an element
+                        of matchExpressions, whose key field is "key", the operator
+                        is "In", and the values array contains only "value". The requirements
+                        are ANDed.
+                      type: object
+                  type: object
+                useTLS:
+                  description: Whether to use tls to connect to etcd
+                  type: boolean
+              required:
+              - endpoints
+              - selector
+              - useTLS
+              type: object
+            imageRepositry:
+              description: default goodrain.me
+              type: string
+            regionDatabase:
+              description: the region database information that rainbond component
+                will be used. rainbond-operator will create one if DBInfo is empty
+              properties:
+                host:
+                  type: string
+                password:
+                  type: string
+                port:
+                  type: integer
+                username:
+                  type: string
+              required:
+              - host
+              - password
+              - port
+              - username
+              type: object
+            storageClassName:
+              description: the storage class that rainbond component will be used.
+                rainbond-operator will create one if StorageClassName is empty
+              type: string
+            uiDatabase:
+              description: the ui database information that rainbond component will
                 be used. rainbond-operator will create one if DBInfo is empty
               properties:
                 host:
@@ -49,24 +135,6 @@ spec:
               - port
               - username
               type: object
-            etcdInfo:
-              description: the etcd connection information that rainbond component
-                will be used. rainbond-operator will create one if EtcdInfo is empty
-              properties:
-                endpoints:
-                  items:
-                    type: string
-                  type: array
-              required:
-              - endpoints
-              type: object
-            imageRepositry:
-              description: default goodrain.me
-              type: string
-            storageClassName:
-              description: the storage class that rainbond component will be used.
-                rainbond-operator will create one if StorageClassName is empty
-              type: string
           type: object
         status:
           description: GlobalConfigStatus defines the observed state of GlobalConfig
