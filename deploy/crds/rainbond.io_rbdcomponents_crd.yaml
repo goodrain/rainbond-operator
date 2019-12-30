@@ -46,6 +46,39 @@ spec:
           type: object
         status:
           description: RbdComponentStatus defines the observed state of RbdComponent
+          properties:
+            healthy:
+              type: boolean
+            message:
+              type: string
+            podStatus:
+              properties:
+                healthy:
+                  description: Healthy are the component pods that pass the liveness.
+                  items:
+                    type: string
+                  type: array
+                ready:
+                  description: Ready are the component pods that are ready to serve
+                    requests The pod names are the same as the component pod names
+                  items:
+                    type: string
+                  type: array
+                unHealthy:
+                  description: Healthy are the component pods that pass the de liveness.
+                  items:
+                    type: string
+                  type: array
+                unready:
+                  description: Unready are the components not ready to serve requests
+                  items:
+                    type: string
+                  type: array
+              type: object
+          required:
+          - healthy
+          - message
+          - podStatus
           type: object
       type: object
   version: v1alpha1

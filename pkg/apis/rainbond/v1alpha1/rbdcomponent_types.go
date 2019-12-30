@@ -39,6 +39,9 @@ type RbdComponentSpec struct {
 
 // RbdComponentStatus defines the observed state of RbdComponent
 type RbdComponentStatus struct {
+	Healthy   bool      `json:"healthy"`
+	PodStatus PodStatus `json:"podStatus"`
+	Message   string    `json:"message"`
 }
 
 // +genclient
@@ -66,4 +69,16 @@ type RbdComponentList struct {
 
 func init() {
 	SchemeBuilder.Register(&RbdComponent{}, &RbdComponentList{})
+}
+
+type PodStatus struct {
+	// Ready are the component pods that are ready to serve requests
+	// The pod names are the same as the component pod names
+	Ready []string `json:"ready,omitempty"`
+	// Unready are the components not ready to serve requests
+	Unready []string `json:"unready,omitempty"`
+	// Healthy are the component pods that pass the liveness.
+	Healthy []string `json:"healthy,omitempty"`
+	// Healthy are the component pods that pass the de liveness.
+	UnHealthy []string `json:"unHealthy,omitempty"`
 }

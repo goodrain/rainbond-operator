@@ -92,9 +92,16 @@ spec:
               - selector
               - useTLS
               type: object
-            imageRepositry:
+            imageHub:
               description: default goodrain.me
-              type: string
+              properties:
+                domain:
+                  type: string
+                password:
+                  type: string
+                username:
+                  type: string
+              type: object
             regionDatabase:
               description: the region database information that rainbond component
                 will be used. rainbond-operator will create one if DBInfo is empty

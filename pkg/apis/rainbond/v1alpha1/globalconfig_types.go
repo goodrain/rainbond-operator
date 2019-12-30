@@ -7,7 +7,7 @@ import (
 // GlobalConfigSpec defines the desired state of GlobalConfig
 type GlobalConfigSpec struct {
 	// default goodrain.me
-	ImageRepositry string `json:"imageRepositry,omitempty"`
+	ImageHub ImageHub `json:"imageHub,omitempty"`
 	// the storage class that rainbond component will be used.
 	// rainbond-operator will create one if StorageClassName is empty
 	StorageClassName string `json:"storageClassName,omitempty"`
@@ -20,6 +20,13 @@ type GlobalConfigSpec struct {
 	// the etcd connection information that rainbond component will be used.
 	// rainbond-operator will create one if EtcdConfig is empty
 	EtcdConfig EtcdConfig `json:"etcdConfig,omitempty"`
+}
+
+type ImageHub struct {
+	Domain    string `json:"domain,omitempty"`
+	Namespace string `json:"domain,omitempty"`
+	Username  string `json:"username,omitempty"`
+	Password  string `json:"password,omitempty"`
 }
 
 // Database defines the connection information of database.
@@ -40,10 +47,6 @@ type EtcdConfig struct {
 	CertSecret metav1.LabelSelector `json:"selector"`
 }
 
-// GlobalConfigStatus defines the observed state of GlobalConfig
-type GlobalConfigStatus struct {
-}
-
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -55,7 +58,6 @@ type GlobalConfig struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   GlobalConfigSpec   `json:"spec,omitempty"`
-	Status GlobalConfigStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
