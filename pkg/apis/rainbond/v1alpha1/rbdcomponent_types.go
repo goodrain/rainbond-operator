@@ -39,7 +39,6 @@ type RbdComponentSpec struct {
 
 // RbdComponentStatus defines the observed state of RbdComponent
 type RbdComponentStatus struct {
-	Healthy   bool      `json:"healthy"`
 	PodStatus PodStatus `json:"podStatus"`
 	Message   string    `json:"message"`
 }

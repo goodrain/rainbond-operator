@@ -47,8 +47,6 @@ spec:
         status:
           description: RbdComponentStatus defines the observed state of RbdComponent
           properties:
-            healthy:
-              type: boolean
             message:
               type: string
             podStatus:
@@ -76,7 +74,6 @@ spec:
                   type: array
               type: object
           required:
-          - healthy
           - message
           - podStatus
           type: object

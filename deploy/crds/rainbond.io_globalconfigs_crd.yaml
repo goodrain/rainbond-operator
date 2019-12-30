@@ -31,6 +31,17 @@ spec:
         spec:
           description: GlobalConfigSpec defines the desired state of GlobalConfig
           properties:
+            availPorts:
+              items:
+                properties:
+                  nodeIP:
+                    type: string
+                  nodeName:
+                    type: string
+                  port:
+                    type: integer
+                type: object
+              type: array
             etcdConfig:
               description: the etcd connection information that rainbond component
                 will be used. rainbond-operator will create one if EtcdConfig is empty
@@ -102,6 +113,13 @@ spec:
                 username:
                   type: string
               type: object
+            kubeAPIHost:
+              description: KubeAPIHost must be a host string, a host:port pair, or
+                a URL to the base of the apiserver. If a URL is given then the (optional)
+                Path of that URL represents a prefix that must be appended to all
+                request URIs used to access the apiserver. This allows a frontend
+                proxy to easily relocate all of the apiserver endpoints.
+              type: string
             regionDatabase:
               description: the region database information that rainbond component
                 will be used. rainbond-operator will create one if DBInfo is empty
@@ -145,6 +163,10 @@ spec:
           type: object
         status:
           description: GlobalConfigStatus defines the observed state of GlobalConfig
+          properties:
+            phase:
+              description: Rainbond cluster installation phase
+              type: string
           type: object
       type: object
   version: v1alpha1
