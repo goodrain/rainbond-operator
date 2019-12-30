@@ -108,6 +108,8 @@ spec:
               properties:
                 domain:
                   type: string
+                namespace:
+                  type: string
                 password:
                   type: string
                 username:

@@ -14,6 +14,20 @@ const (
 	RbdComponentTypeWorker RbdComponentType = "rbd-worker"
 )
 
+// RbdComponentPhase is the phase of rainbond component
+type RbdComponentPhase string
+
+const (
+	// RbdComponentmPhaseImagePulling -
+	RbdComponentmPhaseImagePulling RbdComponentPhase = "ImagePulling"
+	// RbdComponentPhaseCreating -
+	RbdComponentPhaseCreating RbdComponentPhase = "Creating"
+	// RbdComponentPhaseRunning -
+	RbdComponentPhaseRunning RbdComponentPhase = "Running"
+	// RbdComponentPhasePailed -
+	RbdComponentPhasePailed RbdComponentPhase = "Failed"
+)
+
 // LogLevel -
 type LogLevel string
 
@@ -39,8 +53,9 @@ type RbdComponentSpec struct {
 
 // RbdComponentStatus defines the observed state of RbdComponent
 type RbdComponentStatus struct {
-	PodStatus PodStatus `json:"podStatus"`
-	Message   string    `json:"message"`
+	Phase     RbdComponentPhase `json:"phase,omitempty"`
+	PodStatus PodStatus         `json:"podStatus"`
+	Message   string            `json:"message"`
 }
 
 // +genclient
@@ -70,6 +85,7 @@ func init() {
 	SchemeBuilder.Register(&RbdComponent{}, &RbdComponentList{})
 }
 
+// PodStatus -
 type PodStatus struct {
 	// Ready are the component pods that are ready to serve requests
 	// The pod names are the same as the component pod names

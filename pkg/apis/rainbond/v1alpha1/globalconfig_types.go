@@ -10,7 +10,7 @@ const (
 	GlobalConfigPhaseExtractInstallationPackage GlobalConfigPhase = "ExtractInstallationPackage"
 
 	GlobalConfigPhaseLoadImages GlobalConfigPhase = "LoadImages"
-	
+
 	GlobalConfigPhasePushImages GlobalConfigPhase = "PushImages"
 
 	GlobalConfigPhaseInstalling GlobalConfigPhase = "Installing"
@@ -51,7 +51,7 @@ type AvailPorts struct {
 
 type ImageHub struct {
 	Domain    string `json:"domain,omitempty"`
-	Namespace string `json:"domain,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 	Username  string `json:"username,omitempty"`
 	Password  string `json:"password,omitempty"`
 }

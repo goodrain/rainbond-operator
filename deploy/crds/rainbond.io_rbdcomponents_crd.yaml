@@ -49,7 +49,11 @@ spec:
           properties:
             message:
               type: string
+            phase:
+              description: RbdComponentPhase is the phase of rainbond component
+              type: string
             podStatus:
+              description: PodStatus -
               properties:
                 healthy:
                   description: Healthy are the component pods that pass the liveness.
