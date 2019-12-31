@@ -22,6 +22,8 @@ const (
 type GlobalConfigSpec struct {
 	// default goodrain.me
 	ImageHub ImageHub `json:"imageHub,omitempty"`
+	// List of existing StorageClasses in the cluster
+	AvailStorageClasses []string `json:"availStorageClasses,omitempty"`
 	// the storage class that rainbond component will be used.
 	// rainbond-operator will create one if StorageClassName is empty
 	StorageClassName string `json:"storageClassName,omitempty"`

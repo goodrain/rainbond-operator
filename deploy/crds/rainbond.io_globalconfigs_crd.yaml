@@ -42,6 +42,11 @@ spec:
                     type: integer
                 type: object
               type: array
+            availStorageClasses:
+              description: List of existing StorageClasses in the cluster
+              items:
+                type: string
+              type: array
             etcdConfig:
               description: the etcd connection information that rainbond component
                 will be used. rainbond-operator will create one if EtcdConfig is empty
