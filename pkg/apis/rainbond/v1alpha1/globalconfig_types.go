@@ -60,20 +60,20 @@ type ImageHub struct {
 
 // Database defines the connection information of database.
 type Database struct {
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Host     string `json:"host,omitempty"`
+	Port     int    `json:"port,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 // EtcdConfig defines the configuration of etcd client.
 type EtcdConfig struct {
 	// Endpoints is a list of URLs.
-	Endpoints []string `json:"endpoints"`
+	Endpoints []string `json:"endpoints,omitempty"`
 	// Whether to use tls to connect to etcd
-	UseTLS bool `json:"useTLS"`
+	UseTLS bool `json:"useTLS,omitempty"`
 	// Secret to mount to read certificate files for tls.
-	CertSecret metav1.LabelSelector `json:"selector"`
+	CertSecret metav1.LabelSelector `json:"selector,omitempty"`
 }
 
 // GlobalConfigStatus defines the observed state of GlobalConfig

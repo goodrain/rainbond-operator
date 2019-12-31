@@ -33,19 +33,19 @@ type LogLevel string
 
 const (
 	// LogLevelDebug -
-	LogLevelDebug RbdComponentType = "debug"
+	LogLevelDebug LogLevel = "debug"
 	// LogLevelInfo -
-	LogLevelInfo RbdComponentType = "info"
+	LogLevelInfo LogLevel = "info"
 	// LogLevelWarning -
-	LogLevelWarning RbdComponentType = "warning"
+	LogLevelWarning LogLevel = "warning"
 	// LogLevelError -
-	LogLevelError RbdComponentType = "error"
+	LogLevelError LogLevel = "error"
 )
 
 // RbdComponentSpec defines the desired state of RbdComponent
 type RbdComponentSpec struct {
 	// type of rainbond component
-	Type RbdComponentType `json:"type"`
+	Type string `json:"type"`
 	// version of rainbond component
 	Version  string   `json:"version"`
 	LogLevel LogLevel `json:"logLevel,omitempty"`

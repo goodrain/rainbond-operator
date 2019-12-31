@@ -105,10 +105,6 @@ spec:
                 useTLS:
                   description: Whether to use tls to connect to etcd
                   type: boolean
-              required:
-              - endpoints
-              - selector
-              - useTLS
               type: object
             imageHub:
               description: default goodrain.me
@@ -141,11 +137,6 @@ spec:
                   type: integer
                 username:
                   type: string
-              required:
-              - host
-              - password
-              - port
-              - username
               type: object
             storageClassName:
               description: the storage class that rainbond component will be used.
@@ -163,11 +154,6 @@ spec:
                   type: integer
                 username:
                   type: string
-              required:
-              - host
-              - password
-              - port
-              - username
               type: object
           type: object
         status:
