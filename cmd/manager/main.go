@@ -143,8 +143,9 @@ func main() {
 		}
 	}
 
-	log.Info("Starting the Cmd.")
+	
 
+	log.Info("Starting the Cmd.")
 	// Start the Cmd
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		log.Error(err, "Manager exited non-zero")

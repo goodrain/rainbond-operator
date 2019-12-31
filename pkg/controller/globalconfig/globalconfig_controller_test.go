@@ -39,13 +39,41 @@ func TestCheckPortOccupation(t *testing.T) {
 				t.Errorf("failed exec function 'occupyPortFunc': %v", err)
 				return
 			}
-			defer func ()  {
+			defer func() {
 				if l != nil {
 					l.Close()
 				}
 			}()
 
 			got := checkPortOccupation(tc.address)
+			if tc.want != got {
+				t.Errorf("Expected %v, but got %v", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestKubeAPIServerHost(t *testing.T) {
+	tests := []struct {
+		name, addr string
+		want       bool
+	}{
+		{
+			name: "wrong addr",
+			addr: "kubernetes",
+			want: false,
+		},
+		{
+			name: "ok",
+			addr: "localhost",
+			want: true,
+		},
+	}
+
+	for idx := range tests {
+		tc := tests[idx]
+		t.Run(tc.name, func(t *testing.T) {
+			got := kubeAPIServerHost(nil, tc.addr)
 			if tc.want != got {
 				t.Errorf("Expected %v, but got %v", tc.want, got)
 			}

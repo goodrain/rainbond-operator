@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/go-logr/logr"
+	"github.com/sparrc/go-ping"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 )
@@ -86,13 +87,20 @@ func (r *ReconcileGlobalConfig) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
+	// available ports
 	nodeAvailPorts := r.listNodeAavailPorts(reqLogger)
 	reqLogger.Info(fmt.Sprintf("node available ports: %#v", nodeAvailPorts))
 
 	newGlobalConfigSpec := globalConfig.Spec.DeepCopy()
 	newGlobalConfigSpec.NodeAvailPorts = nodeAvailPorts
+
+	// kube-apiserver host
+	if kubeAPIServerHost(reqLogger, "kubernetes.default.svc.cluster.local") {
+		newGlobalConfigSpec.KubeAPIHost = "kubernetes.default.svc.cluster.local"
+	}
+
 	if !reflect.DeepEqual(globalConfig.Spec, newGlobalConfigSpec) {
-		globalConfig.Spec.NodeAvailPorts = nodeAvailPorts
+		globalConfig.Spec = *newGlobalConfigSpec
 		if err := r.updateGlobalConfig(reqLogger, globalConfig); err != nil {
 			// Error updating the object - requeue the request.
 			return reconcile.Result{}, err
@@ -118,10 +126,10 @@ func (r *ReconcileGlobalConfig) listNodeAavailPorts(reqLogger logr.Logger) []rai
 	reqLogger.Info("Found nodes", nodeList)
 
 	checkPortOccupation := func(address string) bool {
-		reqLogger.Info("Start check port occupation; Address: ", address)
+		reqLogger.Info("Start check port occupation", "Address: ", address)
 		conn, err := net.Dial("tcp", address)
 		if err != nil {
-			reqLogger.Info("check port occupation", err)
+			reqLogger.Info("check port occupation", "error", err.Error())
 			return false
 		}
 		defer conn.Close()
@@ -166,10 +174,22 @@ func checkPortOccupation(address string) bool {
 }
 
 func (r *ReconcileGlobalConfig) updateGlobalConfig(reqLogger logr.Logger, globalConfig *rainbondv1alpha1.GlobalConfig) error {
-	reqLogger.Info("Start updating globalconfig.", "globalconfig: ", globalConfig)
+	reqLogger.Info("Start updating globalconfig.", "Globalconfig", globalConfig)
 	if err := r.client.Update(context.TODO(), globalConfig); err != nil {
 		reqLogger.Error(err, "Update globalconfig")
 		return err
 	}
 	return nil
+}
+
+func kubeAPIServerHost(reqLogger logr.Logger, addr string) (ok bool) {
+	_, err := ping.NewPinger(addr)
+	if err != nil {
+		reqLogger.Error(err, "new pingger")
+		return
+	}
+
+	ok = true
+
+	return
 }
