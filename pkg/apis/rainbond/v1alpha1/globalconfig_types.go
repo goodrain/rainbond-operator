@@ -42,13 +42,13 @@ type GlobalConfigSpec struct {
 	// proxy to easily relocate all of the apiserver endpoints.
 	KubeAPIHost string `json:"kubeAPIHost,omitempty"`
 
-	AvailPorts []AvailPorts `json:"availPorts,omitempty"`
+	NodeAvailPorts []NodeAvailPorts `json:"NodeAvailPorts,omitempty"`
 }
 
-type AvailPorts struct {
-	Port     int    `json:"port,omitempty"`
-	NodeIP   string `json:"nodeIP,omitempty"`
+type NodeAvailPorts struct {
 	NodeName string `json:"nodeName,omitempty"`
+	NodeIP   string `json:"nodeIP,omitempty"`
+	Ports    []int  `json:"ports,omitempty"`
 }
 
 type ImageHub struct {

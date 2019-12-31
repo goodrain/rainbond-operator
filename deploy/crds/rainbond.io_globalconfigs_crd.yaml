@@ -31,15 +31,17 @@ spec:
         spec:
           description: GlobalConfigSpec defines the desired state of GlobalConfig
           properties:
-            availPorts:
+            NodeAvailPorts:
               items:
                 properties:
                   nodeIP:
                     type: string
                   nodeName:
                     type: string
-                  port:
-                    type: integer
+                  ports:
+                    items:
+                      type: integer
+                    type: array
                 type: object
               type: array
             availStorageClasses:
