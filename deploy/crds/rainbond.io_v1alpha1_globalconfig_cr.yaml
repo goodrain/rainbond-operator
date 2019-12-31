@@ -1,7 +1,5 @@
 apiVersion: rainbond.io/v1alpha1
 kind: GlobalConfig
 metadata:
-  name: example-globalconfig
-spec:
-  # Add fields here
-  size: 3
+  name: rbd-globalconfig
+  namespace: rbd-system
