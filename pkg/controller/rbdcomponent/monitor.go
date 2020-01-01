@@ -44,7 +44,7 @@ func daemonSetForRainbondMonitor(r *rainbondv1alpha1.RbdComponent) interface{} {
 								},
 							},
 							Args: []string{ // TODO: huangrh
-								"--etcd-endpoints=http://rbd-etcd.rbd-system.svc.cluster.local:2379",
+								"--etcd-endpoints=http://etcd0:2379",
 								"--advertise-addr=$(POD_IP):9999",
 								"--alertmanager-address=$(POD_IP):9093",
 								"--web.listen-address=$(POD_IP):9999",

@@ -171,7 +171,7 @@ func secretForHub(rc *rainbondv1alpha1.RbdComponent) interface{} {
 	labels := rbdutil.LabelsForRainbondResource()
 	labels["name"] = "rbd-hub-goodrain.me"
 
-	pem, key, _ := commonutil.SignGoodrainMe()
+	_, pem, key, _ := commonutil.DomainSign("goodrain.me")
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -182,6 +182,7 @@ func secretForHub(rc *rainbondv1alpha1.RbdComponent) interface{} {
 		Data: map[string][]byte{
 			"tls.crt": pem,
 			"tls.key": key,
+			"cert":    pem,
 		},
 	}
 

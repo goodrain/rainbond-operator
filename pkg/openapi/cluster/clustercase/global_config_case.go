@@ -12,8 +12,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// GlobalConfigCaseGatter config case gatter
-type GlobalConfigCaseGatter interface {
+// GlobalConfigCaseGetter config case getter
+type GlobalConfigCaseGetter interface {
 	GlobalConfigs() GlobalConfigCase
 }
 

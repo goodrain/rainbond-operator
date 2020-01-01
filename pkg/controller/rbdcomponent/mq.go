@@ -45,7 +45,7 @@ func daemonSetForRainbondMQ(r *rainbondv1alpha1.RbdComponent) interface{} {
 							},
 							Args: []string{ // TODO: huangrh
 								"--log-level=info",
-								"--etcd-endpoints=http://rbd-etcd.rbd-system.svc.cluster.local:2379",
+								"--etcd-endpoints=http://etcd0:2379",
 								"--hostIP=$(HOST_IP)",
 							},
 						},

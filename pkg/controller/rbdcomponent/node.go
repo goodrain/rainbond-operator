@@ -41,7 +41,7 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            rbdNodeName,
-							Image:           "linux2573/node:5.1.8-relese",
+							Image:           "goodrain.me/rbd-node:" + r.Spec.Version,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
@@ -52,11 +52,15 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 										},
 									},
 								},
+								{
+									Name:  "RBD_DOCKER_SECRET",
+									Value: "rbd-hub-goodrain.me",
+								},
 							},
 							Args: []string{ // TODO: huangrh
 								"--log-level=debug",
 								"--kube-conf=/opt/rainbond/etc/kubernetes/kubecfg/admin.kubeconfig",
-								"--etcd=http://rbd-etcd.rbd-system.svc.cluster.local:2379",
+								"--etcd=http://etcd0:2379",
 								"--hostIP=$(POD_IP)",
 								"--run-mode master",
 								"--noderule manage",
@@ -77,6 +81,10 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 								{
 									Name:      "sys",
 									MountPath: "/sys",
+								},
+								{
+									Name:      "docker-cert",
+									MountPath: "/etc/docker/certs.d",
 								},
 							},
 						},
@@ -117,10 +125,10 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 							},
 						},
 						{
-							Name: "root",
+							Name: "docker-cert",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/",
+									Path: "/etc/docker/certs.d",
 									Type: &hostPathDir,
 								},
 							},

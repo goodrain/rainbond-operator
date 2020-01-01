@@ -60,10 +60,10 @@ func daemonSetForRainbondChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
 								},
 							},
 							Args: []string{ // TODO: huangrh
-								"--etcd-endpoints=http://rbd-etcd.rbd-system.svc.cluster.local:2379",
+								"--etcd-endpoints=http://etcd0:2379",
 								"--hostIP=$(POD_IP)",
 								"--log-level=debug",
-								"--mysql=root:rainbond@tcp(rbd-db-mysql.rbd-system.svc.cluster.local:3306)/region",
+								"--mysql=root:rainbond@tcp(rbd-db:3306)/region",
 							},
 
 							VolumeMounts: []corev1.VolumeMount{

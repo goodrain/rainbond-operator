@@ -128,17 +128,32 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 				return reconcileResult, err
 			}
 		}
+		return reconcile.Result{}, err
 	}
 
 	// Install image repository
 	if instance.Name == "rbd-hub" {
 		reqLogger.Info("Reconciling rbd-hub")
+
+		{
+			secret := secretForHub(instance)
+			// Set PrivateRegistry instance as the owner and controller
+			if err := controllerutil.SetControllerReference(instance, secret.(metav1.Object), r.scheme); err != nil {
+				return reconcile.Result{}, err
+			}
+
+			// Check if the statefulset already exists, if not create a new one
+			reconcileResult, err := r.createIfNotExistResource(reqLogger, secret.(runtime.Object), secret.(metav1.Object))
+			if err != nil {
+				return reconcileResult, err
+			}
+		}
+
 		generics := []interface{}{
 			r.daemonSetForHub(instance),
 			r.serviceForHub(instance),
 			r.persistentVolumeClaimForHub(instance),
 			ingressForHub(instance),
-			secretForHub(instance),
 		}
 		for _, generic := range generics {
 			// Set PrivateRegistry instance as the owner and controller
@@ -152,6 +167,29 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 				return reconcileResult, err
 			}
 		}
+
+		return reconcile.Result{}, err
+	}
+
+	if instance.Name == "rbd-api" {
+		reqLogger.Info("Reconciling rbd-api")
+		generics := []interface{}{
+			daemonSetForRainbondAPI(instance),
+			secretForAPI(instance),
+		}
+		for _, generic := range generics {
+			// Set PrivateRegistry instance as the owner and controller
+			if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
+				return reconcile.Result{}, err
+			}
+
+			// Check if the statefulset already exists, if not create a new one
+			reconcileResult, err := r.updateOrCreateResource(reqLogger, generic.(runtime.Object), generic.(metav1.Object))
+			if err != nil {
+				return reconcileResult, err
+			}
+		}
+		return reconcile.Result{}, err
 	}
 
 	if instance.Name == "rbd-gateway" {
@@ -167,13 +205,16 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		if err != nil {
 			return reconcileResult, err
 		}
+		return reconcile.Result{}, err
 	}
 
 	if instance.Name == "rbd-db" {
 		reqLogger.Info("Reconciling rbd-hub")
 		generics := []interface{}{
-			statefulsetForRainbondDB(instance),
+			configMapForDB(instance),
+			deploymentForRainbondDB(instance),
 			serviceForDB(instance),
+			persistentVolumeClaimForDB(instance),
 		}
 		for _, generic := range generics {
 			// Set PrivateRegistry instance as the owner and controller
@@ -187,21 +228,29 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 				return reconcileResult, err
 			}
 		}
+		return reconcile.Result{}, err
 	}
 
 	controllerForRainbondFuncs := map[string]controllerForRainbond{
 		"rbd-app-ui":   deploymentForRainbondAppUI,
 		"rbd-worker":   daemonSetForRainbondWorker,
-		"rbd-api":      daemonSetForRainbondAPI,
 		"rbd-chaos":    daemonSetForRainbondChaos,
 		"rbd-eventlog": daemonSetForRainbondEventlog,
 		"rbd-monitor":  daemonSetForRainbondMonitor,
 		"rbd-mq":       daemonSetForRainbondMQ,
 		"rbd-dns":      daemonSetForRainbondDNS,
+		"rbd-node":     daemonSetForRainbondNode,
 	}
-	for name := range controllerForRainbondFuncs {
-		generic := controllerForRainbondFuncs[name](instance)
-		reqLogger.Info("Name", name, "Reconciling", generic.(runtime.Object).GetObjectKind().GroupVersionKind().Kind)
+
+	{
+		name := instance.Name
+		controllerForRainbondFunc, ok := controllerForRainbondFuncs[instance.Name]
+		if !ok {
+			reqLogger.Info("Unsupportted rainbond component", "Name", name)
+			return reconcile.Result{}, err
+		}
+
+		generic := controllerForRainbondFunc(instance)
 		// Set PrivateRegistry instance as the owner and controller
 		if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
 			return reconcile.Result{}, err
@@ -234,9 +283,28 @@ func (r *ReconcileRbdComponent) updateOrCreateResource(reqLogger logr.Logger, ob
 	}
 
 	// obj exsits, update
-	reqLogger.Info("Update ", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+	reqLogger.Info("Object exists.", "Kind", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
 	if err := r.client.Update(context.TODO(), obj); err != nil {
 		reqLogger.Error(err, "Failed to update ", obj.GetObjectKind())
+		return reconcile.Result{}, err
+	}
+
+	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileRbdComponent) createIfNotExistResource(reqLogger logr.Logger, obj runtime.Object, meta metav1.Object) (reconcile.Result, error) {
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
+	if err != nil && errors.IsNotFound(err) {
+		reqLogger.Info("Creating a new", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+		err = r.client.Create(context.TODO(), obj)
+		if err != nil {
+			reqLogger.Error(err, "Failed to create new", obj.GetObjectKind(), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+			return reconcile.Result{}, err
+		}
+		// daemonset created successfully - return and requeue TODO: why?
+		return reconcile.Result{Requeue: true}, nil
+	} else if err != nil {
+		reqLogger.Error(err, "Failed to get ", obj.GetObjectKind())
 		return reconcile.Result{}, err
 	}
 
