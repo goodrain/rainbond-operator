@@ -7,6 +7,8 @@ import (
 type GlobalConfigPhase string
 
 const (
+	GlobalConfigPhasePending GlobalConfigPhase = "Pending"
+
 	GlobalConfigPhaseExtractInstallationPackage GlobalConfigPhase = "ExtractInstallationPackage"
 
 	GlobalConfigPhaseLoadImages GlobalConfigPhase = "LoadImages"

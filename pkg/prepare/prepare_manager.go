@@ -1,6 +1,7 @@
 package prepare
 
 import (
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -29,11 +30,22 @@ func PrepareGlobalConfig(cfg *rest.Config) error {
 			Namespace: "rbd-system",
 			Name:      "rbd-globalconfig",
 		},
+		Status: rainbondv1alpha1.GlobalConfigStatus{
+			Phase: rainbondv1alpha1.GlobalConfigPhasePending,
+		},
 	}
 
-	_, err := clientset.RainbondV1alpha1().GlobalConfigs(globalConfig.Namespace).Create(globalConfig)
+	_, err := clientset.RainbondV1alpha1().GlobalConfigs(globalConfig.Namespace).Get(globalConfig.GetName(), metav1.GetOptions{})
 	if err != nil {
-		reqLogger.Error(err, "create global config")
+		if errors.IsNotFound(err) {
+			reqLogger.Info("GlobalConfig not found. will create a new one.")
+			_, err := clientset.RainbondV1alpha1().GlobalConfigs(globalConfig.Namespace).Create(globalConfig)
+			if err != nil {
+				reqLogger.Error(err, "create global config")
+				return err
+			}
+			return nil
+		}
 		return err
 	}
 
