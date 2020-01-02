@@ -3,9 +3,16 @@ kind: ClusterRole
 metadata:
   name: rainbond-operator
 rules:
-- apiGroups:
-  - ""
-  resources:
-  - "*"
-  verbs:
-  - "*"
+  - apiGroups:
+      - ""
+    resources:
+      - "*"
+    verbs:
+      - "*"
+  - apiGroups:
+      - extensions
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - "*"
