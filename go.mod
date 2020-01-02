@@ -11,6 +11,7 @@ require (
 	github.com/golang/mock v1.3.1
 	github.com/jinzhu/gorm v1.9.11
 	github.com/operator-framework/operator-sdk v0.13.0
+	github.com/sparrc/go-ping v0.0.0-20190613174326-4e5b6552494c
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0

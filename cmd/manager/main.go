@@ -13,6 +13,7 @@ import (
 
 	"github.com/GLYASAI/rainbond-operator/pkg/apis"
 	"github.com/GLYASAI/rainbond-operator/pkg/controller"
+	"github.com/GLYASAI/rainbond-operator/pkg/prepare"
 	"github.com/GLYASAI/rainbond-operator/version"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
@@ -143,8 +144,12 @@ func main() {
 		}
 	}
 
-	log.Info("Starting the Cmd.")
+	if err := prepare.PrepareGlobalConfig(cfg); err != nil {
+		log.Error(err, "prepare globalconfig")
+		os.Exit(1)
+	}
 
+	log.Info("Starting the Cmd.")
 	// Start the Cmd
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		log.Error(err, "Manager exited non-zero")

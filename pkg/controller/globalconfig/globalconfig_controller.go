@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/go-logr/logr"
+	"github.com/sparrc/go-ping"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 )
@@ -86,10 +87,18 @@ func (r *ReconcileGlobalConfig) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
+	// available ports
 	nodeAvailPorts := r.listNodeAavailPorts(reqLogger)
+	reqLogger.Info(fmt.Sprintf("node available ports: %#v", nodeAvailPorts))
 
 	newGlobalConfigSpec := globalConfig.Spec.DeepCopy()
 	newGlobalConfigSpec.NodeAvailPorts = nodeAvailPorts
+
+	// kube-apiserver host
+	if kubeAPIServerHost(reqLogger, "kubernetes.default.svc.cluster.local") {
+		newGlobalConfigSpec.KubeAPIHost = "kubernetes.default.svc.cluster.local"
+	}
+
 	if !reflect.DeepEqual(globalConfig.Spec, newGlobalConfigSpec) {
 		globalConfig.Spec = *newGlobalConfigSpec
 		if err := r.updateGlobalConfig(reqLogger, globalConfig); err != nil {
@@ -102,7 +111,7 @@ func (r *ReconcileGlobalConfig) Reconcile(request reconcile.Request) (reconcile.
 }
 
 func (r *ReconcileGlobalConfig) listNodeAavailPorts(reqLogger logr.Logger) []rainbondv1alpha1.NodeAvailPorts {
-	reqLogger.V(4).Info("Start checking rbd-gateway ports")
+	reqLogger.Info("Start checking rbd-gateway ports")
 	// list all node
 	nodeList := &corev1.NodeList{}
 	listOpts := []client.ListOption{
@@ -111,18 +120,30 @@ func (r *ReconcileGlobalConfig) listNodeAavailPorts(reqLogger logr.Logger) []rai
 		}),
 	}
 	if err := r.client.List(context.TODO(), nodeList, listOpts...); err != nil {
-		reqLogger.V(2).Info("failed to list nodes", err.Error())
+		reqLogger.Error(err, "failed to list nodes")
 		return nil
+	}
+	reqLogger.Info("Found nodes", nodeList)
+
+	checkPortOccupation := func(address string) bool {
+		reqLogger.Info("Start check port occupation", "Address: ", address)
+		conn, err := net.Dial("tcp", address)
+		if err != nil {
+			reqLogger.Info("check port occupation", "error", err.Error())
+			return false
+		}
+		defer conn.Close()
+		return true
 	}
 
 	gatewayPorts := []int{80, 443, 10254, 18080}
 	var nodeAvailPorts []rainbondv1alpha1.NodeAvailPorts
 	for _, n := range nodeList.Items {
 		for _, addr := range n.Status.Addresses {
-			if addr.Type != corev1.NodeExternalIP {
+			if addr.Type != corev1.NodeInternalIP {
 				continue
 			}
-			reqLogger.V(4).Info("Node name", n.Name, "Found external ip: ", addr.Address)
+			reqLogger.Info("Node name", n.Name, "Found internal ip: ", addr.Address)
 			node := rainbondv1alpha1.NodeAvailPorts{
 				NodeName: n.Name,
 				NodeIP:   addr.Address,
@@ -153,10 +174,22 @@ func checkPortOccupation(address string) bool {
 }
 
 func (r *ReconcileGlobalConfig) updateGlobalConfig(reqLogger logr.Logger, globalConfig *rainbondv1alpha1.GlobalConfig) error {
-	reqLogger.V(4).Info("Start updating globalconfig.")
+	reqLogger.Info("Start updating globalconfig.", "Globalconfig", globalConfig)
 	if err := r.client.Update(context.TODO(), globalConfig); err != nil {
-		reqLogger.V(0).Info("Update globalconfig", err.Error())
+		reqLogger.Error(err, "Update globalconfig")
 		return err
 	}
 	return nil
+}
+
+func kubeAPIServerHost(reqLogger logr.Logger, addr string) (ok bool) {
+	_, err := ping.NewPinger(addr)
+	if err != nil {
+		reqLogger.Error(err, "new pingger")
+		return
+	}
+
+	ok = true
+
+	return
 }
