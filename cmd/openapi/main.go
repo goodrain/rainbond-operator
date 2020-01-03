@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/GLYASAI/rainbond-operator/pkg/openapi/upload"
 
 	clusterCtrl "github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster/controller"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -25,6 +27,48 @@ import (
 )
 
 var log = logf.Log.WithName("openapi")
+var (
+	namespace       = "rbd-system"
+	configName      = "rbd-globalconfig"
+	etcdSecretName  = "rbd-etcd-secret"
+	archiveFilePath = "/tmp/rainbond.tar"
+	restConfig      *rest.Config
+	k8sMasterURL    = ""
+	k8sConfigPath   = "/root/.kube/config"
+)
+
+func init() {
+	if os.Getenv("RBD_NAMESPACE") != "" {
+		namespace = os.Getenv("RBD_NAMESPACE")
+	}
+	if os.Getenv("RBD_GLOBALCONFIG") != "" {
+		configName = os.Getenv("RBD_GLOBALCONFIG")
+	}
+	if os.Getenv("RBD_ETCD_SECRET") != "" {
+		etcdSecretName = os.Getenv("RBD_ETCD_SECRET")
+	}
+	if os.Getenv("RBD_ARCHIVE") != "" {
+		archiveFilePath = os.Getenv("RBD_ARCHIVE")
+	}
+
+	if os.Getenv("K8S_MASTER_URL") != "" {
+		var err error
+		if restConfig, err = clientcmd.BuildConfigFromFlags(os.Getenv("K8S_MASTER_URL"), ""); err != nil {
+			log.Error(err, fmt.Sprintf("create kubernetes rest config error: %s", err.Error()))
+			return
+		}
+	} else {
+		if os.Getenv("K8S_CONFIG_PATH") != "" {
+			k8sConfigPath = os.Getenv("K8S_CONFIG_PATH")
+		}
+		var err error
+		if restConfig, err = clientcmd.BuildConfigFromFlags("", k8sConfigPath); err != nil {
+			log.Error(err, fmt.Sprintf("create kubernetes rest config error: %s", err.Error()))
+			return
+		}
+	}
+
+}
 
 func main() {
 	db, _ := gorm.Open("sqlite3", "/tmp/gorm.db") // TODO hrh: data path and handle error
@@ -37,9 +81,8 @@ func main() {
 	userRepo.CreateIfNotExist(&model.User{Username: "admin", Password: "admin"})
 	userUcase := uucase.NewUserUsecase(userRepo, "my-secret-key")
 
-	restConfig, err := clientcmd.BuildConfigFromFlags("", "/Users/fanyangyang/Documents/company/goodrain/remote/192.168.2.200/admin.kubeconfig") // TODO fanyangyang kubernetes correct?
-	if err != nil {
-		log.Error(err, fmt.Sprintf("create kubernetes rest config error: %s", err.Error()))
+	if restConfig == nil {
+		log.Error(nil, "create kubernetes client error")
 		return
 	}
 	normalClientset, err := kubernetes.NewForConfig(restConfig)
@@ -52,33 +95,12 @@ func main() {
 		log.Error(err, fmt.Sprintf("create rbd kubernetes clientset error: %s", err.Error()))
 		return
 	}
-	namespace := "rbd-system"
-	configName := "rbd-globalconfig"
-	etcdSecretName := "rbd-etcd-secret"
-	archiveFilePath := "/tmp/rainbond.tar"
 	clusterCase := cluster.NewClusterCase(namespace, configName, etcdSecretName, archiveFilePath, normalClientset, rbdClientset)
 
 	r := gin.Default()
 	uctrl.NewUserController(r, userUcase)
 	clusterCtrl.NewClusterController(r, clusterCase)
-	// upload.NewUploadController(r, archiveFilePath)
-	r.POST("/uploads", func(c *gin.Context) { // upload can't work successfully in upload.NewUploadController(r, archiveFilePath)
-		// 单文件
-		file, err := c.FormFile("file")
-		if err != nil {
-			c.JSON(400, map[string]interface{}{"msg": err.Error})
-			return
-		}
-		fmt.Println(file.Filename)
-
-		// 上传文件至指定目录
-		if err := c.SaveUploadedFile(file, archiveFilePath); err != nil {
-			c.JSON(400, map[string]interface{}{"msg": err.Error})
-			return
-		}
-
-		c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", file.Filename))
-	})
+	r.POST("/uploads", upload.Upload)
 
 	go r.Run() // listen and serve on 0.0.0.0:8080
 

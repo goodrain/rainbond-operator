@@ -14,45 +14,43 @@ import (
 )
 
 var (
-	version             = "v5.2-dev"
-	rbdAPPUI            = initComponse(version, "rbd-app-ui")
-	rbdAPI              = initComponse(version, "rbd-api")
-	rbdWorker           = initComponse(version, "rbd-worker")
-	rbdWebCli           = initComponse(version, "rbd-webcli")
-	rbdGateway          = initComponse(version, "rbd-gateway")
-	rbdMonitor          = initComponse(version, "rbd-monitor")
-	rbdRepo             = initComponse(version, "rbd-repo") // TODO fanyangyang 是否需要
-	rbdDNS              = initComponse(version, "rbd-dns")  // TODO fanyangyang 是否需要
-	rbdDB               = initComponse(version, "rbd-db")   // TODO fanyangyang 是否需要
-	rbdHUB              = initComponse(version, "rbd-hub")  // TODO fanyangyang 是否需要
-	rbdMQ               = initComponse(version, "rbd-mq")
-	rbdChaos            = initComponse(version, "rbd-chaos")
-	componses           = make([]*v1alpha1.RbdComponent, 0)
-	rainbondDownloadURL = "192.168.2.222" // TODO fanyangyang download url
+	version                    = "v5.2-dev"
+	defaultRainbondDownloadURL = "192.168.2.222" // TODO fanyangyang download url
+	defaultRainbondFilePath    = "/opt/rainbond/rainbond.tar"
+	componentClaims            = make([]*componentClaim, 0)
 )
 
-func init() {
-	componses = append(componses, rbdAPPUI)
-	componses = append(componses, rbdAPI)
-	componses = append(componses, rbdWorker)
-	componses = append(componses, rbdWebCli)
-	componses = append(componses, rbdGateway)
-	componses = append(componses, rbdMonitor)
-	componses = append(componses, rbdRepo)
-	componses = append(componses, rbdDNS)
-	componses = append(componses, rbdDB)
-	componses = append(componses, rbdHUB)
-	componses = append(componses, rbdMQ)
-	componses = append(componses, rbdChaos)
+type componentClaim struct {
+	namespace string
+	name      string
+	version   string
 }
 
-func initComponse(version, typeName string) *v1alpha1.RbdComponent {
-	componse := &v1alpha1.RbdComponent{}
-	componse.Name = typeName
-	componse.Spec.Version = version
-	componse.Spec.LogLevel = "debug"
-	componse.Spec.Type = typeName
-	return componse
+func init() {
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-app-ui", version: version})
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-api", version: version})
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-worker", version: version})
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-webcli", version: version})
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-gateway", version: version})
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-monitor", version: version})
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-repo", version: version})
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-dns", version: version})
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-db", version: version})
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-mq", version: version})
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-chaos", version: version})
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-storage", version: version})
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-hub", version: version})
+	componentClaims = append(componentClaims, &componentClaim{name: "rbd-package", version: version})
+}
+
+func parseComponentClaim(claim *componentClaim, namespace string) *v1alpha1.RbdComponent {
+	component := &v1alpha1.RbdComponent{}
+	component.Namespace = namespace
+	component.Name = claim.name
+	component.Spec.Version = claim.version
+	component.Spec.LogLevel = "debug"
+	component.Spec.Type = claim.name
+	return component
 }
 
 // InstallCaseGatter install case gatter
@@ -93,32 +91,36 @@ func (ic *InstallCaseImpl) Install() error {
 		logrus.Warnf("rainbond archive file does not exists, downloading background ...")
 
 		// step 2 download archive
-		if err := downloadFile(ic.archiveFilePath, rainbondDownloadURL); err != nil { // TODO fanyangyang file path
+		if err := downloadFile(ic.archiveFilePath, ""); err != nil {
 			logrus.Errorf("download rainbond file error: %s", err.Error())
 			return err // TODO fanyangyang bad smell code, fix it
 		}
 
+	} else {
+		logrus.Debug("rainbond archive file already exits, do not download again")
 	}
 
-	// step 3 create custom resource
-	return ic.createComponse()
+	// step 4 create custom resource
+	return ic.createComponse(componentClaims...)
 }
 
-func (ic *InstallCaseImpl) createComponse() error {
-	for _, componse := range componses {
-		componse.Namespace = ic.namespace
-		old, err := ic.rbdClientset.RainbondV1alpha1().RbdComponents(ic.namespace).Get(componse.Name, metav1.GetOptions{})
+func (ic *InstallCaseImpl) createComponse(components ...*componentClaim) error {
+	for _, component := range components {
+		data := parseComponentClaim(component, ic.namespace)
+		// init component
+		data.Namespace = ic.namespace
+		old, err := ic.rbdClientset.RainbondV1alpha1().RbdComponents(ic.namespace).Get(data.Name, metav1.GetOptions{})
 		if err != nil {
 			if !k8sErrors.IsNotFound(err) {
 				return err
 			}
-			_, err = ic.rbdClientset.RainbondV1alpha1().RbdComponents(ic.namespace).Create(componse)
+			_, err = ic.rbdClientset.RainbondV1alpha1().RbdComponents(ic.namespace).Create(data)
 			if err != nil {
 				return err
 			}
 		} else {
-			componse.ResourceVersion = old.ResourceVersion
-			_, err = ic.rbdClientset.RainbondV1alpha1().RbdComponents(ic.namespace).Update(componse)
+			data.ResourceVersion = old.ResourceVersion
+			_, err = ic.rbdClientset.RainbondV1alpha1().RbdComponents(ic.namespace).Update(data)
 			if err != nil {
 				return err
 			}
@@ -144,9 +146,21 @@ func (ic *InstallCaseImpl) InstallStatus() (string, error) {
 
 // downloadFile will download a url to a local file. It's efficient because it will
 // write as it downloads and not load the whole file into memory.
-func downloadFile(filepath string, url string) error {
+func downloadFile(filepath string, downloadURL string) error {
+	if filepath == "" {
+		filepath = os.Getenv("RBD_ARCHIVE")
+		if filepath == "" {
+			filepath = defaultRainbondFilePath
+		}
+	}
+	if downloadURL == "" {
+		downloadURL = os.Getenv("RBD_DOWNLOAD_URL")
+		if downloadURL == "" {
+			downloadURL = defaultRainbondDownloadURL
+		}
+	}
 	// Get the data
-	resp, err := http.Get(url)
+	resp, err := http.Get(downloadURL)
 	if err != nil { // TODO fanyangyang if can't create connection, download manual and upload it
 		return err
 	}
