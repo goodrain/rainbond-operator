@@ -22,6 +22,8 @@ import (
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 )
 
+type controllerForRainbond func(p *rainbondv1alpha1.RbdComponent) interface{}
+
 var log = logf.Log.WithName("controller_rbdcomponent")
 
 // Add creates a new RbdComponent Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -167,8 +169,49 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		}
 	}
 
-	if instance.Spec.Type == "rbd-db" {
-		
+	if instance.Name == "rbd-db" {
+		reqLogger.Info("Reconciling rbd-hub")
+		generics := []interface{}{
+			statefulsetForRainbondDB(instance),
+			serviceForDB(instance),
+		}
+		for _, generic := range generics {
+			// Set PrivateRegistry instance as the owner and controller
+			if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
+				return reconcile.Result{}, err
+			}
+
+			// Check if the statefulset already exists, if not create a new one
+			reconcileResult, err := r.updateOrCreateResource(reqLogger, generic.(runtime.Object), generic.(metav1.Object))
+			if err != nil {
+				return reconcileResult, err
+			}
+		}
+	}
+
+	controllerForRainbondFuncs := map[string]controllerForRainbond{
+		"rbd-app-ui":   deploymentForRainbondAppUI,
+		"rbd-worker":   daemonSetForRainbondWorker,
+		"rbd-api":      daemonSetForRainbondAPI,
+		"rbd-chaos":    daemonSetForRainbondChaos,
+		"rbd-eventlog": daemonSetForRainbondEventlog,
+		"rbd-monitor":  daemonSetForRainbondMonitor,
+		"rbd-mq":       daemonSetForRainbondMQ,
+		"rbd-dns":      daemonSetForRainbondDNS,
+	}
+	for name := range controllerForRainbondFuncs {
+		generic := controllerForRainbondFuncs[name](instance)
+		reqLogger.Info("Name", name, "Reconciling", generic.(runtime.Object).GetObjectKind().GroupVersionKind().Kind)
+		// Set PrivateRegistry instance as the owner and controller
+		if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
+			return reconcile.Result{}, err
+		}
+
+		// Check if the statefulset already exists, if not create a new one
+		reconcileResult, err := r.updateOrCreateResource(reqLogger, generic.(runtime.Object), generic.(metav1.Object))
+		if err != nil {
+			return reconcileResult, err
+		}
 	}
 
 	return reconcile.Result{}, nil

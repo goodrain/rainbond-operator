@@ -14,6 +14,7 @@ require (
 	github.com/google/go-cmp v0.3.2-0.20191028172631-481baca67f93 // indirect
 	github.com/jinzhu/gorm v1.9.11
 	github.com/operator-framework/operator-sdk v0.13.0
+	github.com/sirupsen/logrus v1.4.2
 	github.com/sparrc/go-ping v0.0.0-20190613174326-4e5b6552494c
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.0.0
