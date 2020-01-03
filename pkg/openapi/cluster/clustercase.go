@@ -8,9 +8,9 @@ import (
 
 // IClusterCase cluster case
 type IClusterCase interface {
-	clustercase.GlobalConfigCaseGatter
-	clustercase.CompnseCaseGatter
-	clustercase.InstallCaseGatter
+	clustercase.GlobalConfigCaseGetter
+	clustercase.CompnseCaseGetter
+	clustercase.InstallCaseGetter
 }
 
 // CaseImpl case

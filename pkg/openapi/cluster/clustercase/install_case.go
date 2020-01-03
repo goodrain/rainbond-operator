@@ -17,7 +17,7 @@ var (
 	version                    = "v5.2-dev"
 	defaultRainbondDownloadURL = "192.168.2.222" // TODO fanyangyang download url
 	defaultRainbondFilePath    = "/opt/rainbond/rainbond.tar"
-	componentClaims            = make([]*componentClaim, 0)
+	componentClaims            = make([]string, 0)
 )
 
 type componentClaim struct {
@@ -27,25 +27,26 @@ type componentClaim struct {
 }
 
 func init() {
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-app-ui", version: version})
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-api", version: version})
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-worker", version: version})
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-webcli", version: version})
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-gateway", version: version})
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-monitor", version: version})
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-repo", version: version})
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-dns", version: version})
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-db", version: version})
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-mq", version: version})
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-chaos", version: version})
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-storage", version: version})
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-hub", version: version})
-	componentClaims = append(componentClaims, &componentClaim{name: "rbd-package", version: version})
+	componentClaims = append(componentClaims, "rbd-app-ui")
+	componentClaims = append(componentClaims, "rbd-api")
+	componentClaims = append(componentClaims, "rbd-worker")
+	componentClaims = append(componentClaims, "rbd-webcli")
+	componentClaims = append(componentClaims, "rbd-gateway")
+	componentClaims = append(componentClaims, "rbd-monitor")
+	componentClaims = append(componentClaims, "rbd-repo")
+	componentClaims = append(componentClaims, "rbd-dns")
+	componentClaims = append(componentClaims, "rbd-db")
+	componentClaims = append(componentClaims, "rbd-mq")
+	componentClaims = append(componentClaims, "rbd-chaos")
+	componentClaims = append(componentClaims, "rbd-storage")
+	componentClaims = append(componentClaims, "rbd-hub")
+	componentClaims = append(componentClaims, "rbd-package")
+	componentClaims = append(componentClaims, "rbd-node")
 }
 
-func parseComponentClaim(claim *componentClaim, namespace string) *v1alpha1.RbdComponent {
+func parseComponentClaim(claim *componentClaim) *v1alpha1.RbdComponent {
 	component := &v1alpha1.RbdComponent{}
-	component.Namespace = namespace
+	component.Namespace = claim.namespace
 	component.Name = claim.name
 	component.Spec.Version = claim.version
 	component.Spec.LogLevel = "debug"
@@ -53,8 +54,8 @@ func parseComponentClaim(claim *componentClaim, namespace string) *v1alpha1.RbdC
 	return component
 }
 
-// InstallCaseGatter install case gatter
-type InstallCaseGatter interface {
+// InstallCaseGetter install case getter
+type InstallCaseGetter interface {
 	Install() InstallCase
 }
 
@@ -100,13 +101,14 @@ func (ic *InstallCaseImpl) Install() error {
 		logrus.Debug("rainbond archive file already exits, do not download again")
 	}
 
-	// step 4 create custom resource
+	// step 3 create custom resource
 	return ic.createComponse(componentClaims...)
 }
 
-func (ic *InstallCaseImpl) createComponse(components ...*componentClaim) error {
-	for _, component := range components {
-		data := parseComponentClaim(component, ic.namespace)
+func (ic *InstallCaseImpl) createComponse(components ...string) error {
+	for _, rbdComponent := range components {
+		component := &componentClaim{name: rbdComponent, version: version, namespace: ic.namespace}
+		data := parseComponentClaim(component)
 		// init component
 		data.Namespace = ic.namespace
 		old, err := ic.rbdClientset.RainbondV1alpha1().RbdComponents(ic.namespace).Get(data.Name, metav1.GetOptions{})
