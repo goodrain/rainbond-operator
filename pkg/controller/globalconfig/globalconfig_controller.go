@@ -94,13 +94,21 @@ func (r *ReconcileGlobalConfig) Reconcile(request reconcile.Request) (reconcile.
 	newGlobalConfigSpec := globalConfig.Spec.DeepCopy()
 	newGlobalConfigSpec.NodeAvailPorts = nodeAvailPorts
 
-	// kube-apiserver host
-	if kubeAPIServerHost(reqLogger, "kubernetes.default.svc.cluster.local") {
-		newGlobalConfigSpec.KubeAPIHost = "kubernetes.default.svc.cluster.local"
-	}
+	newGlobalConfigSpec.KubeAPIHost = "kubernetes.default.svc.cluster.local"
 
+	// update spec
 	if !reflect.DeepEqual(globalConfig.Spec, newGlobalConfigSpec) {
 		globalConfig.Spec = *newGlobalConfigSpec
+		if err := r.updateGlobalConfig(reqLogger, globalConfig); err != nil {
+			// Error updating the object - requeue the request.
+			return reconcile.Result{}, err
+		}
+	}
+
+	// update status
+	if globalConfig.Status.Phase == "" {
+		globalConfig.Status.Phase = rainbondv1alpha1.GlobalConfigPhasePending
+		reqLogger.Info("Update global config phase", "Phase", rainbondv1alpha1.GlobalConfigPhasePending)
 		if err := r.updateGlobalConfig(reqLogger, globalConfig); err != nil {
 			// Error updating the object - requeue the request.
 			return reconcile.Result{}, err
