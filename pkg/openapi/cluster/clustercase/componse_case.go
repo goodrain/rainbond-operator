@@ -7,8 +7,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// CompnseCaseGatter componse case gatter
-type CompnseCaseGatter interface {
+// CompnseCaseGetter componse case getter
+type CompnseCaseGetter interface {
 	Componses() ComponseCase
 }
 
