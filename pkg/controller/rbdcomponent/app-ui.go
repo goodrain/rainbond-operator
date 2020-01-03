@@ -33,12 +33,12 @@ func deploymentForRainbondAppUI(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            rbdAppUIName,
-							Image:           "rainbond/rbd-app-ui:" + r.Spec.Version,
+							Image:           "linux2573/rbd-ui-base:5.1.9",
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
 									Name:  "MYSQL_HOST",
-									Value: "rbd-db-mysql.rbd-system.svc.cluster.local",
+									Value: "rbd-db",
 								},
 								{
 									Name:  "MYSQL_PORT",

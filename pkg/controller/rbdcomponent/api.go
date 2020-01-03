@@ -2,6 +2,8 @@ package rbdcomponent
 
 import (
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/rbduitl"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -59,12 +61,12 @@ func daemonSetForRainbondAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 								"--api-addr-ssl=0.0.0.0:8443",
 								"--api-addr=$(POD_IP):8888",
 								"--log-level=debug",
-								"--mysql=root:rainbond@tcp(rbd-db-mysql.rbd-system.svc.cluster.local:3306)/region",
+								"--mysql=root:rainbond@tcp(rbd-db:3306)/region",
 								"--api-ssl-enable=true",
 								"--api-ssl-certfile=/etc/goodrain/region.goodrain.me/ssl/server.pem",
 								"--api-ssl-keyfile=/etc/goodrain/region.goodrain.me/ssl/server.key.pem",
 								"--client-ca-file=/etc/goodrain/region.goodrain.me/ssl/ca.pem",
-								"--etcd=http://rbd-etcd.rbd-system.svc.cluster.local:2379",
+								"--etcd=http://etcd0:2379",
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
@@ -90,4 +92,26 @@ func daemonSetForRainbondAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 	}
 
 	return ds
+}
+
+func secretForAPI(rc *rainbondv1alpha1.RbdComponent) interface{} {
+	labels := rbdutil.LabelsForRainbondResource()
+	labels["name"] = "rbd-api-ssl"
+
+	caPem, pem, key, _ := commonutil.DomainSign("region.goodrain.me") // sign all gateway ip
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rbd-api-ssl",
+			Namespace: rc.Namespace,
+			Labels:    labels,
+		},
+		Data: map[string][]byte{
+			"server.pem":     pem,
+			"server.key.pem": key,
+			"ca.pem":         caPem,
+		},
+	}
+
+	return secret
 }

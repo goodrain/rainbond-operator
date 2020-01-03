@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func SignGoodrainMe() ([]byte, []byte, error) {
+func DomainSign(domain string) ([]byte, []byte, []byte, error) {
 	// set up our CA certificate
 	ca := &x509.Certificate{
 		SerialNumber: big.NewInt(2019),
@@ -35,13 +35,13 @@ func SignGoodrainMe() ([]byte, []byte, error) {
 	// create our private and public key
 	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// create the CA
 	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// pem encode
@@ -68,7 +68,7 @@ func SignGoodrainMe() ([]byte, []byte, error) {
 			StreetAddress: []string{"Beijing"},
 			PostalCode:    []string{"000000"},
 		},
-		DNSNames:     []string{"goodrain.me"},
+		DNSNames:     []string{domain},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(99, 0, 0),
 		SubjectKeyId: []byte{1, 2, 3, 4, 6},
@@ -78,12 +78,12 @@ func SignGoodrainMe() ([]byte, []byte, error) {
 
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, cert, ca, &certPrivKey.PublicKey, caPrivKey)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	certPEM := new(bytes.Buffer)
@@ -102,5 +102,5 @@ func SignGoodrainMe() ([]byte, []byte, error) {
 
 	fmt.Println(certPrivKeyPEM)
 
-	return certPEM.Bytes(), certPrivKeyPEM.Bytes(), nil
+	return caPEM.Bytes(), certPEM.Bytes(), certPrivKeyPEM.Bytes(), nil
 }

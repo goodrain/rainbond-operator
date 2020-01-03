@@ -65,8 +65,8 @@ func daemonSetForRainbondEventlog(r *rainbondv1alpha1.RbdComponent) interface{} 
 							Args: []string{ // TODO: huangrh
 								"--cluster.bind.ip=$(POD_IP)",
 								"--cluster.instance.ip=$(POD_IP)",
-								"--db.url=root:rainbond@tcp(rbd-db-mysql.rbd-system.svc.cluster.local:3306)/region",
-								"--discover.etcd.addr=http://rbd-etcd.rbd-system.svc.cluster.local:2379",
+								"--db.url=root:rainbond@tcp(rbd-db:3306)/region",
+								"--discover.etcd.addr=http://etcd0:2379",
 								"--eventlog.bind.ip=$(POD_IP)",
 								"--websocket.bind.ip=$(POD_IP)",
 							},
