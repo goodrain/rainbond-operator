@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-logr/logr"
 	appv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -95,6 +96,11 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	if instance.Name == "rbd-package" {
+		if !r.isRbdHubReady() {
+			reqLogger.Info("rbd-hub is not ready", "component", instance.Name)
+			return reconcile.Result{Requeue: true}, err
+		}
+
 		if err := handleRainbondPackage("/opt/rainbond/pkg/rainbond-pkg-V5.2-dev.tgz", "/opt/rainbond/pkg"); err != nil {
 			reqLogger.Error(err, "handle rainbond package")
 			return reconcile.Result{Requeue: true}, nil
@@ -161,6 +167,10 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		}
 	}
 
+	if instance.Spec.Type == "rbd-db" {
+		
+	}
+
 	return reconcile.Result{}, nil
 }
 
@@ -194,4 +204,31 @@ func (r *ReconcileRbdComponent) updateOrCreateResource(reqLogger logr.Logger, ob
 // belonging to the given PrivateRegistry CR name.
 func labelsForRbdComponent(name string) map[string]string {
 	return map[string]string{"name": name} // TODO: only one rainbond?
+}
+
+func (r *ReconcileRbdComponent) isRbdHubReady() bool {
+	reqLogger := log.WithName("Check if rbd-hub is ready")
+
+	eps := &corev1.EndpointsList{}
+	listOpts := []client.ListOption{
+		client.MatchingLabels(map[string]string{
+			"name": "rbd-hub",
+		}),
+	}
+	err := r.client.List(context.TODO(), eps, listOpts...)
+	if err != nil {
+		reqLogger.Error(err, "list rbd-hub endpints")
+		return false
+	}
+
+	for _, ep := range eps.Items {
+		for _, subset := range ep.Subsets {
+			if len(subset.Addresses) > 0 {
+				reqLogger.Info("Found a healthy endpoint address", "address", subset.Addresses[0])
+				return true
+			}
+		}
+	}
+
+	return false
 }

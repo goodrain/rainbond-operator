@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Statefulset
+kind: StatefulSet
 metadata:
   name: rainbond-operator
   namespace: rbd-system
@@ -8,6 +8,7 @@ spec:
   selector:
     matchLabels:
       name: rainbond-operator
+  serviceName: rainbond-operator
   template:
     metadata:
       labels:
@@ -31,3 +32,17 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "rainbond-operator"
+          volumeMounts:
+            - mountPath: /opt/rainbond/pkg
+              name: rbd-pkg
+            - mountPath: /var/run
+              name: dockersock
+      volumes:
+        - name: rbd-pkg
+          hostPath:
+            path: /opt/rainbond/pkg
+            type: Directory
+        - name: dockersock
+          hostPath:
+            path: /var/run
+            type: Directory
