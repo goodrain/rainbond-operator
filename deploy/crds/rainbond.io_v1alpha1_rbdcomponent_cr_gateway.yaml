@@ -1,0 +1,7 @@
+kind: RbdComponent
+metadata:
+  name: rbd-gateway
+  namespace: rbd-system
+spec:
+  type: rbd-gateway
+  version: V5.2-dev

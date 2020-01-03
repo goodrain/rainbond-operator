@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: Statefulset
 metadata:
   name: rainbond-operator
   namespace: rbd-system
@@ -18,8 +18,8 @@ spec:
         - name: rainbond-operator
           image: abewang/rainbond-operator:v0.0.1
           command:
-          - rainbond-operator
-          imagePullPolicy: Always
+            - rainbond-operator
+          imagePullPolicy: IfNotPresent
           env:
             - name: WATCH_NAMESPACE
               valueFrom:

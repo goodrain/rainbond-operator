@@ -3,3 +3,5 @@ kind: GlobalConfig
 metadata:
   name: rbd-globalconfig
   namespace: rbd-system
+spec:
+  storageClassName: "nfs"

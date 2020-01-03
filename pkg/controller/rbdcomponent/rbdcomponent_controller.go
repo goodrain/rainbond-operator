@@ -94,6 +94,15 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
+	if instance.Name == "rbd-package" {
+		if err := handleRainbondPackage("/opt/rainbond/pkg/rainbond-pkg-V5.2-dev.tgz", "/opt/rainbond/pkg"); err != nil {
+			reqLogger.Error(err, "handle rainbond package")
+			return reconcile.Result{Requeue: true}, nil
+
+		}
+		return reconcile.Result{}, nil
+	}
+
 	if instance.Name == "rbd-etcd" {
 		generics := []interface{}{
 			podForEtcd0(instance),

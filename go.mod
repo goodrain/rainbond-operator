@@ -5,10 +5,13 @@ go 1.13
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/docker/distribution v2.7.1+incompatible
+	github.com/docker/docker v0.7.3-0.20190817195342-4760db040282
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gin-gonic/gin v1.5.0
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.3.1
+	github.com/google/go-cmp v0.3.2-0.20191028172631-481baca67f93 // indirect
 	github.com/jinzhu/gorm v1.9.11
 	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/sparrc/go-ping v0.0.0-20190613174326-4e5b6552494c

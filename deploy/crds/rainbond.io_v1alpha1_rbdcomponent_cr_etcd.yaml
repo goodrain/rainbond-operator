@@ -1,0 +1,5 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RbdComponent
+metadata:
+  name: rbd-etcd
+  namespace: rbd-system
