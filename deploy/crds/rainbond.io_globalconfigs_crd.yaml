@@ -9,9 +9,7 @@ spec:
     listKind: GlobalConfigList
     plural: globalconfigs
     singular: globalconfig
-  scope: Namespaced
-  subresources:
-    status: {}
+  scope: ""
   validation:
     openAPIV3Schema:
       description: GlobalConfig is the Schema for the globalconfigs API
@@ -163,6 +161,8 @@ spec:
               description: Rainbond cluster installation phase
               type: string
           type: object
+      required:
+      - status
       type: object
   version: v1alpha1
   versions:

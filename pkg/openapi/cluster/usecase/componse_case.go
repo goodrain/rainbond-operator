@@ -1,4 +1,4 @@
-package clustercase
+package usecase
 
 import (
 	"github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"

@@ -88,14 +88,12 @@ type GlobalConfigStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // GlobalConfig is the Schema for the globalconfigs API
-// +kubebuilder:subresource:status
-// +kubebuilder:resource:path=globalconfigs,scope=Namespaced
 type GlobalConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   GlobalConfigSpec   `json:"spec,omitempty"`
-	Status GlobalConfigStatus `json:"status,omitempty"`
+	Status GlobalConfigStatus `json:"status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

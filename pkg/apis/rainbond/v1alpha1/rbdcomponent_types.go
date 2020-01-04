@@ -69,7 +69,7 @@ type RbdComponent struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   RbdComponentSpec   `json:"spec"`
-	Status RbdComponentStatus `json:"status"`
+	Status *RbdComponentStatus `json:"status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

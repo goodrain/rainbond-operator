@@ -1,4 +1,4 @@
-package clustercase
+package usecase
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -47,11 +48,13 @@ func NewGlobalConfigCase(namespace, configName, etcdSecretName string, normalCli
 func (cc *GlobalConfigCaseImpl) GlobalConfigs() (*model.GlobalConfigs, error) {
 	configs, err := cc.rbdClientset.RainbondV1alpha1().GlobalConfigs(cc.namespace).Get(cc.configName, metav1.GetOptions{})
 	if err != nil {
+		if errors.IsNotFound(err) {
+			// TODO: return 404
+			return nil, fmt.Errorf("Global config %s not found. Please check your rainbond operator", cc.configName)
+		}
 		return nil, err
 	}
-	if configs == nil {
-		return nil, fmt.Errorf("do not found cluster config, have you installed rainbond-operator correctly?")
-	}
+
 	data, err := cc.k8sModel2Model(configs)
 	if err != nil {
 		return nil, err

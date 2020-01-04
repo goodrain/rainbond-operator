@@ -1,4 +1,4 @@
-package clustercase
+package usecase
 
 import (
 	"os"

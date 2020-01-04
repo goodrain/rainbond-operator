@@ -21,9 +21,9 @@ func TestFoobar(t *testing.T) {
 		t.Fatalf("create clientset: %v", err)
 	}
 
-	rainbond, err := clientset.RainbondV1alpha1().PrivateRegistries("default").Get("foobar", metav1.GetOptions{})
+	globalConfig, err := clientset.RainbondV1alpha1().GlobalConfigs("").Get("rbd-globalconfig", metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		t.Error(err)
 	}
-	t.Log(rainbond)
+	t.Log(globalConfig)
 }
