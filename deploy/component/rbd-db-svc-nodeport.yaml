@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: rbd-db-np
+  name: rbd-db-np
+  namespace: rbd-system
+spec:
+  ports:
+    - name: main
+      port: 3306
+      nodePort: 30006
+  selector:
+    name: rbd-db
+  type: NodePort
