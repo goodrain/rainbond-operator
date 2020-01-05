@@ -97,6 +97,26 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
+	if instance.Name == "rbd-nfs-provisioner" {
+		generics := []interface{}{
+			statefulsetForNFSProvisioner(instance),
+			serviceForNFSProvisioner(instance),
+		}
+		for _, generic := range generics {
+			// Set PrivateRegistry instance as the owner and controller
+			if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
+				return reconcile.Result{}, err
+			}
+
+			// Check if the statefulset already exists, if not create a new one
+			reconcileResult, err := r.updateOrCreateResource(reqLogger, generic.(runtime.Object), generic.(metav1.Object))
+			if err != nil {
+				return reconcileResult, err
+			}
+		}
+		return reconcile.Result{}, err
+	}
+
 	if instance.Name == "rbd-package" {
 		if !r.isRbdHubReady() {
 			reqLogger.Info("rbd-hub is not ready", "component", instance.Name)
