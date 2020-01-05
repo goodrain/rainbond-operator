@@ -54,7 +54,7 @@ type RbdComponentSpec struct {
 // RbdComponentStatus defines the observed state of RbdComponent
 type RbdComponentStatus struct {
 	Phase     RbdComponentPhase `json:"phase,omitempty"`
-	PodStatus PodStatus         `json:"podStatus"`
+	PodStatus *PodStatus         `json:"podStatus"`
 	Message   string            `json:"message"`
 }
 
@@ -69,7 +69,7 @@ type RbdComponent struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   RbdComponentSpec   `json:"spec,omitempty"`
-	Status RbdComponentStatus `json:"status,omitempty"`
+	Status *RbdComponentStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

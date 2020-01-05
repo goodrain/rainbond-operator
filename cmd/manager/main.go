@@ -143,11 +143,12 @@ func main() {
 		}
 	}
 
-	prepareManager := prepare.CreatePrepareManager(cfg, mgr.GetClient())
+	prepareManager := prepare.NewPrepareManager(cfg, mgr.GetClient())
 	if err := prepareManager.Start(); err != nil {
 		log.Error(err, "start parepare manager")
 		os.Exit(1)
 	}
+	defer prepareManager.Stop()
 
 	log.Info("Starting the Cmd.")
 	// Start the Cmd

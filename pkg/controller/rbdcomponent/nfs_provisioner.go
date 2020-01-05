@@ -3,6 +3,7 @@ package rbdcomponent
 import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -27,7 +28,8 @@ func statefulsetForNFSProvisioner(p *rainbondv1alpha1.RbdComponent) interface{} 
 			Labels:    labels,
 		},
 		Spec: appsv1.StatefulSetSpec{
-			Replicas: commonutil.Int32(1),
+			Replicas:    commonutil.Int32(1),
+			ServiceName: rbdNFSProvisionerName,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
@@ -138,7 +140,7 @@ func serviceForNFSProvisioner(rc *rainbondv1alpha1.RbdComponent) interface{} {
 			Ports: []corev1.ServicePort{
 				{
 					Name: "name",
-					Port: 2048,
+					Port: 2049,
 				},
 				{
 					Name: "mountd",
@@ -159,4 +161,18 @@ func serviceForNFSProvisioner(rc *rainbondv1alpha1.RbdComponent) interface{} {
 	}
 
 	return svc
+}
+
+func storageClassForNFSProvisioner() *storagev1.StorageClass {
+	sc := &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "rbd-nfs",
+		},
+		Provisioner: "rainbond.io/nfs",
+		MountOptions: []string{
+			"vers=4.1",
+		},
+	}
+
+	return sc
 }

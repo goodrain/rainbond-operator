@@ -28,7 +28,7 @@ var (
 	namespace       = "rbd-system"
 	configName      = "rbd-globalconfig"
 	etcdSecretName  = "rbd-etcd-secret"
-	archiveFilePath = "/tmp/rainbond.tar"
+	archiveFilePath = "/opt/rainbond/pkg/rainbond-pkg-V5.2-dev.tgz"
 )
 
 func main() {

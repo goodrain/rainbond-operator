@@ -34,7 +34,7 @@ func deploymentForRainbondDB(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            rbdDBName,
-							Image:           "mysql:5.7.14",
+							Image:           "goodrain.me/mysql:5.7.14",
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
@@ -134,7 +134,7 @@ func persistentVolumeClaimForDB(p *rainbondv1alpha1.RbdComponent) interface{} {
 					corev1.ResourceStorage: *storageRequest,
 				},
 			},
-			StorageClassName: commonutil.String("nfs"),
+			StorageClassName: commonutil.String("rbd-nfs"), // TODO: do not hard code
 		},
 	}
 

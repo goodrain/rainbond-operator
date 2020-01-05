@@ -109,7 +109,7 @@ func (r *ReconcileRbdComponent) persistentVolumeClaimForHub(p *rainbondv1alpha1.
 					corev1.ResourceStorage: *storageRequest,
 				},
 			},
-			StorageClassName: commonutil.String("nfs"),
+			StorageClassName: commonutil.String("rbd-nfs"), // TODO: do not hard code
 		},
 	}
 

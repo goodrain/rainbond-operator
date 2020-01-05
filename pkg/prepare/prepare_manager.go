@@ -4,6 +4,7 @@ import (
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -12,6 +13,7 @@ import (
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	rainbondv1alpha1client "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 )
@@ -26,8 +28,8 @@ type Manager struct {
 	client client.Client
 }
 
-// CreatePrepareManager creates a new PrepareController.
-func CreatePrepareManager(cfg *rest.Config, client client.Client) *Manager {
+// NewPrepareManager creates a new PrepareController.
+func NewPrepareManager(cfg *rest.Config, client client.Client) *Manager {
 	log.Info("create prepare manager")
 
 	clientset := kubernetes.NewForConfigOrDie(cfg)
@@ -46,6 +48,9 @@ func (m *Manager) Start() error {
 	// 	return err
 	// }
 	if err := m.prepareGlobalConfig(); err != nil {
+		return err
+	}
+	if err := m.grdataPersistentVolumeClaim(); err != nil {
 		return err
 	}
 	return nil
@@ -69,6 +74,48 @@ func (m *Manager) initNamespace() error {
 		return fmt.Errorf("update or create namespace: %v", err)
 	}
 	return err
+}
+
+func (m *Manager) grdataPersistentVolumeClaim() error {
+	storageRequest := resource.NewQuantity(10, resource.BinarySI)
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.Namespace,
+			Name:      "grdata",
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteMany,
+			},
+			Resources: corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceStorage: *storageRequest,
+				},
+			},
+			StorageClassName: commonutil.String("rbd-nfs"), // TODO: do not hard code
+		},
+	}
+
+	reqLogger := log.WithValues("Namespace", pvc.Namespace, "Name", pvc.Name)
+
+	_, err := m.clientset.CoreV1().PersistentVolumeClaims(pvc.Namespace).Get(pvc.Name, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			reqLogger.Info("PersistentVolumeClaim not found, create a new one")
+			if _, err := m.clientset.CoreV1().PersistentVolumeClaims(pvc.Namespace).Create(pvc); err != nil {
+				reqLogger.Error(err, "Create a new PersistentVolumeClaim")
+				return err
+			}
+			return nil
+		}
+
+		reqLogger.Error(err, "Find a PersistentVolumeClaim")
+		return err
+	}
+
+	// Forbidden: is immutable after creation except resources.requests for bound claims
+
+	return nil
 }
 
 func (m *Manager) prepareGlobalConfig() error {

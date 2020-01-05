@@ -31,7 +31,7 @@ func daemonSetForRainbondWorker(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            rbdWorkerName,
-							Image:           "rainbond/rbd-worker:" + r.Spec.Version,
+							Image:           "goodrain.me/rbd-worker:" + r.Spec.Version,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							VolumeMounts: []corev1.VolumeMount{
 								{

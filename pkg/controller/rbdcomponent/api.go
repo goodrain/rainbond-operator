@@ -7,13 +7,19 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 var rbdAPIName = "rbd-api"
 
 func daemonSetForRainbondAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := labelsForRbdComponent(rbdAPIName) // TODO: only on rainbond
+	l := map[string]string{
+		"name": rbdAPIName,
+	}
+	labels := rbdutil.Labels(l).WithRainbondLabels()
+
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rbdAPIName,
@@ -41,8 +47,8 @@ func daemonSetForRainbondAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            rbdAPIName,
-							Image:           "rainbond/rbd-api:" + r.Spec.Version,
-							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
+							Image:           "goodrain.me/rbd-api:" + r.Spec.Version, // TODO: do not hard code
+							ImagePullPolicy: corev1.PullIfNotPresent,                 // TODO: custom
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_IP",
@@ -94,6 +100,35 @@ func daemonSetForRainbondAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 	return ds
 }
 
+func serviceForAPI(rc *rainbondv1alpha1.RbdComponent) interface{} {
+	l := map[string]string{
+		"name": rbdAPIName,
+	}
+	labels := rbdutil.Labels(l).WithRainbondLabels()
+
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      rbdAPIName,
+			Namespace: rc.Namespace,
+			Labels:    labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "http",
+					Port: 8888,
+					TargetPort: intstr.IntOrString{
+						IntVal: 8888,
+					},
+				},
+			},
+			Selector: labels,
+		},
+	}
+
+	return svc
+}
+
 func secretForAPI(rc *rainbondv1alpha1.RbdComponent) interface{} {
 	labels := rbdutil.LabelsForRainbondResource()
 	labels["name"] = "rbd-api-ssl"
@@ -110,8 +145,51 @@ func secretForAPI(rc *rainbondv1alpha1.RbdComponent) interface{} {
 			"server.pem":     pem,
 			"server.key.pem": key,
 			"ca.pem":         caPem,
+			"tls.crt":        pem,
+			"tls.key":        key,
 		},
 	}
 
 	return secret
+}
+
+func ingressForAPI(rc *rainbondv1alpha1.RbdComponent) interface{} {
+	l := map[string]string{
+		"name": rbdAPIName,
+	}
+	labels := rbdutil.Labels(l).WithRainbondLabels()
+
+	ing := &extensions.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      rbdAPIName,
+			Namespace: rc.Namespace,
+			Annotations: map[string]string{
+				"nginx.ingress.kubernetes.io/weight":          "100",
+				"nginx.ingress.kubernetes.io/proxy-body-size": "0",
+			},
+			Labels: labels,
+		},
+		Spec: extensions.IngressSpec{
+			Rules: []extensions.IngressRule{
+				{
+					Host: "region.goodrain.me",
+					IngressRuleValue: extensions.IngressRuleValue{
+						HTTP: &extensions.HTTPIngressRuleValue{
+							Paths: []extensions.HTTPIngressPath{
+								{
+									Path: "/",
+									Backend: extensions.IngressBackend{
+										ServiceName: rbdAPIName,
+										ServicePort: intstr.FromString("http"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return ing
 }

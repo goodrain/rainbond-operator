@@ -12,6 +12,9 @@ var rbdChaosName = "rbd-chaos"
 
 func daemonSetForRainbondChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
 	labels := labelsForRbdComponent(rbdChaosName) // TODO: only on rainbond
+
+	hostPathFile := corev1.HostPathFile // TODO: duplicated code
+
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rbdChaosName,
@@ -39,7 +42,7 @@ func daemonSetForRainbondChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            rbdChaosName,
-							Image:           "rainbond/rbd-chaos:" + r.Spec.Version,
+							Image:           "goodrain.me/rbd-chaos:" + r.Spec.Version,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
@@ -65,11 +68,14 @@ func daemonSetForRainbondChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
 								"--log-level=debug",
 								"--mysql=root:rainbond@tcp(rbd-db:3306)/region",
 							},
-
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "grdata",
 									MountPath: "/grdata",
+								},
+								{
+									Name:      "dockersock",
+									MountPath: "/var/run/docker.sock",
 								},
 							},
 						},
@@ -80,6 +86,15 @@ func daemonSetForRainbondChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: "grdata",
+								},
+							},
+						},
+						{
+							Name: "dockersock",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/var/run/docker.sock",
+									Type: &hostPathFile,
 								},
 							},
 						},

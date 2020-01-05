@@ -39,14 +39,22 @@ func daemonSetForRainbondDNS(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            rbdDNSName,
-							Image:           "rainbond/rbd-dns",
-							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
+							Image:           "goodrain.me/rbd-dns:" + r.Spec.Version, // TODO: indicate image directly
+							ImagePullPolicy: corev1.PullIfNotPresent,                 // TODO: custom
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_IP",
 									ValueFrom: &corev1.EnvVarSource{
 										FieldRef: &corev1.ObjectFieldSelector{
 											FieldPath: "status.podIP",
+										},
+									},
+								},
+								{
+									Name: "HOST_IP",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "status.hostIP",
 										},
 									},
 								},
@@ -59,9 +67,9 @@ func daemonSetForRainbondDNS(r *rainbondv1alpha1.RbdComponent) interface{} {
 								"--kubecfg-file=/opt/rainbond/etc/kubernetes/kubecfg/admin.kubeconfig",
 								"--v=2",
 								"--healthz-port=8089",
-								"--dns-bind-address=$(HOST_IP)",
+								"--dns-bind-address=$(POD_IP)",
 								"--nameservers=202.106.0.22,1.2.4.8",
-								"--recoders=goodrain.me=192.168.2.63,*.goodrain.me=192.168.2.63,rainbond.kubernetes.apiserver=192.168.2.63",
+								"--recoders=goodrain.me=$(HOST_IP),*.goodrain.me=$(HOST_IP),rainbond.kubernetes.apiserver=$(HOST_IP)",
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{

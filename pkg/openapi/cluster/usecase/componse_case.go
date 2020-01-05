@@ -8,12 +8,12 @@ import (
 )
 
 // CompnseCaseGetter componse case getter
-type CompnseCaseGetter interface {
+type CompnseCaseGetter interface { // TODO: loop call
 	Componses() ComponseCase
 }
 
 // ComponseCase cluster componse case
-type ComponseCase interface {
+type ComponseCase interface { // TODO: loop call
 	Get(name string) (*model.ComponseInfo, error)
 	List() ([]*model.ComponseInfo, error)
 }
@@ -56,12 +56,16 @@ func (cc *ComponseCaseImpl) List() ([]*model.ComponseInfo, error) {
 	componseInfos := make([]*model.ComponseInfo, 0)
 	for _, item := range componseList.Items {
 		info := &model.ComponseInfo{
-			Name:        item.Name,
-			Version:     item.Spec.Version,
-			Status:      string(item.Status.Phase),
-			HealthCount: len(item.Status.PodStatus.Healthy),
-			TotalCount:  len(item.Status.PodStatus.Healthy) + len(item.Status.PodStatus.UnHealthy),
-			Message:     item.Status.Message,
+			Name:    item.Name,
+			Version: item.Spec.Version,
+		}
+		if item.Status != nil {
+			info.Status = string(item.Status.Phase)
+			info.Message = string(item.Status.Message)
+			if item.Status.PodStatus != nil {
+				info.HealthCount = len(item.Status.PodStatus.Ready)
+				info.TotalCount = len(item.Status.PodStatus.Ready) + len(item.Status.PodStatus.Unready)
+			}
 		}
 		componseInfos = append(componseInfos, info)
 	}

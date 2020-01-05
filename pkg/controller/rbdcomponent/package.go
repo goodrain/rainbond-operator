@@ -128,7 +128,7 @@ func pushRainbondImages(imageDir string) error {
 	})
 	opts.RegistryAuth = registryAuth
 	for _, image := range images {
-		newImage := strings.Replace(image, "rainbond", "goodrdain.me", -1)
+		newImage := strings.Replace(image, "rainbond", "goodrain.me", -1)
 		if err := cli.ImageTag(ctx, image, newImage); err != nil {
 			reqLogger.Error(err, fmt.Sprintf("rename image %s", image))
 			return fmt.Errorf("rename image %s: %v", image, err)

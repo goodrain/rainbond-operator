@@ -41,7 +41,7 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            rbdNodeName,
-							Image:           "goodrain.me/rbd-node:" + r.Spec.Version,
+							Image:           "abewang/rbd-node:" + r.Spec.Version,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
@@ -83,8 +83,8 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 									MountPath: "/sys",
 								},
 								{
-									Name:      "docker-cert",
-									MountPath: "/etc/docker/certs.d",
+									Name:      "docker",
+									MountPath: "/etc/docker",
 								},
 							},
 						},
@@ -125,10 +125,10 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 							},
 						},
 						{
-							Name: "docker-cert",
+							Name: "docker",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/etc/docker/certs.d",
+									Path: "/etc/docker",
 									Type: &hostPathDir,
 								},
 							},

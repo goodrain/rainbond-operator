@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	version                    = "v5.2-dev"
+	version                    = "V5.2-dev"
 	defaultRainbondDownloadURL = "192.168.2.222" // TODO fanyangyang download url
 	defaultRainbondFilePath    = "/opt/rainbond/rainbond.tar"
 	componentClaims            = make([]string, 0)
@@ -38,10 +38,11 @@ func init() {
 	componentClaims = append(componentClaims, "rbd-db")
 	componentClaims = append(componentClaims, "rbd-mq")
 	componentClaims = append(componentClaims, "rbd-chaos")
-	componentClaims = append(componentClaims, "rbd-storage")
+	// componentClaims = append(componentClaims, "rbd-storage")
 	componentClaims = append(componentClaims, "rbd-hub")
 	componentClaims = append(componentClaims, "rbd-package")
 	componentClaims = append(componentClaims, "rbd-node")
+	componentClaims = append(componentClaims, "rbd-etcd")
 }
 
 func parseComponentClaim(claim *componentClaim) *v1alpha1.RbdComponent {
@@ -88,18 +89,18 @@ func NewInstallCase(namespace, archiveFilePath, configName string, normalClients
 // Install install
 func (ic *InstallCaseImpl) Install() error {
 	// step 1 check if archive is exists or not
-	if _, err := os.Stat(ic.archiveFilePath); os.IsNotExist(err) {
-		logrus.Warnf("rainbond archive file does not exists, downloading background ...")
+	// if _, err := os.Stat(ic.archiveFilePath); os.IsNotExist(err) {
+	// 	logrus.Warnf("rainbond archive file does not exists, downloading background ...")
 
-		// step 2 download archive
-		if err := downloadFile(ic.archiveFilePath, ""); err != nil {
-			logrus.Errorf("download rainbond file error: %s", err.Error())
-			return err // TODO fanyangyang bad smell code, fix it
-		}
+	// 	// step 2 download archive
+	// 	if err := downloadFile(ic.archiveFilePath, ""); err != nil {
+	// 		logrus.Errorf("download rainbond file error: %s", err.Error())
+	// 		return err // TODO fanyangyang bad smell code, fix it
+	// 	}
 
-	} else {
-		logrus.Debug("rainbond archive file already exits, do not download again")
-	}
+	// } else {
+	// 	logrus.Debug("rainbond archive file already exits, do not download again")
+	// }
 
 	// step 3 create custom resource
 	return ic.createComponse(componentClaims...)

@@ -42,7 +42,7 @@ func daemonSetForRainbondEventlog(r *rainbondv1alpha1.RbdComponent) interface{} 
 					Containers: []corev1.Container{
 						{
 							Name:            rbdEventlogName,
-							Image:           "rainbond/rbd-eventlog:" + r.Spec.Version,
+							Image:           "goodrain.me/rbd-eventlog:" + r.Spec.Version,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{

@@ -31,7 +31,7 @@ func daemonSetForRainbondMQ(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            mqName,
-							Image:           "rainbond/rbd-mq:" + r.Spec.Version,
+							Image:           "goodrain.me/rbd-mq:" + r.Spec.Version,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
@@ -46,7 +46,7 @@ func daemonSetForRainbondMQ(r *rainbondv1alpha1.RbdComponent) interface{} {
 							Args: []string{ // TODO: huangrh
 								"--log-level=info",
 								"--etcd-endpoints=http://etcd0:2379",
-								"--hostIP=$(HOST_IP)",
+								"--hostIP=$(POD_IP)",
 							},
 						},
 					},
