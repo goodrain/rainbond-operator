@@ -53,9 +53,9 @@ type RbdComponentSpec struct {
 
 // RbdComponentStatus defines the observed state of RbdComponent
 type RbdComponentStatus struct {
-	Phase     RbdComponentPhase `json:"phase,omitempty"`
-	PodStatus *PodStatus         `json:"podStatus"`
-	Message   string            `json:"message"`
+	// ControllerSelector can filter out RbdComponent related controllers,
+	// including Deployemnt, StatefulSet and DaemonSet
+	ControllerSelector map[string]string `json:"controller_selector,omitempty"`
 }
 
 // +genclient
@@ -68,7 +68,7 @@ type RbdComponent struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   RbdComponentSpec   `json:"spec,omitempty"`
+	Spec   RbdComponentSpec    `json:"spec,omitempty"`
 	Status *RbdComponentStatus `json:"status,omitempty"`
 }
 

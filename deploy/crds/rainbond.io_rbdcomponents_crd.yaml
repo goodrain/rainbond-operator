@@ -47,39 +47,12 @@ spec:
         status:
           description: RbdComponentStatus defines the observed state of RbdComponent
           properties:
-            message:
-              type: string
-            phase:
-              description: RbdComponentPhase is the phase of rainbond component
-              type: string
-            podStatus:
-              description: PodStatus -
-              properties:
-                healthy:
-                  description: Healthy are the component pods that pass the liveness.
-                  items:
-                    type: string
-                  type: array
-                ready:
-                  description: Ready are the component pods that are ready to serve
-                    requests The pod names are the same as the component pod names
-                  items:
-                    type: string
-                  type: array
-                unHealthy:
-                  description: Healthy are the component pods that pass the de liveness.
-                  items:
-                    type: string
-                  type: array
-                unready:
-                  description: Unready are the components not ready to serve requests
-                  items:
-                    type: string
-                  type: array
+            controller_selector:
+              additionalProperties:
+                type: string
+              description: ControllerSelector can filter out RbdComponent related
+                controllers, including Deployemnt, StatefulSet and DaemonSet
               type: object
-          required:
-          - message
-          - podStatus
           type: object
       type: object
   version: v1alpha1

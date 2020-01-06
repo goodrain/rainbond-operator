@@ -14,11 +14,15 @@ import (
 
 var rbdAPIName = "rbd-api"
 
-func daemonSetForRainbondAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
+func labelsForAPI() map[string]string {
 	l := map[string]string{
 		"name": rbdAPIName,
 	}
-	labels := rbdutil.Labels(l).WithRainbondLabels()
+	return rbdutil.Labels(l).WithRainbondLabels()
+}
+
+func daemonSetForRainbondAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
+	labels := labelsForAPI()
 
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{

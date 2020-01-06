@@ -279,43 +279,12 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 			}
 		}
 
-		pods := &corev1.PodList{}
-		listOpts := []client.ListOption{
-			client.MatchingLabels(map[string]string{
-				"name": "rbd-api",
-			}),
-		}
-		if err := r.client.List(context.TODO(), pods, listOpts...); err != nil {
-			reqLogger.Error(err, "List pods for rbd-api")
-			return reconcile.Result{Requeue: true}, err
-		}
-
-		var readyPods []string
-		var notReadyPods []string
-		for _, pod := range pods.Items {
-			isReady := false
-			for _, cond := range pod.Status.Conditions {
-				if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
-					isReady = true
-					break
-				}
-			}
-			if isReady {
-				readyPods = append(readyPods, pod.Name)
-				continue
-			}
-			notReadyPods = append(notReadyPods, pod.Name)
-		}
-
-		// update status
-		status := instance.Status
-		status.PodStatus = &rainbondv1alpha1.PodStatus{
-			Ready:   readyPods,
-			Unready: notReadyPods,
+		instance.Status = &rainbondv1alpha1.RbdComponentStatus{
+			ControllerSelector: labelsForAPI(),
 		}
 
 		if err := r.client.Status().Update(context.TODO(), instance); err != nil {
-			reqLogger.Error(err, "Update pods status for rbd-api")
+			reqLogger.Error(err, "Update RbdComponent status", "Name", instance.Name)
 			return reconcile.Result{Requeue: true}, err
 		}
 
