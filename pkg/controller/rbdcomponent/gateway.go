@@ -10,8 +10,14 @@ import (
 
 var gatewayName = "rbd-gateway"
 
+func resourcesForGateway(r *rainbondv1alpha1.RbdComponent) []interface{} {
+	return []interface{}{
+		daemonSetForGateway(r),
+	}
+}
+
 func daemonSetForGateway(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := labelsForRbdComponent(gatewayName) // TODO: only on rainbond
+	labels := r.Labels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      gatewayName,

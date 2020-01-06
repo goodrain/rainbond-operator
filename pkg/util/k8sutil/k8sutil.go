@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 
+	corev1 "k8s.io/api/core/v1"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,4 +77,9 @@ func InClusterConfig() (*rest.Config, error) {
 		return nil, err
 	}
 	return cfg, nil
+}
+
+// HostPath returns a pointer to the HostPathType value passed in.
+func HostPath(hostpath corev1.HostPathType) *corev1.HostPathType {
+	return &hostpath
 }

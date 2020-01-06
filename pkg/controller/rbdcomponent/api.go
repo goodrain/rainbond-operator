@@ -12,17 +12,21 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-var rbdAPIName = "rbd-api"
+var rbdAPIName = "rbd-api" // TODO: use r.Name
 
-func labelsForAPI() map[string]string {
-	l := map[string]string{
-		"name": rbdAPIName,
+func resourcesForAPI(r *rainbondv1alpha1.RbdComponent) []interface{} {
+	return []interface{}{
+		secretForAPI(r),
+		daemonSetForAPI(r),
+		serviceForAPI(r),
+		ingressForAPI(r),
 	}
-	return rbdutil.Labels(l).WithRainbondLabels()
 }
 
-func daemonSetForRainbondAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := labelsForAPI()
+func daemonSetForAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
+	labels := labelsForRbdComponent(map[string]string{
+		"name": r.Name,
+	})
 
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{

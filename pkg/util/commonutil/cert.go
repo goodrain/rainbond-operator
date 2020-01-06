@@ -7,7 +7,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"fmt"
 	"math/big"
 	"time"
 )
@@ -97,10 +96,6 @@ func DomainSign(domain string) ([]byte, []byte, []byte, error) {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(certPrivKey),
 	})
-
-	fmt.Println(certPEM.Bytes())
-
-	fmt.Println(certPrivKeyPEM)
 
 	return caPEM.Bytes(), certPEM.Bytes(), certPrivKeyPEM.Bytes(), nil
 }

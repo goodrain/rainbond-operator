@@ -16,13 +16,23 @@ import (
 var defaultPVCName = "hubdata"
 var rbdHubServiceName = "rbd-hub"
 
+func resourcesForHub(r *rainbondv1alpha1.RbdComponent) []interface{}{
+	return []interface{}{
+		secretForHub(r),
+		daemonSetForHub(r),
+		serviceForHub(r),
+		persistentVolumeClaimForHub(r),
+		ingressForHub(r),
+	}
+}
+
 // daemonSetForHub returns a privateregistry Daemonset object
-func (r *ReconcileRbdComponent) daemonSetForHub(p *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := labelsForPrivateRegistry(p.Name)
+func daemonSetForHub(r *rainbondv1alpha1.RbdComponent) interface{} {
+	labels := r.Labels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rbd-hub",
-			Namespace: p.Namespace, // TODO: can use custom namespace?
+			Namespace: r.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -66,7 +76,7 @@ func (r *ReconcileRbdComponent) daemonSetForHub(p *rainbondv1alpha1.RbdComponent
 	return ds
 }
 
-func (r *ReconcileRbdComponent) serviceForHub(rc *rainbondv1alpha1.RbdComponent) interface{} {
+func serviceForHub(rc *rainbondv1alpha1.RbdComponent) interface{} {
 	labels := rbdutil.LabelsForRainbondResource()
 	labels["name"] = rbdHubServiceName
 
@@ -93,7 +103,7 @@ func (r *ReconcileRbdComponent) serviceForHub(rc *rainbondv1alpha1.RbdComponent)
 	return svc
 }
 
-func (r *ReconcileRbdComponent) persistentVolumeClaimForHub(p *rainbondv1alpha1.RbdComponent) interface{} {
+func persistentVolumeClaimForHub(p *rainbondv1alpha1.RbdComponent) interface{} {
 	storageRequest := resource.NewQuantity(10, resource.DecimalSI)
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{

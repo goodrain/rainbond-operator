@@ -11,12 +11,19 @@ import (
 
 var rbdAppUIName = "rbd-app-ui"
 
-func deploymentForRainbondAppUI(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := labelsForRbdComponent(rbdAppUIName) // TODO: only on rainbond
+func resourcesForAppUI(r *rainbondv1alpha1.RbdComponent) []interface{} {
+	return []interface{}{
+		deploymentForAppUI(r),
+	}
+}
+
+func deploymentForAppUI(r *rainbondv1alpha1.RbdComponent) interface{} {
+	labels := r.Labels()
+
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rbdAppUIName,
-			Namespace: r.Namespace, // TODO: can use custom namespace?
+			Namespace: r.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{

@@ -5,15 +5,23 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 )
 
 var rbdEtcdName = "rbd-etcd"
 
+func resourcesForEtcd(r *rainbondv1alpha1.RbdComponent) []interface{} {
+	return []interface{}{
+		podForEtcd0(r),
+		serviceForEtcd0(r),
+	}
+}
+
 func podForEtcd0(rc *rainbondv1alpha1.RbdComponent) interface{} {
-	ds := &corev1.Pod{
+	po := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "etcd0",
-			Namespace: rc.Namespace, // TODO: can use custom namespace?
+			Namespace: rc.Namespace,
 			Labels: map[string]string{
 				"app":       "etcd",
 				"etcd_node": "etcd0",
@@ -52,12 +60,29 @@ func podForEtcd0(rc *rainbondv1alpha1.RbdComponent) interface{} {
 							ContainerPort: 2380,
 						},
 					},
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name:      "etcd-data",
+							MountPath: "/var/lib/etcd",
+						},
+					},
+				},
+			},
+			Volumes: []corev1.Volume{
+				{
+					Name: "etcd-data",
+					VolumeSource: corev1.VolumeSource{
+						HostPath: &corev1.HostPathVolumeSource{
+							Path: "/opt/rainbond/data/etcd",
+							Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+						},
+					},
 				},
 			},
 		},
 	}
 
-	return ds
+	return po
 }
 
 func serviceForEtcd0(rc *rainbondv1alpha1.RbdComponent) interface{} {

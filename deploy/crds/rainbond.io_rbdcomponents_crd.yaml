@@ -51,8 +51,14 @@ spec:
               additionalProperties:
                 type: string
               description: ControllerSelector can filter out RbdComponent related
-                controllers, including Deployemnt, StatefulSet and DaemonSet
+                controllers, including Deployment, StatefulSet and DaemonSet
               type: object
+            controller_type:
+              description: Type of Controller owned by RbdComponent
+              type: string
+          required:
+          - controller_selector
+          - controller_type
           type: object
       type: object
   version: v1alpha1

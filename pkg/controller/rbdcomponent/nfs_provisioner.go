@@ -1,6 +1,7 @@
 package rbdcomponent
 
 import (
+	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -18,8 +19,6 @@ func statefulsetForNFSProvisioner(p *rainbondv1alpha1.RbdComponent) interface{} 
 		"name": rbdNFSProvisionerName,
 	}
 	labels := rbdutil.Labels(l).WithRainbondLabels()
-
-	hostPathDir := corev1.HostPathDirectory
 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -111,7 +110,7 @@ func statefulsetForNFSProvisioner(p *rainbondv1alpha1.RbdComponent) interface{} 
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: "/srv",
-									Type: &hostPathDir,
+									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 								},
 							},
 						},

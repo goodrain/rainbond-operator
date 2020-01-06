@@ -1,9 +1,9 @@
 package rbdcomponent
 
 import (
+	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -12,8 +12,16 @@ import (
 
 var rbdDBName = "rbd-db"
 
-func deploymentForRainbondDB(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := labelsForRbdComponent(rbdDBName) // TODO: only on rainbond
+func resourcesForDB(r *rainbondv1alpha1.RbdComponent) []interface{} {
+	return []interface{}{
+		statefulsetForDB(r),
+		serviceForDB(r),
+		configMapForDB(r),
+	}
+}
+
+func statefulsetForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
+	labels := r.Labels()
 	sts := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rbdDBName,
@@ -48,7 +56,7 @@ func deploymentForRainbondDB(r *rainbondv1alpha1.RbdComponent) interface{} {
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "data",
+									Name:      "rbd-db-data",
 									MountPath: "/var/lib/mysql",
 								},
 								{
@@ -61,10 +69,11 @@ func deploymentForRainbondDB(r *rainbondv1alpha1.RbdComponent) interface{} {
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: "data",
+							Name: "rbd-db-data",
 							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: "rbd-db-data",
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/opt/rainbond/data/db",
+									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 								},
 							},
 						},
@@ -116,29 +125,6 @@ func serviceForDB(rc *rainbondv1alpha1.RbdComponent) interface{} {
 	}
 
 	return svc
-}
-
-func persistentVolumeClaimForDB(p *rainbondv1alpha1.RbdComponent) interface{} {
-	storageRequest := resource.NewQuantity(10, resource.BinarySI)
-	pvc := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rbd-db-data",
-			Namespace: p.Namespace,
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteMany,
-			},
-			Resources: corev1.ResourceRequirements{
-				Requests: map[corev1.ResourceName]resource.Quantity{
-					corev1.ResourceStorage: *storageRequest,
-				},
-			},
-			StorageClassName: commonutil.String("rbd-nfs"), // TODO: do not hard code
-		},
-	}
-
-	return pvc
 }
 
 func configMapForDB(r *rainbondv1alpha1.RbdComponent) interface{} {

@@ -8,13 +8,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var rbdEventlogName = "rbd-eventlog"
+var rbdEventLogName = "rbd-eventlog"
 
-func daemonSetForRainbondEventlog(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := labelsForRbdComponent(rbdEventlogName) // TODO: only on rainbond
+func resourcesForEventLog(r *rainbondv1alpha1.RbdComponent) []interface{} {
+	return []interface{}{
+		daemonSetForEventLog(r),
+	}
+}
+
+func daemonSetForEventLog(r *rainbondv1alpha1.RbdComponent) interface{} {
+	labels := r.Labels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbdEventlogName,
+			Name:      rbdEventLogName,
 			Namespace: r.Namespace, // TODO: can use custom namespace?
 			Labels:    labels,
 		},
@@ -24,7 +30,7 @@ func daemonSetForRainbondEventlog(r *rainbondv1alpha1.RbdComponent) interface{} 
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   rbdEventlogName,
+					Name:   rbdEventLogName,
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
@@ -41,7 +47,7 @@ func daemonSetForRainbondEventlog(r *rainbondv1alpha1.RbdComponent) interface{} 
 					},
 					Containers: []corev1.Container{
 						{
-							Name:            rbdEventlogName,
+							Name:            rbdEventLogName,
 							Image:           "goodrain.me/rbd-eventlog:" + r.Spec.Version,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{

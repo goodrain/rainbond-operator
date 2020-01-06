@@ -2,6 +2,7 @@ package rbdcomponent
 
 import (
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -10,15 +11,19 @@ import (
 
 var rbdChaosName = "rbd-chaos"
 
-func daemonSetForRainbondChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := labelsForRbdComponent(rbdChaosName) // TODO: only on rainbond
+func resourcesForChaos(r *rainbondv1alpha1.RbdComponent) []interface{} {
+	return []interface{}{
+		daemonSetForChaos(r),
+	}
+}
 
-	hostPathFile := corev1.HostPathFile // TODO: duplicated code
+func daemonSetForChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
+	labels := r.Labels()
 
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rbdChaosName,
-			Namespace: r.Namespace, // TODO: can use custom namespace?
+			Namespace: r.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -94,7 +99,7 @@ func daemonSetForRainbondChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: "/var/run/docker.sock",
-									Type: &hostPathFile,
+									Type: k8sutil.HostPath(corev1.HostPathFile),
 								},
 							},
 						},
