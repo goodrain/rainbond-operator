@@ -2,6 +2,7 @@ package rbdcomponent
 
 import (
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -12,7 +13,6 @@ var rbdNodeName = "rbd-node"
 
 func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 	labels := labelsForRbdComponent(rbdNodeName) // TODO: only on rainbond
-	hostPathDir := corev1.HostPathDirectory
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rbdNodeName,
@@ -111,7 +111,7 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: "/proc",
-									Type: &hostPathDir,
+									Type: k8sutil.HostPath(corev1.HostPathDirectory),
 								},
 							},
 						},
@@ -120,7 +120,7 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: "/sys",
-									Type: &hostPathDir,
+									Type: k8sutil.HostPath(corev1.HostPathDirectory),
 								},
 							},
 						},
@@ -129,7 +129,7 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: "/etc/docker",
-									Type: &hostPathDir,
+									Type: k8sutil.HostPath(corev1.HostPathDirectory),
 								},
 							},
 						},
