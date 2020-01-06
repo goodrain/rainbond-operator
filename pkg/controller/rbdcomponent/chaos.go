@@ -11,13 +11,19 @@ import (
 
 var rbdChaosName = "rbd-chaos"
 
-func daemonSetForRainbondChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := labelsForRbdComponent(rbdChaosName) // TODO: only on rainbond
+func resourcesForChaos(r *rainbondv1alpha1.RbdComponent) []interface{} {
+	return []interface{}{
+		daemonSetForChaos(r),
+	}
+}
+
+func daemonSetForChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
+	labels := r.Labels()
 
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rbdChaosName,
-			Namespace: r.Namespace, // TODO: can use custom namespace?
+			Namespace: r.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DaemonSetSpec{

@@ -10,12 +10,18 @@ import (
 
 var rbdDNSName = "rbd-dns"
 
-func daemonSetForRainbondDNS(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := labelsForRbdComponent(rbdDNSName) // TODO: only on rainbond
+func resourcesForDNS(r *rainbondv1alpha1.RbdComponent) []interface{} {
+	return []interface{}{
+		daemonSetForDNS(r),
+	}
+}
+
+func daemonSetForDNS(r *rainbondv1alpha1.RbdComponent) interface{} {
+	labels := r.Labels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rbdDNSName,
-			Namespace: r.Namespace, // TODO: can use custom namespace?
+			Namespace: r.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DaemonSetSpec{

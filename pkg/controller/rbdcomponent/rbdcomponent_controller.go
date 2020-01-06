@@ -23,9 +23,29 @@ import (
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 )
 
-type controllerForRainbond func(p *rainbondv1alpha1.RbdComponent) interface{}
-
 var log = logf.Log.WithName("controller_rbdcomponent")
+
+type resourcesFunc func(r *rainbondv1alpha1.RbdComponent) []interface{}
+
+var resourcesFuncs map[string]resourcesFunc
+
+func init() {
+	resourcesFuncs = map[string]resourcesFunc{
+		"rbd-db":       resourcesForDB,
+		"rbd-etcd":     resourcesForEtcd,
+		"rbd-hub":      resourcesForHub,
+		"rbd-gateway":  resourcesForGateway,
+		"rbd-node":     resourcesForNode,
+		"rbd-api":      resourcesForAPI,
+		"rbd-app-ui":   resourcesForAppUI,
+		"rbd-worker":   resourcesForWorker,
+		"rbd-chaos":    resourcesForChaos,
+		"rbd-eventlog": resourcesForEventLog,
+		"rbd-monitor":  resourcesForMonitor,
+		"rbd-mq":       resourcesForMQ,
+		"rbd-dns":      resourcesForDNS,
+	}
+}
 
 // Add creates a new RbdComponent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -100,7 +120,7 @@ type ReconcileRbdComponent struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger := log.WithValues("Namespace", request.Namespace, "Name", request.Name)
 	reqLogger.Info("Reconciling RbdComponent")
 
 	// Fetch the RbdComponent instance
@@ -114,127 +134,6 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
-	}
-
-	if instance.Name == "rbd-nfs-provisioner" {
-		generics := []interface{}{
-			statefulsetForNFSProvisioner(instance),
-			serviceForNFSProvisioner(instance),
-		}
-		for _, generic := range generics {
-			// Set RbdComponent instance as the owner and controller
-			if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
-				return reconcile.Result{}, err
-			}
-
-			reconcileResult, err := r.updateOrCreateResource(reqLogger, generic.(runtime.Object), generic.(metav1.Object))
-			if err != nil {
-				return reconcileResult, err
-			}
-		}
-
-		// TODO: create storageclass
-		// sc := storageClassForNFSProvisioner()
-		// if err := r.client.Create(context.TODO(), sc); err != nil {
-		// 	if errors.IsAlreadyExists(err) {
-		// 		reqLogger.Info("Storage class already exists", "Name", sc.Name)
-		// 		return reconcile.Result{}, err
-		// 	}
-		// }
-
-		return reconcile.Result{}, err
-	}
-
-	if instance.Name == "rbd-etcd" {
-		generics := []interface{}{
-			podForEtcd0(instance),
-			serviceForEtcd0(instance),
-		}
-		for _, generic := range generics {
-			// Set RbdComponent instance as the owner and controller
-			if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
-				return reconcile.Result{}, err
-			}
-
-			// Check if the statefulset already exists, if not create a new one
-			reconcileResult, err := r.updateOrCreateResource(reqLogger, generic.(runtime.Object), generic.(metav1.Object))
-			if err != nil {
-				return reconcileResult, err
-			}
-		}
-		return reconcile.Result{}, err
-	}
-
-	// Install image repository
-	if instance.Name == "rbd-hub" {
-		reqLogger.Info("Reconciling rbd-hub")
-
-		// TODO: only after storage ready
-		{
-			secret := secretForHub(instance)
-			// Set RbdComponent instance as the owner and controller
-			if err := controllerutil.SetControllerReference(instance, secret.(metav1.Object), r.scheme); err != nil {
-				return reconcile.Result{}, err
-			}
-
-			// Check if the statefulset already exists, if not create a new one
-			reconcileResult, err := r.createIfNotExistResource(reqLogger, secret.(runtime.Object), secret.(metav1.Object))
-			if err != nil {
-				return reconcileResult, err
-			}
-		}
-
-		generics := []interface{}{
-			r.daemonSetForHub(instance),
-			r.serviceForHub(instance),
-			r.persistentVolumeClaimForHub(instance),
-			ingressForHub(instance),
-		}
-		for _, generic := range generics {
-			// Set RbdComponent instance as the owner and controller
-			if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
-				return reconcile.Result{}, err
-			}
-
-			// Check if the statefulset already exists, if not create a new one
-			reconcileResult, err := r.updateOrCreateResource(reqLogger, generic.(runtime.Object), generic.(metav1.Object))
-			if err != nil {
-				return reconcileResult, err
-			}
-		}
-
-		return reconcile.Result{}, err
-	}
-
-	if instance.Name == "rbd-gateway" {
-		generic := daemonSetForGateway(instance)
-
-		// Set RbdComponent instance as the owner and controller
-		if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
-			return reconcile.Result{}, err
-		}
-
-		// Check if the statefulset already exists, if not create a new one
-		reconcileResult, err := r.updateOrCreateResource(reqLogger, generic.(runtime.Object), generic.(metav1.Object))
-		if err != nil {
-			return reconcileResult, err
-		}
-		return reconcile.Result{}, err
-	}
-
-	if instance.Name == "rbd-node" {
-		generic := daemonSetForRainbondNode(instance)
-
-		// Set RbdComponent instance as the owner and controller
-		if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
-			return reconcile.Result{}, err
-		}
-
-		reconcileResult, err := r.updateOrCreateResource(reqLogger, generic.(runtime.Object), generic.(metav1.Object))
-		if err != nil {
-			return reconcileResult, err
-		}
 		return reconcile.Result{}, err
 	}
 
@@ -252,108 +151,48 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, nil
 	}
 
-	if instance.Name == "rbd-api" {
-		reqLogger.Info("Reconciling rbd-api")
-
-		if !r.isRbdHubReady() {
-			reqLogger.Info("rbd-hub is not ready", "component", instance.Name)
-			return reconcile.Result{Requeue: true}, err
-		}
-
-		generics := []interface{}{
-			daemonSetForRainbondAPI(instance),
-			serviceForAPI(instance),
-			secretForAPI(instance),
-			ingressForAPI(instance),
-		}
-		for _, generic := range generics {
-			// Set RbdComponent instance as the owner and controller
-			if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
-				return reconcile.Result{}, err
-			}
-
-			// Check if the statefulset already exists, if not create a new one
-			reconcileResult, err := r.updateOrCreateResource(reqLogger, generic.(runtime.Object), generic.(metav1.Object))
-			if err != nil {
-				return reconcileResult, err
-			}
-		}
-
-		instance.Status = &rainbondv1alpha1.RbdComponentStatus{
-			ControllerSelector: labelsForAPI(),
-		}
-
-		if err := r.client.Status().Update(context.TODO(), instance); err != nil {
-			reqLogger.Error(err, "Update RbdComponent status", "Name", instance.Name)
-			return reconcile.Result{Requeue: true}, err
-		}
-
-		return reconcile.Result{}, err
+	fn, ok := resourcesFuncs[instance.Name]
+	if !ok {
+		reqLogger.Info("Unsupported RbdComponent.")
+		return reconcile.Result{}, nil
 	}
 
-	if instance.Name == "rbd-db" {
-		reqLogger.Info("Reconciling rbd-hub")
+	// TODO: check if the component is ready to be created
 
-		if !r.isRbdHubReady() {
-			reqLogger.Info("rbd-hub is not ready", "component", instance.Name)
-			return reconcile.Result{Requeue: true}, err
+	controllerType := rainbondv1alpha1.ControllerTypeUnknown
+	for _, res := range fn(instance) {
+		if ct := detectControllerType(res); ct != rainbondv1alpha1.ControllerTypeUnknown {
+			controllerType = ct
 		}
 
-		generics := []interface{}{
-			configMapForDB(instance),
-			deploymentForRainbondDB(instance),
-			serviceForDB(instance),
-			persistentVolumeClaimForDB(instance),
-		}
-		for _, generic := range generics {
-			// Set RbdComponent instance as the owner and controller
-			if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
-				return reconcile.Result{}, err
-			}
-
-			// Check if the statefulset already exists, if not create a new one
-			reconcileResult, err := r.updateOrCreateResource(reqLogger, generic.(runtime.Object), generic.(metav1.Object))
-			if err != nil {
-				return reconcileResult, err
-			}
-		}
-		return reconcile.Result{}, err
-	}
-
-	controllerForRainbondFuncs := map[string]controllerForRainbond{
-		"rbd-app-ui":   deploymentForRainbondAppUI,
-		"rbd-worker":   daemonSetForRainbondWorker,
-		"rbd-chaos":    daemonSetForRainbondChaos,
-		"rbd-eventlog": daemonSetForRainbondEventlog,
-		"rbd-monitor":  daemonSetForRainbondMonitor,
-		"rbd-mq":       daemonSetForRainbondMQ,
-		"rbd-dns":      daemonSetForRainbondDNS,
-	}
-
-	{
-		if !r.isRbdHubReady() {
-			reqLogger.Info("rbd-hub is not ready", "component", instance.Name)
-			return reconcile.Result{Requeue: true}, err
-		}
-
-		name := instance.Name
-		controllerForRainbondFunc, ok := controllerForRainbondFuncs[instance.Name]
-		if !ok {
-			reqLogger.Info("Unsupportted rainbond component", "Name", name)
-			return reconcile.Result{}, err
-		}
-
-		generic := controllerForRainbondFunc(instance)
 		// Set RbdComponent instance as the owner and controller
-		if err := controllerutil.SetControllerReference(instance, generic.(metav1.Object), r.scheme); err != nil {
+		if err := controllerutil.SetControllerReference(instance, res.(metav1.Object), r.scheme); err != nil {
 			return reconcile.Result{}, err
 		}
 
-		// Check if the statefulset already exists, if not create a new one
-		reconcileResult, err := r.updateOrCreateResource(reqLogger, generic.(runtime.Object), generic.(metav1.Object))
+		// TODO: do not update secret for hub every times.
+		// Check if the resource already exists, if not create a new one
+		reconcileResult, err := r.updateOrCreateResource(reqLogger, res.(runtime.Object), res.(metav1.Object))
 		if err != nil {
 			return reconcileResult, err
 		}
+	}
+
+	selector := instance.Labels()
+	if instance.Name == "rbd-etcd" { // TODO:
+		selector = map[string]string{
+			"app":       "etcd",
+			"etcd_node": "etcd0",
+		}
+	}
+	instance.Status = &rainbondv1alpha1.RbdComponentStatus{
+		ControllerType:     controllerType,
+		ControllerSelector: selector,
+	}
+
+	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+		reqLogger.Error(err, "Update RbdComponent status", "Name", instance.Name)
+		return reconcile.Result{Requeue: true}, err
 	}
 
 	return reconcile.Result{}, nil
@@ -406,8 +245,16 @@ func (r *ReconcileRbdComponent) createIfNotExistResource(reqLogger logr.Logger, 
 
 // labelsForRbdComponent returns the labels for selecting the resources
 // belonging to the given RbdComponent CR name.
-func labelsForRbdComponent(name string) map[string]string {
-	return map[string]string{"name": name} // TODO: only one rainbond?
+func labelsForRbdComponent(labels map[string]string) map[string]string {
+	rbdlabels := map[string]string{
+		"creator": "Rainbond",
+	}
+
+	for k, v := range labels {
+		rbdlabels[k] = v
+	}
+
+	return rbdlabels
 }
 
 func (r *ReconcileRbdComponent) isRbdHubReady() bool {
@@ -435,4 +282,17 @@ func (r *ReconcileRbdComponent) isRbdHubReady() bool {
 	}
 
 	return false
+}
+
+func detectControllerType(ctrl interface{}) rainbondv1alpha1.ControllerType {
+	if _, ok := ctrl.(*appv1.Deployment); ok {
+		return rainbondv1alpha1.ControllerTypeDeployment
+	}
+	if _, ok := ctrl.(*appv1.StatefulSet); ok {
+		return rainbondv1alpha1.ControllerTypeStatefulSet
+	}
+	if _, ok := ctrl.(*appv1.DaemonSet); ok {
+		return rainbondv1alpha1.ControllerTypeDaemonSet
+	}
+	return rainbondv1alpha1.ControllerTypeUnknown
 }

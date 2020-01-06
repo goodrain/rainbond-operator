@@ -10,8 +10,14 @@ import (
 
 var monitorName = "rbd-monitor"
 
-func daemonSetForRainbondMonitor(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := labelsForRbdComponent(monitorName) // TODO: only on rainbond
+func resourcesForMonitor(r *rainbondv1alpha1.RbdComponent) []interface{} {
+	return []interface{}{
+		daemonSetForMonitor(r),
+	}
+}
+
+func daemonSetForMonitor(r *rainbondv1alpha1.RbdComponent) interface{} {
+	labels := r.Labels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      monitorName,

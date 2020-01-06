@@ -11,8 +11,14 @@ import (
 
 var rbdNodeName = "rbd-node"
 
+func resourcesForNode(r *rainbondv1alpha1.RbdComponent) []interface{}{
+	return []interface{}{
+		daemonSetForRainbondNode(r),
+	}
+}
+
 func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := labelsForRbdComponent(rbdNodeName) // TODO: only on rainbond
+	labels := r.Labels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rbdNodeName,

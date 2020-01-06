@@ -10,12 +10,19 @@ import (
 
 var mqName = "rbd-mq"
 
-func daemonSetForRainbondMQ(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := labelsForRbdComponent(mqName) // TODO: only on rainbond
+func resourcesForMQ(r *rainbondv1alpha1.RbdComponent) []interface{} {
+	return []interface{}{
+		daemonSetForMonitor(r),
+		daemonSetForMQ(r),
+	}
+}
+
+func daemonSetForMQ(r *rainbondv1alpha1.RbdComponent) interface{} {
+	labels := r.Labels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mqName,
-			Namespace: r.Namespace, // TODO: can use custom namespace?
+			Namespace: r.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DaemonSetSpec{

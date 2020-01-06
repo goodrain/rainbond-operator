@@ -4,30 +4,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// RbdComponentType is the type of rainbond component
-type RbdComponentType string
-
-const (
-	// RbdComponentTypeAPI rbd-api
-	RbdComponentTypeAPI RbdComponentType = "rbd-api"
-	// RbdComponentTypeWorker rbd-worker
-	RbdComponentTypeWorker RbdComponentType = "rbd-worker"
-)
-
-// RbdComponentPhase is the phase of rainbond component
-type RbdComponentPhase string
-
-const (
-	// RbdComponentmPhaseImagePulling -
-	RbdComponentmPhaseImagePulling RbdComponentPhase = "ImagePulling"
-	// RbdComponentPhaseCreating -
-	RbdComponentPhaseCreating RbdComponentPhase = "Creating"
-	// RbdComponentPhaseRunning -
-	RbdComponentPhaseRunning RbdComponentPhase = "Running"
-	// RbdComponentPhasePailed -
-	RbdComponentPhasePailed RbdComponentPhase = "Failed"
-)
-
 // LogLevel -
 type LogLevel string
 
@@ -51,11 +27,27 @@ type RbdComponentSpec struct {
 	LogLevel LogLevel `json:"logLevel,omitempty"`
 }
 
+// LogLevel -
+type ControllerType string
+
+const (
+	// ControllerTypeDeployment -
+	ControllerTypeDeployment ControllerType = "deployment"
+	// ControllerTypeDaemonSet -
+	ControllerTypeDaemonSet ControllerType = "daemonset"
+	// ControllerTypeStatefulSet -
+	ControllerTypeStatefulSet ControllerType = "statefuleset"
+	// ControllerTypeStatefulSet -
+	ControllerTypeUnknown ControllerType = "unknown"
+)
+
 // RbdComponentStatus defines the observed state of RbdComponent
 type RbdComponentStatus struct {
+	// Type of Controller owned by RbdComponent
+	ControllerType ControllerType `json:"controller_type"`
 	// ControllerSelector can filter out RbdComponent related controllers,
-	// including Deployemnt, StatefulSet and DaemonSet
-	ControllerSelector map[string]string `json:"controller_selector,omitempty"`
+	// including Deployment, StatefulSet and DaemonSet
+	ControllerSelector map[string]string `json:"controller_selector"`
 }
 
 // +genclient
@@ -85,15 +77,9 @@ func init() {
 	SchemeBuilder.Register(&RbdComponent{}, &RbdComponentList{})
 }
 
-// PodStatus -
-type PodStatus struct {
-	// Ready are the component pods that are ready to serve requests
-	// The pod names are the same as the component pod names
-	Ready []string `json:"ready,omitempty"`
-	// Unready are the components not ready to serve requests
-	Unready []string `json:"unready,omitempty"`
-	// Healthy are the component pods that pass the liveness.
-	Healthy []string `json:"healthy,omitempty"`
-	// Healthy are the component pods that pass the de liveness.
-	UnHealthy []string `json:"unHealthy,omitempty"`
+func (in *RbdComponent) Labels() map[string]string {
+	return map[string]string{
+		"creator": "Rainbond",
+		"name":    in.Name,
+	}
 }

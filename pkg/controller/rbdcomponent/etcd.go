@@ -10,6 +10,13 @@ import (
 
 var rbdEtcdName = "rbd-etcd"
 
+func resourcesForEtcd(r *rainbondv1alpha1.RbdComponent) []interface{} {
+	return []interface{}{
+		podForEtcd0(r),
+		serviceForEtcd0(r),
+	}
+}
+
 func podForEtcd0(rc *rainbondv1alpha1.RbdComponent) interface{} {
 	po := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
