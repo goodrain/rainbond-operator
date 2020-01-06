@@ -34,16 +34,16 @@ var (
 )
 
 // APIServer api server
-var APIServer *option.APIServer
+var cfg *option.Config
 
 func init() {
-	APIServer = &option.APIServer{}
-	APIServer.AddFlags(pflag.CommandLine)
+	cfg = &option.Config{}
+	cfg.AddFlags(pflag.CommandLine)
 	pflag.Parse()
 
-	cfg := k8sutil.MustNewKubeConfig(APIServer.Config.KubeconfigPath)
-	APIServer.Config.KubeClient = kubernetes.NewForConfigOrDie(cfg)
-	APIServer.Config.RainbondKubeClient = versioned.NewForConfigOrDie(cfg)
+	restConfig := k8sutil.MustNewKubeConfig(cfg.KubeconfigPath)
+	cfg.KubeClient = kubernetes.NewForConfigOrDie(restConfig)
+	cfg.RainbondKubeClient = versioned.NewForConfigOrDie(restConfig)
 }
 
 func main() {
@@ -59,7 +59,7 @@ func main() {
 	userRepo.CreateIfNotExist(&model.User{Username: "admin", Password: "admin"})
 	userUcase := uucase.NewUserUsecase(userRepo, "my-secret-key")
 	uctrl.NewUserController(r, userUcase)
-	clusterUcase := cluster.NewClusterCase(APIServer.Config)
+	clusterUcase := cluster.NewClusterCase(cfg)
 	clusterCtrl.NewClusterController(r, clusterUcase)
 	upload.NewUploadController(r, archiveFilePath)
 

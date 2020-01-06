@@ -7,53 +7,53 @@ import (
 
 // IClusterCase cluster case
 type IClusterCase interface {
-	GlobalConfigCaseGetter
-	CompnseCaseGetter
-	InstallCaseGetter
+	GlobalConfigUseCaseGetter
+	CompnentUseCaseGetter
+	InstallUseCaseGetter
 }
 
-// GlobalConfigCaseGetter config case getter
-type GlobalConfigCaseGetter interface {
-	GlobalConfigs() usecase.GlobalConfigCase
+// GlobalConfigUseCaseGetter config case getter
+type GlobalConfigUseCaseGetter interface {
+	GlobalConfigs() usecase.GlobalConfigUseCase
 }
 
-// CompnseCaseGetter componse case getter
-type CompnseCaseGetter interface {
-	Componses() usecase.ComponseCase
+// CompnentUseCaseGetter componse case getter
+type CompnentUseCaseGetter interface {
+	Components() usecase.ComponentUseCase
 }
 
-// InstallCaseGetter install case getter
-type InstallCaseGetter interface {
-	Install() usecase.InstallCase
+// InstallUseCaseGetter install case getter
+type InstallUseCaseGetter interface {
+	Install() usecase.InstallUseCase
 }
 
 // CaseImpl case
 type CaseImpl struct {
-	composeCaseImpl      *usecase.ComponseCaseImpl
-	globalConfigCaseImpl *usecase.GlobalConfigCaseImpl
-	installCaseImpl      *usecase.InstallCaseImpl
+	componentUseCaseImpl    *usecase.ComponentUseCaseImpl
+	globalConfigUseCaseImpl *usecase.GlobalConfigUseCaseImpl
+	installCaseImpl         *usecase.InstallUseCaseImpl
 }
 
 // NewClusterCase new cluster case
-func NewClusterCase(conf option.Config) IClusterCase {
+func NewClusterCase(conf *option.Config) IClusterCase {
 	clusterCase := &CaseImpl{}
-	clusterCase.composeCaseImpl = usecase.NewComponseCase(conf)
-	clusterCase.globalConfigCaseImpl = usecase.NewGlobalConfigCase(conf)
-	clusterCase.installCaseImpl = usecase.NewInstallCase(conf)
+	clusterCase.componentUseCaseImpl = usecase.NewComponentUseCase(conf)
+	clusterCase.globalConfigUseCaseImpl = usecase.NewGlobalConfigUseCase(conf)
+	clusterCase.installCaseImpl = usecase.NewInstallUseCase(conf)
 	return clusterCase
 }
 
-// Componses componse
-func (c *CaseImpl) Componses() usecase.ComponseCase {
-	return c.composeCaseImpl
+// Components componse
+func (c *CaseImpl) Components() usecase.ComponentUseCase {
+	return c.componentUseCaseImpl
 }
 
 // GlobalConfigs config
-func (c *CaseImpl) GlobalConfigs() usecase.GlobalConfigCase {
-	return c.globalConfigCaseImpl
+func (c *CaseImpl) GlobalConfigs() usecase.GlobalConfigUseCase {
+	return c.globalConfigUseCaseImpl
 }
 
 // Install install
-func (c *CaseImpl) Install() usecase.InstallCase {
+func (c *CaseImpl) Install() usecase.InstallUseCase {
 	return c.installCaseImpl
 }

@@ -55,24 +55,24 @@ func parseComponentClaim(claim *componentClaim) *v1alpha1.RbdComponent {
 	return component
 }
 
-// InstallCase cluster install case
-type InstallCase interface {
+// InstallUseCase cluster install case
+type InstallUseCase interface {
 	Install() error
 	InstallStatus() (string, error)
 }
 
-// InstallCaseImpl install case
-type InstallCaseImpl struct {
-	cfg option.Config
+// InstallUseCaseImpl install case
+type InstallUseCaseImpl struct {
+	cfg *option.Config
 }
 
-// NewInstallCase new install case
-func NewInstallCase(cfg option.Config) *InstallCaseImpl {
-	return &InstallCaseImpl{cfg: cfg}
+// NewInstallUseCase new install case
+func NewInstallUseCase(cfg *option.Config) *InstallUseCaseImpl {
+	return &InstallUseCaseImpl{cfg: cfg}
 }
 
 // Install install
-func (ic *InstallCaseImpl) Install() error {
+func (ic *InstallUseCaseImpl) Install() error {
 	// step 1 check if archive is exists or not
 	// if _, err := os.Stat(ic.archiveFilePath); os.IsNotExist(err) {
 	// 	logrus.Warnf("rainbond archive file does not exists, downloading background ...")
@@ -91,7 +91,7 @@ func (ic *InstallCaseImpl) Install() error {
 	return ic.createComponse(componentClaims...)
 }
 
-func (ic *InstallCaseImpl) createComponse(components ...string) error {
+func (ic *InstallUseCaseImpl) createComponse(components ...string) error {
 	for _, rbdComponent := range components {
 		component := &componentClaim{name: rbdComponent, version: version, namespace: ic.cfg.Namespace}
 		data := parseComponentClaim(component)
@@ -118,7 +118,7 @@ func (ic *InstallCaseImpl) createComponse(components ...string) error {
 }
 
 // InstallStatus install status
-func (ic *InstallCaseImpl) InstallStatus() (string, error) {
+func (ic *InstallUseCaseImpl) InstallStatus() (string, error) {
 	configs, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(ic.cfg.Namespace).Get(ic.cfg.ConfigName, metav1.GetOptions{})
 	if err != nil {
 		return "", err

@@ -12,24 +12,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// GlobalConfigCase global config case
-type GlobalConfigCase interface {
+// GlobalConfigUseCase global config case
+type GlobalConfigUseCase interface {
 	GlobalConfigs() (*model.GlobalConfigs, error)
 	UpdateGlobalConfig(config *model.GlobalConfigs) error
 }
 
-// GlobalConfigCaseImpl case
-type GlobalConfigCaseImpl struct {
-	cfg option.Config
+// GlobalConfigUseCaseImpl case
+type GlobalConfigUseCaseImpl struct {
+	cfg *option.Config
 }
 
-// NewGlobalConfigCase new global config case
-func NewGlobalConfigCase(cfg option.Config) *GlobalConfigCaseImpl {
-	return &GlobalConfigCaseImpl{cfg: cfg}
+// NewGlobalConfigUseCase new global config case
+func NewGlobalConfigUseCase(cfg *option.Config) *GlobalConfigUseCaseImpl {
+	return &GlobalConfigUseCaseImpl{cfg: cfg}
 }
 
 // GlobalConfigs global configs
-func (cc *GlobalConfigCaseImpl) GlobalConfigs() (*model.GlobalConfigs, error) {
+func (cc *GlobalConfigUseCaseImpl) GlobalConfigs() (*model.GlobalConfigs, error) {
 	configs, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(cc.cfg.Namespace).Get(cc.cfg.ConfigName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -47,7 +47,7 @@ func (cc *GlobalConfigCaseImpl) GlobalConfigs() (*model.GlobalConfigs, error) {
 }
 
 // UpdateGlobalConfig update gloobal config
-func (cc *GlobalConfigCaseImpl) UpdateGlobalConfig(data *model.GlobalConfigs) error {
+func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *model.GlobalConfigs) error {
 	configs, err := cc.model2K8sModel(data)
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ func (cc *GlobalConfigCaseImpl) UpdateGlobalConfig(data *model.GlobalConfigs) er
 	return err
 }
 
-func (cc *GlobalConfigCaseImpl) k8sModel2Model(source *v1alpha1.GlobalConfig) (*model.GlobalConfigs, error) {
+func (cc *GlobalConfigUseCaseImpl) k8sModel2Model(source *v1alpha1.GlobalConfig) (*model.GlobalConfigs, error) {
 	clusterInfo := &model.GlobalConfigs{}
 	clusterInfo.ImageHub = &model.ImageHub{
 		Domain:    source.Spec.ImageHub.Domain,
@@ -101,7 +101,7 @@ func (cc *GlobalConfigCaseImpl) k8sModel2Model(source *v1alpha1.GlobalConfig) (*
 }
 
 // get old config and then set into new
-func (cc *GlobalConfigCaseImpl) model2K8sModel(source *model.GlobalConfigs) (*v1alpha1.GlobalConfig, error) {
+func (cc *GlobalConfigUseCaseImpl) model2K8sModel(source *model.GlobalConfigs) (*v1alpha1.GlobalConfig, error) {
 	globalConfigSpec := v1alpha1.GlobalConfigSpec{}
 	if source.ImageHub != nil {
 		globalConfigSpec.ImageHub = v1alpha1.ImageHub{
@@ -160,7 +160,7 @@ func (cc *GlobalConfigCaseImpl) model2K8sModel(source *model.GlobalConfigs) (*v1
 }
 
 //TODO generate test case
-func (cc *GlobalConfigCaseImpl) updateOrCreateEtcdCertInfo(certInfo *model.EtcdCertInfo) error {
+func (cc *GlobalConfigUseCaseImpl) updateOrCreateEtcdCertInfo(certInfo *model.EtcdCertInfo) error {
 	old, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(cc.cfg.EtcdSecretName, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {

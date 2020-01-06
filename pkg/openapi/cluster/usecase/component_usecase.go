@@ -6,24 +6,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ComponseCase cluster componse case
-type ComponseCase interface { // TODO: loop call
+// ComponentUseCase cluster componse case
+type ComponentUseCase interface { // TODO: loop call
 	Get(name string) (*model.ComponseInfo, error)
 	List() ([]*model.ComponseInfo, error)
 }
 
-// ComponseCaseImpl cluster
-type ComponseCaseImpl struct {
-	cfg option.Config
+// ComponentUseCaseImpl cluster
+type ComponentUseCaseImpl struct {
+	cfg *option.Config
 }
 
-// NewComponseCase new componse case impl
-func NewComponseCase(cfg option.Config) *ComponseCaseImpl {
-	return &ComponseCaseImpl{cfg: cfg}
+// NewComponentUseCase new componse case impl
+func NewComponentUseCase(cfg *option.Config) *ComponentUseCaseImpl {
+	return &ComponentUseCaseImpl{cfg: cfg}
 }
 
 // Get get
-func (cc *ComponseCaseImpl) Get(name string) (*model.ComponseInfo, error) {
+func (cc *ComponentUseCaseImpl) Get(name string) (*model.ComponseInfo, error) {
 	componse, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func (cc *ComponseCaseImpl) Get(name string) (*model.ComponseInfo, error) {
 }
 
 // List list
-func (cc *ComponseCaseImpl) List() ([]*model.ComponseInfo, error) {
+func (cc *ComponentUseCaseImpl) List() ([]*model.ComponseInfo, error) {
 	componseList, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
