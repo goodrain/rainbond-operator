@@ -55,12 +55,6 @@ func parseComponentClaim(claim *componentClaim) *v1alpha1.RbdComponent {
 	return component
 }
 
-// InstallUseCase cluster install case
-type InstallUseCase interface {
-	Install() error
-	InstallStatus() (string, error)
-}
-
 // InstallUseCaseImpl install case
 type InstallUseCaseImpl struct {
 	cfg *option.Config
@@ -88,10 +82,10 @@ func (ic *InstallUseCaseImpl) Install() error {
 	// }
 
 	// step 3 create custom resource
-	return ic.createComponse(componentClaims...)
+	return ic.createComponents(componentClaims...)
 }
 
-func (ic *InstallUseCaseImpl) createComponse(components ...string) error {
+func (ic *InstallUseCaseImpl) createComponents(components ...string) error {
 	for _, rbdComponent := range components {
 		component := &componentClaim{name: rbdComponent, version: version, namespace: ic.cfg.Namespace}
 		data := parseComponentClaim(component)

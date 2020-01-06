@@ -3,28 +3,32 @@ package cluster
 import (
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster/usecase"
+	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
 )
 
 // IClusterCase cluster case
 type IClusterCase interface {
-	GlobalConfigUseCaseGetter
-	CompnentUseCaseGetter
-	InstallUseCaseGetter
+	GlobalConfigs() GlobalConfigUseCase
+	Components() ComponentUseCase
+	Install() InstallUseCase
 }
 
-// GlobalConfigUseCaseGetter config case getter
-type GlobalConfigUseCaseGetter interface {
-	GlobalConfigs() usecase.GlobalConfigUseCase
+// GlobalConfigUseCase global config case
+type GlobalConfigUseCase interface {
+	GlobalConfigs() (*model.GlobalConfigs, error)
+	UpdateGlobalConfig(config *model.GlobalConfigs) error
 }
 
-// CompnentUseCaseGetter componse case getter
-type CompnentUseCaseGetter interface {
-	Components() usecase.ComponentUseCase
+// ComponentUseCase cluster componse case
+type ComponentUseCase interface { // TODO: loop call
+	Get(name string) (*model.ComponseInfo, error)
+	List() ([]*model.ComponseInfo, error)
 }
 
-// InstallUseCaseGetter install case getter
-type InstallUseCaseGetter interface {
-	Install() usecase.InstallUseCase
+// InstallUseCase cluster install case
+type InstallUseCase interface {
+	Install() error
+	InstallStatus() (string, error)
 }
 
 // CaseImpl case
@@ -36,24 +40,25 @@ type CaseImpl struct {
 
 // NewClusterCase new cluster case
 func NewClusterCase(conf *option.Config) IClusterCase {
-	clusterCase := &CaseImpl{}
-	clusterCase.componentUseCaseImpl = usecase.NewComponentUseCase(conf)
-	clusterCase.globalConfigUseCaseImpl = usecase.NewGlobalConfigUseCase(conf)
-	clusterCase.installCaseImpl = usecase.NewInstallUseCase(conf)
+	clusterCase := &CaseImpl{
+		componentUseCaseImpl:    usecase.NewComponentUseCase(conf),
+		globalConfigUseCaseImpl: usecase.NewGlobalConfigUseCase(conf),
+		installCaseImpl:         usecase.NewInstallUseCase(conf),
+	}
 	return clusterCase
 }
 
-// Components componse
-func (c *CaseImpl) Components() usecase.ComponentUseCase {
+// Components components
+func (c *CaseImpl) Components() ComponentUseCase {
 	return c.componentUseCaseImpl
 }
 
 // GlobalConfigs config
-func (c *CaseImpl) GlobalConfigs() usecase.GlobalConfigUseCase {
+func (c *CaseImpl) GlobalConfigs() GlobalConfigUseCase {
 	return c.globalConfigUseCaseImpl
 }
 
 // Install install
-func (c *CaseImpl) Install() usecase.InstallUseCase {
+func (c *CaseImpl) Install() InstallUseCase {
 	return c.installCaseImpl
 }

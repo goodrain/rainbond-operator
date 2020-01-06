@@ -6,12 +6,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ComponentUseCase cluster componse case
-type ComponentUseCase interface { // TODO: loop call
-	Get(name string) (*model.ComponseInfo, error)
-	List() ([]*model.ComponseInfo, error)
-}
-
 // ComponentUseCaseImpl cluster
 type ComponentUseCaseImpl struct {
 	cfg *option.Config

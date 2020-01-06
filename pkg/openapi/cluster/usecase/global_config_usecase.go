@@ -12,12 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// GlobalConfigUseCase global config case
-type GlobalConfigUseCase interface {
-	GlobalConfigs() (*model.GlobalConfigs, error)
-	UpdateGlobalConfig(config *model.GlobalConfigs) error
-}
-
 // GlobalConfigUseCaseImpl case
 type GlobalConfigUseCaseImpl struct {
 	cfg *option.Config
