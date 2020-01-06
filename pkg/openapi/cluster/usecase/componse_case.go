@@ -1,16 +1,10 @@
 package usecase
 
 import (
-	"github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
-
-// CompnseCaseGetter componse case getter
-type CompnseCaseGetter interface { // TODO: loop call
-	Componses() ComponseCase
-}
 
 // ComponseCase cluster componse case
 type ComponseCase interface { // TODO: loop call
@@ -20,36 +14,34 @@ type ComponseCase interface { // TODO: loop call
 
 // ComponseCaseImpl cluster
 type ComponseCaseImpl struct {
-	normalClientset *kubernetes.Clientset
-	rbdClientset    *versioned.Clientset
-	namespace       string
+	cfg option.Config
 }
 
 // NewComponseCase new componse case impl
-func NewComponseCase(namespace string, normalClientset *kubernetes.Clientset, rbdClientset *versioned.Clientset) *ComponseCaseImpl {
-	return &ComponseCaseImpl{normalClientset: normalClientset, rbdClientset: rbdClientset, namespace: namespace}
+func NewComponseCase(cfg option.Config) *ComponseCaseImpl {
+	return &ComponseCaseImpl{cfg: cfg}
 }
 
 // Get get
 func (cc *ComponseCaseImpl) Get(name string) (*model.ComponseInfo, error) {
-	componse, err := cc.rbdClientset.RainbondV1alpha1().RbdComponents(cc.namespace).Get(name, metav1.GetOptions{})
+	componse, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	info := &model.ComponseInfo{
-		Name:        componse.Name,
-		Version:     componse.Spec.Version,
-		Status:      string(componse.Status.Phase),
-		HealthCount: len(componse.Status.PodStatus.Healthy),
-		TotalCount:  len(componse.Status.PodStatus.Healthy) + len(componse.Status.PodStatus.UnHealthy),
-		Message:     componse.Status.Message,
+		Name:    componse.Name,
+		Version: componse.Spec.Version,
+		// Status:      string(componse.Status.Phase),// TODO fanyangyang not ready
+		// HealthCount: len(componse.Status.PodStatus.Healthy),
+		// TotalCount:  len(componse.Status.PodStatus.Healthy) + len(componse.Status.PodStatus.UnHealthy),
+		// Message:     componse.Status.Message,
 	}
 	return info, nil
 }
 
 // List list
 func (cc *ComponseCaseImpl) List() ([]*model.ComponseInfo, error) {
-	componseList, err := cc.rbdClientset.RainbondV1alpha1().RbdComponents(cc.namespace).List(metav1.ListOptions{})
+	componseList, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -60,12 +52,12 @@ func (cc *ComponseCaseImpl) List() ([]*model.ComponseInfo, error) {
 			Version: item.Spec.Version,
 		}
 		if item.Status != nil {
-			info.Status = string(item.Status.Phase)
-			info.Message = string(item.Status.Message)
-			if item.Status.PodStatus != nil {
-				info.HealthCount = len(item.Status.PodStatus.Ready)
-				info.TotalCount = len(item.Status.PodStatus.Ready) + len(item.Status.PodStatus.Unready)
-			}
+			// info.Status = string(item.Status.Phase)// TODO fanyangyang not ready
+			// info.Message = string(item.Status.Message)
+			// if item.Status.PodStatus != nil {
+			// 	info.HealthCount = len(item.Status.PodStatus.Ready)
+			// 	info.TotalCount = len(item.Status.PodStatus.Ready) + len(item.Status.PodStatus.Unready)
+			// }
 		}
 		componseInfos = append(componseInfos, info)
 	}

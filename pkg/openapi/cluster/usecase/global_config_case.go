@@ -3,20 +3,14 @@ package usecase
 import (
 	"fmt"
 
+	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
-
-// GlobalConfigCaseGetter config case getter
-type GlobalConfigCaseGetter interface {
-	GlobalConfigs() GlobalConfigCase
-}
 
 // GlobalConfigCase global config case
 type GlobalConfigCase interface {
@@ -26,31 +20,21 @@ type GlobalConfigCase interface {
 
 // GlobalConfigCaseImpl case
 type GlobalConfigCaseImpl struct {
-	normalClientset *kubernetes.Clientset
-	rbdClientset    *versioned.Clientset
-	namespace       string
-	configName      string
-	etcdSecretName  string
+	cfg option.Config
 }
 
 // NewGlobalConfigCase new global config case
-func NewGlobalConfigCase(namespace, configName, etcdSecretName string, normalClientset *kubernetes.Clientset, rbdClientset *versioned.Clientset) *GlobalConfigCaseImpl {
-	return &GlobalConfigCaseImpl{
-		namespace:       namespace,
-		configName:      configName,
-		etcdSecretName:  etcdSecretName,
-		normalClientset: normalClientset,
-		rbdClientset:    rbdClientset,
-	}
+func NewGlobalConfigCase(cfg option.Config) *GlobalConfigCaseImpl {
+	return &GlobalConfigCaseImpl{cfg: cfg}
 }
 
 // GlobalConfigs global configs
 func (cc *GlobalConfigCaseImpl) GlobalConfigs() (*model.GlobalConfigs, error) {
-	configs, err := cc.rbdClientset.RainbondV1alpha1().GlobalConfigs(cc.namespace).Get(cc.configName, metav1.GetOptions{})
+	configs, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(cc.cfg.Namespace).Get(cc.cfg.ConfigName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// TODO: return 404
-			return nil, fmt.Errorf("Global config %s not found. Please check your rainbond operator", cc.configName)
+			return nil, fmt.Errorf("Global config %s not found. Please check your rainbond operator", cc.cfg.ConfigName)
 		}
 		return nil, err
 	}
@@ -68,7 +52,7 @@ func (cc *GlobalConfigCaseImpl) UpdateGlobalConfig(data *model.GlobalConfigs) er
 	if err != nil {
 		return err
 	}
-	_, err = cc.rbdClientset.RainbondV1alpha1().GlobalConfigs(cc.namespace).Update(configs)
+	_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(cc.cfg.Namespace).Update(configs)
 	return err
 }
 
@@ -98,7 +82,7 @@ func (cc *GlobalConfigCaseImpl) k8sModel2Model(source *v1alpha1.GlobalConfig) (*
 		UseTLS:    source.Spec.EtcdConfig.UseTLS,
 	}
 	if source.Spec.EtcdConfig.UseTLS {
-		etcdSecret, err := cc.normalClientset.CoreV1().Secrets(cc.namespace).Get(cc.etcdSecretName, metav1.GetOptions{})
+		etcdSecret, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(cc.cfg.EtcdSecretName, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -165,9 +149,9 @@ func (cc *GlobalConfigCaseImpl) model2K8sModel(source *model.GlobalConfigs) (*v1
 		}
 	}
 	globalConfig := &v1alpha1.GlobalConfig{Spec: globalConfigSpec}
-	globalConfig.Name = cc.configName
-	globalConfig.Namespace = cc.namespace
-	old, err := cc.rbdClientset.RainbondV1alpha1().GlobalConfigs(cc.namespace).Get(cc.configName, metav1.GetOptions{})
+	globalConfig.Name = cc.cfg.ConfigName
+	globalConfig.Namespace = cc.cfg.Namespace
+	old, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(cc.cfg.Namespace).Get(cc.cfg.ConfigName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -177,17 +161,17 @@ func (cc *GlobalConfigCaseImpl) model2K8sModel(source *model.GlobalConfigs) (*v1
 
 //TODO generate test case
 func (cc *GlobalConfigCaseImpl) updateOrCreateEtcdCertInfo(certInfo *model.EtcdCertInfo) error {
-	old, err := cc.normalClientset.CoreV1().Secrets(cc.namespace).Get(cc.etcdSecretName, metav1.GetOptions{})
+	old, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(cc.cfg.EtcdSecretName, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			new := &corev1.Secret{}
-			new.SetName(cc.etcdSecretName)
-			new.SetNamespace(cc.namespace)
+			new.SetName(cc.cfg.EtcdSecretName)
+			new.SetNamespace(cc.cfg.Namespace)
 			new.Data = make(map[string][]byte)
 			new.Data["ca-file"] = []byte(certInfo.CaFile) // TODO fanyangyang etcd cert secret data key
 			new.Data["cert-file"] = []byte(certInfo.CertFile)
 			new.Data["key-file"] = []byte(certInfo.KeyFile)
-			_, err = cc.normalClientset.CoreV1().Secrets(cc.namespace).Create(new)
+			_, err = cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Create(new)
 			return err
 		}
 		return err
@@ -195,6 +179,6 @@ func (cc *GlobalConfigCaseImpl) updateOrCreateEtcdCertInfo(certInfo *model.EtcdC
 	old.Data["ca-file"] = []byte(certInfo.CaFile) // TODO fanyangyang etcd cert secret data key
 	old.Data["cert-file"] = []byte(certInfo.CertFile)
 	old.Data["key-file"] = []byte(certInfo.KeyFile)
-	_, err = cc.normalClientset.CoreV1().Secrets(cc.namespace).Update(old)
+	_, err = cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Update(old)
 	return err
 }

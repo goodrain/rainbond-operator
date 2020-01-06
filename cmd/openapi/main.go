@@ -8,9 +8,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	"github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster"
 	clusterCtrl "github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster/controller"
@@ -31,6 +33,19 @@ var (
 	archiveFilePath = "/opt/rainbond/pkg/rainbond-pkg-V5.2-dev.tgz"
 )
 
+// APIServer api server
+var APIServer *option.APIServer
+
+func init() {
+	APIServer = &option.APIServer{}
+	APIServer.AddFlags(pflag.CommandLine)
+	pflag.Parse()
+
+	cfg := k8sutil.MustNewKubeConfig(APIServer.Config.KubeconfigPath)
+	APIServer.Config.KubeClient = kubernetes.NewForConfigOrDie(cfg)
+	APIServer.Config.RainbondKubeClient = versioned.NewForConfigOrDie(cfg)
+}
+
 func main() {
 	db, _ := gorm.Open("sqlite3", "/tmp/gorm.db") // TODO hrh: data path and handle error
 	defer db.Close()
@@ -44,15 +59,9 @@ func main() {
 	userRepo.CreateIfNotExist(&model.User{Username: "admin", Password: "admin"})
 	userUcase := uucase.NewUserUsecase(userRepo, "my-secret-key")
 	uctrl.NewUserController(r, userUcase)
-
-	cfg := k8sutil.MustNewKubeConfig("/opt/rainbond/etc/kubernetes/kubecfg/172.20.0.11/admin.kubeconfig") // TODO: do not hardcode
-	clientset := kubernetes.NewForConfigOrDie(cfg)
-	rainbondClientset := versioned.NewForConfigOrDie(cfg)
-	clusterUcase := cluster.NewClusterCase(namespace, configName, etcdSecretName, archiveFilePath, clientset, rainbondClientset)
+	clusterUcase := cluster.NewClusterCase(APIServer.Config)
 	clusterCtrl.NewClusterController(r, clusterUcase)
-
-	// TODO： move upload out of here
-	r.POST("/uploads", upload.Upload)
+	upload.NewUploadController(r, archiveFilePath)
 
 	go r.Run() // listen and serve on 0.0.0.0:8080
 

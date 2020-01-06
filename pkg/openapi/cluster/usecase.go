@@ -1,40 +1,45 @@
 package cluster
 
 import (
-	"github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster/usecase"
-	"k8s.io/client-go/kubernetes"
 )
 
 // IClusterCase cluster case
 type IClusterCase interface {
-	usecase.GlobalConfigCaseGetter
-	usecase.CompnseCaseGetter
-	usecase.InstallCaseGetter
+	GlobalConfigCaseGetter
+	CompnseCaseGetter
+	InstallCaseGetter
+}
+
+// GlobalConfigCaseGetter config case getter
+type GlobalConfigCaseGetter interface {
+	GlobalConfigs() usecase.GlobalConfigCase
+}
+
+// CompnseCaseGetter componse case getter
+type CompnseCaseGetter interface {
+	Componses() usecase.ComponseCase
+}
+
+// InstallCaseGetter install case getter
+type InstallCaseGetter interface {
+	Install() usecase.InstallCase
 }
 
 // CaseImpl case
 type CaseImpl struct {
-	normalClientset      *kubernetes.Clientset
-	rbdClientset         *versioned.Clientset
 	composeCaseImpl      *usecase.ComponseCaseImpl
 	globalConfigCaseImpl *usecase.GlobalConfigCaseImpl
 	installCaseImpl      *usecase.InstallCaseImpl
-	namespace            string
-	configName           string
-	etcdSecretName       string
-	archiveFilePath      string
 }
 
 // NewClusterCase new cluster case
-func NewClusterCase(namespace, configName, etcdSecretName, archiveFilePath string, normalClientset *kubernetes.Clientset, rbdClientset *versioned.Clientset) IClusterCase {
-	clusterCase := &CaseImpl{
-		normalClientset: normalClientset,
-		rbdClientset:    rbdClientset,
-	}
-	clusterCase.composeCaseImpl = usecase.NewComponseCase(namespace, normalClientset, rbdClientset)
-	clusterCase.globalConfigCaseImpl = usecase.NewGlobalConfigCase(namespace, configName, etcdSecretName, normalClientset, rbdClientset)
-	clusterCase.installCaseImpl = usecase.NewInstallCase(namespace, archiveFilePath, configName, normalClientset, rbdClientset)
+func NewClusterCase(conf option.Config) IClusterCase {
+	clusterCase := &CaseImpl{}
+	clusterCase.composeCaseImpl = usecase.NewComponseCase(conf)
+	clusterCase.globalConfigCaseImpl = usecase.NewGlobalConfigCase(conf)
+	clusterCase.installCaseImpl = usecase.NewInstallCase(conf)
 	return clusterCase
 }
 
