@@ -26,28 +26,11 @@ type Controller struct {
 // NewUploadController creates a new k8s controller
 func NewUploadController(g *gin.Engine, archiveFilePath string) {
 	u := &Controller{archiveFilePath: archiveFilePath}
-	uploadEngine := g.Group("/uploads")
-	uploadEngine.POST("/", u.Upload)
+	g.POST("/uploads", u.Upload)
 }
 
 // Upload upload file
 func (u *Controller) Upload(c *gin.Context) {
-	file, err := c.FormFile("file")
-	if err != nil {
-		fmt.Println(err)
-		c.String(400, "formFile error : +s", err.Error())
-		return
-	}
-	fmt.Println(file.Filename)
-
-	// 上传文件至指定目录
-	c.SaveUploadedFile(file, "/tmp/"+file.Filename)
-
-	c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", file.Filename))
-}
-
-// Upload uplload
-func Upload(c *gin.Context) { // upload can't work successfully in upload.NewUploadController(r, archiveFilePath)
 	// 单文件
 	file, err := c.FormFile("file")
 	if err != nil {

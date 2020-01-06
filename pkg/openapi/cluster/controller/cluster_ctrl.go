@@ -31,9 +31,9 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 	installEngine.GET("/status", u.InstallStatus)
 
 	// componse
-	componseEngine := clusterEngine.Group("/componses")
-	componseEngine.GET("/", u.Componses)
-	componseEngine.GET("/:name", u.SingleComponse)
+	componseEngine := clusterEngine.Group("/components")
+	componseEngine.GET("/", u.Components)
+	componseEngine.GET("/:name", u.SingleComponent)
 }
 
 // Configs get cluster config info
@@ -79,9 +79,9 @@ func (cc *ClusterController) InstallStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": map[string]string{"status": status}})
 }
 
-// Componses compnses status
-func (cc *ClusterController) Componses(c *gin.Context) {
-	componseInfos, err := cc.clusterCase.Componses().List()
+// Components components status
+func (cc *ClusterController) Components(c *gin.Context) {
+	componseInfos, err := cc.clusterCase.Components().List()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
@@ -90,15 +90,15 @@ func (cc *ClusterController) Componses(c *gin.Context) {
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": componseInfos})
 }
 
-// SingleComponse single componse
-func (cc *ClusterController) SingleComponse(c *gin.Context) {
+// SingleComponent single componse
+func (cc *ClusterController) SingleComponent(c *gin.Context) {
 	name := c.Param("name")
 	name = strings.TrimSpace(name)
 	if name == "" {
-		cc.Componses(c) // TODO fanyangyang need for test
+		cc.Components(c) // TODO fanyangyang need for test
 		return
 	}
-	componseInfos, err := cc.clusterCase.Componses().Get(name)
+	componseInfos, err := cc.clusterCase.Components().Get(name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return

@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
+
 	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/sirupsen/logrus"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 var (
@@ -55,39 +55,24 @@ func parseComponentClaim(claim *componentClaim) *v1alpha1.RbdComponent {
 	return component
 }
 
-// InstallCaseGetter install case getter
-type InstallCaseGetter interface {
-	Install() InstallCase
-}
-
-// InstallCase cluster install case
-type InstallCase interface {
+// InstallUseCase cluster install case
+type InstallUseCase interface {
 	Install() error
 	InstallStatus() (string, error)
 }
 
-// InstallCaseImpl install case
-type InstallCaseImpl struct {
-	normalClientset *kubernetes.Clientset
-	rbdClientset    *versioned.Clientset
-	namespace       string
-	archiveFilePath string
-	configName      string
+// InstallUseCaseImpl install case
+type InstallUseCaseImpl struct {
+	cfg *option.Config
 }
 
-// NewInstallCase new install case
-func NewInstallCase(namespace, archiveFilePath, configName string, normalClientset *kubernetes.Clientset, rbdClientset *versioned.Clientset) *InstallCaseImpl {
-	return &InstallCaseImpl{
-		normalClientset: normalClientset,
-		rbdClientset:    rbdClientset,
-		namespace:       namespace,
-		archiveFilePath: archiveFilePath,
-		configName:      configName,
-	}
+// NewInstallUseCase new install case
+func NewInstallUseCase(cfg *option.Config) *InstallUseCaseImpl {
+	return &InstallUseCaseImpl{cfg: cfg}
 }
 
 // Install install
-func (ic *InstallCaseImpl) Install() error {
+func (ic *InstallUseCaseImpl) Install() error {
 	// step 1 check if archive is exists or not
 	// if _, err := os.Stat(ic.archiveFilePath); os.IsNotExist(err) {
 	// 	logrus.Warnf("rainbond archive file does not exists, downloading background ...")
@@ -106,24 +91,24 @@ func (ic *InstallCaseImpl) Install() error {
 	return ic.createComponse(componentClaims...)
 }
 
-func (ic *InstallCaseImpl) createComponse(components ...string) error {
+func (ic *InstallUseCaseImpl) createComponse(components ...string) error {
 	for _, rbdComponent := range components {
-		component := &componentClaim{name: rbdComponent, version: version, namespace: ic.namespace}
+		component := &componentClaim{name: rbdComponent, version: version, namespace: ic.cfg.Namespace}
 		data := parseComponentClaim(component)
 		// init component
-		data.Namespace = ic.namespace
-		old, err := ic.rbdClientset.RainbondV1alpha1().RbdComponents(ic.namespace).Get(data.Name, metav1.GetOptions{})
+		data.Namespace = ic.cfg.Namespace
+		old, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(ic.cfg.Namespace).Get(data.Name, metav1.GetOptions{})
 		if err != nil {
 			if !k8sErrors.IsNotFound(err) {
 				return err
 			}
-			_, err = ic.rbdClientset.RainbondV1alpha1().RbdComponents(ic.namespace).Create(data)
+			_, err = ic.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(ic.cfg.Namespace).Create(data)
 			if err != nil {
 				return err
 			}
 		} else {
 			data.ResourceVersion = old.ResourceVersion
-			_, err = ic.rbdClientset.RainbondV1alpha1().RbdComponents(ic.namespace).Update(data)
+			_, err = ic.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(ic.cfg.Namespace).Update(data)
 			if err != nil {
 				return err
 			}
@@ -133,8 +118,8 @@ func (ic *InstallCaseImpl) createComponse(components ...string) error {
 }
 
 // InstallStatus install status
-func (ic *InstallCaseImpl) InstallStatus() (string, error) {
-	configs, err := ic.rbdClientset.RainbondV1alpha1().GlobalConfigs(ic.namespace).Get(ic.configName, metav1.GetOptions{})
+func (ic *InstallUseCaseImpl) InstallStatus() (string, error) {
+	configs, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(ic.cfg.Namespace).Get(ic.cfg.ConfigName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
