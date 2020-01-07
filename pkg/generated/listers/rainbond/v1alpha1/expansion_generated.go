@@ -20,29 +20,13 @@
 
 package v1alpha1
 
-// GlobalConfigListerExpansion allows custom methods to be added to
-// GlobalConfigLister.
-type GlobalConfigListerExpansion interface{}
+// RainbondClusterListerExpansion allows custom methods to be added to
+// RainbondClusterLister.
+type RainbondClusterListerExpansion interface{}
 
-// GlobalConfigNamespaceListerExpansion allows custom methods to be added to
-// GlobalConfigNamespaceLister.
-type GlobalConfigNamespaceListerExpansion interface{}
-
-// PrivateRegistryListerExpansion allows custom methods to be added to
-// PrivateRegistryLister.
-type PrivateRegistryListerExpansion interface{}
-
-// PrivateRegistryNamespaceListerExpansion allows custom methods to be added to
-// PrivateRegistryNamespaceLister.
-type PrivateRegistryNamespaceListerExpansion interface{}
-
-// RainbondListerExpansion allows custom methods to be added to
-// RainbondLister.
-type RainbondListerExpansion interface{}
-
-// RainbondNamespaceListerExpansion allows custom methods to be added to
-// RainbondNamespaceLister.
-type RainbondNamespaceListerExpansion interface{}
+// RainbondClusterNamespaceListerExpansion allows custom methods to be added to
+// RainbondClusterNamespaceLister.
+type RainbondClusterNamespaceListerExpansion interface{}
 
 // RbdComponentListerExpansion allows custom methods to be added to
 // RbdComponentLister.
@@ -51,11 +35,3 @@ type RbdComponentListerExpansion interface{}
 // RbdComponentNamespaceListerExpansion allows custom methods to be added to
 // RbdComponentNamespaceLister.
 type RbdComponentNamespaceListerExpansion interface{}
-
-// StorageProvisionerListerExpansion allows custom methods to be added to
-// StorageProvisionerLister.
-type StorageProvisionerListerExpansion interface{}
-
-// StorageProvisionerNamespaceListerExpansion allows custom methods to be added to
-// StorageProvisionerNamespaceLister.
-type StorageProvisionerNamespaceListerExpansion interface{}

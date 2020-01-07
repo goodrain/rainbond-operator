@@ -9,7 +9,7 @@ spec:
     listKind: GlobalConfigList
     plural: globalconfigs
     singular: globalconfig
-  scope: ""
+  scope: Namespaced
   validation:
     openAPIV3Schema:
       description: GlobalConfig is the Schema for the globalconfigs API
@@ -29,24 +29,6 @@ spec:
         spec:
           description: GlobalConfigSpec defines the desired state of GlobalConfig
           properties:
-            NodeAvailPorts:
-              items:
-                properties:
-                  nodeIP:
-                    type: string
-                  nodeName:
-                    type: string
-                  ports:
-                    items:
-                      type: integer
-                    type: array
-                type: object
-              type: array
-            availStorageClasses:
-              description: List of existing StorageClasses in the cluster
-              items:
-                type: string
-              type: array
             etcdConfig:
               description: the etcd connection information that rainbond component
                 will be used. rainbond-operator will create one if EtcdConfig is empty
@@ -105,7 +87,6 @@ spec:
                   type: boolean
               type: object
             imageHub:
-              description: default goodrain.me
               properties:
                 domain:
                   type: string
@@ -116,12 +97,9 @@ spec:
                 username:
                   type: string
               type: object
-            kubeAPIHost:
-              description: KubeAPIHost must be a host string, a host:port pair, or
-                a URL to the base of the apiserver. If a URL is given then the (optional)
-                Path of that URL represents a prefix that must be appended to all
-                request URIs used to access the apiserver. This allows a frontend
-                proxy to easily relocate all of the apiserver endpoints.
+            rainbondImageRepositoryHost:
+              description: Domain name of the image repository which Rainbond is installed
+                Default goodrain.me
               type: string
             regionDatabase:
               description: the region database information that rainbond component
@@ -154,15 +132,6 @@ spec:
                   type: string
               type: object
           type: object
-        status:
-          description: GlobalConfigStatus defines the observed state of GlobalConfig
-          properties:
-            phase:
-              description: Rainbond cluster installation phase
-              type: string
-          type: object
-      required:
-      - status
       type: object
   version: v1alpha1
   versions:

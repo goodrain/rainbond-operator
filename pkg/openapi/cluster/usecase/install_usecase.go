@@ -8,7 +8,6 @@ import (
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 
 	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/sirupsen/logrus"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -113,17 +112,18 @@ func (ic *InstallUseCaseImpl) createComponents(components ...string) error {
 
 // InstallStatus install status
 func (ic *InstallUseCaseImpl) InstallStatus() (string, error) {
-	configs, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(ic.cfg.Namespace).Get(ic.cfg.ConfigName, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-	status := "" // TODO fanyangyang if install process is downloading rainbond, what status it is?
-	if configs != nil {
-		status = string(configs.Status.Phase)
-	} else {
-		logrus.Warn("cluster config has not be created yet, something occured ? ")
-	}
-	return status, nil
+	// configs, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(ic.cfg.Namespace).Get(ic.cfg.ConfigName, metav1.GetOptions{})
+	// if err != nil {
+	// 	return "", err
+	// }
+	// status := "" // TODO fanyangyang if install process is downloading rainbond, what status it is?
+	// if configs != nil {
+	// 	// status = string(configs.Status.Phase)
+	// } else {
+	// 	logrus.Warn("cluster config has not be created yet, something occured ? ")
+	// }
+	// return status, nil
+	return "nil", nil
 }
 
 // downloadFile will download a url to a local file. It's efficient because it will

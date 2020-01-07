@@ -4,6 +4,7 @@ import (
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster/usecase"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
+	v1 "github.com/GLYASAI/rainbond-operator/pkg/openapi/types/v1"
 )
 
 // IClusterCase cluster case
@@ -21,8 +22,8 @@ type GlobalConfigUseCase interface {
 
 // ComponentUseCase cluster componse case
 type ComponentUseCase interface { // TODO: loop call
-	Get(name string) (*model.ComponseInfo, error)
-	List() ([]*model.ComponseInfo, error)
+	Get(name string) (*v1.RbdComponentStatus, error)
+	List() ([]*v1.RbdComponentStatus, error)
 }
 
 // InstallUseCase cluster install case
@@ -33,18 +34,17 @@ type InstallUseCase interface {
 
 // CaseImpl case
 type CaseImpl struct {
-	componentUseCaseImpl    *usecase.ComponentUseCaseImpl
+	componentUseCaseImpl    *usecase.ComponentUsecaseImpl
 	globalConfigUseCaseImpl *usecase.GlobalConfigUseCaseImpl
 	installCaseImpl         *usecase.InstallUseCaseImpl
 }
 
 // NewClusterCase new cluster case
 func NewClusterCase(conf *option.Config) IClusterCase {
-	clusterCase := &CaseImpl{
-		componentUseCaseImpl:    usecase.NewComponentUseCase(conf),
-		globalConfigUseCaseImpl: usecase.NewGlobalConfigUseCase(conf),
-		installCaseImpl:         usecase.NewInstallUseCase(conf),
-	}
+	clusterCase := &CaseImpl{}
+	clusterCase.componentUseCaseImpl = usecase.NewComponentUsecase(conf)
+	clusterCase.globalConfigUseCaseImpl = usecase.NewGlobalConfigUseCase(conf)
+	clusterCase.installCaseImpl = usecase.NewInstallUseCase(conf)
 	return clusterCase
 }
 

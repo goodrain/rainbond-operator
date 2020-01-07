@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -27,9 +28,6 @@ import (
 var log = logf.Log.WithName("openapi")
 
 var (
-	namespace       = "rbd-system"
-	configName      = "rbd-globalconfig"
-	etcdSecretName  = "rbd-etcd-secret"
 	archiveFilePath = "/opt/rainbond/pkg/rainbond-pkg-V5.2-dev.tgz"
 )
 
@@ -47,6 +45,16 @@ func init() {
 }
 
 func main() {
+	// Use a zap logr.Logger implementation. If none of the zap
+	// flags are configured (or if the zap flag set is not being
+	// used), this defaults to a production zap logger.
+	//
+	// The logger instantiated here can be changed to any logger
+	// implementing the logr.Logger interface. This logger will
+	// be propagated through the whole operator, generating
+	// uniform and structured logs.
+	logf.SetLogger(zap.Logger())
+
 	db, _ := gorm.Open("sqlite3", "/tmp/gorm.db") // TODO hrh: data path and handle error
 	defer db.Close()
 

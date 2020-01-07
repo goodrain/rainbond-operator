@@ -1,13 +1,10 @@
 package usecase
 
 import (
-	"fmt"
-
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -24,30 +21,32 @@ func NewGlobalConfigUseCase(cfg *option.Config) *GlobalConfigUseCaseImpl {
 
 // GlobalConfigs global configs
 func (cc *GlobalConfigUseCaseImpl) GlobalConfigs() (*model.GlobalConfigs, error) {
-	configs, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(cc.cfg.Namespace).Get(cc.cfg.ConfigName, metav1.GetOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			// TODO: return 404
-			return nil, fmt.Errorf("Global config %s not found. Please check your rainbond operator", cc.cfg.ConfigName)
-		}
-		return nil, err
-	}
+	// configs, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(cc.cfg.Namespace).Get(cc.cfg.ConfigName, metav1.GetOptions{})
+	// if err != nil {
+	// 	if errors.IsNotFound(err) {
+	// 		// TODO: return 404
+	// 		return nil, fmt.Errorf("Global config %s not found. Please check your rainbond operator", cc.cfg.ConfigName)
+	// 	}
+	// 	return nil, err
+	// }
 
-	data, err := cc.k8sModel2Model(configs)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
+	// data, err := cc.k8sModel2Model(configs)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// return data, nil
+	return nil, nil
 }
 
 // UpdateGlobalConfig update gloobal config
 func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *model.GlobalConfigs) error {
-	configs, err := cc.model2K8sModel(data)
-	if err != nil {
-		return err
-	}
-	_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(cc.cfg.Namespace).Update(configs)
-	return err
+	// configs, err := cc.model2K8sModel(data)
+	// if err != nil {
+	// 	return err
+	// }
+	// _, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(cc.cfg.Namespace).Update(configs)
+	// return err
+	return nil
 }
 
 func (cc *GlobalConfigUseCaseImpl) k8sModel2Model(source *v1alpha1.GlobalConfig) (*model.GlobalConfigs, error) {
@@ -86,11 +85,11 @@ func (cc *GlobalConfigUseCaseImpl) k8sModel2Model(source *v1alpha1.GlobalConfig)
 		certInfo.CertFile = string(etcdSecret.Data["cert-file"])
 		certInfo.KeyFile = string(etcdSecret.Data["key-file"])
 	}
-	clusterInfo.KubeAPIHost = source.Spec.KubeAPIHost
-	for _, portInfo := range source.Spec.NodeAvailPorts {
-		clusterInfo.NodeAvailPorts = append(clusterInfo.NodeAvailPorts, &model.NodeAvailPorts{Ports: portInfo.Ports, NodeIP: portInfo.NodeIP, NodeName: portInfo.NodeName})
+	// clusterInfo.KubeAPIHost = source.Spec.KubeAPIHost
+	// for _, portInfo := range source.Spec.NodeAvailPorts {
+	// 	clusterInfo.NodeAvailPorts = append(clusterInfo.NodeAvailPorts, &model.NodeAvailPorts{Ports: portInfo.Ports, NodeIP: portInfo.NodeIP, NodeName: portInfo.NodeName})
 
-	}
+	// }
 	return clusterInfo, nil
 }
 
@@ -98,35 +97,35 @@ func (cc *GlobalConfigUseCaseImpl) k8sModel2Model(source *v1alpha1.GlobalConfig)
 func (cc *GlobalConfigUseCaseImpl) model2K8sModel(source *model.GlobalConfigs) (*v1alpha1.GlobalConfig, error) {
 	globalConfigSpec := v1alpha1.GlobalConfigSpec{}
 	if source.ImageHub != nil {
-		globalConfigSpec.ImageHub = v1alpha1.ImageHub{
-			Domain:    source.ImageHub.Domain,
-			Username:  source.ImageHub.Username,
-			Password:  source.ImageHub.Password,
-			Namespace: source.ImageHub.Namespace,
-		}
+		// globalConfigSpec.ImageHub = v1alpha1.ImageHub{
+		// 	Domain:    source.ImageHub.Domain,
+		// 	Username:  source.ImageHub.Username,
+		// 	Password:  source.ImageHub.Password,
+		// 	Namespace: source.ImageHub.Namespace,
+		// }
 	}
 	globalConfigSpec.StorageClassName = source.StorageClassName
 	if source.RegionDatabase != nil {
-		globalConfigSpec.RegionDatabase = v1alpha1.Database{
-			Host:     source.RegionDatabase.Host,
-			Port:     source.RegionDatabase.Port,
-			Username: source.RegionDatabase.Username,
-			Password: source.RegionDatabase.Password,
-		}
+		// globalConfigSpec.RegionDatabase = v1alpha1.Database{
+		// 	Host:     source.RegionDatabase.Host,
+		// 	Port:     source.RegionDatabase.Port,
+		// 	Username: source.RegionDatabase.Username,
+		// 	Password: source.RegionDatabase.Password,
+		// }
 	}
 	if source.UIDatabase != nil {
-		globalConfigSpec.UIDatabase = v1alpha1.Database{
-			Host:     source.UIDatabase.Host,
-			Port:     source.UIDatabase.Port,
-			Username: source.UIDatabase.Username,
-			Password: source.UIDatabase.Password,
-		}
+		// globalConfigSpec.UIDatabase = v1alpha1.Database{
+		// 	Host:     source.UIDatabase.Host,
+		// 	Port:     source.UIDatabase.Port,
+		// 	Username: source.UIDatabase.Username,
+		// 	Password: source.UIDatabase.Password,
+		// }
 	}
 	if source.EtcdConfig != nil {
-		globalConfigSpec.EtcdConfig = v1alpha1.EtcdConfig{
-			Endpoints: source.EtcdConfig.Endpoints,
-			UseTLS:    source.EtcdConfig.UseTLS,
-		}
+		// globalConfigSpec.EtcdConfig = v1alpha1.EtcdConfig{
+		// 	Endpoints: source.EtcdConfig.Endpoints,
+		// 	UseTLS:    source.EtcdConfig.UseTLS,
+		// }
 		if source.EtcdConfig.UseTLS && source.EtcdConfig.CertInfo != nil {
 			if err := cc.updateOrCreateEtcdCertInfo(source.EtcdConfig.CertInfo); err != nil {
 				return nil, err
@@ -136,20 +135,20 @@ func (cc *GlobalConfigUseCaseImpl) model2K8sModel(source *model.GlobalConfigs) (
 			globalConfigSpec.EtcdConfig.CertSecret = metav1.LabelSelector{}
 		}
 	}
-	globalConfigSpec.KubeAPIHost = source.KubeAPIHost
-	if source.NodeAvailPorts != nil {
-		for _, port := range source.NodeAvailPorts {
-			globalConfigSpec.NodeAvailPorts = append(globalConfigSpec.NodeAvailPorts, v1alpha1.NodeAvailPorts{Ports: port.Ports, NodeIP: port.NodeIP, NodeName: port.NodeName})
-		}
-	}
+	// globalConfigSpec.KubeAPIHost = source.KubeAPIHost
+	// if source.NodeAvailPorts != nil {
+	// 	for _, port := range source.NodeAvailPorts {
+	// 		globalConfigSpec.NodeAvailPorts = append(globalConfigSpec.NodeAvailPorts, v1alpha1.NodeAvailPorts{Ports: port.Ports, NodeIP: port.NodeIP, NodeName: port.NodeName})
+	// 	}
+	// }
 	globalConfig := &v1alpha1.GlobalConfig{Spec: globalConfigSpec}
 	globalConfig.Name = cc.cfg.ConfigName
 	globalConfig.Namespace = cc.cfg.Namespace
-	old, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(cc.cfg.Namespace).Get(cc.cfg.ConfigName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	globalConfig.ResourceVersion = old.ResourceVersion
+	// old, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(cc.cfg.Namespace).Get(cc.cfg.ConfigName, metav1.GetOptions{})
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// globalConfig.ResourceVersion = old.ResourceVersion
 	return globalConfig, nil
 }
 

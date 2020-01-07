@@ -1,0 +1,114 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: rainbondclusters.rainbond.io
+spec:
+  group: rainbond.io
+  names:
+    kind: RainbondCluster
+    listKind: RainbondClusterList
+    plural: rainbondclusters
+    singular: rainbondcluster
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: RainbondCluster is the Schema for the rainbondclusters API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: RainbondClusterSpec defines the desired state of RainbondCluster
+          properties:
+            NodeAvailPorts:
+              items:
+                properties:
+                  nodeIP:
+                    type: string
+                  nodeName:
+                    type: string
+                  ports:
+                    items:
+                      type: integer
+                    type: array
+                type: object
+              type: array
+            storageClasses:
+              description: List of existing StorageClasses in the cluster
+              items:
+                properties:
+                  name:
+                    type: string
+                  provisioner:
+                    type: string
+                required:
+                - name
+                - provisioner
+                type: object
+              type: array
+          type: object
+        status:
+          description: RainbondClusterStatus defines the observed state of RainbondCluster
+          properties:
+            conditions:
+              items:
+                description: RainbondClusterCondition contains details for the current
+                  condition of this rainbondcluster.
+                properties:
+                  lastProbeTime:
+                    description: Last time we probed the condition.
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    description: Last time the condition transitioned from one status
+                      to another.
+                    format: date-time
+                    type: string
+                  message:
+                    description: Human-readable message indicating details about last
+                      transition.
+                    type: string
+                  reason:
+                    description: Unique, one-word, CamelCase reason for the condition's
+                      last transition.
+                    type: string
+                  status:
+                    description: Status is the status of the condition.
+                    type: string
+                  type:
+                    description: Type is the type of the condition.
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              type: array
+            message:
+              description: A human readable message indicating details about why the
+                pod is in this condition.
+              type: string
+            phase:
+              description: Rainbond cluster phase
+              type: string
+            reason:
+              description: A brief CamelCase message indicating details about why
+                the pod is in this state.
+              type: string
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true

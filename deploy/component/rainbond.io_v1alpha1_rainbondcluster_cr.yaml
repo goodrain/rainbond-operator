@@ -1,0 +1,7 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RainbondCluster
+metadata:
+  name: example-rainbondcluster
+spec:
+  # Add fields here
+  size: 3
