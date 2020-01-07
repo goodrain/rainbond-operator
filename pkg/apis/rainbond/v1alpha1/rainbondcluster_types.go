@@ -35,6 +35,14 @@ type RainbondClusterSpec struct {
 	// Default goodrain.me
 	// +optional
 	RainbondImageRepositoryDomain string `json:"rainbondImageRepositoryHost,omitempty"`
+	// Suffix of component default domain name
+	SuffixHTTPHost string `json:"suffixHTTPHost,omitempty"`
+	// Ingress IP addresses of rbd-gateway. If not specified,
+	// the IP of the node where the rbd-gateway is located will be used.
+	GatewayIngressIPs []string `json:"gatewayIngressIPs,omitempty"`
+	// Information about the node where the gateway is located.
+	// If not specified, the gateway will run on nodes where all ports do not conflict.
+	GatewayNodes []NodeAvailPorts `json:"gatewayNodes,omitempty"`
 
 	ImageHub *ImageHub `json:"imageHub,omitempty"`
 	// the storage class that rainbond component will be used.

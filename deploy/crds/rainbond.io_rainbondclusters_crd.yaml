@@ -88,6 +88,28 @@ spec:
                   description: Whether to use tls to connect to etcd
                   type: boolean
               type: object
+            gatewayIngressIPs:
+              description: Ingress IP addresses of rbd-gateway. If not specified,
+                the IP of the node where the rbd-gateway is located will be used.
+              items:
+                type: string
+              type: array
+            gatewayNodes:
+              description: Information about the node where the gateway is located.
+                If not specified, the gateway will run on nodes where all ports do
+                not conflict.
+              items:
+                properties:
+                  nodeIP:
+                    type: string
+                  nodeName:
+                    type: string
+                  ports:
+                    items:
+                      type: integer
+                    type: array
+                type: object
+              type: array
             imageHub:
               properties:
                 domain:
@@ -119,6 +141,9 @@ spec:
             storageClassName:
               description: the storage class that rainbond component will be used.
                 rainbond-operator will create one if StorageClassName is empty
+              type: string
+            suffixHTTPHost:
+              description: Suffix of component default domain name
               type: string
             uiDatabase:
               description: the ui database information that rainbond component will
