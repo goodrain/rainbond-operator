@@ -33,6 +33,36 @@ func (m *MockPackageInterface) EXPECT() *MockPackageInterfaceMockRecorder {
 	return m.recorder
 }
 
+// ExtractionHistory mocks base method
+func (m *MockPackageInterface) ExtractionHistory() (*types.ExtractionHistory, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExtractionHistory")
+	ret0, _ := ret[0].(*types.ExtractionHistory)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExtractionHistory indicates an expected call of ExtractionHistory
+func (mr *MockPackageInterfaceMockRecorder) ExtractionHistory() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExtractionHistory", reflect.TypeOf((*MockPackageInterface)(nil).ExtractionHistory))
+}
+
+// GetMetadata mocks base method
+func (m *MockPackageInterface) GetMetadata() ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMetadata")
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMetadata indicates an expected call of GetMetadata
+func (mr *MockPackageInterfaceMockRecorder) GetMetadata() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetadata", reflect.TypeOf((*MockPackageInterface)(nil).GetMetadata))
+}
+
 // MockHistoryInterface is a mock of HistoryInterface interface
 type MockHistoryInterface struct {
 	ctrl     *gomock.Controller

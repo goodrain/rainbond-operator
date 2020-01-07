@@ -97,6 +97,10 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
+	if rainbondcluster.Status == nil {
+		return reconcile.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
 	packager := pkg.New(constants.DefInstallPkgDestPath)
 
 	rainbondcluster.Status = r.generateRainbondClusterStatus(rainbondcluster, packager)
@@ -208,7 +212,20 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(
 
 	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterStorageReadyCondition())
 	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster))
-	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterPackageExtractedCondition(rainbondCluster, historyer))
+	for _, c := range rainbondCluster.Status.Conditions {
+		if c.Type == rainbondv1alpha1.PackageExtracted {
+			s.Conditions = append(s.Conditions, *c.DeepCopy())
+			continue
+		}
+		if c.Type == rainbondv1alpha1.ImagesLoaded {
+			s.Conditions = append(s.Conditions, *c.DeepCopy())
+			continue
+		}
+		if c.Type == rainbondv1alpha1.ImagesPushed {
+			s.Conditions = append(s.Conditions, *c.DeepCopy())
+			continue
+		}
+	}
 
 	return s
 }
