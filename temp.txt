@@ -1,20 +1,3 @@
-[Deprecation notice] The 'operator-sdk generate openapi' command is deprecated!
-
- - To generate CRDs, use 'operator-sdk generate crds'.
- - To generate Go OpenAPI code, use 'openapi-gen'. For example:
-
-      # Build the latest openapi-gen from source
-      which ./bin/openapi-gen > /dev/null || go build -o ./bin/openapi-gen k8s.io/kube-openapi/cmd/openapi-gen
-
-      # Run openapi-gen for each of your API group/version packages
-      ./bin/openapi-gen --logtostderr=true -o "" -i ./pkg/apis/<group>/<version> -O zz_generated.openapi -p ./pkg/apis/<group>/<version> -h ./hack/boilerplate.go.txt -r "-"
-
-      operator-sdk generate k8s
-
-      operator-sdk generate openapi
-
-      operator-sdk build abewang/rainbond-operator:v0.0.1
-
 To get your root password run:
 
     MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace default mysql-1577860520 -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)

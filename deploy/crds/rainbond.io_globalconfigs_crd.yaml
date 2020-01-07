@@ -9,7 +9,9 @@ spec:
     listKind: GlobalConfigList
     plural: globalconfigs
     singular: globalconfig
-  scope: ""
+  scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: GlobalConfig is the Schema for the globalconfigs API
@@ -116,13 +118,6 @@ spec:
                 username:
                   type: string
               type: object
-            kubeAPIHost:
-              description: KubeAPIHost must be a host string, a host:port pair, or
-                a URL to the base of the apiserver. If a URL is given then the (optional)
-                Path of that URL represents a prefix that must be appended to all
-                request URIs used to access the apiserver. This allows a frontend
-                proxy to easily relocate all of the apiserver endpoints.
-              type: string
             regionDatabase:
               description: the region database information that rainbond component
                 will be used. rainbond-operator will create one if DBInfo is empty
@@ -157,12 +152,51 @@ spec:
         status:
           description: GlobalConfigStatus defines the observed state of GlobalConfig
           properties:
+            conditions:
+              items:
+                description: GlobalConfigCondition contains details for the current
+                  condition of this globalconfig.
+                properties:
+                  lastProbeTime:
+                    description: Last time we probed the condition.
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    description: Last time the condition transitioned from one status
+                      to another.
+                    format: date-time
+                    type: string
+                  message:
+                    description: Human-readable message indicating details about last
+                      transition.
+                    type: string
+                  reason:
+                    description: Unique, one-word, CamelCase reason for the condition's
+                      last transition.
+                    type: string
+                  status:
+                    description: Status is the status of the condition.
+                    type: string
+                  type:
+                    description: Type is the type of the condition.
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              type: array
+            message:
+              description: A human readable message indicating details about why the
+                pod is in this condition.
+              type: string
             phase:
-              description: Rainbond cluster installation phase
+              description: Rainbond cluster phase
+              type: string
+            reason:
+              description: A brief CamelCase message indicating details about why
+                the pod is in this state.
               type: string
           type: object
-      required:
-      - status
       type: object
   version: v1alpha1
   versions:
