@@ -44,49 +44,79 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 	if source == nil {
 		return clusterInfo, nil
 	}
-	clusterInfo.ImageHub = &model.ImageHub{
-		Domain:    source.Spec.ImageHub.Domain,
-		Namespace: source.Spec.ImageHub.Namespace,
-		Username:  source.Spec.ImageHub.Username,
-		Password:  source.Spec.ImageHub.Password,
-	}
-	clusterInfo.RegionDatabase = &model.Database{
-		Host:     source.Spec.RegionDatabase.Host,
-		Port:     source.Spec.RegionDatabase.Port,
-		Username: source.Spec.RegionDatabase.Username,
-		Password: source.Spec.RegionDatabase.Password,
-	}
-	clusterInfo.UIDatabase = &model.Database{
-		Host:     source.Spec.UIDatabase.Host,
-		Port:     source.Spec.UIDatabase.Port,
-		Username: source.Spec.UIDatabase.Username,
-		Password: source.Spec.UIDatabase.Password,
-	}
-	clusterInfo.EtcdConfig = &model.EtcdConfig{
-		Endpoints: source.Spec.EtcdConfig.Endpoints,
-		UseTLS:    source.Spec.EtcdConfig.UseTLS,
-	}
-	if source.Spec.EtcdConfig.UseTLS {
-		etcdSecret, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(cc.cfg.EtcdSecretName, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
+	if source.Spec.ImageHub != nil {
+		clusterInfo.ImageHub = &model.ImageHub{
+			Domain:    source.Spec.ImageHub.Domain,
+			Namespace: source.Spec.ImageHub.Namespace,
+			Username:  source.Spec.ImageHub.Username,
+			Password:  source.Spec.ImageHub.Password,
 		}
-		certInfo := &model.EtcdCertInfo{}
-		clusterInfo.EtcdConfig.CertInfo = certInfo
-		certInfo.CaFile = string(etcdSecret.Data["ca-file"]) // TODO fanyangyang etcd secert data key
-		certInfo.CertFile = string(etcdSecret.Data["cert-file"])
-		certInfo.KeyFile = string(etcdSecret.Data["key-file"])
 	}
-	gatewayNode := &model.GatewayNode{} // TODO fanyangyang api not ready
-	clusterInfo.GatewayNodes = gatewayNode
+	if source.Spec.RegionDatabase != nil {
+		clusterInfo.RegionDatabase = &model.Database{
+			Host:     source.Spec.RegionDatabase.Host,
+			Port:     source.Spec.RegionDatabase.Port,
+			Username: source.Spec.RegionDatabase.Username,
+			Password: source.Spec.RegionDatabase.Password,
+		}
+	}
+	if source.Spec.UIDatabase != nil {
+		clusterInfo.UIDatabase = &model.Database{
+			Host:     source.Spec.UIDatabase.Host,
+			Port:     source.Spec.UIDatabase.Port,
+			Username: source.Spec.UIDatabase.Username,
+			Password: source.Spec.UIDatabase.Password,
+		}
+	}
+	if source.Spec.EtcdConfig != nil {
+		clusterInfo.EtcdConfig = &model.EtcdConfig{
+			Endpoints: source.Spec.EtcdConfig.Endpoints,
+			UseTLS:    source.Spec.EtcdConfig.UseTLS,
+		}
+		if source.Spec.EtcdConfig.UseTLS {
+			etcdSecret, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(cc.cfg.EtcdSecretName, metav1.GetOptions{})
+			if err != nil {
+				return nil, err
+			}
+			certInfo := &model.EtcdCertInfo{}
+			clusterInfo.EtcdConfig.CertInfo = certInfo
+			certInfo.CaFile = string(etcdSecret.Data["ca-file"]) // TODO fanyangyang etcd secert data key
+			certInfo.CertFile = string(etcdSecret.Data["cert-file"])
+			certInfo.KeyFile = string(etcdSecret.Data["key-file"])
+		}
+	}
+	gatewayNodes := make([]*model.GatewayNode, 0)
+	allNode := make(map[string]*model.GatewayNode)
+	if source.Status != nil && source.Status.NodeAvailPorts != nil {
+		for _, node := range source.Status.NodeAvailPorts {
+			allNode[node.NodeIP] = &model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports}
+		}
+	}
+	if source.Spec.GatewayNodes != nil {
+		for _, node := range source.Spec.GatewayNodes {
+			selected := false
+			if _, ok := allNode[node.NodeIP]; ok {
+				selected = true
+			} else {
+			}
+			gatewayNodes = append(gatewayNodes, &model.GatewayNode{Selected: selected, NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports})
+		}
+	}
+
+	clusterInfo.GatewayNodes = gatewayNodes
 	httpDomain := model.HTTPDomain{Default: true} // TODO fanyangyang custom http domain
+	if source.Spec.SuffixHTTPHost != "" {
+		httpDomain.Domain = append(httpDomain.Domain, source.Spec.SuffixHTTPHost)
+	}
 	clusterInfo.HTTPDomain = &httpDomain
-	clusterInfo.GatewayPublic = []string{} // TODO fanyangyang api not ready
+	if source.Spec.GatewayIngressIPs != nil {
+		clusterInfo.GatewayIngressIPs = append(clusterInfo.GatewayIngressIPs, source.Spec.GatewayIngressIPs...)
+	}
 	storage := model.Storage{}
 	if source.Spec.StorageClassName == "" {
 		storage.Default = true
 	}
-	if source.Status.StorageClasses != nil {
+	if source.Status != nil && source.Status.StorageClasses != nil {
 		for _, sc := range source.Status.StorageClasses {
 			storage.Opts = append(storage.Opts, model.StorageOpts{Name: sc.Name, Provisioner: sc.Provisioner})
 		}

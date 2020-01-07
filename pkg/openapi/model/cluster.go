@@ -2,14 +2,14 @@ package model
 
 // GlobalConfigs check result
 type GlobalConfigs struct {
-	ImageHub       *ImageHub    `json:"imageHub,omitempty"`
-	RegionDatabase *Database    `json:"regionDatabase,omitempty"`
-	UIDatabase     *Database    `json:"uiDatabase,omitempty"`
-	EtcdConfig     *EtcdConfig  `json:"etcdConfig,omitempty"`
-	GatewayNodes   *GatewayNode `json:"gatewayNodes"`
-	HTTPDomain     *HTTPDomain  `json:"HTTPDomain"`
-	GatewayPublic  []string     `json:"gatewayRemote"`
-	Storage        *Storage     `json:"storage,omitempty"`
+	ImageHub          *ImageHub      `json:"imageHub,omitempty"`
+	RegionDatabase    *Database      `json:"regionDatabase,omitempty"`
+	UIDatabase        *Database      `json:"uiDatabase,omitempty"`
+	EtcdConfig        *EtcdConfig    `json:"etcdConfig,omitempty"`
+	GatewayNodes      []*GatewayNode `json:"gatewayNodes"`
+	HTTPDomain        *HTTPDomain    `json:"HTTPDomain"`
+	GatewayIngressIPs []string       `json:"gatewayIngressIPs"`
+	Storage           *Storage       `json:"storage,omitempty"`
 }
 
 // RbdComponent rbd component
@@ -24,8 +24,10 @@ type HTTPDomain struct {
 
 // GatewayNode gateway
 type GatewayNode struct {
-	Opts     []string `json:"opts"`
-	Selected []string `json:"selected"`
+	NodeName string `json:"nodeName,omitempty"`
+	NodeIP   string `json:"nodeIP,omitempty"`
+	Ports    []int  `json:"ports,omitempty"`
+	Selected bool   `json:"selected"`
 }
 
 // Storage storage
