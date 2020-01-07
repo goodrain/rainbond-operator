@@ -3,6 +3,7 @@ package rbdcomponent
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	appv1 "k8s.io/api/apps/v1"
@@ -134,21 +135,21 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
+		return reconcile.Result{Requeue: true}, err
 	}
 
 	if instance.Name == "rbd-package" {
-		if !r.isRbdHubReady() {
-			reqLogger.Info("rbd-hub is not ready", "component", instance.Name)
+		rainbondcluster := &rainbondv1alpha1.RainbondCluster{}
+		if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "rainbondcluster"}, rainbondcluster); err != nil {
+			reqLogger.Error(err, "Error getting rainbondcluster")
 			return reconcile.Result{Requeue: true}, err
 		}
 
-		if err := handleRainbondPackage("/opt/rainbond/pkg/rainbond-pkg-V5.2-dev.tgz", "/opt/rainbond/pkg"); err != nil {
+		if err := handleRainbondPackage(r.client, rainbondcluster, "/opt/rainbond/pkg/rainbond-pkg-V5.2-dev.tgz", "/opt/rainbond/pkg"); err != nil {
 			reqLogger.Error(err, "handle rainbond package")
 			return reconcile.Result{Requeue: true}, nil
-
 		}
-		return reconcile.Result{}, nil
+		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
 	}
 
 	fn, ok := resourcesFuncs[instance.Name]
