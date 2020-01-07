@@ -87,7 +87,6 @@ spec:
                   type: boolean
               type: object
             imageHub:
-              description: default goodrain.me
               properties:
                 domain:
                   type: string
@@ -98,6 +97,10 @@ spec:
                 username:
                   type: string
               type: object
+            rainbondImageRepositoryHost:
+              description: Domain name of the image repository which Rainbond is installed
+                Default goodrain.me
+              type: string
             regionDatabase:
               description: the region database information that rainbond component
                 will be used. rainbond-operator will create one if DBInfo is empty

@@ -3,6 +3,8 @@ package rainbondcluster
 import (
 	"context"
 	"fmt"
+	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster/status"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/format"
 	"net"
 	"reflect"
 
@@ -49,7 +51,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
+	// TODO(haungrh): Modify this to be the types you create that are owned by the primary resource
 	// Watch for changes to secondary resource Pods and requeue the owner RainbondCluster
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
@@ -205,4 +207,17 @@ func checkPortOccupation(address string) bool {
 	}
 	defer l.Close()
 	return false
+}
+
+// generateRainbondClusterStatus creates the final rainbondcluster status for a rainbondcluster, given the
+// internal rainbondcluster status.
+func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(rainbondCluster *rainbondv1alpha1.RainbondCluster, config *rainbondv1alpha1.GlobalConfig) *rainbondv1alpha1.RainbondClusterStatus {
+	klog.V(3).Infof("Generating status for %q", format.RainbondCluster(rainbondCluster))
+
+	s := &rainbondv1alpha1.RainbondClusterStatus{}
+
+	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterStorageReadyCondition())
+	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterImageRepositoryReadyCondition(config))
+
+	return s
 }

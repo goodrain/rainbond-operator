@@ -6,20 +6,24 @@ import (
 
 // GlobalConfigSpec defines the desired state of GlobalConfig
 type GlobalConfigSpec struct {
-	// default goodrain.me
-	ImageHub ImageHub `json:"imageHub,omitempty"`
+	// Domain name of the image repository which Rainbond is installed
+	// Default goodrain.me
+	// +optional
+	RainbondImageRepositoryDomain string `json:"rainbondImageRepositoryHost,omitempty"`
+
+	ImageHub *ImageHub `json:"imageHub,omitempty"`
 	// the storage class that rainbond component will be used.
 	// rainbond-operator will create one if StorageClassName is empty
 	StorageClassName string `json:"storageClassName,omitempty"`
 	// the region database information that rainbond component will be used.
 	// rainbond-operator will create one if DBInfo is empty
-	RegionDatabase Database `json:"regionDatabase,omitempty"`
+	RegionDatabase *Database `json:"regionDatabase,omitempty"`
 	// the ui database information that rainbond component will be used.
 	// rainbond-operator will create one if DBInfo is empty
-	UIDatabase Database `json:"uiDatabase,omitempty"`
+	UIDatabase *Database `json:"uiDatabase,omitempty"`
 	// the etcd connection information that rainbond component will be used.
 	// rainbond-operator will create one if EtcdConfig is empty
-	EtcdConfig EtcdConfig `json:"etcdConfig,omitempty"`
+	EtcdConfig *EtcdConfig `json:"etcdConfig,omitempty"`
 }
 
 type ImageHub struct {
