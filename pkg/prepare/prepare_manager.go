@@ -124,7 +124,7 @@ func (m *Manager) prepareRainbondCluster() error {
 	rainbondCluster := &rainbondv1alpha1.RainbondCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "rbd-system",
-			Name:      "rbd-rainbondcluster",
+			Name:      "rainbondcluster",
 		},
 		Status: &rainbondv1alpha1.RainbondClusterStatus{
 			Phase: rainbondv1alpha1.RainbondClusterPending,

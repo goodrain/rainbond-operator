@@ -4,6 +4,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// InstallMode is the mode of Rainbond cluster installation
+type InstallMode string
+
+const (
+	// InstallationModeFullOnline means some Rainbond images are from the specified image repository, some are from the installation package.
+	InstallationModeWithPackage InstallMode = "WithPackage"
+	// InstallationModeFullOnline means all Rainbond images are from the specified image repository, not the installation package.
+	InstallationModeWithoutPackage InstallMode = "WithoutPackage"
+)
+
 type ImageHub struct {
 	Domain    string `json:"domain,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
@@ -43,6 +53,8 @@ type RainbondClusterSpec struct {
 	// Information about the node where the gateway is located.
 	// If not specified, the gateway will run on nodes where all ports do not conflict.
 	GatewayNodes []NodeAvailPorts `json:"gatewayNodes,omitempty"`
+	// InstallMode is the mode of Rainbond cluster installation.
+	InstallMode InstallMode `json:"installMode,omitempty"`
 
 	ImageHub *ImageHub `json:"imageHub,omitempty"`
 	// the storage class that rainbond component will be used.
@@ -144,10 +156,13 @@ type RainbondClusterStatus struct {
 	// +optional
 	Reason string `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason"`
 
+	// +optional
 	NodeAvailPorts []*NodeAvailPorts `json:"NodeAvailPorts,omitempty"`
-
 	// List of existing StorageClasses in the cluster
+	// +optional
 	StorageClasses []*StorageClass `json:"storageClasses,omitempty"`
+	// Destination path of the installation package extraction.
+	PkgDestPath string `json:"pkgDestPath"`
 }
 
 // +genclient

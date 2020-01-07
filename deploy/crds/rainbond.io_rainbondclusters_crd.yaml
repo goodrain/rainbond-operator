@@ -121,6 +121,9 @@ spec:
                 username:
                   type: string
               type: object
+            installMode:
+              description: InstallMode is the mode of Rainbond cluster installation.
+              type: string
             rainbondImageRepositoryHost:
               description: Domain name of the image repository which Rainbond is installed
                 Default goodrain.me
@@ -215,6 +218,9 @@ spec:
             phase:
               description: Rainbond cluster phase
               type: string
+            pkgDestPath:
+              description: Destination path of the installation package extraction.
+              type: string
             reason:
               description: A brief CamelCase message indicating details about why
                 the pod is in this state.
@@ -232,6 +238,8 @@ spec:
                 - provisioner
                 type: object
               type: array
+          required:
+          - pkgDestPath
           type: object
       type: object
   version: v1alpha1

@@ -3,15 +3,19 @@ package rainbondcluster
 import (
 	"context"
 	"fmt"
+	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster/pkg"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
+	"net"
+	"time"
+
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster/status"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/format"
-	"net"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,17 +49,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource RainbondCluster
-	err = c.Watch(&source.Kind{Type: &rainbondv1alpha1.RainbondCluster{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	// TODO(haungrh): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner RainbondCluster
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &rainbondv1alpha1.RainbondCluster{},
-	})
+	// Only watch rainbondcluster, because only support one rainbond cluster.
+	err = c.Watch(&source.Kind{Type: &rainbondv1alpha1.RainbondCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rainbondcluster",
+			Namespace: "rbd-system",
+		},
+	}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,9 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	rainbondcluster.Status = r.generateRainbondClusterStatus(rainbondcluster)
+	packager := pkg.New(constants.DefInstallPkgDestPath)
+
+	rainbondcluster.Status = r.generateRainbondClusterStatus(rainbondcluster, packager)
 	if err := r.client.Status().Update(context.TODO(), rainbondcluster); err != nil {
 		klog.Error("Error updating rainbondcluster status: %v", err)
 		return reconcile.Result{Requeue: true}, err
@@ -193,7 +195,10 @@ func checkPortOccupation(address string) bool {
 
 // generateRainbondClusterStatus creates the final rainbondcluster status for a rainbondcluster, given the
 // internal rainbondcluster status.
-func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(rainbondCluster *rainbondv1alpha1.RainbondCluster) *rainbondv1alpha1.RainbondClusterStatus {
+func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(
+	rainbondCluster *rainbondv1alpha1.RainbondCluster,
+	historyer pkg.HistoryInterface,
+) *rainbondv1alpha1.RainbondClusterStatus {
 	klog.V(3).Infof("Generating status for %q", format.RainbondCluster(rainbondCluster))
 
 	s := &rainbondv1alpha1.RainbondClusterStatus{
@@ -203,6 +208,7 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(rainbondCluster
 
 	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterStorageReadyCondition())
 	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster))
+	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterPackageExtractedCondition(rainbondCluster, historyer))
 
 	return s
 }
