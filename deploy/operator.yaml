@@ -30,6 +30,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: HOST_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.hostIP
             - name: OPERATOR_NAME
               value: "rainbond-operator"
           volumeMounts:

@@ -1,11 +1,16 @@
 package status
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
+	"net/url"
+	"os"
+	"time"
+
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	"k8s.io/klog"
-	"net/http"
 )
 
 const (
@@ -24,22 +29,35 @@ func GenerateRainbondClusterStorageReadyCondition() rainbondv1alpha1.RainbondClu
 
 // GenerateRainbondClusterImageRepositoryReadyCondition returns imagerepositoryready condition if the image repository is ready,
 // else it returns an unimagerepositoryready condition.
-func GenerateRainbondClusterImageRepositoryReadyCondition(config *rainbondv1alpha1.GlobalConfig) rainbondv1alpha1.RainbondClusterCondition {
+func GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster *rainbondv1alpha1.RainbondCluster) rainbondv1alpha1.RainbondClusterCondition {
 	condition := rainbondv1alpha1.RainbondClusterCondition{
-		Type: rainbondv1alpha1.StorageReady,
+		Type: rainbondv1alpha1.ImageRepositoryInstalled,
 	}
 
-	if config.Spec.ImageHub != nil {
+	if rainbondCluster.Spec.ImageHub != nil {
 		condition.Status = rainbondv1alpha1.ConditionTrue
 		return condition
 	}
 
-	domain := config.Spec.RainbondImageRepositoryDomain
+	domain := rainbondCluster.Spec.RainbondImageRepositoryDomain
 	if domain == "" {
 		domain = constants.DefImageRepositoryDomain
 	}
 
-	res, err := http.Get(domain)
+	client := &http.Client{
+		Timeout: 1 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+	u, _ := url.Parse(fmt.Sprintf("https://%s/v2/", os.Getenv("HOST_IP")))  // TODO(huangrh): use real gateway ip
+	request := &http.Request{
+		URL:  u,
+		Host: domain,
+	}
+	res, err := client.Do(request)
 	if err != nil {
 		klog.Errorf("Error issuing a GET to %s: %v", domain, err)
 		condition.Status = rainbondv1alpha1.ConditionFalse
