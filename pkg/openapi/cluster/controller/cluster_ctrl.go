@@ -31,9 +31,9 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 	installEngine.GET("/status", u.InstallStatus)
 
 	// componse
-	componseEngine := clusterEngine.Group("/components")
-	componseEngine.GET("/", u.Components)
-	componseEngine.GET("/:name", u.SingleComponent)
+	componentEngine := clusterEngine.Group("/components")
+	componentEngine.GET("/", u.Components)
+	componentEngine.GET("/:name", u.SingleComponent)
 }
 
 // Configs get cluster config info
@@ -90,12 +90,12 @@ func (cc *ClusterController) Components(c *gin.Context) {
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": componseInfos})
 }
 
-// SingleComponent single componse
+// SingleComponent single component
 func (cc *ClusterController) SingleComponent(c *gin.Context) {
 	name := c.Param("name")
 	name = strings.TrimSpace(name)
 	if name == "" {
-		cc.Components(c) // TODO fanyangyang need for test
+		cc.Components(c) // TODO fanyangyang need for test TODO: WHY?
 		return
 	}
 	componseInfos, err := cc.clusterCase.Components().Get(name)

@@ -178,16 +178,12 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		}
 	}
 
-	selector := instance.Labels()
 	if instance.Name == "rbd-etcd" { // TODO:
-		selector = map[string]string{
-			"app":       "etcd",
-			"etcd_node": "etcd0",
-		}
+		return reconcile.Result{}, nil
 	}
 	instance.Status = &rainbondv1alpha1.RbdComponentStatus{
-		ControllerType:     controllerType,
-		ControllerSelector: selector,
+		ControllerType: controllerType,
+		ControllerName: instance.Name,
 	}
 
 	if err := r.client.Status().Update(context.TODO(), instance); err != nil {

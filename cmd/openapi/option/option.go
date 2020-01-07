@@ -13,7 +13,7 @@ type Config struct {
 	ConfigName         string
 	EtcdSecretName     string
 	ArchiveFilePath    string
-	KubeClient         kubernetes.Interface
+	KubeClient         kubernetes.Interface  // TODO
 	RainbondKubeClient versioned.Interface
 	LogLevel           string
 }

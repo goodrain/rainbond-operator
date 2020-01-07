@@ -29,7 +29,7 @@ type InstallUseCaseGetter interface {
 
 // CaseImpl case
 type CaseImpl struct {
-	componentUseCaseImpl    *usecase.ComponentUseCaseImpl
+	componentUseCaseImpl    *usecase.ComponentUsecaseImpl
 	globalConfigUseCaseImpl *usecase.GlobalConfigUseCaseImpl
 	installCaseImpl         *usecase.InstallUseCaseImpl
 }
@@ -37,7 +37,7 @@ type CaseImpl struct {
 // NewClusterCase new cluster case
 func NewClusterCase(conf *option.Config) IClusterCase {
 	clusterCase := &CaseImpl{}
-	clusterCase.componentUseCaseImpl = usecase.NewComponentUseCase(conf)
+	clusterCase.componentUseCaseImpl = usecase.NewComponentUsecase(conf)
 	clusterCase.globalConfigUseCaseImpl = usecase.NewGlobalConfigUseCase(conf)
 	clusterCase.installCaseImpl = usecase.NewInstallUseCase(conf)
 	return clusterCase

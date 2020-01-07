@@ -47,17 +47,15 @@ spec:
         status:
           description: RbdComponentStatus defines the observed state of RbdComponent
           properties:
-            controller_selector:
-              additionalProperties:
-                type: string
-              description: ControllerSelector can filter out RbdComponent related
-                controllers, including Deployment, StatefulSet and DaemonSet
-              type: object
+            controller_name:
+              description: ControllerName represents the Controller associated with
+                RbdComponent The controller could be Deployment, StatefulSet or DaemonSet
+              type: string
             controller_type:
               description: Type of Controller owned by RbdComponent
               type: string
           required:
-          - controller_selector
+          - controller_name
           - controller_type
           type: object
       type: object

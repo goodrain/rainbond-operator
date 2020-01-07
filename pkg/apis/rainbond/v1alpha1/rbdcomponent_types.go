@@ -41,13 +41,17 @@ const (
 	ControllerTypeUnknown ControllerType = "unknown"
 )
 
+func (c ControllerType) String() string {
+	return string(c)
+}
+
 // RbdComponentStatus defines the observed state of RbdComponent
 type RbdComponentStatus struct {
 	// Type of Controller owned by RbdComponent
 	ControllerType ControllerType `json:"controller_type"`
-	// ControllerSelector can filter out RbdComponent related controllers,
-	// including Deployment, StatefulSet and DaemonSet
-	ControllerSelector map[string]string `json:"controller_selector"`
+	// ControllerName represents the Controller associated with RbdComponent
+	// The controller could be Deployment, StatefulSet or DaemonSet
+	ControllerName string `json:"controller_name"`
 }
 
 // +genclient
