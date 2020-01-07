@@ -4,6 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// ImageHub image hub
 type ImageHub struct {
 	Domain    string `json:"domain,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
@@ -35,6 +36,14 @@ type RainbondClusterSpec struct {
 	// Default goodrain.me
 	// +optional
 	RainbondImageRepositoryDomain string `json:"rainbondImageRepositoryHost,omitempty"`
+	// Suffix of component default domain name
+	SuffixHTTPHost string `json:"suffixHTTPHost,omitempty"`
+	// Ingress IP addresses of rbd-gateway. If not specified,
+	// the IP of the node where the rbd-gateway is located will be used.
+	GatewayIngressIPs []string `json:"gatewayIngressIPs,omitempty"`
+	// Information about the node where the gateway is located.
+	// If not specified, the gateway will run on nodes where all ports do not conflict.
+	GatewayNodes []NodeAvailPorts `json:"gatewayNodes,omitempty"`
 
 	ImageHub *ImageHub `json:"imageHub,omitempty"`
 	// the storage class that rainbond component will be used.
@@ -82,6 +91,7 @@ const (
 	ImagePushed RainbondClusterConditionType = "ImagePushed"
 )
 
+// ConditionStatus condition status
 type ConditionStatus string
 
 // These are valid condition statuses. "ConditionTrue" means a resource is in the condition.
@@ -101,10 +111,10 @@ type RainbondClusterCondition struct {
 	Status ConditionStatus `json:"status"`
 	// Last time we probed the condition.
 	// +optional
-	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
+	LastProbeTime *metav1.Time `json:"lastProbeTime,omitempty"`
 	// Last time the condition transitioned from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
 	// Unique, one-word, CamelCase reason for the condition's last transition.
 	// +optional
 	Reason string `json:"reason,omitempty"`
@@ -113,12 +123,14 @@ type RainbondClusterCondition struct {
 	Message string `json:"message,omitempty"`
 }
 
+// NodeAvailPorts node avail port
 type NodeAvailPorts struct {
 	NodeName string `json:"nodeName,omitempty"`
 	NodeIP   string `json:"nodeIP,omitempty"`
 	Ports    []int  `json:"ports,omitempty"`
 }
 
+// StorageClass storage class
 type StorageClass struct {
 	Name        string `json:"name"`
 	Provisioner string `json:"provisioner"`

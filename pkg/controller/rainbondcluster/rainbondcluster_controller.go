@@ -7,6 +7,7 @@ import (
 	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster/status"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/format"
 	"net"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -102,7 +103,7 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	return reconcile.Result{}, nil
+	return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 }
 
 func (r *ReconcileRainbondCluster) availableStorageClasses() []*rainbondv1alpha1.StorageClass {

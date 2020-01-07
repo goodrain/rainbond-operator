@@ -33,3 +33,7 @@ ctrl-add:
 check:
 	which ./bin/golangci-lint > /dev/null || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.22.2
 	@bin/golangci-lint run
+
+test:operator-image
+	docker save -o /tmp/rainbond-operator.tgz abewang/rainbond-operator:v0.0.1
+	scp /tmp/rainbond-operator.tgz root@172.20.0.12:/root
