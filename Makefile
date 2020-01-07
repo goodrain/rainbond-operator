@@ -17,8 +17,5 @@ openapi-gen:
 sdk-gen:
 	./hack/k8s/codegen/update-generated.sh
 
-sdk-gen:
-	./hack/k8s/codegen/update-generated.sh
-
 operator-build:
 	operator-sdk build abewang/rainbond-operator:v0.0.1

@@ -22,10 +22,4 @@ package v1alpha1
 
 type GlobalConfigExpansion interface{}
 
-type PrivateRegistryExpansion interface{}
-
-type RainbondExpansion interface{}
-
 type RbdComponentExpansion interface{}
-
-type StorageProvisionerExpansion interface{}

@@ -28,22 +28,6 @@ type GlobalConfigListerExpansion interface{}
 // GlobalConfigNamespaceLister.
 type GlobalConfigNamespaceListerExpansion interface{}
 
-// PrivateRegistryListerExpansion allows custom methods to be added to
-// PrivateRegistryLister.
-type PrivateRegistryListerExpansion interface{}
-
-// PrivateRegistryNamespaceListerExpansion allows custom methods to be added to
-// PrivateRegistryNamespaceLister.
-type PrivateRegistryNamespaceListerExpansion interface{}
-
-// RainbondListerExpansion allows custom methods to be added to
-// RainbondLister.
-type RainbondListerExpansion interface{}
-
-// RainbondNamespaceListerExpansion allows custom methods to be added to
-// RainbondNamespaceLister.
-type RainbondNamespaceListerExpansion interface{}
-
 // RbdComponentListerExpansion allows custom methods to be added to
 // RbdComponentLister.
 type RbdComponentListerExpansion interface{}
@@ -51,11 +35,3 @@ type RbdComponentListerExpansion interface{}
 // RbdComponentNamespaceListerExpansion allows custom methods to be added to
 // RbdComponentNamespaceLister.
 type RbdComponentNamespaceListerExpansion interface{}
-
-// StorageProvisionerListerExpansion allows custom methods to be added to
-// StorageProvisionerLister.
-type StorageProvisionerListerExpansion interface{}
-
-// StorageProvisionerNamespaceListerExpansion allows custom methods to be added to
-// StorageProvisionerNamespaceLister.
-type StorageProvisionerNamespaceListerExpansion interface{}

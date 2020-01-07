@@ -28,14 +28,8 @@ import (
 type Interface interface {
 	// GlobalConfigs returns a GlobalConfigInformer.
 	GlobalConfigs() GlobalConfigInformer
-	// PrivateRegistries returns a PrivateRegistryInformer.
-	PrivateRegistries() PrivateRegistryInformer
-	// Rainbonds returns a RainbondInformer.
-	Rainbonds() RainbondInformer
 	// RbdComponents returns a RbdComponentInformer.
 	RbdComponents() RbdComponentInformer
-	// StorageProvisioners returns a StorageProvisionerInformer.
-	StorageProvisioners() StorageProvisionerInformer
 }
 
 type version struct {
@@ -54,22 +48,7 @@ func (v *version) GlobalConfigs() GlobalConfigInformer {
 	return &globalConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// PrivateRegistries returns a PrivateRegistryInformer.
-func (v *version) PrivateRegistries() PrivateRegistryInformer {
-	return &privateRegistryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// Rainbonds returns a RainbondInformer.
-func (v *version) Rainbonds() RainbondInformer {
-	return &rainbondInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
 // RbdComponents returns a RbdComponentInformer.
 func (v *version) RbdComponents() RbdComponentInformer {
 	return &rbdComponentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// StorageProvisioners returns a StorageProvisionerInformer.
-func (v *version) StorageProvisioners() StorageProvisionerInformer {
-	return &storageProvisionerInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

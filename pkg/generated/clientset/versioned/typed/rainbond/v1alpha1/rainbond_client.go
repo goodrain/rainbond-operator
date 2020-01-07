@@ -29,10 +29,7 @@ import (
 type RainbondV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	GlobalConfigsGetter
-	PrivateRegistriesGetter
-	RainbondsGetter
 	RbdComponentsGetter
-	StorageProvisionersGetter
 }
 
 // RainbondV1alpha1Client is used to interact with features provided by the rainbond.io group.
@@ -44,20 +41,8 @@ func (c *RainbondV1alpha1Client) GlobalConfigs(namespace string) GlobalConfigInt
 	return newGlobalConfigs(c, namespace)
 }
 
-func (c *RainbondV1alpha1Client) PrivateRegistries(namespace string) PrivateRegistryInterface {
-	return newPrivateRegistries(c, namespace)
-}
-
-func (c *RainbondV1alpha1Client) Rainbonds(namespace string) RainbondInterface {
-	return newRainbonds(c, namespace)
-}
-
 func (c *RainbondV1alpha1Client) RbdComponents(namespace string) RbdComponentInterface {
 	return newRbdComponents(c, namespace)
-}
-
-func (c *RainbondV1alpha1Client) StorageProvisioners(namespace string) StorageProvisionerInterface {
-	return newStorageProvisioners(c, namespace)
 }
 
 // NewForConfig creates a new RainbondV1alpha1Client for the given config.

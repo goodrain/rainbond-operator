@@ -34,20 +34,8 @@ func (c *FakeRainbondV1alpha1) GlobalConfigs(namespace string) v1alpha1.GlobalCo
 	return &FakeGlobalConfigs{c, namespace}
 }
 
-func (c *FakeRainbondV1alpha1) PrivateRegistries(namespace string) v1alpha1.PrivateRegistryInterface {
-	return &FakePrivateRegistries{c, namespace}
-}
-
-func (c *FakeRainbondV1alpha1) Rainbonds(namespace string) v1alpha1.RainbondInterface {
-	return &FakeRainbonds{c, namespace}
-}
-
 func (c *FakeRainbondV1alpha1) RbdComponents(namespace string) v1alpha1.RbdComponentInterface {
 	return &FakeRbdComponents{c, namespace}
-}
-
-func (c *FakeRainbondV1alpha1) StorageProvisioners(namespace string) v1alpha1.StorageProvisionerInterface {
-	return &FakeStorageProvisioners{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
