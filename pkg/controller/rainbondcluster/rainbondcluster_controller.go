@@ -3,12 +3,10 @@ package rainbondcluster
 import (
 	"context"
 	"fmt"
+	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster/status"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/format"
 	"net"
-	"reflect"
-
-	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -98,30 +96,13 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	spec := r.getRainbondClusterInfo()
-	if !reflect.DeepEqual(rainbondcluster.Spec, spec) {
-		reqLogger.Info("Spec changed. Start updating rainbondcluster.", "RainbondCluster", rainbondcluster)
-		rainbondcluster.Spec = *spec
-		if err := r.client.Update(context.TODO(), rainbondcluster); err != nil {
-			reqLogger.Error(err, "Update rainbondcluster")
-			return reconcile.Result{Requeue: true}, err
-		}
+	rainbondcluster.Status = r.generateRainbondClusterStatus(rainbondcluster)
+	if err := r.client.Status().Update(context.TODO(), rainbondcluster); err != nil {
+		klog.Error("Error updating rainbondcluster status: %v", err)
+		return reconcile.Result{Requeue: true}, err
 	}
 
 	return reconcile.Result{}, nil
-}
-
-func (r *ReconcileRainbondCluster) getRainbondClusterInfo() *rainbondv1alpha1.RainbondClusterSpec {
-	classes := r.availableStorageClasses()
-
-	ports := r.listNodeAvailablePorts()
-
-	spec := &rainbondv1alpha1.RainbondClusterSpec{
-		StorageClasses: classes,
-		NodeAvailPorts: ports,
-	}
-
-	return spec
 }
 
 func (r *ReconcileRainbondCluster) availableStorageClasses() []*rainbondv1alpha1.StorageClass {
@@ -211,13 +192,16 @@ func checkPortOccupation(address string) bool {
 
 // generateRainbondClusterStatus creates the final rainbondcluster status for a rainbondcluster, given the
 // internal rainbondcluster status.
-func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(rainbondCluster *rainbondv1alpha1.RainbondCluster, config *rainbondv1alpha1.GlobalConfig) *rainbondv1alpha1.RainbondClusterStatus {
+func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(rainbondCluster *rainbondv1alpha1.RainbondCluster) *rainbondv1alpha1.RainbondClusterStatus {
 	klog.V(3).Infof("Generating status for %q", format.RainbondCluster(rainbondCluster))
 
-	s := &rainbondv1alpha1.RainbondClusterStatus{}
+	s := &rainbondv1alpha1.RainbondClusterStatus{
+		StorageClasses: r.availableStorageClasses(),
+		NodeAvailPorts: r.listNodeAvailablePorts(),
+	}
 
 	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterStorageReadyCondition())
-	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterImageRepositoryReadyCondition(config))
+	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster))
 
 	return s
 }

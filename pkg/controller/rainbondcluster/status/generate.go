@@ -24,17 +24,17 @@ func GenerateRainbondClusterStorageReadyCondition() rainbondv1alpha1.RainbondClu
 
 // GenerateRainbondClusterImageRepositoryReadyCondition returns imagerepositoryready condition if the image repository is ready,
 // else it returns an unimagerepositoryready condition.
-func GenerateRainbondClusterImageRepositoryReadyCondition(config *rainbondv1alpha1.GlobalConfig) rainbondv1alpha1.RainbondClusterCondition {
+func GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster *rainbondv1alpha1.RainbondCluster) rainbondv1alpha1.RainbondClusterCondition {
 	condition := rainbondv1alpha1.RainbondClusterCondition{
 		Type: rainbondv1alpha1.StorageReady,
 	}
 
-	if config.Spec.ImageHub != nil {
+	if rainbondCluster.Spec.ImageHub != nil {
 		condition.Status = rainbondv1alpha1.ConditionTrue
 		return condition
 	}
 
-	domain := config.Spec.RainbondImageRepositoryDomain
+	domain := rainbondCluster.Spec.RainbondImageRepositoryDomain
 	if domain == "" {
 		domain = constants.DefImageRepositoryDomain
 	}

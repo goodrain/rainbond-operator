@@ -4,23 +4,51 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type NodeAvailPorts struct {
-	NodeName string `json:"nodeName,omitempty"`
-	NodeIP   string `json:"nodeIP,omitempty"`
-	Ports    []int  `json:"ports,omitempty"`
+type ImageHub struct {
+	Domain    string `json:"domain,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Username  string `json:"username,omitempty"`
+	Password  string `json:"password,omitempty"`
 }
 
-type StorageClass struct {
-	Name        string `json:"name"`
-	Provisioner string `json:"provisioner"`
+// Database defines the connection information of database.
+type Database struct {
+	Host     string `json:"host,omitempty"`
+	Port     int    `json:"port,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+// EtcdConfig defines the configuration of etcd client.
+type EtcdConfig struct {
+	// Endpoints is a list of URLs.
+	Endpoints []string `json:"endpoints,omitempty"`
+	// Whether to use tls to connect to etcd
+	UseTLS bool `json:"useTLS,omitempty"`
+	// Secret to mount to read certificate files for tls.
+	CertSecret metav1.LabelSelector `json:"selector,omitempty"`
 }
 
 // RainbondClusterSpec defines the desired state of RainbondCluster
 type RainbondClusterSpec struct {
-	NodeAvailPorts []*NodeAvailPorts `json:"NodeAvailPorts,omitempty"`
+	// Domain name of the image repository which Rainbond is installed
+	// Default goodrain.me
+	// +optional
+	RainbondImageRepositoryDomain string `json:"rainbondImageRepositoryHost,omitempty"`
 
-	// List of existing StorageClasses in the cluster
-	StorageClasses []*StorageClass `json:"storageClasses,omitempty"`
+	ImageHub *ImageHub `json:"imageHub,omitempty"`
+	// the storage class that rainbond component will be used.
+	// rainbond-operator will create one if StorageClassName is empty
+	StorageClassName string `json:"storageClassName,omitempty"`
+	// the region database information that rainbond component will be used.
+	// rainbond-operator will create one if DBInfo is empty
+	RegionDatabase *Database `json:"regionDatabase,omitempty"`
+	// the ui database information that rainbond component will be used.
+	// rainbond-operator will create one if DBInfo is empty
+	UIDatabase *Database `json:"uiDatabase,omitempty"`
+	// the etcd connection information that rainbond component will be used.
+	// rainbond-operator will create one if EtcdConfig is empty
+	EtcdConfig *EtcdConfig `json:"etcdConfig,omitempty"`
 }
 
 // RainbondClusterPhase is a label for the condition of a rainbondcluster at the current time.
@@ -85,6 +113,17 @@ type RainbondClusterCondition struct {
 	Message string `json:"message,omitempty"`
 }
 
+type NodeAvailPorts struct {
+	NodeName string `json:"nodeName,omitempty"`
+	NodeIP   string `json:"nodeIP,omitempty"`
+	Ports    []int  `json:"ports,omitempty"`
+}
+
+type StorageClass struct {
+	Name        string `json:"name"`
+	Provisioner string `json:"provisioner"`
+}
+
 // RainbondClusterStatus defines the observed state of RainbondCluster
 type RainbondClusterStatus struct {
 	// Rainbond cluster phase
@@ -96,6 +135,11 @@ type RainbondClusterStatus struct {
 	// A brief CamelCase message indicating details about why the pod is in this state.
 	// +optional
 	Reason string `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason"`
+
+	NodeAvailPorts []*NodeAvailPorts `json:"NodeAvailPorts,omitempty"`
+
+	// List of existing StorageClasses in the cluster
+	StorageClasses []*StorageClass `json:"storageClasses,omitempty"`
 }
 
 // +genclient
