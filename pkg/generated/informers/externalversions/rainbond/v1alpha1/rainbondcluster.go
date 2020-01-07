@@ -33,59 +33,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// GlobalConfigInformer provides access to a shared informer and lister for
-// GlobalConfigs.
-type GlobalConfigInformer interface {
+// RainbondClusterInformer provides access to a shared informer and lister for
+// RainbondClusters.
+type RainbondClusterInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.GlobalConfigLister
+	Lister() v1alpha1.RainbondClusterLister
 }
 
-type globalConfigInformer struct {
+type rainbondClusterInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewGlobalConfigInformer constructs a new informer for GlobalConfig type.
+// NewRainbondClusterInformer constructs a new informer for RainbondCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewGlobalConfigInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredGlobalConfigInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewRainbondClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredRainbondClusterInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredGlobalConfigInformer constructs a new informer for GlobalConfig type.
+// NewFilteredRainbondClusterInformer constructs a new informer for RainbondCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredGlobalConfigInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredRainbondClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.RainbondV1alpha1().GlobalConfigs(namespace).List(options)
+				return client.RainbondV1alpha1().RainbondClusters(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.RainbondV1alpha1().GlobalConfigs(namespace).Watch(options)
+				return client.RainbondV1alpha1().RainbondClusters(namespace).Watch(options)
 			},
 		},
-		&rainbondv1alpha1.GlobalConfig{},
+		&rainbondv1alpha1.RainbondCluster{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *globalConfigInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredGlobalConfigInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *rainbondClusterInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredRainbondClusterInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *globalConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&rainbondv1alpha1.GlobalConfig{}, f.defaultInformer)
+func (f *rainbondClusterInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&rainbondv1alpha1.RainbondCluster{}, f.defaultInformer)
 }
 
-func (f *globalConfigInformer) Lister() v1alpha1.GlobalConfigLister {
-	return v1alpha1.NewGlobalConfigLister(f.Informer().GetIndexer())
+func (f *rainbondClusterInformer) Lister() v1alpha1.RainbondClusterLister {
+	return v1alpha1.NewRainbondClusterLister(f.Informer().GetIndexer())
 }

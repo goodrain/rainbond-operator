@@ -28,7 +28,7 @@ import (
 
 type RainbondV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	GlobalConfigsGetter
+	RainbondClustersGetter
 	RbdComponentsGetter
 }
 
@@ -37,8 +37,8 @@ type RainbondV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *RainbondV1alpha1Client) GlobalConfigs(namespace string) GlobalConfigInterface {
-	return newGlobalConfigs(c, namespace)
+func (c *RainbondV1alpha1Client) RainbondClusters(namespace string) RainbondClusterInterface {
+	return newRainbondClusters(c, namespace)
 }
 
 func (c *RainbondV1alpha1Client) RbdComponents(namespace string) RbdComponentInterface {

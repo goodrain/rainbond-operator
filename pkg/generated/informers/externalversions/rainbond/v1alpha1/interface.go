@@ -26,8 +26,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// GlobalConfigs returns a GlobalConfigInformer.
-	GlobalConfigs() GlobalConfigInformer
+	// RainbondClusters returns a RainbondClusterInformer.
+	RainbondClusters() RainbondClusterInformer
 	// RbdComponents returns a RbdComponentInformer.
 	RbdComponents() RbdComponentInformer
 }
@@ -43,9 +43,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// GlobalConfigs returns a GlobalConfigInformer.
-func (v *version) GlobalConfigs() GlobalConfigInformer {
-	return &globalConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// RainbondClusters returns a RainbondClusterInformer.
+func (v *version) RainbondClusters() RainbondClusterInformer {
+	return &rainbondClusterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // RbdComponents returns a RbdComponentInformer.

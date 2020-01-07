@@ -55,8 +55,8 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=rainbond.io, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithResource("globalconfigs"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Rainbond().V1alpha1().GlobalConfigs().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("rainbondclusters"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Rainbond().V1alpha1().RainbondClusters().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("rbdcomponents"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Rainbond().V1alpha1().RbdComponents().Informer()}, nil
 

@@ -20,13 +20,13 @@
 
 package v1alpha1
 
-// GlobalConfigListerExpansion allows custom methods to be added to
-// GlobalConfigLister.
-type GlobalConfigListerExpansion interface{}
+// RainbondClusterListerExpansion allows custom methods to be added to
+// RainbondClusterLister.
+type RainbondClusterListerExpansion interface{}
 
-// GlobalConfigNamespaceListerExpansion allows custom methods to be added to
-// GlobalConfigNamespaceLister.
-type GlobalConfigNamespaceListerExpansion interface{}
+// RainbondClusterNamespaceListerExpansion allows custom methods to be added to
+// RainbondClusterNamespaceLister.
+type RainbondClusterNamespaceListerExpansion interface{}
 
 // RbdComponentListerExpansion allows custom methods to be added to
 // RbdComponentLister.

@@ -17,5 +17,11 @@ openapi-gen:
 sdk-gen:
 	./hack/k8s/codegen/update-generated.sh
 
+api-add:
+	operator-sdk add api --api-version=rainbond.io/$(VERSION) --kind=$(KIND)
+
 operator-build:
 	operator-sdk build abewang/rainbond-operator:v0.0.1
+
+ctrl-add:
+	operator-sdk add controller --api-version=rainbond.io/$(VERSION) --kind=$(KIND)

@@ -20,6 +20,6 @@
 
 package v1alpha1
 
-type GlobalConfigExpansion interface{}
+type RainbondClusterExpansion interface{}
 
 type RbdComponentExpansion interface{}

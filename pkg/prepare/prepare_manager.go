@@ -118,26 +118,26 @@ func (m *Manager) grdataPersistentVolumeClaim() error {
 	return nil
 }
 
-func (m *Manager) prepareGlobalConfig() error {
-	log.Info("prepare global config")
+func (m *Manager) prepareRainbondCluster() error {
+	log.Info("prepare rainbond cluster")
 
-	globalConfig := &rainbondv1alpha1.GlobalConfig{
+	rainbondCluster := &rainbondv1alpha1.RainbondCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "rbd-system",
-			Name:      "rbd-globalconfig",
+			Name:      "rbd-rainbondcluster",
 		},
-		Status: rainbondv1alpha1.GlobalConfigStatus{
-			Phase: rainbondv1alpha1.GlobalConfigPhasePending,
+		Status: &rainbondv1alpha1.RainbondClusterStatus{
+			Phase: rainbondv1alpha1.RainbondClusterPending,
 		},
 	}
 
-	_, err := m.rainbondv1aphal1clientset.RainbondV1alpha1().GlobalConfigs(globalConfig.Namespace).Get(globalConfig.GetName(), metav1.GetOptions{})
+	_, err := m.rainbondv1aphal1clientset.RainbondV1alpha1().RainbondClusters(rainbondCluster.Namespace).Get(rainbondCluster.GetName(), metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("GlobalConfig not found. will create a new one.")
-			_, err := m.rainbondv1aphal1clientset.RainbondV1alpha1().GlobalConfigs(globalConfig.Namespace).Create(globalConfig)
+			log.Info("RainbondCluster not found, create a new one.")
+			_, err := m.rainbondv1aphal1clientset.RainbondV1alpha1().RainbondClusters(rainbondCluster.Namespace).Create(rainbondCluster)
 			if err != nil {
-				log.Error(err, "create global config")
+				log.Error(err, "Create rainbondcluster.")
 				return err
 			}
 			return nil
