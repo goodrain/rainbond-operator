@@ -47,7 +47,7 @@ func (m *Manager) Start() error {
 	// if err := m.initNamespace(); err != nil {
 	// 	return err
 	// }
-	if err := m.prepareGlobalConfig(); err != nil {
+	if err := m.prepareRainbondCluster(); err != nil {
 		return err
 	}
 	if err := m.grdataPersistentVolumeClaim(); err != nil {

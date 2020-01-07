@@ -44,10 +44,18 @@ spec:
                     type: array
                 type: object
               type: array
-            availStorageClasses:
+            storageClasses:
               description: List of existing StorageClasses in the cluster
               items:
-                type: string
+                properties:
+                  name:
+                    type: string
+                  provisioner:
+                    type: string
+                required:
+                - name
+                - provisioner
+                type: object
               type: array
           type: object
         status:

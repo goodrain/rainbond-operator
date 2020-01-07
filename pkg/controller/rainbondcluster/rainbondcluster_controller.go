@@ -3,15 +3,16 @@ package rainbondcluster
 import (
 	"context"
 	"fmt"
-	"github.com/go-logr/logr"
 	"net"
 	"reflect"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -95,36 +96,56 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	// available ports
-	nodeAvailPorts := r.listNodeAavailPorts(reqLogger)
-	reqLogger.Info(fmt.Sprintf("node available ports: %#v", nodeAvailPorts))
-
-	newRainbondClusterSpec := rainbondcluster.Spec.DeepCopy()
-	newRainbondClusterSpec.NodeAvailPorts = nodeAvailPorts
-
-	// update spec
-	if !reflect.DeepEqual(rainbondcluster.Spec, newRainbondClusterSpec) {
-		rainbondcluster.Spec = *newRainbondClusterSpec
-		if err := r.updateRainbondCluster(reqLogger, rainbondcluster); err != nil {
-			// Error updating the object - requeue the request.
-			return reconcile.Result{}, err
+	spec := r.getRainbondClusterInfo()
+	if !reflect.DeepEqual(rainbondcluster.Spec, spec) {
+		reqLogger.Info("Spec changed. Start updating rainbondcluster.", "RainbondCluster", rainbondcluster)
+		rainbondcluster.Spec = *spec
+		if err := r.client.Update(context.TODO(), rainbondcluster); err != nil {
+			reqLogger.Error(err, "Update rainbondcluster")
+			return reconcile.Result{Requeue: true}, err
 		}
 	}
 
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileRainbondCluster) updateRainbondCluster(reqLogger logr.Logger, rainbondcluster *rainbondv1alpha1.RainbondCluster) error {
-	reqLogger.Info("Start updating rainbondcluster.", "RainbondCluster", rainbondcluster)
-	if err := r.client.Update(context.TODO(), rainbondcluster); err != nil {
-		reqLogger.Error(err, "Update rainbondcluster")
-		return err
+func (r *ReconcileRainbondCluster) getRainbondClusterInfo() *rainbondv1alpha1.RainbondClusterSpec {
+	classes := r.availableStorageClasses()
+
+	ports := r.listNodeAvailablePorts()
+
+	spec := &rainbondv1alpha1.RainbondClusterSpec{
+		StorageClasses: classes,
+		NodeAvailPorts: ports,
 	}
-	return nil
+
+	return spec
 }
 
-func (r *ReconcileRainbondCluster) listNodeAavailPorts(reqLogger logr.Logger) []rainbondv1alpha1.NodeAvailPorts {
-	reqLogger.Info("Start checking rbd-gateway ports")
+func (r *ReconcileRainbondCluster) availableStorageClasses() []*rainbondv1alpha1.StorageClass {
+	klog.V(3).Info("Start listing available storage classes")
+
+	storageClassList := &storagev1.StorageClassList{}
+	var opts []client.ListOption
+	if err := r.client.List(context.TODO(), storageClassList, opts...); err != nil {
+		klog.V(2).Info("Start listing available storage classes")
+		return nil
+	}
+
+	var storageClasses []*rainbondv1alpha1.StorageClass
+	for _, sc := range storageClassList.Items {
+		storageClass := &rainbondv1alpha1.StorageClass{
+			Name:        sc.Name,
+			Provisioner: sc.Provisioner,
+		}
+		storageClasses = append(storageClasses, storageClass)
+	}
+
+	return storageClasses
+}
+
+func (r *ReconcileRainbondCluster) listNodeAvailablePorts() []*rainbondv1alpha1.NodeAvailPorts {
+	klog.V(3).Info("Start checking rbd-gateway ports")
 	// list all node
 	nodeList := &corev1.NodeList{}
 	listOpts := []client.ListOption{
@@ -133,31 +154,31 @@ func (r *ReconcileRainbondCluster) listNodeAavailPorts(reqLogger logr.Logger) []
 		}),
 	}
 	if err := r.client.List(context.TODO(), nodeList, listOpts...); err != nil {
-		reqLogger.Error(err, "failed to list nodes")
+		klog.Error(err, "list nodes")
 		return nil
 	}
-	reqLogger.Info("Found nodes", nodeList)
+	klog.V(3).Info("Found nodes", nodeList)
 
 	checkPortOccupation := func(address string) bool {
-		reqLogger.Info("Start check port occupation", "Address: ", address)
+		klog.V(3).Info("Start check port occupation", "Address: ", address)
 		conn, err := net.Dial("tcp", address)
 		if err != nil {
-			reqLogger.Info("check port occupation", "error", err.Error())
+			klog.Error("check port occupation", "error", err.Error())
 			return false
 		}
 		defer conn.Close()
 		return true
 	}
 
-	gatewayPorts := []int{80, 443, 10254, 18080}
-	var nodeAvailPorts []rainbondv1alpha1.NodeAvailPorts
+	gatewayPorts := []int{80, 443, 10254, 18080} // TODO: do not hard code
+	var nodeAvailPorts []*rainbondv1alpha1.NodeAvailPorts
 	for _, n := range nodeList.Items {
 		for _, addr := range n.Status.Addresses {
 			if addr.Type != corev1.NodeInternalIP {
 				continue
 			}
-			reqLogger.Info("Node name", n.Name, "Found internal ip: ", addr.Address)
-			node := rainbondv1alpha1.NodeAvailPorts{
+			klog.V(3).Info("Node name", n.Name, "Found internal ip: ", addr.Address)
+			node := &rainbondv1alpha1.NodeAvailPorts{
 				NodeName: n.Name,
 				NodeIP:   addr.Address,
 			}

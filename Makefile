@@ -1,6 +1,9 @@
 GROUP=rainbond
 VERSION=v1alpha1
 
+.PHONY: gen
+gen: crds-gen openapi-gen sdk-gen
+
 crds-gen:
 	operator-sdk generate crds
 
@@ -20,7 +23,7 @@ sdk-gen:
 api-add:
 	operator-sdk add api --api-version=rainbond.io/$(VERSION) --kind=$(KIND)
 
-operator-build:
+operator-image:
 	operator-sdk build abewang/rainbond-operator:v0.0.1
 
 ctrl-add:

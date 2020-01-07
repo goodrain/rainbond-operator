@@ -10,12 +10,17 @@ type NodeAvailPorts struct {
 	Ports    []int  `json:"ports,omitempty"`
 }
 
+type StorageClass struct {
+	Name        string `json:"name"`
+	Provisioner string `json:"provisioner"`
+}
+
 // RainbondClusterSpec defines the desired state of RainbondCluster
 type RainbondClusterSpec struct {
-	NodeAvailPorts []NodeAvailPorts `json:"NodeAvailPorts,omitempty"`
+	NodeAvailPorts []*NodeAvailPorts `json:"NodeAvailPorts,omitempty"`
 
 	// List of existing StorageClasses in the cluster
-	AvailableStorageClasses []string `json:"availableStorageClasses,omitempty"`
+	StorageClasses []*StorageClass `json:"storageClasses,omitempty"`
 }
 
 // RainbondClusterPhase is a label for the condition of a rainbondcluster at the current time.
