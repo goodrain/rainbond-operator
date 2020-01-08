@@ -3,28 +3,33 @@ package cluster
 import (
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster/usecase"
+	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
+	v1 "github.com/GLYASAI/rainbond-operator/pkg/openapi/types/v1"
 )
 
 // IClusterCase cluster case
 type IClusterCase interface {
-	GlobalConfigUseCaseGetter
-	CompnentUseCaseGetter
-	InstallUseCaseGetter
+	GlobalConfigs() GlobalConfigUseCase
+	Components() ComponentUseCase
+	Install() InstallUseCase
 }
 
-// GlobalConfigUseCaseGetter config case getter
-type GlobalConfigUseCaseGetter interface {
-	GlobalConfigs() usecase.GlobalConfigUseCase
+// GlobalConfigUseCase global config case
+type GlobalConfigUseCase interface {
+	GlobalConfigs() (*model.GlobalConfigs, error)
+	UpdateGlobalConfig(config *model.GlobalConfigs) error
 }
 
-// CompnentUseCaseGetter componse case getter
-type CompnentUseCaseGetter interface {
-	Components() usecase.ComponentUseCase
+// ComponentUseCase cluster componse case
+type ComponentUseCase interface { // TODO: loop call
+	Get(name string) (*v1.RbdComponentStatus, error)
+	List() ([]*v1.RbdComponentStatus, error)
 }
 
-// InstallUseCaseGetter install case getter
-type InstallUseCaseGetter interface {
-	Install() usecase.InstallUseCase
+// InstallUseCase cluster install case
+type InstallUseCase interface {
+	Install() error
+	InstallStatus() ([]*model.InstallStatus, error)
 }
 
 // CaseImpl case
@@ -43,17 +48,17 @@ func NewClusterCase(conf *option.Config) IClusterCase {
 	return clusterCase
 }
 
-// Components componse
-func (c *CaseImpl) Components() usecase.ComponentUseCase {
+// Components components
+func (c *CaseImpl) Components() ComponentUseCase {
 	return c.componentUseCaseImpl
 }
 
 // GlobalConfigs config
-func (c *CaseImpl) GlobalConfigs() usecase.GlobalConfigUseCase {
+func (c *CaseImpl) GlobalConfigs() GlobalConfigUseCase {
 	return c.globalConfigUseCaseImpl
 }
 
 // Install install
-func (c *CaseImpl) Install() usecase.InstallUseCase {
+func (c *CaseImpl) Install() InstallUseCase {
 	return c.installCaseImpl
 }
