@@ -1,22 +1,13 @@
 package usecase
 
 import (
-	"fmt"
-
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
-	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// GlobalConfigUseCase global config case
-type GlobalConfigUseCase interface {
-	GlobalConfigs() (*model.GlobalConfigs, error)
-	UpdateGlobalConfig(config *model.GlobalConfigs) error
-}
 
 // GlobalConfigUseCaseImpl case
 type GlobalConfigUseCaseImpl struct {
@@ -30,90 +21,124 @@ func NewGlobalConfigUseCase(cfg *option.Config) *GlobalConfigUseCaseImpl {
 
 // GlobalConfigs global configs
 func (cc *GlobalConfigUseCaseImpl) GlobalConfigs() (*model.GlobalConfigs, error) {
-	configs, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(cc.cfg.Namespace).Get(cc.cfg.ConfigName, metav1.GetOptions{})
+	clusterInfo, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(cc.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
-			// TODO: return 404
-			return nil, fmt.Errorf("Global config %s not found. Please check your rainbond operator", cc.cfg.ConfigName)
-		}
 		return nil, err
 	}
 
-	data, err := cc.k8sModel2Model(configs)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
+	return cc.parseRainbondClusterConfig(clusterInfo)
 }
 
 // UpdateGlobalConfig update gloobal config
 func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *model.GlobalConfigs) error {
-	configs, err := cc.model2K8sModel(data)
+	clusterInfo, err := cc.formatRainbondClusterConfig(data)
 	if err != nil {
 		return err
 	}
-	_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(cc.cfg.Namespace).Update(configs)
+	_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(clusterInfo)
 	return err
 }
 
-func (cc *GlobalConfigUseCaseImpl) k8sModel2Model(source *v1alpha1.GlobalConfig) (*model.GlobalConfigs, error) {
+func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.RainbondCluster) (*model.GlobalConfigs, error) {
 	clusterInfo := &model.GlobalConfigs{}
-	clusterInfo.ImageHub = &model.ImageHub{
-		Domain:    source.Spec.ImageHub.Domain,
-		Namespace: source.Spec.ImageHub.Namespace,
-		Username:  source.Spec.ImageHub.Username,
-		Password:  source.Spec.ImageHub.Password,
+	if source == nil {
+		return clusterInfo, nil
 	}
-	clusterInfo.StorageClassName = source.Spec.StorageClassName
-	clusterInfo.RegionDatabase = &model.Database{
-		Host:     source.Spec.RegionDatabase.Host,
-		Port:     source.Spec.RegionDatabase.Port,
-		Username: source.Spec.RegionDatabase.Username,
-		Password: source.Spec.RegionDatabase.Password,
-	}
-	clusterInfo.UIDatabase = &model.Database{
-		Host:     source.Spec.UIDatabase.Host,
-		Port:     source.Spec.UIDatabase.Port,
-		Username: source.Spec.UIDatabase.Username,
-		Password: source.Spec.UIDatabase.Password,
-	}
-	clusterInfo.EtcdConfig = &model.EtcdConfig{
-		Endpoints: source.Spec.EtcdConfig.Endpoints,
-		UseTLS:    source.Spec.EtcdConfig.UseTLS,
-	}
-	if source.Spec.EtcdConfig.UseTLS {
-		etcdSecret, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(cc.cfg.EtcdSecretName, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
+	if source.Spec.ImageHub != nil {
+		clusterInfo.ImageHub = &model.ImageHub{
+			Domain:    source.Spec.ImageHub.Domain,
+			Namespace: source.Spec.ImageHub.Namespace,
+			Username:  source.Spec.ImageHub.Username,
+			Password:  source.Spec.ImageHub.Password,
 		}
-		certInfo := &model.EtcdCertInfo{}
-		clusterInfo.EtcdConfig.CertInfo = certInfo
-		certInfo.CaFile = string(etcdSecret.Data["ca-file"]) // TODO fanyangyang etcd secert data key
-		certInfo.CertFile = string(etcdSecret.Data["cert-file"])
-		certInfo.KeyFile = string(etcdSecret.Data["key-file"])
 	}
-	clusterInfo.KubeAPIHost = source.Spec.KubeAPIHost
-	for _, portInfo := range source.Spec.NodeAvailPorts {
-		clusterInfo.NodeAvailPorts = append(clusterInfo.NodeAvailPorts, &model.NodeAvailPorts{Ports: portInfo.Ports, NodeIP: portInfo.NodeIP, NodeName: portInfo.NodeName})
+	if source.Spec.RegionDatabase != nil {
+		clusterInfo.RegionDatabase = &model.Database{
+			Host:     source.Spec.RegionDatabase.Host,
+			Port:     source.Spec.RegionDatabase.Port,
+			Username: source.Spec.RegionDatabase.Username,
+			Password: source.Spec.RegionDatabase.Password,
+		}
+	}
+	if source.Spec.UIDatabase != nil {
+		clusterInfo.UIDatabase = &model.Database{
+			Host:     source.Spec.UIDatabase.Host,
+			Port:     source.Spec.UIDatabase.Port,
+			Username: source.Spec.UIDatabase.Username,
+			Password: source.Spec.UIDatabase.Password,
+		}
+	}
+	if source.Spec.EtcdConfig != nil {
+		clusterInfo.EtcdConfig = &model.EtcdConfig{
+			Endpoints: source.Spec.EtcdConfig.Endpoints,
+			UseTLS:    source.Spec.EtcdConfig.UseTLS,
+		}
+		if source.Spec.EtcdConfig.UseTLS {
+			etcdSecret, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(cc.cfg.EtcdSecretName, metav1.GetOptions{})
+			if err != nil {
+				return nil, err
+			}
+			certInfo := &model.EtcdCertInfo{}
+			clusterInfo.EtcdConfig.CertInfo = certInfo
+			certInfo.CaFile = string(etcdSecret.Data["ca-file"]) // TODO fanyangyang etcd secert data key
+			certInfo.CertFile = string(etcdSecret.Data["cert-file"])
+			certInfo.KeyFile = string(etcdSecret.Data["key-file"])
+		}
+	}
+	gatewayNodes := make([]*model.GatewayNode, 0)
+	allNode := make(map[string]*model.GatewayNode)
+	if source.Status != nil && source.Status.NodeAvailPorts != nil {
+		for _, node := range source.Status.NodeAvailPorts {
+			allNode[node.NodeIP] = &model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports}
+		}
+	}
+	if source.Spec.GatewayNodes != nil {
+		for _, node := range source.Spec.GatewayNodes {
+			selected := false
+			if _, ok := allNode[node.NodeIP]; ok {
+				selected = true
+			} else {
+			}
+			gatewayNodes = append(gatewayNodes, &model.GatewayNode{Selected: selected, NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports})
+		}
+	}
 
+	clusterInfo.GatewayNodes = gatewayNodes
+	httpDomain := model.HTTPDomain{Default: true} // TODO fanyangyang custom http domain
+	if source.Spec.SuffixHTTPHost != "" {
+		httpDomain.Domain = append(httpDomain.Domain, source.Spec.SuffixHTTPHost)
 	}
+	clusterInfo.HTTPDomain = &httpDomain
+	if source.Spec.GatewayIngressIPs != nil {
+		clusterInfo.GatewayIngressIPs = append(clusterInfo.GatewayIngressIPs, source.Spec.GatewayIngressIPs...)
+	}
+	storage := model.Storage{}
+	if source.Spec.StorageClassName == "" {
+		storage.Default = true
+	}
+	if source.Status != nil && source.Status.StorageClasses != nil {
+		for _, sc := range source.Status.StorageClasses {
+			storage.Opts = append(storage.Opts, model.StorageOpts{Name: sc.Name, Provisioner: sc.Provisioner})
+		}
+	}
+	clusterInfo.Storage = &storage
 	return clusterInfo, nil
 }
 
 // get old config and then set into new
-func (cc *GlobalConfigUseCaseImpl) model2K8sModel(source *model.GlobalConfigs) (*v1alpha1.GlobalConfig, error) {
-	globalConfigSpec := v1alpha1.GlobalConfigSpec{}
+func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.GlobalConfigs) (*v1alpha1.RainbondCluster, error) {
+	clusterInfoSpec := v1alpha1.RainbondClusterSpec{}
 	if source.ImageHub != nil {
-		globalConfigSpec.ImageHub = v1alpha1.ImageHub{
+		clusterInfoSpec.ImageHub = &v1alpha1.ImageHub{
 			Domain:    source.ImageHub.Domain,
 			Username:  source.ImageHub.Username,
 			Password:  source.ImageHub.Password,
 			Namespace: source.ImageHub.Namespace,
 		}
 	}
-	globalConfigSpec.StorageClassName = source.StorageClassName
+	clusterInfoSpec.StorageClassName = source.Storage.StorageClassName
 	if source.RegionDatabase != nil {
-		globalConfigSpec.RegionDatabase = v1alpha1.Database{
+		clusterInfoSpec.RegionDatabase = &v1alpha1.Database{
 			Host:     source.RegionDatabase.Host,
 			Port:     source.RegionDatabase.Port,
 			Username: source.RegionDatabase.Username,
@@ -121,7 +146,7 @@ func (cc *GlobalConfigUseCaseImpl) model2K8sModel(source *model.GlobalConfigs) (
 		}
 	}
 	if source.UIDatabase != nil {
-		globalConfigSpec.UIDatabase = v1alpha1.Database{
+		clusterInfoSpec.UIDatabase = &v1alpha1.Database{
 			Host:     source.UIDatabase.Host,
 			Port:     source.UIDatabase.Port,
 			Username: source.UIDatabase.Username,
@@ -129,7 +154,7 @@ func (cc *GlobalConfigUseCaseImpl) model2K8sModel(source *model.GlobalConfigs) (
 		}
 	}
 	if source.EtcdConfig != nil {
-		globalConfigSpec.EtcdConfig = v1alpha1.EtcdConfig{
+		clusterInfoSpec.EtcdConfig = &v1alpha1.EtcdConfig{
 			Endpoints: source.EtcdConfig.Endpoints,
 			UseTLS:    source.EtcdConfig.UseTLS,
 		}
@@ -139,24 +164,18 @@ func (cc *GlobalConfigUseCaseImpl) model2K8sModel(source *model.GlobalConfigs) (
 			}
 		} else {
 			// if update config set etcd that do not use tls, update config, remove etcd cert secret selector
-			globalConfigSpec.EtcdConfig.CertSecret = metav1.LabelSelector{}
+			clusterInfoSpec.EtcdConfig.CertSecret = metav1.LabelSelector{}
 		}
 	}
-	globalConfigSpec.KubeAPIHost = source.KubeAPIHost
-	if source.NodeAvailPorts != nil {
-		for _, port := range source.NodeAvailPorts {
-			globalConfigSpec.NodeAvailPorts = append(globalConfigSpec.NodeAvailPorts, v1alpha1.NodeAvailPorts{Ports: port.Ports, NodeIP: port.NodeIP, NodeName: port.NodeName})
-		}
-	}
-	globalConfig := &v1alpha1.GlobalConfig{Spec: globalConfigSpec}
-	globalConfig.Name = cc.cfg.ConfigName
-	globalConfig.Namespace = cc.cfg.Namespace
-	old, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(cc.cfg.Namespace).Get(cc.cfg.ConfigName, metav1.GetOptions{})
+	clusterInfo := &v1alpha1.RainbondCluster{Spec: clusterInfoSpec}
+	clusterInfo.Name = cc.cfg.ClusterName
+	clusterInfo.Namespace = cc.cfg.Namespace
+	old, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(cc.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	globalConfig.ResourceVersion = old.ResourceVersion
-	return globalConfig, nil
+	clusterInfo.ResourceVersion = old.ResourceVersion
+	return clusterInfo, nil
 }
 
 //TODO generate test case

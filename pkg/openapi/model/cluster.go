@@ -2,30 +2,45 @@ package model
 
 // GlobalConfigs check result
 type GlobalConfigs struct {
-	// default goodrain.me
-	ImageHub *ImageHub `json:"imageHub,omitempty"`
-	// the storage class that rainbond component will be used.
-	// rainbond-operator will create one if StorageClassName is empty
-	StorageClassName string `json:"storageClassName,omitempty"`
-	// the region database information that rainbond component will be used.
-	// rainbond-operator will create one if DBInfo is empty
-	RegionDatabase *Database `json:"regionDatabase,omitempty"`
-	// the ui database information that rainbond component will be used.
-	// rainbond-operator will create one if DBInfo is empty
-	UIDatabase *Database `json:"uiDatabase,omitempty"`
-	// the etcd connection information that rainbond component will be used.
-	// rainbond-operator will create one if EtcdConfig is empty
-	EtcdConfig *EtcdConfig `json:"etcdConfig,omitempty"`
-	// KubeAPIHost must be a host string, a host:port pair, or a URL to the base of the apiserver.
-	// If a URL is given then the (optional) Path of that URL represents a prefix that must
-	// be appended to all request URIs used to access the apiserver. This allows a frontend
-	// proxy to easily relocate all of the apiserver endpoints.
-	KubeAPIHost    string            `json:"kubeAPIHost,omitempty"`
-	NodeAvailPorts []*NodeAvailPorts `json:"availPorts,omitempty"`
+	ImageHub          *ImageHub      `json:"imageHub,omitempty"`
+	RegionDatabase    *Database      `json:"regionDatabase,omitempty"`
+	UIDatabase        *Database      `json:"uiDatabase,omitempty"`
+	EtcdConfig        *EtcdConfig    `json:"etcdConfig,omitempty"`
+	GatewayNodes      []*GatewayNode `json:"gatewayNodes"`
+	HTTPDomain        *HTTPDomain    `json:"HTTPDomain"`
+	GatewayIngressIPs []string       `json:"gatewayIngressIPs"`
+	Storage           *Storage       `json:"storage,omitempty"`
 }
 
 // RbdComponent rbd component
 type RbdComponent struct {
+}
+
+// HTTPDomain http domain
+type HTTPDomain struct {
+	Default bool     `json:"default"`
+	Domain  []string `json:"domain"`
+}
+
+// GatewayNode gateway
+type GatewayNode struct {
+	NodeName string `json:"nodeName,omitempty"`
+	NodeIP   string `json:"nodeIP,omitempty"`
+	Ports    []int  `json:"ports,omitempty"`
+	Selected bool   `json:"selected"`
+}
+
+// Storage storage
+type Storage struct {
+	Default          bool          `json:"default"`
+	StorageClassName string        `json:"storageClassName"`
+	Opts             []StorageOpts `json:"opts"`
+}
+
+// StorageOpts storage opts
+type StorageOpts struct {
+	Name        string `json:"name"`
+	Provisioner string `json:"provisioner"`
 }
 
 // NodeAvailPorts aval port
@@ -37,6 +52,7 @@ type NodeAvailPorts struct {
 
 // ImageHub image hub
 type ImageHub struct {
+	Default   bool   `json:"default"`
 	Domain    string `json:"domain,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
 	Username  string `json:"username,omitempty"`
@@ -53,6 +69,7 @@ type Database struct {
 
 // EtcdConfig defines the configuration of etcd client.
 type EtcdConfig struct {
+	Default bool `json:"default"`
 	// Endpoints is a list of URLs.
 	Endpoints []string `json:"endpoints"`
 	// Whether to use tls to connect to etcd
@@ -76,4 +93,12 @@ type ComponseInfo struct {
 	HealthCount int    `json:"healthCount"`
 	TotalCount  int    `json:"totalCount"`
 	Message     string `json:"message"`
+}
+
+// InstallStatus install status
+type InstallStatus struct {
+	StepName string `json:"stepName"`
+	Status   string `json:"status"`
+	Progress int    `json:"progress"`
+	Message  string `json:"message"`
 }

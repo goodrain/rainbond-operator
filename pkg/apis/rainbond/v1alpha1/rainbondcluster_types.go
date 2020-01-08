@@ -8,12 +8,13 @@ import (
 type InstallMode string
 
 const (
-	// InstallationModeFullOnline means some Rainbond images are from the specified image repository, some are from the installation package.
+	// InstallationModeWithPackage means some Rainbond images are from the specified image repository, some are from the installation package.
 	InstallationModeWithPackage InstallMode = "WithPackage"
-	// InstallationModeFullOnline means all Rainbond images are from the specified image repository, not the installation package.
+	// InstallationModeWithoutPackage means all Rainbond images are from the specified image repository, not the installation package.
 	InstallationModeWithoutPackage InstallMode = "WithoutPackage"
 )
 
+// ImageHub image hub
 type ImageHub struct {
 	Domain    string `json:"domain,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
@@ -107,6 +108,7 @@ const (
 	ImagesPushed RainbondClusterConditionType = "ImagesPushed"
 )
 
+// ConditionStatus condition status
 type ConditionStatus string
 
 // These are valid condition statuses. "ConditionTrue" means a resource is in the condition.
@@ -138,12 +140,14 @@ type RainbondClusterCondition struct {
 	Message string `json:"message,omitempty"`
 }
 
+// NodeAvailPorts node avail port
 type NodeAvailPorts struct {
 	NodeName string `json:"nodeName,omitempty"`
 	NodeIP   string `json:"nodeIP,omitempty"`
 	Ports    []int  `json:"ports,omitempty"`
 }
 
+// StorageClass storage class
 type StorageClass struct {
 	Name        string `json:"name"`
 	Provisioner string `json:"provisioner"`
