@@ -34,10 +34,11 @@ func daemonSetForWorker(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					ServiceAccountName: "rainbond-operator",
 					Containers: []corev1.Container{
 						{
 							Name:            rbdWorkerName,
-							Image:           "goodrain.me/rbd-worker:" + r.Spec.Version,
+							Image:           r.Spec.Image,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{

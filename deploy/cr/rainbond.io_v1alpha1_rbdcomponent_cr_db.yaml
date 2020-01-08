@@ -1,7 +1,7 @@
 apiVersion: rainbond.io/v1alpha1
 kind: RbdComponent
 metadata:
-  name: example-rbdcomponent
+  name: rbd-db
+  namespace: rbd-system
 spec:
-  # Add fields here
-  size: 3
+  image: mysql:5.7.14

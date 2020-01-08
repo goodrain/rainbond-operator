@@ -1,8 +1,7 @@
 apiVersion: rainbond.io/v1alpha1
 kind: RbdComponent
 metadata:
-  name: rbd-worker
+  name: rbd-eventlog
   namespace: rbd-system
 spec:
-  type: rbd-worker
-  version: V5.2-dev
+  image: rainbond/rbd-eventlog:V5.2-dev

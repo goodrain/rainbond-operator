@@ -16,7 +16,7 @@ import (
 var defaultPVCName = "hubdata"
 var rbdHubServiceName = "rbd-hub"
 
-func resourcesForHub(r *rainbondv1alpha1.RbdComponent) []interface{}{
+func resourcesForHub(r *rainbondv1alpha1.RbdComponent) []interface{} {
 	return []interface{}{
 		secretForHub(r),
 		daemonSetForHub(r),
@@ -48,7 +48,7 @@ func daemonSetForHub(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            "rbd-hub",
-							Image:           "rainbond/rbd-registry:2.6.2",
+							Image:           r.Spec.Image,
 							ImagePullPolicy: corev1.PullAlways, // TODO: custom
 							VolumeMounts: []corev1.VolumeMount{
 								{

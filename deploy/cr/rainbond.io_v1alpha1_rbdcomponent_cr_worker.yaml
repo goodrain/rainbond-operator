@@ -1,8 +1,7 @@
 apiVersion: rainbond.io/v1alpha1
 kind: RbdComponent
 metadata:
-  name: rbd-app-ui
+  name: rbd-worker
   namespace: rbd-system
 spec:
-  type: rbd-app-ui
-  version: V5.2-dev
+  image: rainbond/rbd-worker:V5.2-dev

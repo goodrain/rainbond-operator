@@ -31,6 +31,14 @@ spec:
         spec:
           description: RbdComponentSpec defines the desired state of RbdComponent
           properties:
+            image:
+              description: Docker image name.
+              type: string
+            imagePullPolicy:
+              description: Image pull policy. One of Always, Never, IfNotPresent.
+                Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
+                Cannot be updated.
+              type: string
             logLevel:
               description: LogLevel -
               type: string
@@ -40,9 +48,6 @@ spec:
             version:
               description: version of rainbond component
               type: string
-          required:
-          - type
-          - version
           type: object
         status:
           description: RbdComponentStatus defines the observed state of RbdComponent

@@ -11,7 +11,7 @@ import (
 
 var rbdNodeName = "rbd-node"
 
-func resourcesForNode(r *rainbondv1alpha1.RbdComponent) []interface{}{
+func resourcesForNode(r *rainbondv1alpha1.RbdComponent) []interface{} {
 	return []interface{}{
 		daemonSetForRainbondNode(r),
 	}
@@ -35,9 +35,10 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					HostNetwork: true,
-					HostPID:     true,
-					DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
+					ServiceAccountName: "rainbond-operator",
+					HostNetwork:        true,
+					HostPID:            true,
+					DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",
@@ -47,7 +48,7 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            rbdNodeName,
-							Image:           "abewang/rbd-node:" + r.Spec.Version,
+							Image:           r.Spec.Image,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
@@ -55,6 +56,14 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 									ValueFrom: &corev1.EnvVarSource{
 										FieldRef: &corev1.ObjectFieldSelector{
 											FieldPath: "status.podIP",
+										},
+									},
+								},
+								{
+									Name: "NODE_NAME",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "spec.nodeName",
 										},
 									},
 								},
@@ -69,6 +78,7 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 								"--hostIP=$(POD_IP)",
 								"--run-mode master",
 								"--noderule manage",
+								"--nodeid=$(NODE_NAME)",
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{

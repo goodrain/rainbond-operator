@@ -45,8 +45,8 @@ func statefulsetForNFSProvisioner(r *rainbondv1alpha1.RbdComponent) interface{} 
 					Containers: []corev1.Container{
 						{
 							Name:            rbdNFSProvisionerName,
-							Image:           "abewang/nfs-provisioner:v2.2.1-k8s1.12", // TODO: do not hard code
-							ImagePullPolicy: corev1.PullIfNotPresent,                  // TODO: custom
+							Image:           r.Spec.Image,
+							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "nfs",

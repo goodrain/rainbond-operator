@@ -37,7 +37,7 @@ func daemonSetForMonitor(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            monitorName,
-							Image:           "goodrain.me/rbd-monitor:" + r.Spec.Version,
+							Image:           r.Spec.Image,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
@@ -49,7 +49,7 @@ func daemonSetForMonitor(r *rainbondv1alpha1.RbdComponent) interface{} {
 									},
 								},
 							},
-							Args: []string{ // TODO: huangrh
+							Args: []string{
 								"--etcd-endpoints=http://etcd0:2379",
 								"--advertise-addr=$(POD_IP):9999",
 								"--alertmanager-address=$(POD_IP):9093",

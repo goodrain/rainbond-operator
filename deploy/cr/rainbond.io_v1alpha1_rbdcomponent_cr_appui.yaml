@@ -1,8 +1,7 @@
 apiVersion: rainbond.io/v1alpha1
 kind: RbdComponent
 metadata:
-  name: rbd-monitor
+  name: rbd-app-ui
   namespace: rbd-system
 spec:
-  type: rbd-monitor
-  version: V5.2-dev
+  image: rainbond/rbd-app-ui:V5.2-dev
