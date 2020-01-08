@@ -94,3 +94,11 @@ type ComponseInfo struct {
 	TotalCount  int    `json:"totalCount"`
 	Message     string `json:"message"`
 }
+
+// InstallStatus install status
+type InstallStatus struct {
+	StepName string `json:"stepName"`
+	Status   string `json:"status"`
+	Progress int    `json:"progress"`
+	Message  string `json:"message"`
+}

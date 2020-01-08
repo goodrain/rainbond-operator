@@ -29,7 +29,7 @@ type ComponentUseCase interface { // TODO: loop call
 // InstallUseCase cluster install case
 type InstallUseCase interface {
 	Install() error
-	InstallStatus() (string, error)
+	InstallStatus() ([]*model.InstallStatus, error)
 }
 
 // CaseImpl case

@@ -1,13 +1,16 @@
 package usecase
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
+	"github.com/sirupsen/logrus"
 
 	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -66,14 +69,14 @@ func NewInstallUseCase(cfg *option.Config) *InstallUseCaseImpl {
 
 // Install install
 func (ic *InstallUseCaseImpl) Install() error {
-	// step 1 check if archive is exists or not
-	// if _, err := os.Stat(ic.archiveFilePath); os.IsNotExist(err) {
+	// // step 1 check if archive is exists or not
+	// if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
 	// 	logrus.Warnf("rainbond archive file does not exists, downloading background ...")
 
 	// 	// step 2 download archive
-	// 	if err := downloadFile(ic.archiveFilePath, ""); err != nil {
+	// 	if err := downloadFile(ic.cfg.ArchiveFilePath, ""); err != nil {
 	// 		logrus.Errorf("download rainbond file error: %s", err.Error())
-	// 		return err // TODO fanyangyang bad smell code, fix it
+	// 		return fmt.Errorf(translate.Translation("download rainbond.tar error, please try again or upload it using /uploads")) // TODO fanyangyang bad smell code, fix it
 	// 	}
 
 	// } else {
@@ -111,19 +114,25 @@ func (ic *InstallUseCaseImpl) createComponents(components ...string) error {
 }
 
 // InstallStatus install status
-func (ic *InstallUseCaseImpl) InstallStatus() (string, error) {
-	// configs, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().GlobalConfigs(ic.cfg.Namespace).Get(ic.cfg.ConfigName, metav1.GetOptions{})
-	// if err != nil {
-	// 	return "", err
-	// }
+func (ic *InstallUseCaseImpl) InstallStatus() ([]*model.InstallStatus, error) {
+	clusterInfo, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.cfg.Namespace).Get(ic.cfg.ClusterName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
 	// status := "" // TODO fanyangyang if install process is downloading rainbond, what status it is?
-	// if configs != nil {
-	// 	// status = string(configs.Status.Phase)
-	// } else {
-	// 	logrus.Warn("cluster config has not be created yet, something occured ? ")
-	// }
-	// return status, nil
-	return "nil", nil
+	if clusterInfo != nil {
+		fmt.Println(clusterInfo.Status.Phase)
+		fmt.Println(clusterInfo.Status.Conditions)
+		// status = string(configs.Status.Phase)
+	} else {
+		logrus.Warn("cluster config has not be created yet, something occured ? ")
+	}
+	return nil, nil
+}
+
+func parseInstallStatus(source *v1alpha1.RainbondClusterStatus) []*model.InstallStatus {
+
+	return nil
 }
 
 // downloadFile will download a url to a local file. It's efficient because it will
