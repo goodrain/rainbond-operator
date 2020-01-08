@@ -13,35 +13,88 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	runtimecli "sigs.k8s.io/controller-runtime/pkg/client"
 
+	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 )
 
-func handleRainbondPackage(pkgFile, dst string) error {
+func handleRainbondPackage(client runtimecli.Client, rainbondcluster *rainbondv1alpha1.RainbondCluster, pkgFile, dst string) error {
 	reqLogger := log.WithValues("Package file", pkgFile, "Destination", dst)
 	reqLogger.Info("Handle rainbond images package")
 
+	// TODO: check if rainbondcluster status is nil
+
 	pkgDir := path.Join(dst, strings.Replace(path.Base(pkgFile), ".tgz", "", -1))
-	if commonutil.DirExists(pkgDir) {
-		reqLogger.Info("Package directory already exists", "package directory", pkgDir)
-		return nil
+
+	newRainbondCluster := rainbondcluster.DeepCopy()
+	if condition := findCondition(rainbondcluster, rainbondv1alpha1.PackageExtracted); condition.Status != rainbondv1alpha1.ConditionTrue {
+		reqLogger.Info("Extract installation package")
+		if err := extractInstallationPackage(pkgFile, dst); err != nil {
+			return err
+		}
+
+		for idx, c := range newRainbondCluster.Status.Conditions {
+			if c.Type == rainbondv1alpha1.PackageExtracted {
+				newRainbondCluster.Status.Conditions[idx].Status = rainbondv1alpha1.ConditionTrue
+				break
+			}
+		}
+
+		if err := client.Status().Update(context.TODO(), newRainbondCluster); err != nil {
+			return fmt.Errorf("Error updating condition PackageExtracted: %v", err)
+		}
+		reqLogger.Info("Successfully update condition PackageExtracted", "RainbondCluster", newRainbondCluster)
 	}
 
-	reqLogger.Info("Extract installation package")
-	if err := extractInstallationPackage(pkgFile, dst); err != nil {
-		return err
+	if condition := findCondition(rainbondcluster, rainbondv1alpha1.ImagesLoaded); condition.Status != rainbondv1alpha1.ConditionTrue {
+		reqLogger.Info("Load rainbond images")
+		if err := loadRainbondImages(pkgDir); err != nil {
+			return err
+		}
+
+		for idx, c := range newRainbondCluster.Status.Conditions {
+			if c.Type == rainbondv1alpha1.ImagesLoaded {
+				c.Status = rainbondv1alpha1.ConditionTrue
+				newRainbondCluster.Status.Conditions[idx].Status = rainbondv1alpha1.ConditionTrue
+				break
+			}
+		}
+
+		if err := client.Status().Update(context.TODO(), newRainbondCluster); err != nil {
+			return fmt.Errorf("Error update condition ImagesLoaded: %v", err)
+		}
+		reqLogger.Info("Successfully update condition ImagesLoaded", "RainbondCluster", newRainbondCluster)
 	}
 
-	reqLogger.Info("Load rainbond images")
-	if err := loadRainbondImages(pkgDir); err != nil {
-		return err
+	if condition := findCondition(rainbondcluster, rainbondv1alpha1.ImagesPushed); condition.Status != rainbondv1alpha1.ConditionTrue {
+		reqLogger.Info("Push rainbond images")
+		if err := pushRainbondImages(pkgDir); err != nil {
+			return err
+		}
+
+		for idx, c := range newRainbondCluster.Status.Conditions {
+			if c.Type == rainbondv1alpha1.ImagesPushed {
+				newRainbondCluster.Status.Conditions[idx].Status = rainbondv1alpha1.ConditionTrue
+				break
+			}
+		}
+
+		if err := client.Status().Update(context.TODO(), newRainbondCluster); err != nil {
+			return fmt.Errorf("Error update condition ImagesPushed: %v", err)
+		}
+		reqLogger.Info("Successfully update condition ImagesPushed", "RainbondCluster", newRainbondCluster)
 	}
 
-	reqLogger.Info("Push rainbond images")
-	if err := pushRainbondImages(pkgDir); err != nil {
-		return err
-	}
+	return nil
+}
 
+func findCondition(rainbondcluster *rainbondv1alpha1.RainbondCluster, typ3 rainbondv1alpha1.RainbondClusterConditionType) *rainbondv1alpha1.RainbondClusterCondition {
+	for _, condition := range rainbondcluster.Status.Conditions {
+		if condition.Type == typ3 {
+			return &condition
+		}
+	}
 	return nil
 }
 
@@ -50,6 +103,11 @@ func extractInstallationPackage(pkgFile, dst string) error {
 	pkgf, err := os.Open(pkgFile)
 	if err != nil {
 		return fmt.Errorf("open file: %v", err)
+	}
+
+	pkgDir := path.Join(dst, strings.Replace(path.Base(pkgFile), ".tgz", "", -1))
+	if err := os.RemoveAll(pkgDir); err != nil {
+		return fmt.Errorf("Error cleanup package directory: %v", err)
 	}
 
 	if err := commonutil.Untar(pkgf, dst); err != nil {

@@ -124,10 +124,24 @@ func (m *Manager) prepareRainbondCluster() error {
 	rainbondCluster := &rainbondv1alpha1.RainbondCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "rbd-system",
-			Name:      "rbd-rainbondcluster",
+			Name:      "rainbondcluster",
 		},
 		Status: &rainbondv1alpha1.RainbondClusterStatus{
-			Phase: rainbondv1alpha1.RainbondClusterPending,
+			Phase: rainbondv1alpha1.RainbondClusterWaiting,
+			Conditions: []rainbondv1alpha1.RainbondClusterCondition{ // TODO: no need default conditions.
+				{
+					Type:   rainbondv1alpha1.PackageExtracted,
+					Status: rainbondv1alpha1.ConditionFalse,
+				},
+				{
+					Type:   rainbondv1alpha1.ImagesPushed,
+					Status: rainbondv1alpha1.ConditionFalse,
+				},
+				{
+					Type:   rainbondv1alpha1.ImagesLoaded,
+					Status: rainbondv1alpha1.ConditionFalse,
+				},
+			},
 		},
 	}
 
@@ -135,9 +149,14 @@ func (m *Manager) prepareRainbondCluster() error {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("RainbondCluster not found, create a new one.")
-			_, err := m.rainbondv1aphal1clientset.RainbondV1alpha1().RainbondClusters(rainbondCluster.Namespace).Create(rainbondCluster)
+			rc, err := m.rainbondv1aphal1clientset.RainbondV1alpha1().RainbondClusters(rainbondCluster.Namespace).Create(rainbondCluster)
 			if err != nil {
-				log.Error(err, "Create rainbondcluster.")
+				log.Error(err, "Error creating rainbondcluster.")
+				return err
+			}
+			rainbondCluster.ResourceVersion = rc.ResourceVersion
+			if _, err := m.rainbondv1aphal1clientset.RainbondV1alpha1().RainbondClusters(rainbondCluster.Namespace).UpdateStatus(rainbondCluster); err != nil {
+				log.Error(err, "Error updating rainbondcluster status.")
 				return err
 			}
 			return nil

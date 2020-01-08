@@ -37,3 +37,7 @@ check:
 test:operator-image
 	docker save -o /tmp/rainbond-operator.tgz abewang/rainbond-operator:v0.0.1
 	scp /tmp/rainbond-operator.tgz root@172.20.0.12:/root
+
+.PHONY: mock
+mock:
+	./mockgen.sh

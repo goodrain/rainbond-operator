@@ -4,6 +4,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// InstallMode is the mode of Rainbond cluster installation
+type InstallMode string
+
+const (
+	// InstallationModeWithPackage means some Rainbond images are from the specified image repository, some are from the installation package.
+	InstallationModeWithPackage InstallMode = "WithPackage"
+	// InstallationModeWithoutPackage means all Rainbond images are from the specified image repository, not the installation package.
+	InstallationModeWithoutPackage InstallMode = "WithoutPackage"
+)
+
 // ImageHub image hub
 type ImageHub struct {
 	Domain    string `json:"domain,omitempty"`
@@ -44,6 +54,8 @@ type RainbondClusterSpec struct {
 	// Information about the node where the gateway is located.
 	// If not specified, the gateway will run on nodes where all ports do not conflict.
 	GatewayNodes []NodeAvailPorts `json:"gatewayNodes,omitempty"`
+	// InstallMode is the mode of Rainbond cluster installation.
+	InstallMode InstallMode `json:"installMode,omitempty"`
 
 	ImageHub *ImageHub `json:"imageHub,omitempty"`
 	// the storage class that rainbond component will be used.
@@ -65,12 +77,17 @@ type RainbondClusterPhase string
 
 // These are the valid statuses of rainbondcluster.
 const (
-	// RainbondClusterPending means the rainbondcluster has been accepted by the system, but one or more of the rbdcomponent
-	// has not been started.
-	RainbondClusterPending RainbondClusterPhase = "Pending"
-	// RainbondClusterInstalling means the rainbond cluster is in installation.
-	RainbondClusterInstalling RainbondClusterPhase = "Installing"
+	// RainbondClusterWaiting -
+	RainbondClusterWaiting RainbondClusterPhase = "Waiting"
+	// RainbondClusterPreparing -
+	RainbondClusterPreparing RainbondClusterPhase = "Preparing"
+	// RainbondClusterPackageProcessing means the installation package is being processed.
+	RainbondClusterPackageProcessing RainbondClusterPhase = "PackageProcessing"
 	// RainbondClusterRunning means all of the rainbond components has been created.
+	// And at least one component is not ready.
+	RainbondClusterPending RainbondClusterPhase = "Pending"
+	// RainbondClusterRunning means all of the rainbond components has been created.
+	// For each component controller(eg. deploy, sts, ds), at least one Pod is already Ready.
 	RainbondClusterRunning RainbondClusterPhase = "Running"
 )
 
@@ -85,10 +102,10 @@ const (
 	ImageRepositoryInstalled RainbondClusterConditionType = "ImageRepositoryInstalled"
 	// PackageExtracted indicates whether the installation package has been decompressed.
 	PackageExtracted RainbondClusterConditionType = "PackageExtracted"
-	// ImageLoaded means that all images from the installation package has been loaded successfully.
-	ImageLoaded RainbondClusterConditionType = "ImageLoaded"
-	// ImageLoaded means that all images from the installation package has been pushed successfully.
-	ImagePushed RainbondClusterConditionType = "ImagePushed"
+	// ImagesLoaded means that all images from the installation package has been loaded successfully.
+	ImagesLoaded RainbondClusterConditionType = "ImagesLoaded"
+	// ImagesPushed means that all images from the installation package has been pushed successfully.
+	ImagesPushed RainbondClusterConditionType = "ImagesPushed"
 )
 
 // ConditionStatus condition status
@@ -148,10 +165,13 @@ type RainbondClusterStatus struct {
 	// +optional
 	Reason string `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason"`
 
+	// +optional
 	NodeAvailPorts []*NodeAvailPorts `json:"NodeAvailPorts,omitempty"`
-
 	// List of existing StorageClasses in the cluster
+	// +optional
 	StorageClasses []*StorageClass `json:"storageClasses,omitempty"`
+	// Destination path of the installation package extraction.
+	PkgDestPath string `json:"pkgDestPath"`
 }
 
 // +genclient
