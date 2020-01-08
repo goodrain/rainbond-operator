@@ -211,6 +211,20 @@ spec:
                 - type
                 type: object
               type: array
+            controllerStatus:
+              description: A list of controller statuses associated with rbdcomponent.
+              items:
+                properties:
+                  name:
+                    type: string
+                  readyReplicas:
+                    format: int32
+                    type: integer
+                  replicas:
+                    format: int32
+                    type: integer
+                type: object
+              type: array
             message:
               description: A human readable message indicating details about why the
                 pod is in this condition.

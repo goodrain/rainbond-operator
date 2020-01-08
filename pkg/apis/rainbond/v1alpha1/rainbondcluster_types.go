@@ -149,6 +149,12 @@ type StorageClass struct {
 	Provisioner string `json:"provisioner"`
 }
 
+type ControllerStatus struct {
+	Name          string `json:"name,omitempty"`
+	Replicas      int32  `json:"replicas,omitempty"`
+	ReadyReplicas int32  `json:"readyReplicas,omitempty"`
+}
+
 // RainbondClusterStatus defines the observed state of RainbondCluster
 type RainbondClusterStatus struct {
 	// Rainbond cluster phase
@@ -168,6 +174,8 @@ type RainbondClusterStatus struct {
 	StorageClasses []*StorageClass `json:"storageClasses,omitempty"`
 	// Destination path of the installation package extraction.
 	PkgDestPath string `json:"pkgDestPath"`
+	// A list of controller statuses associated with rbdcomponent.
+	ControllerStatues []*ControllerStatus `json:"controllerStatus,omitempty"`
 }
 
 // +genclient

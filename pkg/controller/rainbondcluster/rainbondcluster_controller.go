@@ -3,15 +3,17 @@ package rainbondcluster
 import (
 	"context"
 	"fmt"
-	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster/pkg"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
+	rbdutil "github.com/GLYASAI/rainbond-operator/pkg/util/rbduitl"
 	"net"
 	"time"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster/pkg"
 	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster/status"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/format"
 
+	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -28,6 +30,8 @@ import (
 )
 
 var log = logf.Log.WithName("controller_rainbondcluster")
+
+type listControllerStatuses func() ([]*rainbondv1alpha1.ControllerStatus, error)
 
 // Add creates a new RainbondCluster Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -227,33 +231,135 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(
 		}
 	}
 
-	phase := getPhase(rainbondCluster)
-	s.Phase = phase
+	checkReadyFromConditionFn := func(t rainbondv1alpha1.RainbondClusterConditionType) bool {
+		for _, c := range rainbondCluster.Status.Conditions {
+			if c.Type == t && c.Status == rainbondv1alpha1.ConditionTrue {
+				return true
+			}
+		}
+		return false
+	}
+
+	s.Phase = rainbondv1alpha1.RainbondClusterPreparing
+	isStorageReady := checkReadyFromConditionFn(rainbondv1alpha1.StorageReady)
+	isImageRepositoryReady := checkReadyFromConditionFn(rainbondv1alpha1.ImageRepositoryInstalled)
+	if !isStorageReady || !isImageRepositoryReady {
+		return s
+	}
+
+	s.Phase = rainbondv1alpha1.RainbondClusterPackageProcessing
+	isPackageExtractedReady := checkReadyFromConditionFn(rainbondv1alpha1.PackageExtracted)
+	isImagesLoadedReady := checkReadyFromConditionFn(rainbondv1alpha1.ImagesLoaded)
+	isImagesPushedReady := checkReadyFromConditionFn(rainbondv1alpha1.ImagesPushed)
+	if !isPackageExtractedReady || !isImagesLoadedReady || !isImagesPushedReady {
+		return s
+	}
+
+	s.Phase = rainbondv1alpha1.RainbondClusterRunning
+	controllerStatuses, err := r.listControllerStatuses()
+	if err != nil {
+		s.Reason = "ErrListControllerStatuses"
+		s.Message = fmt.Sprintf("Error listing controller statuses: %v", err)
+		s.Phase = rainbondv1alpha1.RainbondClusterPending
+		return s
+	}
+
+	if len(controllerStatuses) == 0 {
+		s.Phase = rainbondv1alpha1.RainbondClusterPending
+	}
+	for _, cs := range controllerStatuses {
+		if cs.ReadyReplicas == 0 {
+			s.Phase = rainbondv1alpha1.RainbondClusterPending
+			break
+		}
+	}
 
 	return s
 }
 
-func getPhase(rainbondCluster *rainbondv1alpha1.RainbondCluster) rainbondv1alpha1.RainbondClusterPhase {
-	for _, c := range rainbondCluster.Status.Conditions {
-		if c.Type == rainbondv1alpha1.StorageReady && c.Status != rainbondv1alpha1.ConditionTrue {
-			return rainbondv1alpha1.RainbondClusterPreparing
-		}
-		if c.Type == rainbondv1alpha1.ImageRepositoryInstalled && c.Status != rainbondv1alpha1.ConditionTrue {
-			return rainbondv1alpha1.RainbondClusterPreparing
-		}
+// listControllerStatuses returns a list of controller statuses associated with rbdcomponent.
+func (r *ReconcileRainbondCluster) listControllerStatuses() ([]*rainbondv1alpha1.ControllerStatus, error) {
+	funcs := []listControllerStatuses{
+		r.listDeploymentStatuses,
+		r.listDaemonSetStatuses,
+		r.listDaemonSetStatuses,
 	}
 
-	for _, c := range rainbondCluster.Status.Conditions {
-		if c.Type == rainbondv1alpha1.PackageExtracted && c.Status != rainbondv1alpha1.ConditionTrue {
-			return rainbondv1alpha1.RainbondClusterPackageProcessing
+	var result []*rainbondv1alpha1.ControllerStatus
+	for _, fn := range funcs {
+		list, err := fn()
+		if err != nil {
+			return nil, err
 		}
-		if c.Type == rainbondv1alpha1.ImagesLoaded && c.Status != rainbondv1alpha1.ConditionTrue {
-			return rainbondv1alpha1.RainbondClusterPackageProcessing
-		}
-		if c.Type == rainbondv1alpha1.ImagesPushed && c.Status != rainbondv1alpha1.ConditionTrue {
-			return rainbondv1alpha1.RainbondClusterPackageProcessing
-		}
+		result = append(result, list...)
 	}
 
-	return rainbondv1alpha1.RainbondClusterWaiting
+	return result, nil
+
+}
+
+func (r *ReconcileRainbondCluster) listDeploymentStatuses() ([]*rainbondv1alpha1.ControllerStatus, error) {
+	deploymentList := &appv1.DeploymentList{}
+	listOpts := []client.ListOption{
+		client.MatchingLabels(rbdutil.LabelsForRainbondResource()),
+	}
+	err := r.client.List(context.TODO(), deploymentList, listOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	var statues []*rainbondv1alpha1.ControllerStatus
+	for _, deploy := range deploymentList.Items {
+		s := &rainbondv1alpha1.ControllerStatus{
+			Name:          deploy.Name,
+			Replicas:      deploy.Status.Replicas,
+			ReadyReplicas: deploy.Status.ReadyReplicas,
+		}
+		statues = append(statues, s)
+	}
+	return statues, nil
+}
+
+func (r *ReconcileRainbondCluster) listStatefulSetStatuses() ([]*rainbondv1alpha1.ControllerStatus, error) {
+	list := &appv1.StatefulSetList{}
+	listOpts := []client.ListOption{
+		client.MatchingLabels(rbdutil.LabelsForRainbondResource()),
+	}
+	err := r.client.List(context.TODO(), list, listOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	var statues []*rainbondv1alpha1.ControllerStatus
+	for _, sts := range list.Items {
+		s := &rainbondv1alpha1.ControllerStatus{
+			Name:          sts.Name,
+			Replicas:      sts.Status.Replicas,
+			ReadyReplicas: sts.Status.ReadyReplicas,
+		}
+		statues = append(statues, s)
+	}
+	return statues, nil
+}
+
+func (r *ReconcileRainbondCluster) listDaemonSetStatuses() ([]*rainbondv1alpha1.ControllerStatus, error) {
+	list := &appv1.DaemonSetList{}
+	listOpts := []client.ListOption{
+		client.MatchingLabels(rbdutil.LabelsForRainbondResource()),
+	}
+	err := r.client.List(context.TODO(), list, listOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	var statues []*rainbondv1alpha1.ControllerStatus
+	for _, ds := range list.Items {
+		s := &rainbondv1alpha1.ControllerStatus{
+			Name:          ds.Name,
+			Replicas:      ds.Status.DesiredNumberScheduled,
+			ReadyReplicas: ds.Status.NumberReady,
+		}
+		statues = append(statues, s)
+	}
+	return statues, nil
 }
