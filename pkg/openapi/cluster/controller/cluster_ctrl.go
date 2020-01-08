@@ -6,6 +6,7 @@ import (
 
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
+	"github.com/GLYASAI/rainbond-operator/pkg/openapi/translate"
 	"github.com/gin-gonic/gin"
 )
 
@@ -48,6 +49,17 @@ func (cc *ClusterController) Configs(c *gin.Context) {
 
 // UpdateConfig update cluster config info
 func (cc *ClusterController) UpdateConfig(c *gin.Context) {
+	installStatus, err := cc.clusterCase.Install().InstallStatus()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		return
+	}
+	for _, status := range installStatus {
+		if status.StepName == translate.Translation("step_setting") && status.Status != translate.Translation("status_finished") {
+			c.JSON(http.StatusBadRequest, map[string]interface{}{"code": http.StatusBadRequest, "msg": translate.Translation("cluster is installing, can't update config")})
+			return
+		}
+	}
 	var req *model.GlobalConfigs
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())

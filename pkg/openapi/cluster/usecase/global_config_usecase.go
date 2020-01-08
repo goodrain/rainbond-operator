@@ -139,55 +139,111 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 
 // get old config and then set into new
 func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.GlobalConfigs) (*v1alpha1.RainbondCluster, error) {
-	clusterInfoSpec := v1alpha1.RainbondClusterSpec{}
-	if source.ImageHub != nil {
-		clusterInfoSpec.ImageHub = &v1alpha1.ImageHub{
-			Domain:    source.ImageHub.Domain,
-			Username:  source.ImageHub.Username,
-			Password:  source.ImageHub.Password,
-			Namespace: source.ImageHub.Namespace,
-		}
-	}
-	clusterInfoSpec.StorageClassName = source.Storage.StorageClassName
-	if source.RegionDatabase != nil {
-		clusterInfoSpec.RegionDatabase = &v1alpha1.Database{
-			Host:     source.RegionDatabase.Host,
-			Port:     source.RegionDatabase.Port,
-			Username: source.RegionDatabase.Username,
-			Password: source.RegionDatabase.Password,
-		}
-	}
-	if source.UIDatabase != nil {
-		clusterInfoSpec.UIDatabase = &v1alpha1.Database{
-			Host:     source.UIDatabase.Host,
-			Port:     source.UIDatabase.Port,
-			Username: source.UIDatabase.Username,
-			Password: source.UIDatabase.Password,
-		}
-	}
-	if source.EtcdConfig != nil {
-		clusterInfoSpec.EtcdConfig = &v1alpha1.EtcdConfig{
-			Endpoints: source.EtcdConfig.Endpoints,
-			UseTLS:    source.EtcdConfig.UseTLS,
-		}
-		if source.EtcdConfig.UseTLS && source.EtcdConfig.CertInfo != nil {
-			if err := cc.updateOrCreateEtcdCertInfo(source.EtcdConfig.CertInfo); err != nil {
-				return nil, err
-			}
-		} else {
-			// if update config set etcd that do not use tls, update config, remove etcd cert secret selector
-			clusterInfoSpec.EtcdConfig.CertSecret = metav1.LabelSelector{}
-		}
-	}
-	clusterInfo := &v1alpha1.RainbondCluster{Spec: clusterInfoSpec}
-	clusterInfo.Name = cc.cfg.ClusterName
-	clusterInfo.Namespace = cc.cfg.Namespace
 	old, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(cc.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	clusterInfo.ResourceVersion = old.ResourceVersion
-	return clusterInfo, nil
+
+	if source.ImageHub != nil {
+		if !source.ImageHub.Default {
+			old.Spec.ImageHub = &v1alpha1.ImageHub{
+				Domain:    source.ImageHub.Domain,
+				Username:  source.ImageHub.Username,
+				Password:  source.ImageHub.Password,
+				Namespace: source.ImageHub.Namespace,
+			}
+		} else {
+			old.Spec.ImageHub = nil // if use change image hub setting from custom to default, operator will create deefault image hub, api set it vlaue as nil
+		}
+	}
+
+	if source.RegionDatabase != nil {
+		if !source.RegionDatabase.Default {
+			old.Spec.RegionDatabase = &v1alpha1.Database{
+				Host:     source.RegionDatabase.Host,
+				Port:     source.RegionDatabase.Port,
+				Username: source.RegionDatabase.Username,
+				Password: source.RegionDatabase.Password,
+			}
+		} else {
+			old.Spec.RegionDatabase = nil
+		}
+	}
+	if source.UIDatabase != nil {
+		if !source.UIDatabase.Default {
+			old.Spec.UIDatabase = &v1alpha1.Database{
+				Host:     source.UIDatabase.Host,
+				Port:     source.UIDatabase.Port,
+				Username: source.UIDatabase.Username,
+				Password: source.UIDatabase.Password,
+			}
+		} else {
+			old.Spec.UIDatabase = nil
+		}
+	}
+	if source.EtcdConfig != nil {
+		if !source.EtcdConfig.Default {
+			old.Spec.EtcdConfig = &v1alpha1.EtcdConfig{
+				Endpoints: source.EtcdConfig.Endpoints,
+				UseTLS:    source.EtcdConfig.UseTLS,
+			}
+			if source.EtcdConfig.UseTLS && source.EtcdConfig.CertInfo != nil {
+				if err := cc.updateOrCreateEtcdCertInfo(source.EtcdConfig.CertInfo); err != nil {
+					return nil, err
+				}
+			} else {
+				// if update config set etcd that do not use tls, update config, remove etcd cert secret selector
+				old.Spec.EtcdConfig.CertSecret = metav1.LabelSelector{}
+			}
+		} else {
+			old.Spec.EtcdConfig = nil
+		}
+	}
+
+	if source.GatewayNodes != nil {
+		nowNodes := make(map[string]struct{})
+		for _, node := range old.Spec.GatewayNodes {
+			nowNodes[node.NodeIP] = struct{}{}
+		}
+		for _, node := range source.GatewayNodes {
+			if node.Selected {
+				if _, ok := nowNodes[node.NodeIP]; !ok {
+					old.Spec.GatewayNodes = append(old.Spec.GatewayNodes, v1alpha1.NodeAvailPorts{NodeIP: node.NodeIP})
+				}
+			}
+		}
+	}
+
+	if source.HTTPDomain != nil && !source.HTTPDomain.Default {
+		if len(source.HTTPDomain.Domain) > 0 {
+			old.Spec.SuffixHTTPHost = source.HTTPDomain.Domain[0]
+		} else {
+			old.Spec.SuffixHTTPHost = ""
+		}
+	} else {
+		old.Spec.SuffixHTTPHost = ""
+	}
+
+	if source.GatewayIngressIPs != nil {
+		nodeIPs := make(map[string]struct{})
+		for _, ip := range old.Spec.GatewayIngressIPs {
+			nodeIPs[ip] = struct{}{}
+		}
+		for _, ip := range source.GatewayIngressIPs {
+			if _, ok := nodeIPs[ip]; !ok {
+				old.Spec.GatewayIngressIPs = append(old.Spec.GatewayIngressIPs, ip)
+			}
+		}
+	} else {
+		old.Spec.GatewayIngressIPs = nil
+	}
+
+	if !source.Storage.Default {
+		old.Spec.StorageClassName = source.Storage.StorageClassName
+	} else {
+		old.Spec.StorageClassName = ""
+	}
+	return old, nil
 }
 
 //TODO generate test case
