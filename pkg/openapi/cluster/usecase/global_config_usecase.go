@@ -51,6 +51,8 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 			Username:  source.Spec.ImageHub.Username,
 			Password:  source.Spec.ImageHub.Password,
 		}
+	} else {
+		clusterInfo.ImageHub = &model.ImageHub{Default: true}
 	}
 	if source.Spec.RegionDatabase != nil {
 		clusterInfo.RegionDatabase = &model.Database{
@@ -59,6 +61,8 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 			Username: source.Spec.RegionDatabase.Username,
 			Password: source.Spec.RegionDatabase.Password,
 		}
+	} else {
+		clusterInfo.RegionDatabase = &model.Database{Default: true}
 	}
 	if source.Spec.UIDatabase != nil {
 		clusterInfo.UIDatabase = &model.Database{
@@ -67,6 +71,8 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 			Username: source.Spec.UIDatabase.Username,
 			Password: source.Spec.UIDatabase.Password,
 		}
+	} else {
+		clusterInfo.UIDatabase = &model.Database{Default: true}
 	}
 	if source.Spec.EtcdConfig != nil {
 		clusterInfo.EtcdConfig = &model.EtcdConfig{
@@ -84,6 +90,8 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 			certInfo.CertFile = string(etcdSecret.Data["cert-file"])
 			certInfo.KeyFile = string(etcdSecret.Data["key-file"])
 		}
+	} else {
+		clusterInfo.EtcdConfig = &model.EtcdConfig{Default: true}
 	}
 	gatewayNodes := make([]*model.GatewayNode, 0)
 	allNode := make(map[string]*model.GatewayNode)
@@ -104,11 +112,15 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 	}
 
 	clusterInfo.GatewayNodes = gatewayNodes
-	httpDomain := model.HTTPDomain{Default: true} // TODO fanyangyang custom http domain
+	// model.HTTPDomain{Default: true} // TODO fanyangyang custom http domain
 	if source.Spec.SuffixHTTPHost != "" {
+		httpDomain := &model.HTTPDomain{Default: false}
 		httpDomain.Domain = append(httpDomain.Domain, source.Spec.SuffixHTTPHost)
+		clusterInfo.HTTPDomain = httpDomain
+	} else {
+		clusterInfo.HTTPDomain = &model.HTTPDomain{Default: true}
 	}
-	clusterInfo.HTTPDomain = &httpDomain
+
 	if source.Spec.GatewayIngressIPs != nil {
 		clusterInfo.GatewayIngressIPs = append(clusterInfo.GatewayIngressIPs, source.Spec.GatewayIngressIPs...)
 	}

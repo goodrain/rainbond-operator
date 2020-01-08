@@ -71,12 +71,12 @@ func (cc *ClusterController) Install(c *gin.Context) {
 
 // InstallStatus install status
 func (cc *ClusterController) InstallStatus(c *gin.Context) {
-	status, err := cc.clusterCase.Install().InstallStatus()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": map[string]string{"status": status}})
+	// status, err := cc.clusterCase.Install().InstallStatus()
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+	// 	return
+	// }
+	// c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": map[string]interface{}{"status": status}})
 }
 
 // Components components status

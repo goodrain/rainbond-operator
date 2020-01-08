@@ -61,6 +61,7 @@ type ImageHub struct {
 
 // Database defines the connection information of database.
 type Database struct {
+	Default  bool   `json:"default"`
 	Host     string `json:"host"`
 	Port     int    `json:"port"`
 	Username string `json:"username"`
