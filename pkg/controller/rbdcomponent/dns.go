@@ -70,28 +70,11 @@ func daemonSetForDNS(r *rainbondv1alpha1.RbdComponent) interface{} {
 								},
 							},
 							Args: []string{ // TODO: huangrh
-								"--kubecfg-file=/opt/rainbond/etc/kubernetes/kubecfg/admin.kubeconfig",
 								"--v=2",
 								"--healthz-port=8089",
 								"--dns-bind-address=$(POD_IP)",
 								"--nameservers=202.106.0.22,1.2.4.8",
 								"--recoders=goodrain.me=$(HOST_IP),*.goodrain.me=$(HOST_IP),rainbond.kubernetes.apiserver=$(HOST_IP)",
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "kubecfg",
-									MountPath: "/opt/rainbond/etc/kubernetes/kubecfg",
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "kubecfg",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: "kubecfg",
-								},
 							},
 						},
 					},

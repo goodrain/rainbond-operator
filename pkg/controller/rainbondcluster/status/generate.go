@@ -7,7 +7,6 @@ import (
 	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster/types"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -16,10 +15,16 @@ import (
 )
 
 const (
+	// ImageRepositoryUnavailable means the image repository is nnavailable.
 	ImageRepositoryUnavailable = "ImageRepositoryUnavailable"
-	ErrHistoryFetch            = "ErrHistoryFetch"
-	ErrGetMetadata             = "ErrGetMetadata"
-	NotAllImagesLoaded         = "NotAllImagesLoaded"
+	// NoGatewayIP means gateway ip not found
+	NoGatewayIP = "NoGatewayIP"
+	// ErrHistoryFetch means failed to fetching installation package processing history.
+	ErrHistoryFetch = "ErrHistoryFetch"
+	// ErrGetMetadata means failed to getting installation package metadata.
+	ErrGetMetadata = "ErrGetMetadata"
+	// NotAllImagesLoaded means not all images has been loaded successfully.
+	NotAllImagesLoaded = "NotAllImagesLoaded"
 )
 
 // GenerateRainbondClusterStorageReadyCondition returns storageready condition if the storage is ready, else it
@@ -58,7 +63,18 @@ func GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster *rainb
 			},
 		},
 	}
-	u, _ := url.Parse(fmt.Sprintf("https://%s/v2/", os.Getenv("HOST_IP"))) // TODO(huangrh): use real gateway ip
+
+	if len(rainbondCluster.Spec.GatewayNodes) == 0 {
+		condition.Status = rainbondv1alpha1.ConditionFalse
+		condition.Reason = NoGatewayIP
+		condition.Message = fmt.Sprint("gateway ip not found.")
+		return condition
+	}
+
+	// TODO: check all gateway ips
+	gatewayIP := rainbondCluster.Spec.GatewayNodes[0].NodeIP
+
+	u, _ := url.Parse(fmt.Sprintf("https://%s/v2/", gatewayIP))
 	request := &http.Request{
 		URL:  u,
 		Host: domain,

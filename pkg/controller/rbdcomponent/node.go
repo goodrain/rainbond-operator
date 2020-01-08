@@ -65,7 +65,6 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 							},
 							Args: []string{ // TODO: huangrh
 								"--log-level=debug",
-								"--kube-conf=/opt/rainbond/etc/kubernetes/kubecfg/admin.kubeconfig",
 								"--etcd=http://etcd0:2379",
 								"--hostIP=$(POD_IP)",
 								"--run-mode master",
@@ -75,10 +74,6 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 								{
 									Name:      "grdata",
 									MountPath: "/grdata",
-								},
-								{
-									Name:      "kubecfg",
-									MountPath: "/opt/rainbond/etc/kubernetes/kubecfg",
 								},
 								{
 									Name:      "proc",
@@ -101,14 +96,6 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: "grdata",
-								},
-							},
-						},
-						{
-							Name: "kubecfg",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: "kubecfg",
 								},
 							},
 						},

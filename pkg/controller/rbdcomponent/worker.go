@@ -39,12 +39,6 @@ func daemonSetForWorker(r *rainbondv1alpha1.RbdComponent) interface{} {
 							Name:            rbdWorkerName,
 							Image:           "goodrain.me/rbd-worker:" + r.Spec.Version,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "kubecfg",
-									MountPath: "/opt/rainbond/etc/kubernetes/kubecfg",
-								},
-							},
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_IP",
@@ -68,18 +62,7 @@ func daemonSetForWorker(r *rainbondv1alpha1.RbdComponent) interface{} {
 								"--host-ip=$(POD_IP)",
 								"--etcd-endpoints=http://etcd0:2379",
 								"--node-name=$(HOST_IP)",
-								"--kube-config=/opt/rainbond/etc/kubernetes/kubecfg/admin.kubeconfig",
 								"--mysql=root:rainbond@tcp(rbd-db:3306)/region",
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "kubecfg",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: "kubecfg",
-								},
 							},
 						},
 					},
