@@ -127,7 +127,7 @@ func (m *Manager) prepareRainbondCluster() error {
 			Name:      "rainbondcluster",
 		},
 		Status: &rainbondv1alpha1.RainbondClusterStatus{
-			Phase: rainbondv1alpha1.RainbondClusterPending,
+			Phase: rainbondv1alpha1.RainbondClusterWaiting,
 			Conditions: []rainbondv1alpha1.RainbondClusterCondition{ // TODO: no need default conditions.
 				{
 					Type:   rainbondv1alpha1.PackageExtracted,

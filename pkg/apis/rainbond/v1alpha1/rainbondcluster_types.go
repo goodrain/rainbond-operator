@@ -76,12 +76,17 @@ type RainbondClusterPhase string
 
 // These are the valid statuses of rainbondcluster.
 const (
-	// RainbondClusterPending means the rainbondcluster has been accepted by the system, but one or more of the rbdcomponent
-	// has not been started.
-	RainbondClusterPending RainbondClusterPhase = "Pending"
-	// RainbondClusterInstalling means the rainbond cluster is in installation.
-	RainbondClusterInstalling RainbondClusterPhase = "Installing"
+	// RainbondClusterWaiting -
+	RainbondClusterWaiting RainbondClusterPhase = "Waiting"
+	// RainbondClusterPreparing -
+	RainbondClusterPreparing RainbondClusterPhase = "Preparing"
+	// RainbondClusterPackageProcessing means the installation package is being processed.
+	RainbondClusterPackageProcessing RainbondClusterPhase = "PackageProcessing"
 	// RainbondClusterRunning means all of the rainbond components has been created.
+	// And at least one component is not ready.
+	RainbondClusterPending RainbondClusterPhase = "Pending"
+	// RainbondClusterRunning means all of the rainbond components has been created.
+	// For each component controller(eg. deploy, sts, ds), at least one Pod is already Ready.
 	RainbondClusterRunning RainbondClusterPhase = "Running"
 )
 

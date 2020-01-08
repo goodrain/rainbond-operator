@@ -227,5 +227,33 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(
 		}
 	}
 
+	phase := getPhase(rainbondCluster)
+	s.Phase = phase
+
 	return s
+}
+
+func getPhase(rainbondCluster *rainbondv1alpha1.RainbondCluster) rainbondv1alpha1.RainbondClusterPhase {
+	for _, c := range rainbondCluster.Status.Conditions {
+		if c.Type == rainbondv1alpha1.StorageReady && c.Status != rainbondv1alpha1.ConditionTrue {
+			return rainbondv1alpha1.RainbondClusterPreparing
+		}
+		if c.Type == rainbondv1alpha1.ImageRepositoryInstalled && c.Status != rainbondv1alpha1.ConditionTrue {
+			return rainbondv1alpha1.RainbondClusterPreparing
+		}
+	}
+
+	for _, c := range rainbondCluster.Status.Conditions {
+		if c.Type == rainbondv1alpha1.PackageExtracted && c.Status != rainbondv1alpha1.ConditionTrue {
+			return rainbondv1alpha1.RainbondClusterPackageProcessing
+		}
+		if c.Type == rainbondv1alpha1.ImagesLoaded && c.Status != rainbondv1alpha1.ConditionTrue {
+			return rainbondv1alpha1.RainbondClusterPackageProcessing
+		}
+		if c.Type == rainbondv1alpha1.ImagesPushed && c.Status != rainbondv1alpha1.ConditionTrue {
+			return rainbondv1alpha1.RainbondClusterPackageProcessing
+		}
+	}
+
+	return rainbondv1alpha1.RainbondClusterWaiting
 }
