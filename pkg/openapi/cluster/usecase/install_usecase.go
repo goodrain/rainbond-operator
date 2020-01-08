@@ -1,16 +1,16 @@
 package usecase
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"os"
 
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
-	"github.com/sirupsen/logrus"
-
 	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
+
+	"github.com/sirupsen/logrus"
+
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -114,25 +114,217 @@ func (ic *InstallUseCaseImpl) createComponents(components ...string) error {
 }
 
 // InstallStatus install status
-func (ic *InstallUseCaseImpl) InstallStatus() ([]*model.InstallStatus, error) {
+func (ic *InstallUseCaseImpl) InstallStatus() ([]model.InstallStatus, error) {
+	statuses := make([]model.InstallStatus, 0)
 	clusterInfo, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.cfg.Namespace).Get(ic.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	// status := "" // TODO fanyangyang if install process is downloading rainbond, what status it is?
 	if clusterInfo != nil {
-		fmt.Println(clusterInfo.Status.Phase)
-		fmt.Println(clusterInfo.Status.Conditions)
-		// status = string(configs.Status.Phase)
+		statuses = parseInstallStatus(clusterInfo.Status)
 	} else {
 		logrus.Warn("cluster config has not be created yet, something occured ? ")
 	}
-	return nil, nil
+	return statuses, nil
 }
 
-func parseInstallStatus(source *v1alpha1.RainbondClusterStatus) []*model.InstallStatus {
+func parseInstallStatus(source *v1alpha1.RainbondClusterStatus) (statuses []model.InstallStatus) {
+	if source == nil {
+		return
+	}
+	statuses = append(statuses, stepSetting())
+	statuses = append(statuses, stepDownload())
+	statuses = append(statuses, stepPrepareStorage(source))
+	statuses = append(statuses, stepPrepareImageHub(source))
+	statuses = append(statuses, stepUnpack(source))
+	statuses = append(statuses, stepLoadImage(source))
+	statuses = append(statuses, stepPushImage(source))
+	statuses = append(statuses, stepCreateComponent(source))
+	return
+}
 
-	return nil
+// step 1 setting cluster
+func stepSetting() model.InstallStatus {
+	return model.InstallStatus{
+		StepName: "step_setting",
+		Status:   "status_finished", // TODO fanyangyang waiting
+		Progress: 100,
+		Message:  "",
+	}
+}
+
+// step 2 download rainbond
+func stepDownload() model.InstallStatus {
+	return model.InstallStatus{
+		StepName: "step_download",
+		Status:   "status_finished", // TODO fanyangyang waiting
+		Progress: 100,
+		Message:  "",
+	}
+}
+
+func stepPrepare(stepName string, conditionType v1alpha1.RainbondClusterConditionType, source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	var status model.InstallStatus
+	switch source.Phase {
+	case v1alpha1.RainbondClusterWaiting:
+		status = model.InstallStatus{
+			StepName: stepName,
+			Status:  "status_waiting", // TODO fanyangyang waiting
+			Progress: 0,
+			Message:  "",
+		}
+	case v1alpha1.RainbondClusterPreparing:
+		status = model.InstallStatus{
+			StepName: stepName,
+			Message:  "",
+		}
+		found := false
+		for _, condition := range source.Conditions {
+			if condition.Type == conditionType && !found {
+				if condition.Status == v1alpha1.ConditionTrue {
+					status.Progress = 100
+					status.Status = "status_finished"
+				} else {
+					status.Progress = 0
+					status.Status = "status_processing"
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			status.Status = "status_processing"
+			status.Progress = 0
+		}
+	case v1alpha1.RainbondClusterPackageProcessing, v1alpha1.RainbondClusterPending, v1alpha1.RainbondClusterRunning:
+		status = model.InstallStatus{
+			StepName: stepName,
+			Status:   "status_finished",
+			Progress: 100,
+			Message:  "",
+		}
+	default:
+		status = model.InstallStatus{
+			StepName: stepName,
+			Status:   "status_waiting", // TODO fanyangyang waiting
+			Progress: 0,
+			Message:  "",
+		}
+	}
+	return status
+}
+
+// step 3 prepare storage
+func stepPrepareStorage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	return stepPrepare("step_prepare_storage", v1alpha1.StorageReady, source)
+}
+
+// step 4 prepare image hub
+func stepPrepareImageHub(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	return stepPrepare("step_prepare_image_hub", v1alpha1.ImageRepositoryInstalled, source)
+}
+
+func stepPackProcess(stepName string, conditionType v1alpha1.RainbondClusterConditionType, source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	var status model.InstallStatus
+	switch source.Phase {
+	case v1alpha1.RainbondClusterWaiting, v1alpha1.RainbondClusterPreparing:
+		status = model.InstallStatus{
+			StepName: stepName,
+			Status:   "status_waiting", // TODO fanyangyang waiting
+			Progress: 0,
+			Message:  "",
+		}
+	case v1alpha1.RainbondClusterPackageProcessing:
+		status = model.InstallStatus{
+			StepName: stepName,
+			Message:  "",
+		}
+		found := false
+		for _, condition := range source.Conditions {
+			if condition.Type == conditionType && !found {
+				if condition.Status == v1alpha1.ConditionTrue {
+					status.Progress = 100
+					status.Status = "status_finished"
+				} else {
+					status.Progress = 0
+					status.Status = "status_processing"
+				}
+
+				found = true
+				break
+			}
+		}
+		if !found {
+			status.Status = "status_processing"
+			status.Progress = 0
+		}
+	case v1alpha1.RainbondClusterPending, v1alpha1.RainbondClusterRunning:
+		status = model.InstallStatus{
+			StepName: stepName,
+			Status:   "status_finished",
+			Progress: 100,
+			Message:  "",
+		}
+	default:
+		status = model.InstallStatus{
+			StepName: stepName,
+			Status:   "status_waiting", // TODO fanyangyang waiting
+			Progress: 0,
+			Message:  "",
+		}
+	}
+	return status
+}
+
+// step 5 unpack rainbond
+func stepUnpack(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	return stepPackProcess("step_unpacke", v1alpha1.PackageExtracted, source)
+}
+
+// step 6 load image
+func stepLoadImage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	return stepPackProcess("step_load_image", v1alpha1.ImagesLoaded, source)
+}
+
+// step 7 push image
+func stepPushImage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	return stepPackProcess("step_push_image", v1alpha1.ImagesPushed, source)
+}
+
+// step 8 create component
+func stepCreateComponent(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	var status model.InstallStatus
+	switch source.Phase {
+	case v1alpha1.RainbondClusterWaiting, v1alpha1.RainbondClusterPreparing, v1alpha1.RainbondClusterPackageProcessing:
+		status = model.InstallStatus{
+			StepName: "step_install_component",
+			Status:   "status_waiting", // TODO fanyangyang waiting
+			Progress: 0,
+			Message:  "",
+		}
+	case v1alpha1.RainbondClusterPending:
+		status = model.InstallStatus{
+			StepName: "step_install_component",
+			Status:  "status_processing",
+			Progress: 0,
+			Message:  "",
+		}
+	case v1alpha1.RainbondClusterRunning:
+		status = model.InstallStatus{
+			StepName: "step_install_component",
+			Status:   "status_finished",
+			Progress: 100,
+			Message:  "",
+		}
+	default:
+		status = model.InstallStatus{
+			StepName: "step_install_component",
+			Status:   "status_waiting", // TODO fanyangyang waiting
+			Progress: 0,
+			Message:  "",
+		}
+	}
+	return status
 }
 
 // downloadFile will download a url to a local file. It's efficient because it will
