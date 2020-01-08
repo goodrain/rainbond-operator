@@ -45,37 +45,37 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 		return clusterInfo, nil
 	}
 	if source.Spec.ImageHub != nil {
-		clusterInfo.ImageHub = &model.ImageHub{
+		clusterInfo.ImageHub = model.ImageHub{
 			Domain:    source.Spec.ImageHub.Domain,
 			Namespace: source.Spec.ImageHub.Namespace,
 			Username:  source.Spec.ImageHub.Username,
 			Password:  source.Spec.ImageHub.Password,
 		}
 	} else {
-		clusterInfo.ImageHub = &model.ImageHub{Default: true}
+		clusterInfo.ImageHub = model.ImageHub{Default: true}
 	}
 	if source.Spec.RegionDatabase != nil {
-		clusterInfo.RegionDatabase = &model.Database{
+		clusterInfo.RegionDatabase = model.Database{
 			Host:     source.Spec.RegionDatabase.Host,
 			Port:     source.Spec.RegionDatabase.Port,
 			Username: source.Spec.RegionDatabase.Username,
 			Password: source.Spec.RegionDatabase.Password,
 		}
 	} else {
-		clusterInfo.RegionDatabase = &model.Database{Default: true}
+		clusterInfo.RegionDatabase = model.Database{Default: true}
 	}
 	if source.Spec.UIDatabase != nil {
-		clusterInfo.UIDatabase = &model.Database{
+		clusterInfo.UIDatabase = model.Database{
 			Host:     source.Spec.UIDatabase.Host,
 			Port:     source.Spec.UIDatabase.Port,
 			Username: source.Spec.UIDatabase.Username,
 			Password: source.Spec.UIDatabase.Password,
 		}
 	} else {
-		clusterInfo.UIDatabase = &model.Database{Default: true}
+		clusterInfo.UIDatabase = model.Database{Default: true}
 	}
 	if source.Spec.EtcdConfig != nil {
-		clusterInfo.EtcdConfig = &model.EtcdConfig{
+		clusterInfo.EtcdConfig = model.EtcdConfig{
 			Endpoints: source.Spec.EtcdConfig.Endpoints,
 			UseTLS:    source.Spec.EtcdConfig.UseTLS,
 		}
@@ -91,34 +91,34 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 			certInfo.KeyFile = string(etcdSecret.Data["key-file"])
 		}
 	} else {
-		clusterInfo.EtcdConfig = &model.EtcdConfig{Default: true}
+		clusterInfo.EtcdConfig = model.EtcdConfig{Default: true}
 	}
-	gatewayNodes := make([]*model.GatewayNode, 0)
-	allNode := make(map[string]*model.GatewayNode)
+	gatewayNodes := make([]model.GatewayNode, 0)
+	allNode := make(map[string]model.GatewayNode)
 	if source.Status != nil && source.Status.NodeAvailPorts != nil {
 		for _, node := range source.Status.NodeAvailPorts {
-			allNode[node.NodeIP] = &model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports}
+			allNode[node.NodeIP] = model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports}
 		}
 	}
-	if source.Spec.GatewayNodes != nil {
+	if len(allNode) > 0 && source.Spec.GatewayNodes != nil {
 		for _, node := range source.Spec.GatewayNodes {
 			selected := false
 			if _, ok := allNode[node.NodeIP]; ok {
 				selected = true
 			} else {
 			}
-			gatewayNodes = append(gatewayNodes, &model.GatewayNode{Selected: selected, NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports})
+			gatewayNodes = append(gatewayNodes, model.GatewayNode{Selected: selected, NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports})
 		}
 	}
 
 	clusterInfo.GatewayNodes = gatewayNodes
 	// model.HTTPDomain{Default: true} // TODO fanyangyang custom http domain
 	if source.Spec.SuffixHTTPHost != "" {
-		httpDomain := &model.HTTPDomain{Default: false}
+		httpDomain := model.HTTPDomain{Default: false}
 		httpDomain.Domain = append(httpDomain.Domain, source.Spec.SuffixHTTPHost)
 		clusterInfo.HTTPDomain = httpDomain
 	} else {
-		clusterInfo.HTTPDomain = &model.HTTPDomain{Default: true}
+		clusterInfo.HTTPDomain = model.HTTPDomain{Default: true}
 	}
 
 	if source.Spec.GatewayIngressIPs != nil {
@@ -127,13 +127,16 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 	storage := model.Storage{}
 	if source.Spec.StorageClassName == "" {
 		storage.Default = true
+	} else {
+		storage.Default = false
+		storage.StorageClassName = source.Spec.StorageClassName
 	}
 	if source.Status != nil && source.Status.StorageClasses != nil {
 		for _, sc := range source.Status.StorageClasses {
 			storage.Opts = append(storage.Opts, model.StorageOpts{Name: sc.Name, Provisioner: sc.Provisioner})
 		}
 	}
-	clusterInfo.Storage = &storage
+	clusterInfo.Storage = storage
 	return clusterInfo, nil
 }
 
@@ -144,77 +147,76 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 		return nil, err
 	}
 
-	if source.ImageHub != nil {
-		if !source.ImageHub.Default {
-			old.Spec.ImageHub = &v1alpha1.ImageHub{
-				Domain:    source.ImageHub.Domain,
-				Username:  source.ImageHub.Username,
-				Password:  source.ImageHub.Password,
-				Namespace: source.ImageHub.Namespace,
-			}
-		} else {
-			old.Spec.ImageHub = nil // if use change image hub setting from custom to default, operator will create deefault image hub, api set it vlaue as nil
+	if !source.ImageHub.Default {
+		old.Spec.ImageHub = &v1alpha1.ImageHub{
+			Domain:    source.ImageHub.Domain,
+			Username:  source.ImageHub.Username,
+			Password:  source.ImageHub.Password,
+			Namespace: source.ImageHub.Namespace,
 		}
+	} else {
+		old.Spec.ImageHub = nil // if use change image hub setting from custom to default, operator will create deefault image hub, api set it vlaue as nil
 	}
 
-	if source.RegionDatabase != nil {
-		if !source.RegionDatabase.Default {
-			old.Spec.RegionDatabase = &v1alpha1.Database{
-				Host:     source.RegionDatabase.Host,
-				Port:     source.RegionDatabase.Port,
-				Username: source.RegionDatabase.Username,
-				Password: source.RegionDatabase.Password,
+	if !source.RegionDatabase.Default {
+		old.Spec.RegionDatabase = &v1alpha1.Database{
+			Host:     source.RegionDatabase.Host,
+			Port:     source.RegionDatabase.Port,
+			Username: source.RegionDatabase.Username,
+			Password: source.RegionDatabase.Password,
+		}
+	} else {
+		old.Spec.RegionDatabase = nil
+	}
+	if !source.UIDatabase.Default {
+		old.Spec.UIDatabase = &v1alpha1.Database{
+			Host:     source.UIDatabase.Host,
+			Port:     source.UIDatabase.Port,
+			Username: source.UIDatabase.Username,
+			Password: source.UIDatabase.Password,
+		}
+	} else {
+		old.Spec.UIDatabase = nil
+	}
+	if !source.EtcdConfig.Default {
+		old.Spec.EtcdConfig = &v1alpha1.EtcdConfig{
+			Endpoints: source.EtcdConfig.Endpoints,
+			UseTLS:    source.EtcdConfig.UseTLS,
+		}
+		if source.EtcdConfig.UseTLS && source.EtcdConfig.CertInfo != nil {
+			if err := cc.updateOrCreateEtcdCertInfo(source.EtcdConfig.CertInfo); err != nil {
+				return nil, err
 			}
 		} else {
-			old.Spec.RegionDatabase = nil
+			// if update config set etcd that do not use tls, update config, remove etcd cert secret selector
+			old.Spec.EtcdConfig.CertSecret = metav1.LabelSelector{}
+		}
+	} else {
+		old.Spec.EtcdConfig = nil
+	}
+	allNode := make(map[string]*model.GatewayNode)
+	if old.Status != nil && old.Status.NodeAvailPorts != nil {
+		for _, node := range old.Status.NodeAvailPorts {
+			allNode[node.NodeIP] = &model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports}
 		}
 	}
-	if source.UIDatabase != nil {
-		if !source.UIDatabase.Default {
-			old.Spec.UIDatabase = &v1alpha1.Database{
-				Host:     source.UIDatabase.Host,
-				Port:     source.UIDatabase.Port,
-				Username: source.UIDatabase.Username,
-				Password: source.UIDatabase.Password,
-			}
-		} else {
-			old.Spec.UIDatabase = nil
-		}
-	}
-	if source.EtcdConfig != nil {
-		if !source.EtcdConfig.Default {
-			old.Spec.EtcdConfig = &v1alpha1.EtcdConfig{
-				Endpoints: source.EtcdConfig.Endpoints,
-				UseTLS:    source.EtcdConfig.UseTLS,
-			}
-			if source.EtcdConfig.UseTLS && source.EtcdConfig.CertInfo != nil {
-				if err := cc.updateOrCreateEtcdCertInfo(source.EtcdConfig.CertInfo); err != nil {
-					return nil, err
-				}
-			} else {
-				// if update config set etcd that do not use tls, update config, remove etcd cert secret selector
-				old.Spec.EtcdConfig.CertSecret = metav1.LabelSelector{}
-			}
-		} else {
-			old.Spec.EtcdConfig = nil
-		}
-	}
-
-	if source.GatewayNodes != nil {
+	if len(allNode) > 0 && source.GatewayNodes != nil {
 		nowNodes := make(map[string]struct{})
 		for _, node := range old.Spec.GatewayNodes {
 			nowNodes[node.NodeIP] = struct{}{}
 		}
 		for _, node := range source.GatewayNodes {
-			if node.Selected {
-				if _, ok := nowNodes[node.NodeIP]; !ok {
-					old.Spec.GatewayNodes = append(old.Spec.GatewayNodes, v1alpha1.NodeAvailPorts{NodeIP: node.NodeIP})
+			if _, ok := allNode[node.NodeIP]; ok {
+				if node.Selected {
+					if _, ok := nowNodes[node.NodeIP]; !ok {
+						old.Spec.GatewayNodes = append(old.Spec.GatewayNodes, v1alpha1.NodeAvailPorts{NodeIP: node.NodeIP})
+					}
 				}
 			}
 		}
 	}
 
-	if source.HTTPDomain != nil && !source.HTTPDomain.Default {
+	if !source.HTTPDomain.Default {
 		if len(source.HTTPDomain.Domain) > 0 {
 			old.Spec.SuffixHTTPHost = source.HTTPDomain.Domain[0]
 		} else {

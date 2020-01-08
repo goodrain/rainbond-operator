@@ -2,14 +2,14 @@ package model
 
 // GlobalConfigs check result
 type GlobalConfigs struct {
-	ImageHub          *ImageHub      `json:"imageHub,omitempty"`
-	RegionDatabase    *Database      `json:"regionDatabase,omitempty"`
-	UIDatabase        *Database      `json:"uiDatabase,omitempty"`
-	EtcdConfig        *EtcdConfig    `json:"etcdConfig,omitempty"`
-	GatewayNodes      []*GatewayNode `json:"gatewayNodes"`
-	HTTPDomain        *HTTPDomain    `json:"HTTPDomain"`
-	GatewayIngressIPs []string       `json:"gatewayIngressIPs"`
-	Storage           *Storage       `json:"storage,omitempty"`
+	ImageHub          ImageHub      `json:"imageHub"`
+	RegionDatabase    Database      `json:"regionDatabase"`
+	UIDatabase        Database      `json:"uiDatabase"`
+	EtcdConfig        EtcdConfig    `json:"etcdConfig"`
+	GatewayNodes      []GatewayNode `json:"gatewayNodes"`
+	HTTPDomain        HTTPDomain    `json:"HTTPDomain"`
+	GatewayIngressIPs []string      `json:"gatewayIngressIPs"`
+	Storage           Storage       `json:"storage"`
 }
 
 // RbdComponent rbd component
@@ -24,9 +24,9 @@ type HTTPDomain struct {
 
 // GatewayNode gateway
 type GatewayNode struct {
-	NodeName string `json:"nodeName,omitempty"`
-	NodeIP   string `json:"nodeIP,omitempty"`
-	Ports    []int  `json:"ports,omitempty"`
+	NodeName string `json:"nodeName"`
+	NodeIP   string `json:"nodeIP"`
+	Ports    []int  `json:"ports"`
 	Selected bool   `json:"selected"`
 }
 
@@ -45,23 +45,23 @@ type StorageOpts struct {
 
 // NodeAvailPorts aval port
 type NodeAvailPorts struct {
-	Ports    []int  `json:"port,omitempty"`
-	NodeIP   string `json:"nodeIP,omitempty"`
-	NodeName string `json:"nodeName,omitempty"`
+	Ports    []int  `json:"port"`
+	NodeIP   string `json:"nodeIP"`
+	NodeName string `json:"nodeName"`
 }
 
 // ImageHub image hub
 type ImageHub struct {
-	Default   bool   `json:"default"`
-	Domain    string `json:"domain,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
-	Username  string `json:"username,omitempty"`
-	Password  string `json:"password,omitempty"`
+	Default   bool   `json:"default" validate:"default|required"`
+	Domain    string `json:"domain"`
+	Namespace string `json:"namespace"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
 }
 
 // Database defines the connection information of database.
 type Database struct {
-	Default  bool   `json:"default"`
+	Default  bool   `json:"default" validate:"default|required"`
 	Host     string `json:"host"`
 	Port     int    `json:"port"`
 	Username string `json:"username"`
@@ -70,7 +70,7 @@ type Database struct {
 
 // EtcdConfig defines the configuration of etcd client.
 type EtcdConfig struct {
-	Default bool `json:"default"`
+	Default bool `json:"default" validate:"default|required"`
 	// Endpoints is a list of URLs.
 	Endpoints []string `json:"endpoints"`
 	// Whether to use tls to connect to etcd
