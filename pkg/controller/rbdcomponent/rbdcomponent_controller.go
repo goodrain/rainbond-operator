@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	appv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,19 +32,20 @@ var resourcesFuncs map[string]resourcesFunc
 
 func init() {
 	resourcesFuncs = map[string]resourcesFunc{
-		"rbd-db":       resourcesForDB,
-		"rbd-etcd":     resourcesForEtcd,
-		"rbd-hub":      resourcesForHub,
-		"rbd-gateway":  resourcesForGateway,
-		"rbd-node":     resourcesForNode,
-		"rbd-api":      resourcesForAPI,
-		"rbd-app-ui":   resourcesForAppUI,
-		"rbd-worker":   resourcesForWorker,
-		"rbd-chaos":    resourcesForChaos,
-		"rbd-eventlog": resourcesForEventLog,
-		"rbd-monitor":  resourcesForMonitor,
-		"rbd-mq":       resourcesForMQ,
-		"rbd-dns":      resourcesForDNS,
+		"rbd-db":              resourcesForDB,
+		"rbd-etcd":            resourcesForEtcd,
+		"rbd-hub":             resourcesForHub,
+		"rbd-gateway":         resourcesForGateway,
+		"rbd-node":            resourcesForNode,
+		"rbd-api":             resourcesForAPI,
+		"rbd-app-ui":          resourcesForAppUI,
+		"rbd-worker":          resourcesForWorker,
+		"rbd-chaos":           resourcesForChaos,
+		"rbd-eventlog":        resourcesForEventLog,
+		"rbd-monitor":         resourcesForMonitor,
+		"rbd-mq":              resourcesForMQ,
+		"rbd-dns":             resourcesForDNS,
+		"rbd-nfs-provisioner": resourcesForNFSProvisioner,
 	}
 }
 
@@ -179,6 +180,22 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		}
 	}
 
+	if instance.Name == "rbd-nfs-provisioner" {
+		class := storageClassForNFSProvisioner()
+		oldClass := &storagev1.StorageClass{}
+		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: class.Name}, oldClass); err != nil {
+			if errors.IsNotFound(err) {
+				reqLogger.Info("StorageClass not found, will create a new one")
+				if err := r.client.Create(context.TODO(), class); err != nil {
+					reqLogger.Error(err, "Error creating storageclass")
+					return reconcile.Result{Requeue: true}, err
+				}
+			}
+			reqLogger.Error(err, "Error checking if storageclass exists")
+			return reconcile.Result{Requeue: true}, err
+		}
+	}
+
 	if instance.Name == "rbd-etcd" { // TODO:
 		return reconcile.Result{}, nil
 	}
@@ -252,33 +269,6 @@ func labelsForRbdComponent(labels map[string]string) map[string]string {
 	}
 
 	return rbdlabels
-}
-
-func (r *ReconcileRbdComponent) isRbdHubReady() bool {
-	reqLogger := log.WithName("Check if rbd-hub is ready")
-
-	eps := &corev1.EndpointsList{}
-	listOpts := []client.ListOption{
-		client.MatchingLabels(map[string]string{
-			"name": "rbd-hub",
-		}),
-	}
-	err := r.client.List(context.TODO(), eps, listOpts...)
-	if err != nil {
-		reqLogger.Error(err, "list rbd-hub endpints")
-		return false
-	}
-
-	for _, ep := range eps.Items {
-		for _, subset := range ep.Subsets {
-			if len(subset.Addresses) > 0 {
-				reqLogger.Info("Found a healthy endpoint address", "address", subset.Addresses[0])
-				return true
-			}
-		}
-	}
-
-	return false
 }
 
 func detectControllerType(ctrl interface{}) rainbondv1alpha1.ControllerType {
