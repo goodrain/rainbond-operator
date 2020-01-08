@@ -48,6 +48,19 @@ func (cc *ClusterController) Configs(c *gin.Context) {
 
 // UpdateConfig update cluster config info
 func (cc *ClusterController) UpdateConfig(c *gin.Context) {
+	installStatus, err := cc.clusterCase.Install().InstallStatus()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		return
+	}
+	if installStatus != nil {
+		for _, status := range installStatus {
+			if status.StepName == "step_setting" && status.Status != "status_finished" {
+				c.JSON(http.StatusBadRequest, map[string]interface{}{"code": http.StatusBadRequest, "msg": "cluster is installing, can't update config"})
+				return
+			}
+		}
+	}
 	var req *model.GlobalConfigs
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
@@ -76,7 +89,7 @@ func (cc *ClusterController) InstallStatus(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": map[string]string{"status": status}})
+	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": status})
 }
 
 // Components components status
