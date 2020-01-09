@@ -22,3 +22,9 @@ rules:
       - storageclasses
     verbs:
       - "*"
+  - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - "*"

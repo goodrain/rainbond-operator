@@ -53,7 +53,6 @@ func daemonSetForMonitor(r *rainbondv1alpha1.RbdComponent) interface{} {
 								"--etcd-endpoints=http://etcd0:2379",
 								"--advertise-addr=$(POD_IP):9999",
 								"--alertmanager-address=$(POD_IP):9093",
-								"--web.listen-address=$(POD_IP):9999",
 								"--storage.tsdb.path=/prometheusdata",
 								"--storage.tsdb.no-lockfile",
 								"--storage.tsdb.retention=7d",

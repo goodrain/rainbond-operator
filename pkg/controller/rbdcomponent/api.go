@@ -74,10 +74,7 @@ func daemonSetForAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 								"--api-addr=$(POD_IP):8888",
 								"--log-level=debug",
 								"--mysql=root:rainbond@tcp(rbd-db:3306)/region",
-								"--api-ssl-enable=true",
-								"--api-ssl-certfile=/etc/goodrain/region.goodrain.me/ssl/server.pem",
-								"--api-ssl-keyfile=/etc/goodrain/region.goodrain.me/ssl/server.key.pem",
-								"--client-ca-file=/etc/goodrain/region.goodrain.me/ssl/ca.pem",
+								"--api-ssl-enable=false",
 								"--etcd=http://etcd0:2379",
 							},
 							VolumeMounts: []corev1.VolumeMount{
@@ -85,10 +82,22 @@ func daemonSetForAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 									Name:      "ssl",
 									MountPath: "/etc/goodrain/region.goodrain.me/ssl",
 								},
+								{
+									Name:      "grdata",
+									MountPath: "/grdata",
+								},
 							},
 						},
 					},
 					Volumes: []corev1.Volume{
+						{
+							Name: "grdata",
+							VolumeSource: corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: "grdata",
+								},
+							},
+						},
 						{
 							Name: "ssl",
 							VolumeSource: corev1.VolumeSource{

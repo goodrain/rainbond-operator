@@ -76,6 +76,22 @@ func daemonSetForEventLog(r *rainbondv1alpha1.RbdComponent) interface{} {
 								"--eventlog.bind.ip=$(POD_IP)",
 								"--websocket.bind.ip=$(POD_IP)",
 							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "grdata",
+									MountPath: "/grdata",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "grdata",
+							VolumeSource: corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: "grdata",
+								},
+							},
 						},
 					},
 				},
