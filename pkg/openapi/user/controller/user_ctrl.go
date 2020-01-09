@@ -1,11 +1,12 @@
 package controller
 
 import (
+	"net/http"
+
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/user"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/user/usecase"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 type UserController struct {

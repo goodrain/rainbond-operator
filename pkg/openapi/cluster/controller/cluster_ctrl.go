@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"github.com/GLYASAI/rainbond-operator/pkg/util/corsutil"
 	"net/http"
 	"strings"
 
@@ -14,6 +15,13 @@ type ClusterController struct {
 	clusterCase cluster.IClusterCase
 }
 
+var corsMidle = func(f gin.HandlerFunc) gin.HandlerFunc {
+	return gin.HandlerFunc(func(ctx *gin.Context) {
+		corsutil.SetCORS(ctx)
+		f(ctx)
+	})
+}
+
 // NewClusterController creates a new k8s controller
 func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 	u := &ClusterController{clusterCase: clusterCase}
@@ -21,19 +29,17 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 	clusterEngine := g.Group("/cluster")
 
 	// config
-	configEngine := clusterEngine.Group("/configs")
-	configEngine.GET("/", u.Configs)
-	configEngine.PUT("/", u.UpdateConfig)
+	// configEngine := clusterEngine.Group("/configs")
+	clusterEngine.GET("/configs", corsMidle(u.Configs))
+	clusterEngine.PUT("/configs", corsMidle(u.UpdateConfig))
 
 	// install
-	installEngine := clusterEngine.Group("/install")
-	installEngine.POST("/", u.Install)
-	installEngine.GET("/status", u.InstallStatus)
+	clusterEngine.POST("/install", corsMidle(u.Install))
+	clusterEngine.GET("/install/status", corsMidle(u.InstallStatus))
 
 	// componse
-	componentEngine := clusterEngine.Group("/components")
-	componentEngine.GET("/", u.Components)
-	componentEngine.GET("/:name", u.SingleComponent)
+	clusterEngine.GET("/components", corsMidle(u.Components))
+	clusterEngine.GET("/components/:name", corsMidle(u.SingleComponent))
 }
 
 // Configs get cluster config info
@@ -43,6 +49,7 @@ func (cc *ClusterController) Configs(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": configs})
 }
 
