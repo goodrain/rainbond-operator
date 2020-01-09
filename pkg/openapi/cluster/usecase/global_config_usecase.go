@@ -1,12 +1,18 @@
 package usecase
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/suffixdomain"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
 // GlobalConfigUseCaseImpl case
@@ -39,11 +45,53 @@ func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *model.GlobalConfigs)
 	return err
 }
 
+func (cc *GlobalConfigUseCaseImpl) getSuffixHTTPHost(ip string) (domain string, err error) {
+	id, auth, err := cc.getOrCreateUUIDAndAuth()
+	if err != nil {
+		return "", err
+	}
+	domain, err = suffixdomain.GenerateDomain(ip, id, auth)
+	if err != nil {
+		return "", err
+	}
+	if !strings.HasSuffix(domain, "grapps.cn") {
+		return "", fmt.Errorf("get suffix http host failure")
+	}
+	return domain, nil
+}
+
+func (cc *GlobalConfigUseCaseImpl) getOrCreateUUIDAndAuth() (id, auth string, err error) {
+	cm, err := cc.cfg.KubeClient.CoreV1().ConfigMaps(cc.cfg.Namespace).Get(cc.cfg.SuffixHTTPHost, metav1.GetOptions{})
+	if err != nil && !k8sErrors.IsNotFound(err) {
+		return "", "", err
+	}
+	if k8sErrors.IsNotFound(err) {
+		logrus.Info("not found configmap, create it")
+		cm = generateSuffixConfigMap(cc.cfg.SuffixHTTPHost, cc.cfg.Namespace)
+		if _, err = cc.cfg.KubeClient.CoreV1().ConfigMaps(cc.cfg.Namespace).Create(cm); err != nil {
+			return "", "", err
+		}
+
+	}
+	return cm.Data["uuid"], cm.Data["auth"], nil
+}
+
+func generateSuffixConfigMap(name, namespace string) *corev1.ConfigMap {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"uuid": string(uuid.NewUUID()),
+			"auth": string(uuid.NewUUID()),
+		},
+	}
+	return cm
+}
+
 func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.RainbondCluster) (*model.GlobalConfigs, error) {
 	clusterInfo := &model.GlobalConfigs{}
-	if source == nil {
-		return clusterInfo, nil
-	}
 	if source.Spec.ImageHub != nil {
 		clusterInfo.ImageHub = model.ImageHub{
 			Domain:    source.Spec.ImageHub.Domain,
@@ -147,39 +195,36 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 		return nil, err
 	}
 
+	clusterInfo := &v1alpha1.RainbondCluster{}
+	clusterInfo.ObjectMeta = old.ObjectMeta
+
 	if !source.ImageHub.Default {
-		old.Spec.ImageHub = &v1alpha1.ImageHub{
+		clusterInfo.Spec.ImageHub = &v1alpha1.ImageHub{
 			Domain:    source.ImageHub.Domain,
 			Username:  source.ImageHub.Username,
 			Password:  source.ImageHub.Password,
 			Namespace: source.ImageHub.Namespace,
 		}
-	} else {
-		old.Spec.ImageHub = nil // if use change image hub setting from custom to default, operator will create deefault image hub, api set it vlaue as nil
 	}
 
 	if !source.RegionDatabase.Default {
-		old.Spec.RegionDatabase = &v1alpha1.Database{
+		clusterInfo.Spec.RegionDatabase = &v1alpha1.Database{
 			Host:     source.RegionDatabase.Host,
 			Port:     source.RegionDatabase.Port,
 			Username: source.RegionDatabase.Username,
 			Password: source.RegionDatabase.Password,
 		}
-	} else {
-		old.Spec.RegionDatabase = nil
 	}
 	if !source.UIDatabase.Default {
-		old.Spec.UIDatabase = &v1alpha1.Database{
+		clusterInfo.Spec.UIDatabase = &v1alpha1.Database{
 			Host:     source.UIDatabase.Host,
 			Port:     source.UIDatabase.Port,
 			Username: source.UIDatabase.Username,
 			Password: source.UIDatabase.Password,
 		}
-	} else {
-		old.Spec.UIDatabase = nil
 	}
 	if !source.EtcdConfig.Default {
-		old.Spec.EtcdConfig = &v1alpha1.EtcdConfig{
+		clusterInfo.Spec.EtcdConfig = &v1alpha1.EtcdConfig{
 			Endpoints: source.EtcdConfig.Endpoints,
 			UseTLS:    source.EtcdConfig.UseTLS,
 		}
@@ -189,10 +234,8 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 			}
 		} else {
 			// if update config set etcd that do not use tls, update config, remove etcd cert secret selector
-			old.Spec.EtcdConfig.CertSecret = metav1.LabelSelector{}
+			clusterInfo.Spec.EtcdConfig.CertSecret = metav1.LabelSelector{}
 		}
-	} else {
-		old.Spec.EtcdConfig = nil
 	}
 	allNode := make(map[string]*model.GatewayNode)
 	if old.Status != nil && old.Status.NodeAvailPorts != nil {
@@ -201,16 +244,10 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 		}
 	}
 	if len(allNode) > 0 && source.GatewayNodes != nil {
-		nowNodes := make(map[string]struct{})
-		for _, node := range old.Spec.GatewayNodes {
-			nowNodes[node.NodeIP] = struct{}{}
-		}
 		for _, node := range source.GatewayNodes {
 			if _, ok := allNode[node.NodeIP]; ok {
 				if node.Selected {
-					if _, ok := nowNodes[node.NodeIP]; !ok {
-						old.Spec.GatewayNodes = append(old.Spec.GatewayNodes, v1alpha1.NodeAvailPorts{NodeIP: node.NodeIP})
-					}
+					clusterInfo.Spec.GatewayNodes = append(clusterInfo.Spec.GatewayNodes, v1alpha1.NodeAvailPorts{NodeIP: node.NodeIP})
 				}
 			}
 		}
@@ -218,12 +255,16 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 
 	if !source.HTTPDomain.Default {
 		if len(source.HTTPDomain.Domain) > 0 {
-			old.Spec.SuffixHTTPHost = source.HTTPDomain.Domain[0]
+			clusterInfo.Spec.SuffixHTTPHost = source.HTTPDomain.Domain[0]
 		} else {
-			old.Spec.SuffixHTTPHost = ""
+			clusterInfo.Spec.SuffixHTTPHost = "pass.grapps.cn" // example domain from ansible
 		}
 	} else {
-		old.Spec.SuffixHTTPHost = ""
+		domain, err := cc.getSuffixHTTPHost(clusterInfo.Spec.GatewayNodes[0].NodeIP)
+		if err != nil {
+			return nil, fmt.Errorf("get suffix domain error: %s", err.Error())
+		}
+		clusterInfo.Spec.SuffixHTTPHost = domain
 	}
 
 	if source.GatewayIngressIPs != nil {
@@ -233,19 +274,15 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 		}
 		for _, ip := range source.GatewayIngressIPs {
 			if _, ok := nodeIPs[ip]; !ok {
-				old.Spec.GatewayIngressIPs = append(old.Spec.GatewayIngressIPs, ip)
+				clusterInfo.Spec.GatewayIngressIPs = append(clusterInfo.Spec.GatewayIngressIPs, ip)
 			}
 		}
-	} else {
-		old.Spec.GatewayIngressIPs = nil
 	}
 
 	if !source.Storage.Default {
-		old.Spec.StorageClassName = source.Storage.StorageClassName
-	} else {
-		old.Spec.StorageClassName = ""
+		clusterInfo.Spec.StorageClassName = source.Storage.StorageClassName
 	}
-	return old, nil
+	return clusterInfo, nil
 }
 
 //TODO generate test case
