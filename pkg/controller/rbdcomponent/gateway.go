@@ -49,16 +49,13 @@ func daemonSetForGateway(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            gatewayName,
-							Image:           "abewang/rbd-gateway:" + r.Spec.Version, // TODO: do not hard code
+							Image:           r.Spec.Image,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
-							Args: []string{ // TODO: huangrh
+							Args: []string{
 								"--log-level=debug",
 								"--error-log=/dev/stderr error",
 								"--enable-kubeapi=false",
 								"--etcd-endpoints=http://etcd0:2379",
-								"--enable-lang-grme=false",
-								"--enable-mvn-grme=false",
-								"--enable-rbd-endpoints=false",
 							},
 						},
 					},

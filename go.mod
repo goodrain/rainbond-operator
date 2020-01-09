@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/cheggaaa/pb v2.0.7+incompatible
 	github.com/cheggaaa/pb/v3 v3.0.3
+	github.com/coreos/etcd v3.3.15+incompatible
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/docker v0.7.3-0.20190817195342-4760db040282

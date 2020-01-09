@@ -1,8 +1,7 @@
 apiVersion: rainbond.io/v1alpha1
 kind: RbdComponent
 metadata:
-  name: rbd-db
+  name: rbd-api
   namespace: rbd-system
 spec:
-  type: rbd-db
-  version: foobar
+  image: rainbond/rbd-api:V5.2-dev

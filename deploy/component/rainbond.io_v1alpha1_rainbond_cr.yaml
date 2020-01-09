@@ -1,7 +1,0 @@
-apiVersion: rainbond.io/v1alpha1
-kind: Rainbond
-metadata:
-  name: my-rainbond
-  namespaces: rbd-system
-spec:
-  version: v5.1.9-release

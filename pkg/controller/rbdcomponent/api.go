@@ -55,7 +55,7 @@ func daemonSetForAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            rbdAPIName,
-							Image:           "goodrain.me/rbd-api:" + r.Spec.Version, // TODO: do not hard code
+							Image:           r.Spec.Image,
 							ImagePullPolicy: corev1.PullIfNotPresent,                 // TODO: custom
 							Env: []corev1.EnvVar{
 								{

@@ -11,7 +11,7 @@ import (
 
 var rbdNodeName = "rbd-node"
 
-func resourcesForNode(r *rainbondv1alpha1.RbdComponent) []interface{}{
+func resourcesForNode(r *rainbondv1alpha1.RbdComponent) []interface{} {
 	return []interface{}{
 		daemonSetForRainbondNode(r),
 	}
@@ -35,9 +35,10 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					HostNetwork: true,
-					HostPID:     true,
-					DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
+					ServiceAccountName: "rainbond-operator",
+					HostNetwork:        true,
+					HostPID:            true,
+					DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",
@@ -47,7 +48,7 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            rbdNodeName,
-							Image:           "abewang/rbd-node:" + r.Spec.Version,
+							Image:           r.Spec.Image,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
@@ -59,26 +60,30 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 									},
 								},
 								{
+									Name: "NODE_NAME",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "spec.nodeName",
+										},
+									},
+								},
+								{
 									Name:  "RBD_DOCKER_SECRET",
 									Value: "rbd-hub-goodrain.me",
 								},
 							},
 							Args: []string{ // TODO: huangrh
 								"--log-level=debug",
-								"--kube-conf=/opt/rainbond/etc/kubernetes/kubecfg/admin.kubeconfig",
 								"--etcd=http://etcd0:2379",
 								"--hostIP=$(POD_IP)",
 								"--run-mode master",
 								"--noderule manage",
+								"--nodeid=$(NODE_NAME)",
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "grdata",
 									MountPath: "/grdata",
-								},
-								{
-									Name:      "kubecfg",
-									MountPath: "/opt/rainbond/etc/kubernetes/kubecfg",
 								},
 								{
 									Name:      "proc",
@@ -101,14 +106,6 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: "grdata",
-								},
-							},
-						},
-						{
-							Name: "kubecfg",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: "kubecfg",
 								},
 							},
 						},

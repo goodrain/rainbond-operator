@@ -45,7 +45,7 @@ spec:
         - name: rbd-pkg
           hostPath:
             path: /opt/rainbond/pkg
-            type: Directory
+            type: DirectoryOrCreate
         - name: dockersock
           hostPath:
             path: /var/run

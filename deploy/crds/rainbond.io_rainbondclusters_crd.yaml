@@ -88,56 +88,6 @@ spec:
                   description: Whether to use tls to connect to etcd
                   type: boolean
               type: object
-            imageHub:
-              properties:
-                domain:
-                  type: string
-                namespace:
-                  type: string
-                password:
-                  type: string
-                username:
-                  type: string
-              type: object
-            rainbondImageRepositoryHost:
-              description: Domain name of the image repository which Rainbond is installed
-                Default goodrain.me
-              type: string
-            regionDatabase:
-              description: the region database information that rainbond component
-                will be used. rainbond-operator will create one if DBInfo is empty
-              properties:
-                host:
-                  type: string
-                password:
-                  type: string
-                port:
-                  type: integer
-                username:
-                  type: string
-              type: object
-            storageClassName:
-              description: the storage class that rainbond component will be used.
-                rainbond-operator will create one if StorageClassName is empty
-              type: string
-            uiDatabase:
-              description: the ui database information that rainbond component will
-                be used. rainbond-operator will create one if DBInfo is empty
-              properties:
-                host:
-                  type: string
-                password:
-                  type: string
-                port:
-                  type: integer
-                username:
-                  type: string
-              type: object
-          type: object
-        status:
-          description: RainbondClusterStatus defines the observed state of RainbondCluster
-          properties:
-            NodeAvailPorts:
             gatewayIngressIPs:
               description: Ingress IP addresses of rbd-gateway. If not specified,
                 the IP of the node where the rbd-gateway is located will be used.
@@ -149,6 +99,7 @@ spec:
                 If not specified, the gateway will run on nodes where all ports do
                 not conflict.
               items:
+                description: NodeAvailPorts node avail port
                 properties:
                   nodeIP:
                     type: string
@@ -161,6 +112,7 @@ spec:
                 type: object
               type: array
             imageHub:
+              description: ImageHub image hub
               properties:
                 domain:
                   type: string
@@ -217,6 +169,7 @@ spec:
           properties:
             NodeAvailPorts:
               items:
+                description: NodeAvailPorts node avail port
                 properties:
                   nodeIP:
                     type: string
@@ -292,6 +245,7 @@ spec:
             storageClasses:
               description: List of existing StorageClasses in the cluster
               items:
+                description: StorageClass storage class
                 properties:
                   name:
                     type: string

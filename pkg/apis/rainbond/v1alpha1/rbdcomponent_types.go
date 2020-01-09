@@ -18,16 +18,35 @@ const (
 	LogLevelError LogLevel = "error"
 )
 
+// PullPolicy describes a policy for if/when to pull a container image
+type PullPolicy string
+
+const (
+	// PullAlways means that kubelet always attempts to pull the latest image. Container will fail If the pull fails.
+	PullAlways PullPolicy = "Always"
+	// PullNever means that kubelet never pulls an image, but only uses a local image. Container will fail if the image isn't present
+	PullNever PullPolicy = "Never"
+	// PullIfNotPresent means that kubelet pulls if the image isn't present on disk. Container will fail if the image isn't present and the pull fails.
+	PullIfNotPresent PullPolicy = "IfNotPresent"
+)
+
 // RbdComponentSpec defines the desired state of RbdComponent
 type RbdComponentSpec struct {
 	// type of rainbond component
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
 	// version of rainbond component
-	Version  string   `json:"version"`
+	Version  string   `json:"version,omitempty"`
 	LogLevel LogLevel `json:"logLevel,omitempty"`
+	// Docker image name.
+	Image string `json:"image,omitempty"`
+	// Image pull policy.
+	// One of Always, Never, IfNotPresent.
+	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
+	// Cannot be updated.
+	ImagePullPolicy PullPolicy `json:"imagePullPolicy,omitempty"`
 }
 
-// LogLevel -
+// ControllerType -
 type ControllerType string
 
 const (
@@ -37,7 +56,7 @@ const (
 	ControllerTypeDaemonSet ControllerType = "daemonset"
 	// ControllerTypeStatefulSet -
 	ControllerTypeStatefulSet ControllerType = "statefuleset"
-	// ControllerTypeStatefulSet -
+	// ControllerTypeUnknown -
 	ControllerTypeUnknown ControllerType = "unknown"
 )
 

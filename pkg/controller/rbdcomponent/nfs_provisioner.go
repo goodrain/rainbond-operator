@@ -1,7 +1,6 @@
 package rbdcomponent
 
 import (
-	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -9,21 +8,25 @@ import (
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/rbduitl"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 )
 
 var rbdNFSProvisionerName = "rbd-nfs-provisioner"
 
-func statefulsetForNFSProvisioner(p *rainbondv1alpha1.RbdComponent) interface{} {
-	l := map[string]string{
-		"name": rbdNFSProvisionerName,
+func resourcesForNFSProvisioner(r *rainbondv1alpha1.RbdComponent) []interface{} {
+	return []interface{}{
+		statefulsetForNFSProvisioner(r),
+		serviceForNFSProvisioner(r),
 	}
-	labels := rbdutil.Labels(l).WithRainbondLabels()
+}
+
+func statefulsetForNFSProvisioner(r *rainbondv1alpha1.RbdComponent) interface{} {
+	labels := r.Labels()
 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rbdNFSProvisionerName,
-			Namespace: p.Namespace, // TODO: can use custom namespace?
+			Namespace: r.Namespace, // TODO: can use custom namespace?
 			Labels:    labels,
 		},
 		Spec: appsv1.StatefulSetSpec{
@@ -42,8 +45,8 @@ func statefulsetForNFSProvisioner(p *rainbondv1alpha1.RbdComponent) interface{} 
 					Containers: []corev1.Container{
 						{
 							Name:            rbdNFSProvisionerName,
-							Image:           "abewang/nfs-provisioner:v2.2.1-k8s1.12", // TODO: do not hard code
-							ImagePullPolicy: corev1.PullIfNotPresent,                  // TODO: custom
+							Image:           r.Spec.Image,
+							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "nfs",
@@ -99,7 +102,7 @@ func statefulsetForNFSProvisioner(p *rainbondv1alpha1.RbdComponent) interface{} 
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "export-volume",
-									MountPath: " /export",
+									MountPath: "/export",
 								},
 							},
 						},
@@ -124,10 +127,7 @@ func statefulsetForNFSProvisioner(p *rainbondv1alpha1.RbdComponent) interface{} 
 }
 
 func serviceForNFSProvisioner(rc *rainbondv1alpha1.RbdComponent) interface{} {
-	l := map[string]string{
-		"name": rbdNFSProvisionerName,
-	}
-	labels := rbdutil.Labels(l).WithRainbondLabels()
+	labels := rc.Labels()
 
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{

@@ -40,7 +40,7 @@ func deploymentForAppUI(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            rbdAppUIName,
-							Image:           "goodrain.me/rbd-app-ui:" + r.Spec.Version,
+							Image:           r.Spec.Image,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{

@@ -17,11 +17,11 @@ func resourcesForEtcd(r *rainbondv1alpha1.RbdComponent) []interface{} {
 	}
 }
 
-func podForEtcd0(rc *rainbondv1alpha1.RbdComponent) interface{} {
+func podForEtcd0(r *rainbondv1alpha1.RbdComponent) interface{} {
 	po := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "etcd0",
-			Namespace: rc.Namespace,
+			Namespace: r.Namespace,
 			Labels: map[string]string{
 				"app":       "etcd",
 				"etcd_node": "etcd0",
@@ -31,7 +31,7 @@ func podForEtcd0(rc *rainbondv1alpha1.RbdComponent) interface{} {
 			Containers: []corev1.Container{
 				{
 					Name:            "etcd0",
-					Image:           "quay.io/coreos/etcd:latest",
+					Image:           r.Spec.Image,
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Command: []string{
 						"/usr/local/bin/etcd",

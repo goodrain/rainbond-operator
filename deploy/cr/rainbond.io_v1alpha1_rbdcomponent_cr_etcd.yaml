@@ -1,8 +1,7 @@
 apiVersion: rainbond.io/v1alpha1
 kind: RbdComponent
 metadata:
-  name: rbd-api
+  name: rbd-etcd
   namespace: rbd-system
 spec:
-  type: rbd-api
-  version: V5.2-dev
+  image: "quay.io/coreos/etcd:latest"
