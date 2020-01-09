@@ -45,16 +45,12 @@ func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *model.GlobalConfigs)
 	return err
 }
 
-func (cc *GlobalConfigUseCaseImpl) getSuffixHTTPHost(iip string) (domain string, err error) {
-	if iip == "" {
-		return "", fmt.Errorf("can't generate suffix http host by gateway nodes, please select gateway node ")
-	}
-
+func (cc *GlobalConfigUseCaseImpl) getSuffixHTTPHost(ip string) (domain string, err error) {
 	id, auth, err := cc.getOrCreateUUIDAndAuth()
 	if err != nil {
 		return "", err
 	}
-	domain, err = suffixdomain.GenerateDomain(iip, id, auth)
+	domain, err = suffixdomain.GenerateDomain(ip, id, auth)
 	if err != nil {
 		return "", err
 	}
@@ -70,11 +66,8 @@ func (cc *GlobalConfigUseCaseImpl) getOrCreateUUIDAndAuth() (id, auth string, er
 		return "", "", err
 	}
 	if k8sErrors.IsNotFound(err) {
-		logrus.Warningf("not found configmap, create it")
-		cm, err = generateSuffixConfigMap(cc.cfg.SuffixHTTPHost, cc.cfg.Namespace)
-		if err != nil {
-			return "", "", err
-		}
+		logrus.Info("not found configmap, create it")
+		cm = generateSuffixConfigMap(cc.cfg.SuffixHTTPHost, cc.cfg.Namespace)
 		if _, err = cc.cfg.KubeClient.CoreV1().ConfigMaps(cc.cfg.Namespace).Create(cm); err != nil {
 			return "", "", err
 		}
@@ -83,7 +76,7 @@ func (cc *GlobalConfigUseCaseImpl) getOrCreateUUIDAndAuth() (id, auth string, er
 	return cm.Data["uuid"], cm.Data["auth"], nil
 }
 
-func generateSuffixConfigMap(name, namespace string) (*corev1.ConfigMap, error) {
+func generateSuffixConfigMap(name, namespace string) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -94,12 +87,12 @@ func generateSuffixConfigMap(name, namespace string) (*corev1.ConfigMap, error) 
 			"auth": string(uuid.NewUUID()),
 		},
 	}
-	return cm, nil
+	return cm
 }
 
 func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.RainbondCluster) (*model.GlobalConfigs, error) {
 	clusterInfo := &model.GlobalConfigs{}
-	if source == nil {
+	if source == nil { // validate date from kubernetes, can't be empty
 		return clusterInfo, nil
 	}
 	if source.Spec.ImageHub != nil {
@@ -270,10 +263,6 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 			clusterInfo.Spec.SuffixHTTPHost = "pass.grapps.cn" // example domain from ansible
 		}
 	} else {
-		clusterInfo.Spec.GatewayNodes = []v1alpha1.NodeAvailPorts{v1alpha1.NodeAvailPorts{NodeIP: "192.168.2.203"}}
-		if len(clusterInfo.Spec.GatewayNodes) == 0 {
-			return nil, fmt.Errorf("please select gatewayNode")
-		}
 		domain, err := cc.getSuffixHTTPHost(clusterInfo.Spec.GatewayNodes[0].NodeIP)
 		if err != nil {
 			return nil, fmt.Errorf("get suffix domain error: %s", err.Error())
