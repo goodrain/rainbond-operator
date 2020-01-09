@@ -44,8 +44,6 @@ func daemonSetForAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					HostNetwork: true,
-					DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",
@@ -56,7 +54,7 @@ func daemonSetForAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 						{
 							Name:            rbdAPIName,
 							Image:           r.Spec.Image,
-							ImagePullPolicy: corev1.PullIfNotPresent,                 // TODO: custom
+							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_IP",
@@ -153,6 +151,9 @@ func secretForAPI(rc *rainbondv1alpha1.RbdComponent) interface{} {
 			"server.pem":     pem,
 			"server.key.pem": key,
 			"ca.pem":         caPem,
+			"cert_file":      pem,
+			"key_file":       key,
+			"ssl_ca_cert":    caPem,
 			"tls.crt":        pem,
 			"tls.key":        key,
 		},
