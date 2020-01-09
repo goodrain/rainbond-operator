@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -44,71 +45,56 @@ func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *model.GlobalConfigs)
 	return err
 }
 
-func (cc *GlobalConfigUseCaseImpl) getOrCreateSuffixHTTPHost(iip string) (domain string, err error) {
+func (cc *GlobalConfigUseCaseImpl) getSuffixHTTPHost(iip string) (domain string, err error) {
 	if iip == "" {
 		return "", fmt.Errorf("can't generate suffix http host by gateway nodes, please select gateway node ")
 	}
+
+	id, auth, err := cc.getOrCreateUUIDAndAuth()
+	if err != nil {
+		return "", err
+	}
+	domain, err = suffixdomain.GenerateDomain(iip, id, auth)
+	if err != nil {
+		return "", err
+	}
+	if !strings.HasSuffix(domain, "grapps.cn") {
+		return "", fmt.Errorf("get suffix http host failure")
+	}
+	return domain, nil
+}
+
+func (cc *GlobalConfigUseCaseImpl) getOrCreateUUIDAndAuth() (id, auth string, err error) {
 	cm, err := cc.cfg.KubeClient.CoreV1().ConfigMaps(cc.cfg.Namespace).Get(cc.cfg.SuffixHTTPHost, metav1.GetOptions{})
 	if err != nil && !k8sErrors.IsNotFound(err) {
-		return "", err
+		return "", "", err
 	}
 	if k8sErrors.IsNotFound(err) {
 		logrus.Warningf("not found configmap, create it")
-		cm, err = generateSuffixConfigMap(iip, cc.cfg.SuffixHTTPHost, cc.cfg.Namespace)
+		cm, err = generateSuffixConfigMap(cc.cfg.SuffixHTTPHost, cc.cfg.Namespace)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		if _, err = cc.cfg.KubeClient.CoreV1().ConfigMaps(cc.cfg.Namespace).Create(cm); err != nil {
-			return "", err
+			return "", "", err
 		}
-	}
-	ok := false
-	if domain, ok = cm.Data["domain"]; ok {
-		if domain != "" {
-			return domain, nil
-		}
-	}
-	logrus.Warningf("domain not found in configmap, generate it")
-	newCM, err := generateSuffixConfigMap(iip, cc.cfg.SuffixHTTPHost, cc.cfg.Namespace)
-	if err != nil {
-		return "", err
-	}
-	newCM.ResourceVersion = cm.ResourceVersion
-	if _, err = cc.cfg.KubeClient.CoreV1().ConfigMaps(cc.cfg.Namespace).Update(newCM); err != nil {
-		return "", err
-	}
 
-	return newCM.Data["domain"], nil
+	}
+	return cm.Data["uuid"], cm.Data["auth"], nil
 }
 
-func generateSuffixConfigMap(iip, name, namespace string) (*corev1.ConfigMap, error) {
-	data, err := generateSuffixDomainInfo(iip)
-	if err != nil {
-		return nil, err
-	}
+func generateSuffixConfigMap(name, namespace string) (*corev1.ConfigMap, error) {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Data: data,
+		Data: map[string]string{
+			"uuid": string(uuid.NewUUID()),
+			"auth": string(uuid.NewUUID()),
+		},
 	}
 	return cm, nil
-}
-
-func generateSuffixDomainInfo(iip string) (map[string]string, error) {
-	data := make(map[string]string)
-	id := string(uuid.NewUUID())
-	secretKey := string(uuid.NewUUID())
-	domain, err := suffixdomain.GenerateDomain(iip, id, secretKey)
-	if err != nil {
-		return nil, err
-	}
-	data["iip"] = iip
-	data["uuid"] = id
-	data["auth"] = secretKey
-	data["domain"] = domain
-	return data, nil
 }
 
 func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.RainbondCluster) (*model.GlobalConfigs, error) {
@@ -284,10 +270,11 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 			clusterInfo.Spec.SuffixHTTPHost = "pass.grapps.cn" // example domain from ansible
 		}
 	} else {
+		clusterInfo.Spec.GatewayNodes = []v1alpha1.NodeAvailPorts{v1alpha1.NodeAvailPorts{NodeIP: "192.168.2.203"}}
 		if len(clusterInfo.Spec.GatewayNodes) == 0 {
 			return nil, fmt.Errorf("please select gatewayNode")
 		}
-		domain, err := cc.getOrCreateSuffixHTTPHost(clusterInfo.Spec.GatewayNodes[0].NodeIP)
+		domain, err := cc.getSuffixHTTPHost(clusterInfo.Spec.GatewayNodes[0].NodeIP)
 		if err != nil {
 			return nil, fmt.Errorf("get suffix domain error: %s", err.Error())
 		}
