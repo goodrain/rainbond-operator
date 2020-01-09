@@ -103,3 +103,13 @@ type InstallStatus struct {
 	Progress int    `json:"progress"`
 	Message  string `json:"message"`
 }
+
+// SuffixHTTPHost suffix http host
+type SuffixHTTPHost struct {
+	IIP       string `json:"iip"`
+	VIP       string `json:"vip"`
+	UUID      string `json:"uuid"`
+	SecretKey string `json:"secretKey"`
+	Domain    string `json:"domain"`
+	API       string `json:"api"`
+}
