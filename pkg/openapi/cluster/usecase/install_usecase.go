@@ -8,6 +8,7 @@ import (
 
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/openapi/customerror"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
 
 	"github.com/sirupsen/logrus"
@@ -87,7 +88,7 @@ func (ic *InstallUseCaseImpl) Install() error {
 		// step 2 download archive
 		if err := downloadFile(ic.cfg.ArchiveFilePath, ""); err != nil {
 			logrus.Errorf("download rainbond file error: %s", err.Error())
-			return fmt.Errorf("download rainbond.tar error, please try again or upload it using /uploads")
+			return customerror.NewDownLoadError("download rainbond.tar error, please try again or upload it using /uploads")
 		}
 
 	} else {

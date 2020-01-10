@@ -7,6 +7,7 @@ import (
 	"github.com/GLYASAI/rainbond-operator/pkg/util/corsutil"
 
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster"
+	"github.com/GLYASAI/rainbond-operator/pkg/openapi/customerror"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
 	"github.com/gin-gonic/gin"
 )
@@ -82,7 +83,11 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 // Install install
 func (cc *ClusterController) Install(c *gin.Context) {
 	if err := cc.clusterCase.Install().Install(); err != nil { // TODO fanyangyang can't download rainbond file filter and return download URL
-		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		if downloadError, ok := err.(*customerror.DownLoadError); ok {
+			c.JSON(downloadError.Code, map[string]interface{}{"code": downloadError.Code, "msg": downloadError.Msg})
+		} else {
+			c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
