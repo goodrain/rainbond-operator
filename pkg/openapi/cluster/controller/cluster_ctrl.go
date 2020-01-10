@@ -1,9 +1,10 @@
 package controller
 
 import (
-	"github.com/GLYASAI/rainbond-operator/pkg/util/corsutil"
 	"net/http"
 	"strings"
+
+	"github.com/GLYASAI/rainbond-operator/pkg/util/corsutil"
 
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
@@ -27,9 +28,7 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 	u := &ClusterController{clusterCase: clusterCase}
 
 	clusterEngine := g.Group("/cluster")
-
-	// config
-	// configEngine := clusterEngine.Group("/configs")
+	clusterEngine.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
 	clusterEngine.GET("/configs", corsMidle(u.Configs))
 	clusterEngine.PUT("/configs", corsMidle(u.UpdateConfig))
 
