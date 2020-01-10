@@ -37,13 +37,14 @@ func daemonSetForChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "rainbond-operator",
-					HostNetwork:        true,
-					DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",
 							Effect: corev1.TaintEffectNoSchedule,
 						},
+					},
+					NodeSelector: map[string]string{
+						"node-role.kubernetes.io/master": "",
 					},
 					Containers: []corev1.Container{
 						{
@@ -82,6 +83,9 @@ func daemonSetForChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
 								{
 									Name:      "dockersock",
 									MountPath: "/var/run/docker.sock",
+								}, {
+									Name:      "cache",
+									MountPath: "/cache",
 								},
 							},
 						},
@@ -101,6 +105,15 @@ func daemonSetForChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: "/var/run/docker.sock",
 									Type: k8sutil.HostPath(corev1.HostPathFile),
+								},
+							},
+						},
+						{
+							Name: "cache",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/cache",
+									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 								},
 							},
 						},

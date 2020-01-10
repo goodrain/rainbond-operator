@@ -46,6 +46,7 @@ func init() {
 		"rbd-mq":              resourcesForMQ,
 		"rbd-dns":             resourcesForDNS,
 		"rbd-nfs-provisioner": resourcesForNFSProvisioner,
+		"rbd-repo":            resourcesForRepo,
 	}
 }
 

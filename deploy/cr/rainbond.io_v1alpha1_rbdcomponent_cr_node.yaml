@@ -4,4 +4,4 @@ metadata:
   name: rbd-node
   namespace: rbd-system
 spec:
-  image: rainbond/rbd-node:V5.2-dev
+  image: abewang/rbd-node:V5.2-dev

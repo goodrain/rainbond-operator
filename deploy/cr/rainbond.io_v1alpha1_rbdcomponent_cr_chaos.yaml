@@ -4,4 +4,4 @@ metadata:
   name: rbd-chaos
   namespace: rbd-system
 spec:
-  image: rainbond/rbd-chaos:V5.2-dev
+  image: goodrain.me/rbd-chaos:V5.2-dev

@@ -4,4 +4,4 @@ metadata:
   name: rbd-eventlog
   namespace: rbd-system
 spec:
-  image: rainbond/rbd-eventlog:V5.2-dev
+  image: goodrain.me/rbd-eventlog:V5.2-dev

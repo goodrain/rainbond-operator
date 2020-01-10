@@ -4,4 +4,4 @@ metadata:
   name: rbd-app-ui
   namespace: rbd-system
 spec:
-  image: rainbond/rbd-app-ui:V5.2-dev
+  image: goodrain.me/rbd-app-ui:V5.2-dev

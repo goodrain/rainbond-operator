@@ -4,4 +4,4 @@ metadata:
   name: rbd-dns
   namespace: rbd-system
 spec:
-  image: rainbond/rbd-dns:V5.2-dev
+  image: goodrain.me/rbd-dns:5.1.0
