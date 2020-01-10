@@ -44,7 +44,7 @@ func daemonSetForGateway(r *rainbondv1alpha1.RbdComponent) interface{} {
 						},
 					},
 					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "", // TODO: not serious
+						"node-role.kubernetes.io/master": "",
 					},
 					Containers: []corev1.Container{
 						{

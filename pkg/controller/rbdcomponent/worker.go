@@ -35,11 +35,20 @@ func daemonSetForWorker(r *rainbondv1alpha1.RbdComponent) interface{} {
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "rainbond-operator",
+					Tolerations: []corev1.Toleration{
+						{
+							Key:    "node-role.kubernetes.io/master",
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					},
+					NodeSelector: map[string]string{
+						"node-role.kubernetes.io/master": "",
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            rbdWorkerName,
 							Image:           r.Spec.Image,
-							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_IP",

@@ -21,7 +21,7 @@ func daemonSetForMonitor(r *rainbondv1alpha1.RbdComponent) interface{} {
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      monitorName,
-			Namespace: r.Namespace, // TODO: can use custom namespace?
+			Namespace: r.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -34,6 +34,15 @@ func daemonSetForMonitor(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					Tolerations: []corev1.Toleration{
+						{
+							Key:    "node-role.kubernetes.io/master",
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					},
+					NodeSelector: map[string]string{
+						"node-role.kubernetes.io/master": "",
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            monitorName,

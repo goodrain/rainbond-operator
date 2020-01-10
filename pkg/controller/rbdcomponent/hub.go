@@ -45,6 +45,15 @@ func daemonSetForHub(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					Tolerations: []corev1.Toleration{
+						{
+							Key:    "node-role.kubernetes.io/master",
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					},
+					NodeSelector: map[string]string{
+						"node-role.kubernetes.io/master": "",
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            "rbd-hub",

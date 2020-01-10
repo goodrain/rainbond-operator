@@ -21,7 +21,7 @@ func daemonSetForEventLog(r *rainbondv1alpha1.RbdComponent) interface{} {
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rbdEventLogName,
-			Namespace: r.Namespace, // TODO: can use custom namespace?
+			Namespace: r.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -68,7 +68,7 @@ func daemonSetForEventLog(r *rainbondv1alpha1.RbdComponent) interface{} {
 									Value: "7",
 								},
 							},
-							Args: []string{ // TODO: huangrh
+							Args: []string{
 								"--cluster.bind.ip=$(POD_IP)",
 								"--cluster.instance.ip=$(POD_IP)",
 								"--db.url=root:rainbond@tcp(rbd-db:3306)/region",

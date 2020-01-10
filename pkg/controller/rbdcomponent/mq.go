@@ -35,6 +35,15 @@ func daemonSetForMQ(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					Tolerations: []corev1.Toleration{
+						{
+							Key:    "node-role.kubernetes.io/master",
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					},
+					NodeSelector: map[string]string{
+						"node-role.kubernetes.io/master": "",
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            mqName,
@@ -51,7 +60,7 @@ func daemonSetForMQ(r *rainbondv1alpha1.RbdComponent) interface{} {
 								},
 							},
 							Args: []string{
-								"--log-level=",
+								"--log-level=" + string(r.Spec.LogLevel),
 								"--etcd-endpoints=http://etcd0:2379",
 								"--hostIP=$(POD_IP)",
 							},

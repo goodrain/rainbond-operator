@@ -43,6 +43,9 @@ func daemonSetForDNS(r *rainbondv1alpha1.RbdComponent) interface{} {
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
+					NodeSelector: map[string]string{
+						"node-role.kubernetes.io/master": "",
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            rbdDNSName,

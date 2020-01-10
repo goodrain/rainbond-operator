@@ -50,11 +50,14 @@ func daemonSetForAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
+					NodeSelector: map[string]string{
+						"node-role.kubernetes.io/master": "",
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            rbdAPIName,
 							Image:           r.Spec.Image,
-							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_IP",
@@ -69,7 +72,7 @@ func daemonSetForAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 									Value: "foobar.grapps.cn", // TODO: huangrh
 								},
 							},
-							Args: []string{ // TODO: huangrh
+							Args: []string{
 								"--api-addr-ssl=0.0.0.0:8443",
 								"--api-addr=$(POD_IP):8888",
 								"--log-level=debug",
