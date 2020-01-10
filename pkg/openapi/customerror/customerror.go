@@ -8,7 +8,7 @@ type DownLoadError struct {
 
 // NewDownLoadError new dowload error
 func NewDownLoadError(msg string) *DownLoadError {
-	return &DownLoadError{Code: 400, Msg: msg}
+	return &DownLoadError{Code: 1001, Msg: msg}
 }
 
 // Error error

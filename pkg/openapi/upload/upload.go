@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/GLYASAI/rainbond-operator/pkg/util/corsutil"
 	"github.com/gin-gonic/gin"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -15,10 +16,18 @@ type Controller struct {
 	archiveFilePath string
 }
 
+var corsMidle = func(f gin.HandlerFunc) gin.HandlerFunc {
+	return gin.HandlerFunc(func(ctx *gin.Context) {
+		corsutil.SetCORS(ctx)
+		f(ctx)
+	})
+}
+
 // NewUploadController creates a new k8s controller
 func NewUploadController(g *gin.Engine, archiveFilePath string) {
 	u := &Controller{archiveFilePath: archiveFilePath}
-	g.POST("/uploads", u.Upload)
+	g.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
+	g.POST("/uploads", corsMidle(u.Upload))
 }
 
 // Upload upload file

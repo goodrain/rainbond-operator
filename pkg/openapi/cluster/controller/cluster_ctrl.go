@@ -84,7 +84,7 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 func (cc *ClusterController) Install(c *gin.Context) {
 	if err := cc.clusterCase.Install().Install(); err != nil { // TODO fanyangyang can't download rainbond file filter and return download URL
 		if downloadError, ok := err.(*customerror.DownLoadError); ok {
-			c.JSON(downloadError.Code, map[string]interface{}{"code": downloadError.Code, "msg": downloadError.Msg})
+			c.JSON(http.StatusOK, map[string]interface{}{"code": downloadError.Code, "msg": downloadError.Msg})
 		} else {
 			c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		}
