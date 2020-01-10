@@ -126,20 +126,21 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 		clusterInfo.EtcdConfig = model.EtcdConfig{
 			Endpoints: source.Spec.EtcdConfig.Endpoints,
 			UseTLS:    source.Spec.EtcdConfig.UseTLS,
+			CertInfo:  model.EtcdCertInfo{},
 		}
 		if source.Spec.EtcdConfig.UseTLS {
 			etcdSecret, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(cc.cfg.EtcdSecretName, metav1.GetOptions{})
 			if err != nil {
 				return nil, err
 			}
-			certInfo := &model.EtcdCertInfo{}
-			clusterInfo.EtcdConfig.CertInfo = certInfo
-			certInfo.CaFile = string(etcdSecret.Data["ca-file"]) // TODO fanyangyang etcd secert data key
-			certInfo.CertFile = string(etcdSecret.Data["cert-file"])
-			certInfo.KeyFile = string(etcdSecret.Data["key-file"])
+			clusterInfo.EtcdConfig.CertInfo = model.EtcdCertInfo{
+				CaFile:   string(etcdSecret.Data["ca-file"]),
+				CertFile: string(etcdSecret.Data["cert-file"]),
+				KeyFile:  string(etcdSecret.Data["key-file"]),
+			}
 		}
 	} else {
-		clusterInfo.EtcdConfig = model.EtcdConfig{Default: true}
+		clusterInfo.EtcdConfig = model.EtcdConfig{Default: true, CertInfo: model.EtcdCertInfo{}}
 	}
 	gatewayNodes := make([]model.GatewayNode, 0)
 	allNode := make(map[string]model.GatewayNode)
@@ -148,14 +149,19 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 			allNode[node.NodeIP] = model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports}
 		}
 	}
-	if len(allNode) > 0 && source.Spec.GatewayNodes != nil {
-		for _, node := range source.Spec.GatewayNodes {
-			selected := false
-			if _, ok := allNode[node.NodeIP]; ok {
-				selected = true
-			} else {
+	if len(allNode) > 0 {
+		if source.Spec.GatewayNodes != nil {
+			for _, node := range source.Spec.GatewayNodes {
+				selected := false
+				if _, ok := allNode[node.NodeIP]; ok {
+					selected = true
+				}
+				gatewayNodes = append(gatewayNodes, model.GatewayNode{Selected: selected, NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports})
 			}
-			gatewayNodes = append(gatewayNodes, model.GatewayNode{Selected: selected, NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports})
+		} else {
+			for _, node := range allNode {
+				gatewayNodes = append(gatewayNodes, model.GatewayNode{Selected: false, NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports})
+			}
 		}
 	}
 
@@ -228,7 +234,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 			Endpoints: source.EtcdConfig.Endpoints,
 			UseTLS:    source.EtcdConfig.UseTLS,
 		}
-		if source.EtcdConfig.UseTLS && source.EtcdConfig.CertInfo != nil {
+		if source.EtcdConfig.UseTLS {
 			if err := cc.updateOrCreateEtcdCertInfo(source.EtcdConfig.CertInfo); err != nil {
 				return nil, err
 			}
@@ -286,7 +292,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 }
 
 //TODO generate test case
-func (cc *GlobalConfigUseCaseImpl) updateOrCreateEtcdCertInfo(certInfo *model.EtcdCertInfo) error {
+func (cc *GlobalConfigUseCaseImpl) updateOrCreateEtcdCertInfo(certInfo model.EtcdCertInfo) error {
 	old, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(cc.cfg.EtcdSecretName, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
