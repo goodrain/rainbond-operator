@@ -17,6 +17,7 @@ func resourcesForDB(r *rainbondv1alpha1.RbdComponent) []interface{} {
 		statefulsetForDB(r),
 		serviceForDB(r),
 		configMapForDB(r),
+		initdbCMForDB(r),
 	}
 }
 
@@ -64,6 +65,10 @@ func statefulsetForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
 									MountPath: "/etc/mysql/conf.d/mysql.cnf",
 									SubPath:   "mysql.cnf",
 								},
+								{
+									Name:      "initdb",
+									MountPath: "/docker-entrypoint-initdb.d",
+								},
 							},
 						},
 					},
@@ -89,6 +94,16 @@ func statefulsetForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
 											Key:  "mysql.cnf",
 											Path: "mysql.cnf",
 										},
+									},
+								},
+							},
+						},
+						{
+							Name: "initdb",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "rbd-db-initdb",
 									},
 								},
 							},
@@ -150,6 +165,20 @@ character-set-server  = utf8
 collation-server      = utf8_general_ci
 character_set_server   = utf8
 collation_server       = utf8_general_ci`,
+		},
+	}
+
+	return cm
+}
+
+func initdbCMForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rbd-db-initdb",
+			Namespace: r.Namespace,
+		},
+		Data: map[string]string{
+			"initdb.sql": "CREATE DATABASE console;",
 		},
 	}
 
