@@ -4,4 +4,4 @@ metadata:
   name: rbd-api
   namespace: rbd-system
 spec:
-  image: rainbond/rbd-api:V5.2-dev
+  image: abewang/rbd-api:V5.2-dev

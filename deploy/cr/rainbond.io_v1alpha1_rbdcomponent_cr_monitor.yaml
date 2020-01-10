@@ -4,4 +4,4 @@ metadata:
   name: rbd-monitor
   namespace: rbd-system
 spec:
-  image: rainbond/rbd-monitor:V5.2-dev
+  image: goodrain.me/rbd-monitor:V5.2-dev

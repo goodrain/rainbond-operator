@@ -4,4 +4,4 @@ metadata:
   name: rbd-gateway
   namespace: rbd-system
 spec:
-  image: rainbond/rbd-gateway:V5.2-dev
+  image: abewang/rbd-gateway:V5.2-dev

@@ -4,4 +4,4 @@ metadata:
   name: rbd-worker
   namespace: rbd-system
 spec:
-  image: rainbond/rbd-worker:V5.2-dev
+  image: goodrain.me/rbd-worker:V5.2-dev
