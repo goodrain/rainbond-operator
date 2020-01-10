@@ -100,6 +100,9 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 								{
 									Name:      "docker", // for container logs
 									MountPath: "/var/lib/docker",
+								},{
+									Name:      "dockercert", // for container logs
+									MountPath: "/etc/docker/certs.d",
 								},
 							},
 						},
@@ -137,6 +140,14 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: "/var/lib/docker",
 									Type: k8sutil.HostPath(corev1.HostPathDirectory),
+								},
+							},
+						},{
+							Name: "dockercert",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/etc/docker/certs.d",
+									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 								},
 							},
 						},

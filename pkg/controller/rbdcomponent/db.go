@@ -42,7 +42,7 @@ func statefulsetForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            rbdDBName,
-							Image:           "goodrain.me/mysql:5.7.14",
+							Image:           r.Spec.Image,
 							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
@@ -112,6 +112,7 @@ func serviceForDB(rc *rainbondv1alpha1.RbdComponent) interface{} {
 			},
 		},
 		Spec: corev1.ServiceSpec{
+			ClusterIP: "None",
 			Ports: []corev1.ServicePort{
 				{
 					Name: "main",

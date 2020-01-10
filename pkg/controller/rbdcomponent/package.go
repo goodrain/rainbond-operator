@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -24,6 +25,10 @@ func handleRainbondPackage(client runtimecli.Client, rainbondcluster *rainbondv1
 	reqLogger.Info("Handle rainbond images package")
 
 	// TODO: check if rainbondcluster status is nil
+
+	if condition := findCondition(rainbondcluster, rainbondv1alpha1.ImageRepositoryInstalled); condition.Status != rainbondv1alpha1.ConditionTrue {
+		return errors.New("Image repository not ready")
+	}
 
 	pkgDir := path.Join(dst, strings.Replace(path.Base(pkgFile), ".tgz", "", -1))
 
