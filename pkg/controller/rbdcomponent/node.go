@@ -72,12 +72,12 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 									Value: "rbd-hub-goodrain.me",
 								},
 							},
-							Args: []string{ // TODO: huangrh
+							Args: []string{
 								"--log-level=debug",
 								"--etcd=http://etcd0:2379",
 								"--hostIP=$(POD_IP)",
 								"--run-mode master",
-								"--noderule manage",
+								"--noderule manage,compute", // TODO: Let rbd-node recognize itself
 								"--nodeid=$(NODE_NAME)",
 							},
 							VolumeMounts: []corev1.VolumeMount{
@@ -94,8 +94,12 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 									MountPath: "/sys",
 								},
 								{
-									Name:      "docker",
-									MountPath: "/etc/docker",
+									Name:      "dockersock",
+									MountPath: "/var/run/docker.sock",
+								},
+								{
+									Name:      "docker", // for container logs
+									MountPath: "/var/lib/docker",
 								},
 							},
 						},
@@ -131,8 +135,17 @@ func daemonSetForRainbondNode(r *rainbondv1alpha1.RbdComponent) interface{} {
 							Name: "docker",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/etc/docker",
+									Path: "/var/lib/docker",
 									Type: k8sutil.HostPath(corev1.HostPathDirectory),
+								},
+							},
+						},
+						{
+							Name: "dockersock",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/var/run/docker.sock",
+									Type: k8sutil.HostPath(corev1.HostPathFile),
 								},
 							},
 						},

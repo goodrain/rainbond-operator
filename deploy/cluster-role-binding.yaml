@@ -5,8 +5,8 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: rainbond-operator
+  name: cluster-admin
 subjects:
-- kind: ServiceAccount
-  name: rainbond-operator
-  namespace: rbd-system
+  - kind: ServiceAccount
+    name: rainbond-operator
+    namespace: rbd-system

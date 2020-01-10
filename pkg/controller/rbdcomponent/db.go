@@ -17,18 +17,19 @@ func resourcesForDB(r *rainbondv1alpha1.RbdComponent) []interface{} {
 		statefulsetForDB(r),
 		serviceForDB(r),
 		configMapForDB(r),
+		initdbCMForDB(r),
 	}
 }
 
 func statefulsetForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
 	labels := r.Labels()
-	sts := &appsv1.Deployment{
+	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rbdDBName,
 			Namespace: r.Namespace, // TODO: can use custom namespace?
 			Labels:    labels,
 		},
-		Spec: appsv1.DeploymentSpec{
+		Spec: appsv1.StatefulSetSpec{
 			Replicas: commonutil.Int32(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
@@ -64,6 +65,10 @@ func statefulsetForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
 									MountPath: "/etc/mysql/conf.d/mysql.cnf",
 									SubPath:   "mysql.cnf",
 								},
+								{
+									Name:      "initdb",
+									MountPath: "/docker-entrypoint-initdb.d",
+								},
 							},
 						},
 					},
@@ -71,7 +76,7 @@ func statefulsetForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
 						{
 							Name: "rbd-db-data",
 							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{ // TODO(hangrh): use local volume
 									Path: "/opt/rainbond/data/db",
 									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 								},
@@ -89,6 +94,16 @@ func statefulsetForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
 											Key:  "mysql.cnf",
 											Path: "mysql.cnf",
 										},
+									},
+								},
+							},
+						},
+						{
+							Name: "initdb",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "rbd-db-initdb",
 									},
 								},
 							},
@@ -149,6 +164,20 @@ character-set-server  = utf8
 collation-server      = utf8_general_ci
 character_set_server   = utf8
 collation_server       = utf8_general_ci`,
+		},
+	}
+
+	return cm
+}
+
+func initdbCMForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rbd-db-initdb",
+			Namespace: r.Namespace,
+		},
+		Data: map[string]string{
+			"initdb.sql": "CREATE DATABASE console;",
 		},
 	}
 

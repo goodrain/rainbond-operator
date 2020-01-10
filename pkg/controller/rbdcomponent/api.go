@@ -44,8 +44,6 @@ func daemonSetForAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					HostNetwork: true,
-					DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",
@@ -56,7 +54,7 @@ func daemonSetForAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 						{
 							Name:            rbdAPIName,
 							Image:           r.Spec.Image,
-							ImagePullPolicy: corev1.PullIfNotPresent,                 // TODO: custom
+							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_IP",
@@ -76,10 +74,7 @@ func daemonSetForAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 								"--api-addr=$(POD_IP):8888",
 								"--log-level=debug",
 								"--mysql=root:rainbond@tcp(rbd-db:3306)/region",
-								"--api-ssl-enable=true",
-								"--api-ssl-certfile=/etc/goodrain/region.goodrain.me/ssl/server.pem",
-								"--api-ssl-keyfile=/etc/goodrain/region.goodrain.me/ssl/server.key.pem",
-								"--client-ca-file=/etc/goodrain/region.goodrain.me/ssl/ca.pem",
+								"--api-ssl-enable=false",
 								"--etcd=http://etcd0:2379",
 							},
 							VolumeMounts: []corev1.VolumeMount{
@@ -87,10 +82,22 @@ func daemonSetForAPI(r *rainbondv1alpha1.RbdComponent) interface{} {
 									Name:      "ssl",
 									MountPath: "/etc/goodrain/region.goodrain.me/ssl",
 								},
+								{
+									Name:      "grdata",
+									MountPath: "/grdata",
+								},
 							},
 						},
 					},
 					Volumes: []corev1.Volume{
+						{
+							Name: "grdata",
+							VolumeSource: corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: "grdata",
+								},
+							},
+						},
 						{
 							Name: "ssl",
 							VolumeSource: corev1.VolumeSource{
@@ -153,6 +160,9 @@ func secretForAPI(rc *rainbondv1alpha1.RbdComponent) interface{} {
 			"server.pem":     pem,
 			"server.key.pem": key,
 			"ca.pem":         caPem,
+			"cert_file":      pem,
+			"key_file":       key,
+			"ssl_ca_cert":    caPem,
 			"tls.crt":        pem,
 			"tls.key":        key,
 		},
