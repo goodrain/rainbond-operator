@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -19,39 +20,49 @@ var (
 	version                    = "V5.2-dev"
 	defaultRainbondDownloadURL = "192.168.2.222" // TODO fanyangyang download url
 	defaultRainbondFilePath    = "/opt/rainbond/rainbond.tar"
-	componentClaims            = make([]string, 0)
+
+	componentClaims []componentClaim
 )
 
 type componentClaim struct {
 	namespace string
 	name      string
 	version   string
+	image     string
+}
+
+func (c *componentClaim) getImage() string {
+	return fmt.Sprintf("%s/%s:%s", c.namespace, c.name, c.version)
 }
 
 func init() {
-	componentClaims = append(componentClaims, "rbd-app-ui")
-	componentClaims = append(componentClaims, "rbd-api")
-	componentClaims = append(componentClaims, "rbd-worker")
-	componentClaims = append(componentClaims, "rbd-webcli")
-	componentClaims = append(componentClaims, "rbd-gateway")
-	componentClaims = append(componentClaims, "rbd-monitor")
-	componentClaims = append(componentClaims, "rbd-repo")
-	componentClaims = append(componentClaims, "rbd-dns")
-	componentClaims = append(componentClaims, "rbd-db")
-	componentClaims = append(componentClaims, "rbd-mq")
-	componentClaims = append(componentClaims, "rbd-chaos")
-	// componentClaims = append(componentClaims, "rbd-storage")
-	componentClaims = append(componentClaims, "rbd-hub")
-	componentClaims = append(componentClaims, "rbd-package")
-	componentClaims = append(componentClaims, "rbd-node")
-	componentClaims = append(componentClaims, "rbd-etcd")
+	componentClaims = []componentClaim{
+		{name: "rbd-api", image: "goodrain.me/rbd-api:V5.2-dev"},
+		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:V5.2-dev"},
+		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:V5.2-dev"},
+		{name: "rbd-db", image: "goodrain.me/mariadb"},
+		{name: "rbd-dns", image: "goodrain.me/rbd-dns:5.1.0"},
+		{name: "rbd-etcd", image: "quay.io/coreos/etcd:latest"},
+		{name: "rbd-eventlog", image: "goodrain.me/rbd-eventlog:V5.2-dev"},
+		{name: "rbd-gateway", image: "abewang/rbd-gateway:V5.2-dev"},
+		{name: "rbd-hub", image: "rainbond/rbd-registry:2.6.2"},
+		{name: "rbd-monitor", image: "goodrain.me/rbd-monitor:V5.2-dev"},
+		{name: "rbd-mq", image: "goodrain.me/rbd-mq:V5.2-dev"},
+		{name: "rbd-nfs-provisioner", image: "abewang/nfs-provisioner:v2.2.1-k8s1.12"},
+		{name: "rbd-node", image: "abewang/rbd-node:V5.2-dev"},
+		{name: "rbd-package", image: ""},
+		{name: "rbd-worker", image: "goodrain.me/rbd-worker:V5.2-dev"},
+		{name: "rbd-webcli", image: "goodrain.me/rbd-webcli:V5.2-dev"}, // not now
+		{name: "rbd-repo", image: "goodrain.me/rbd-repo:6.16.0"},
+	}
 }
 
-func parseComponentClaim(claim *componentClaim) *v1alpha1.RbdComponent {
+func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 	component := &v1alpha1.RbdComponent{}
 	component.Namespace = claim.namespace
 	component.Name = claim.name
 	component.Spec.Version = claim.version
+	component.Spec.Image = claim.image
 	component.Spec.LogLevel = "debug"
 	component.Spec.Type = claim.name
 	return component
@@ -69,28 +80,28 @@ func NewInstallUseCase(cfg *option.Config) *InstallUseCaseImpl {
 
 // Install install
 func (ic *InstallUseCaseImpl) Install() error {
-	// // step 1 check if archive is exists or not
-	// if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
-	// 	logrus.Warnf("rainbond archive file does not exists, downloading background ...")
+	// step 1 check if archive is exists or not
+	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
+		logrus.Warnf("rainbond archive file does not exists, downloading background ...")
 
-	// 	// step 2 download archive
-	// 	if err := downloadFile(ic.cfg.ArchiveFilePath, ""); err != nil {
-	// 		logrus.Errorf("download rainbond file error: %s", err.Error())
-	// 		return fmt.Errorf(translate.Translation("download rainbond.tar error, please try again or upload it using /uploads")) // TODO fanyangyang bad smell code, fix it
-	// 	}
+		// step 2 download archive
+		if err := downloadFile(ic.cfg.ArchiveFilePath, ""); err != nil {
+			logrus.Errorf("download rainbond file error: %s", err.Error())
+			return fmt.Errorf("download rainbond.tar error, please try again or upload it using /uploads")
+		}
 
-	// } else {
-	// 	logrus.Debug("rainbond archive file already exits, do not download again")
-	// }
+	} else {
+		logrus.Debug("rainbond archive file already exits, do not download again")
+	}
 
 	// step 3 create custom resource
 	return ic.createComponents(componentClaims...)
 }
 
-func (ic *InstallUseCaseImpl) createComponents(components ...string) error {
+func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) error {
 	for _, rbdComponent := range components {
-		component := &componentClaim{name: rbdComponent, version: version, namespace: ic.cfg.Namespace}
-		data := parseComponentClaim(component)
+		// component := &componentClaim{name: rbdComponent, version: version, namespace: ic.cfg.Namespace}
+		data := parseComponentClaim(rbdComponent)
 		// init component
 		data.Namespace = ic.cfg.Namespace
 		old, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(ic.cfg.Namespace).Get(data.Name, metav1.GetOptions{})
@@ -169,7 +180,7 @@ func stepPrepare(stepName string, conditionType v1alpha1.RainbondClusterConditio
 	case v1alpha1.RainbondClusterWaiting:
 		status = model.InstallStatus{
 			StepName: stepName,
-			Status:  "status_waiting", // TODO fanyangyang waiting
+			Status:   "status_waiting", // TODO fanyangyang waiting
 			Progress: 0,
 			Message:  "",
 		}
@@ -305,7 +316,7 @@ func stepCreateComponent(source *v1alpha1.RainbondClusterStatus) model.InstallSt
 	case v1alpha1.RainbondClusterPending:
 		status = model.InstallStatus{
 			StepName: "step_install_component",
-			Status:  "status_processing",
+			Status:   "status_processing",
 			Progress: 0,
 			Message:  "",
 		}

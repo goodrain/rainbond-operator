@@ -3,6 +3,7 @@ module github.com/GLYASAI/rainbond-operator
 go 1.13
 
 require (
+	cloud.google.com/go v0.38.0
 	github.com/cheggaaa/pb v2.0.7+incompatible
 	github.com/cheggaaa/pb/v3 v3.0.3
 	github.com/coreos/etcd v3.3.15+incompatible
