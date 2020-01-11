@@ -73,6 +73,10 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
+	if len(req.GatewayNodes) == 0 {
+		c.JSON(http.StatusBadRequest, map[string]interface{}{"code": http.StatusBadRequest, "msg": "please select gatenode"})
+		return
+	}
 	if err := cc.clusterCase.GlobalConfigs().UpdateGlobalConfig(req); err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return

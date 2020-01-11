@@ -26,7 +26,6 @@ var corsMidle = func(f gin.HandlerFunc) gin.HandlerFunc {
 // NewUploadController creates a new k8s controller
 func NewUploadController(g *gin.Engine, archiveFilePath string) {
 	u := &Controller{archiveFilePath: archiveFilePath}
-	g.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
 	g.POST("/uploads", corsMidle(u.Upload))
 }
 
