@@ -76,7 +76,7 @@ type EtcdConfig struct {
 	// Whether to use tls to connect to etcd
 	UseTLS bool `json:"useTLS"`
 	// Secret to mount to read certificate files for tls.
-	CertInfo *EtcdCertInfo `json:"certInfo"`
+	CertInfo EtcdCertInfo `json:"certInfo"`
 }
 
 // EtcdCertInfo etcd cert info

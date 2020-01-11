@@ -41,6 +41,13 @@ spec:
               name: rbd-pkg
             - mountPath: /var/run
               name: dockersock
+        - name: rainbond-operator-openapi
+          image: a985850124/rainbond-operator-openapi
+          volumeMounts:
+            - mountPath: /root/.kube/config
+              name: kubecfg
+            - mountPath: /opt/rainbond/pkg
+              name: rbd-pkg
       volumes:
         - name: rbd-pkg
           hostPath:
@@ -50,3 +57,7 @@ spec:
           hostPath:
             path: /var/run
             type: Directory
+        - name: kubecfg
+          hostPath: 
+            path: /root/.kube/config
+            type: File

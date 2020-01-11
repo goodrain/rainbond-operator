@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/cheggaaa/pb"
 	pbv3 "github.com/cheggaaa/pb/v3"
 	"github.com/schollz/progressbar/v2"
@@ -100,4 +101,20 @@ func Test3(t *testing.T) {
 
 	io.Copy(out, resp.Body)
 	t.Logf("-----------------pencent: %v, bytes: %v, all: %v, finisih: %v", bar.State().CurrentPercent, bar.State().CurrentBytes, bar.State().MaxBytes, (bar.State().MaxBytes-int64(bar.State().CurrentBytes)) < 1)
+}
+
+func Test4(t *testing.T) {
+	source := &v1alpha1.RainbondCluster{Status: &v1alpha1.RainbondClusterStatus{}}
+	if source.Status.NodeAvailPorts != nil {
+		for _, node := range source.Status.NodeAvailPorts {
+			t.Logf("%+v", node)
+		}
+	}
+	for _, node := range source.Status.NodeAvailPorts {
+		t.Logf("%+v", node)
+	}
+
+	var ss1 []string
+	ss1 = append(ss1, source.Spec.GatewayIngressIPs...)
+	t.Logf("%+v", ss1)
 }

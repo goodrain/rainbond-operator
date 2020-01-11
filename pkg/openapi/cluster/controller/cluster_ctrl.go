@@ -4,7 +4,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/GLYASAI/rainbond-operator/pkg/util/corsutil"
+
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster"
+	"github.com/GLYASAI/rainbond-operator/pkg/openapi/customerror"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
 	"github.com/gin-gonic/gin"
 )
@@ -14,26 +17,29 @@ type ClusterController struct {
 	clusterCase cluster.IClusterCase
 }
 
+var corsMidle = func(f gin.HandlerFunc) gin.HandlerFunc {
+	return gin.HandlerFunc(func(ctx *gin.Context) {
+		corsutil.SetCORS(ctx)
+		f(ctx)
+	})
+}
+
 // NewClusterController creates a new k8s controller
 func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 	u := &ClusterController{clusterCase: clusterCase}
 
 	clusterEngine := g.Group("/cluster")
-
-	// config
-	configEngine := clusterEngine.Group("/configs")
-	configEngine.GET("/", u.Configs)
-	configEngine.PUT("/", u.UpdateConfig)
+	clusterEngine.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
+	clusterEngine.GET("/configs", corsMidle(u.Configs))
+	clusterEngine.PUT("/configs", corsMidle(u.UpdateConfig))
 
 	// install
-	installEngine := clusterEngine.Group("/install")
-	installEngine.POST("/", u.Install)
-	installEngine.GET("/status", u.InstallStatus)
+	clusterEngine.POST("/install", corsMidle(u.Install))
+	clusterEngine.GET("/install/status", corsMidle(u.InstallStatus))
 
 	// componse
-	componentEngine := clusterEngine.Group("/components")
-	componentEngine.GET("/", u.Components)
-	componentEngine.GET("/:name", u.SingleComponent)
+	clusterEngine.GET("/components", corsMidle(u.Components))
+	clusterEngine.GET("/components/:name", corsMidle(u.SingleComponent))
 }
 
 // Configs get cluster config info
@@ -43,6 +49,7 @@ func (cc *ClusterController) Configs(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": configs})
 }
 
@@ -66,6 +73,10 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
+	if len(req.GatewayNodes) == 0 {
+		c.JSON(http.StatusBadRequest, map[string]interface{}{"code": http.StatusBadRequest, "msg": "please select gatenode"})
+		return
+	}
 	if err := cc.clusterCase.GlobalConfigs().UpdateGlobalConfig(req); err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
@@ -76,7 +87,11 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 // Install install
 func (cc *ClusterController) Install(c *gin.Context) {
 	if err := cc.clusterCase.Install().Install(); err != nil { // TODO fanyangyang can't download rainbond file filter and return download URL
-		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		if downloadError, ok := err.(*customerror.DownLoadError); ok {
+			c.JSON(http.StatusOK, map[string]interface{}{"code": downloadError.Code, "msg": downloadError.Msg})
+		} else {
+			c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})

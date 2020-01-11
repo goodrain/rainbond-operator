@@ -126,52 +126,49 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 		clusterInfo.EtcdConfig = model.EtcdConfig{
 			Endpoints: source.Spec.EtcdConfig.Endpoints,
 			UseTLS:    source.Spec.EtcdConfig.UseTLS,
+			CertInfo:  model.EtcdCertInfo{},
 		}
 		if source.Spec.EtcdConfig.UseTLS {
 			etcdSecret, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(cc.cfg.EtcdSecretName, metav1.GetOptions{})
 			if err != nil {
 				return nil, err
 			}
-			certInfo := &model.EtcdCertInfo{}
-			clusterInfo.EtcdConfig.CertInfo = certInfo
-			certInfo.CaFile = string(etcdSecret.Data["ca-file"]) // TODO fanyangyang etcd secert data key
-			certInfo.CertFile = string(etcdSecret.Data["cert-file"])
-			certInfo.KeyFile = string(etcdSecret.Data["key-file"])
+			clusterInfo.EtcdConfig.CertInfo = model.EtcdCertInfo{
+				CaFile:   string(etcdSecret.Data["ca-file"]),
+				CertFile: string(etcdSecret.Data["cert-file"]),
+				KeyFile:  string(etcdSecret.Data["key-file"]),
+			}
 		}
 	} else {
-		clusterInfo.EtcdConfig = model.EtcdConfig{Default: true}
+		clusterInfo.EtcdConfig = model.EtcdConfig{Default: true, CertInfo: model.EtcdCertInfo{}}
 	}
-	gatewayNodes := make([]model.GatewayNode, 0)
-	allNode := make(map[string]model.GatewayNode)
-	if source.Status != nil && source.Status.NodeAvailPorts != nil {
+	gatewayNodes := make(map[string]model.GatewayNode)
+	allNode := make([]model.GatewayNode, 0)
+	if source.Status != nil {
 		for _, node := range source.Status.NodeAvailPorts {
-			allNode[node.NodeIP] = model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports}
+			allNode = append(allNode, model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports})
 		}
 	}
-	if len(allNode) > 0 && source.Spec.GatewayNodes != nil {
-		for _, node := range source.Spec.GatewayNodes {
-			selected := false
-			if _, ok := allNode[node.NodeIP]; ok {
-				selected = true
-			} else {
-			}
-			gatewayNodes = append(gatewayNodes, model.GatewayNode{Selected: selected, NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports})
+	for _, node := range source.Spec.GatewayNodes {
+		gatewayNodes[node.NodeIP] = model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports}
+	}
+	for i := range allNode {
+		if _, ok := gatewayNodes[allNode[i].NodeIP]; ok {
+			allNode[i].Selected = true
 		}
 	}
 
-	clusterInfo.GatewayNodes = gatewayNodes
-	// model.HTTPDomain{Default: true} // TODO fanyangyang custom http domain
+	clusterInfo.GatewayNodes = allNode
 	if source.Spec.SuffixHTTPHost != "" {
-		httpDomain := model.HTTPDomain{Default: false}
+		httpDomain := model.HTTPDomain{}
 		httpDomain.Domain = append(httpDomain.Domain, source.Spec.SuffixHTTPHost)
 		clusterInfo.HTTPDomain = httpDomain
 	} else {
 		clusterInfo.HTTPDomain = model.HTTPDomain{Default: true}
 	}
 
-	if source.Spec.GatewayIngressIPs != nil {
-		clusterInfo.GatewayIngressIPs = append(clusterInfo.GatewayIngressIPs, source.Spec.GatewayIngressIPs...)
-	}
+	clusterInfo.GatewayIngressIPs = append(clusterInfo.GatewayIngressIPs, source.Spec.GatewayIngressIPs...)
+
 	storage := model.Storage{}
 	if source.Spec.StorageClassName == "" {
 		storage.Default = true
@@ -179,7 +176,7 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 		storage.Default = false
 		storage.StorageClassName = source.Spec.StorageClassName
 	}
-	if source.Status != nil && source.Status.StorageClasses != nil {
+	if source.Status != nil {
 		for _, sc := range source.Status.StorageClasses {
 			storage.Opts = append(storage.Opts, model.StorageOpts{Name: sc.Name, Provisioner: sc.Provisioner})
 		}
@@ -228,7 +225,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 			Endpoints: source.EtcdConfig.Endpoints,
 			UseTLS:    source.EtcdConfig.UseTLS,
 		}
-		if source.EtcdConfig.UseTLS && source.EtcdConfig.CertInfo != nil {
+		if source.EtcdConfig.UseTLS {
 			if err := cc.updateOrCreateEtcdCertInfo(source.EtcdConfig.CertInfo); err != nil {
 				return nil, err
 			}
@@ -237,20 +234,9 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 			clusterInfo.Spec.EtcdConfig.CertSecret = metav1.LabelSelector{}
 		}
 	}
-	allNode := make(map[string]*model.GatewayNode)
-	if old.Status != nil && old.Status.NodeAvailPorts != nil {
-		for _, node := range old.Status.NodeAvailPorts {
-			allNode[node.NodeIP] = &model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports}
-		}
-	}
-	if len(allNode) > 0 && source.GatewayNodes != nil {
-		for _, node := range source.GatewayNodes {
-			if _, ok := allNode[node.NodeIP]; ok {
-				if node.Selected {
-					clusterInfo.Spec.GatewayNodes = append(clusterInfo.Spec.GatewayNodes, v1alpha1.NodeAvailPorts{NodeIP: node.NodeIP})
-				}
-			}
-		}
+
+	for _, node := range source.GatewayNodes {
+		clusterInfo.Spec.GatewayNodes = append(clusterInfo.Spec.GatewayNodes, v1alpha1.NodeAvailPorts{NodeIP: node.NodeIP})
 	}
 
 	if !source.HTTPDomain.Default {
@@ -267,16 +253,9 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 		clusterInfo.Spec.SuffixHTTPHost = domain
 	}
 
-	if source.GatewayIngressIPs != nil {
-		nodeIPs := make(map[string]struct{})
-		for _, ip := range old.Spec.GatewayIngressIPs {
-			nodeIPs[ip] = struct{}{}
-		}
-		for _, ip := range source.GatewayIngressIPs {
-			if _, ok := nodeIPs[ip]; !ok {
-				clusterInfo.Spec.GatewayIngressIPs = append(clusterInfo.Spec.GatewayIngressIPs, ip)
-			}
-		}
+	// must provide all, can't patch
+	for _, ip := range source.GatewayIngressIPs {
+		clusterInfo.Spec.GatewayIngressIPs = append(clusterInfo.Spec.GatewayIngressIPs, ip)
 	}
 
 	if !source.Storage.Default {
@@ -286,7 +265,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 }
 
 //TODO generate test case
-func (cc *GlobalConfigUseCaseImpl) updateOrCreateEtcdCertInfo(certInfo *model.EtcdCertInfo) error {
+func (cc *GlobalConfigUseCaseImpl) updateOrCreateEtcdCertInfo(certInfo model.EtcdCertInfo) error {
 	old, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(cc.cfg.EtcdSecretName, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
