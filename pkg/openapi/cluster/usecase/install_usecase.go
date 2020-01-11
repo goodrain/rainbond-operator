@@ -83,7 +83,7 @@ func NewInstallUseCase(cfg *option.Config) *InstallUseCaseImpl {
 func (ic *InstallUseCaseImpl) Install() error {
 	// step 1 check if archive is exists or not
 	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
-		logrus.Warnf("rainbond archive file does not exists, downloading background ...")
+		logrus.Info("rainbond archive file does not exists, downloading background ...")
 
 		// step 2 download archive
 		if err := downloadFile(ic.cfg.ArchiveFilePath, ""); err != nil {
@@ -91,9 +91,8 @@ func (ic *InstallUseCaseImpl) Install() error {
 			return customerror.NewDownLoadError("download rainbond.tar error, please try again or upload it using /uploads")
 		}
 
-	} else {
-		logrus.Debug("rainbond archive file already exits, do not download again")
 	}
+	logrus.Debug("rainbond archive file already exits")
 
 	// step 3 create custom resource
 	return ic.createComponents(componentClaims...)

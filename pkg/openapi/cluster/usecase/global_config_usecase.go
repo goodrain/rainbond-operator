@@ -144,7 +144,7 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 	}
 	gatewayNodes := make(map[string]model.GatewayNode)
 	allNode := make([]model.GatewayNode, 0)
-	if source.Status != nil && source.Status.NodeAvailPorts != nil {
+	if source.Status != nil {
 		for _, node := range source.Status.NodeAvailPorts {
 			allNode = append(allNode, model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports})
 		}
@@ -167,9 +167,8 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 		clusterInfo.HTTPDomain = model.HTTPDomain{Default: true}
 	}
 
-	if source.Spec.GatewayIngressIPs != nil {
-		clusterInfo.GatewayIngressIPs = append(clusterInfo.GatewayIngressIPs, source.Spec.GatewayIngressIPs...)
-	}
+	clusterInfo.GatewayIngressIPs = append(clusterInfo.GatewayIngressIPs, source.Spec.GatewayIngressIPs...)
+
 	storage := model.Storage{}
 	if source.Spec.StorageClassName == "" {
 		storage.Default = true
@@ -177,7 +176,7 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 		storage.Default = false
 		storage.StorageClassName = source.Spec.StorageClassName
 	}
-	if source.Status != nil && source.Status.StorageClasses != nil {
+	if source.Status != nil {
 		for _, sc := range source.Status.StorageClasses {
 			storage.Opts = append(storage.Opts, model.StorageOpts{Name: sc.Name, Provisioner: sc.Provisioner})
 		}
@@ -235,10 +234,9 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 			clusterInfo.Spec.EtcdConfig.CertSecret = metav1.LabelSelector{}
 		}
 	}
-	if source.GatewayNodes != nil {
-		for _, node := range source.GatewayNodes {
-			clusterInfo.Spec.GatewayNodes = append(clusterInfo.Spec.GatewayNodes, v1alpha1.NodeAvailPorts{NodeIP: node.NodeIP})
-		}
+
+	for _, node := range source.GatewayNodes {
+		clusterInfo.Spec.GatewayNodes = append(clusterInfo.Spec.GatewayNodes, v1alpha1.NodeAvailPorts{NodeIP: node.NodeIP})
 	}
 
 	if !source.HTTPDomain.Default {
@@ -255,16 +253,9 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 		clusterInfo.Spec.SuffixHTTPHost = domain
 	}
 
-	if source.GatewayIngressIPs != nil {
-		nodeIPs := make(map[string]struct{})
-		for _, ip := range old.Spec.GatewayIngressIPs {
-			nodeIPs[ip] = struct{}{}
-		}
-		for _, ip := range source.GatewayIngressIPs {
-			if _, ok := nodeIPs[ip]; !ok {
-				clusterInfo.Spec.GatewayIngressIPs = append(clusterInfo.Spec.GatewayIngressIPs, ip)
-			}
-		}
+	// must provide all, can't patch
+	for _, ip := range source.GatewayIngressIPs {
+		clusterInfo.Spec.GatewayIngressIPs = append(clusterInfo.Spec.GatewayIngressIPs, ip)
 	}
 
 	if !source.Storage.Default {
