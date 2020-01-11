@@ -22,7 +22,7 @@ type Config struct {
 // AddFlags add flag
 func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.LogLevel, "log-level", "info", "the api log level")
-	fs.StringVar(&c.KubeconfigPath, "kube-config", "/root/.kube/config", "kubernets admin config path, default /root/.kube/config")
+	fs.StringVar(&c.KubeconfigPath, "kube-config", "", "kubernets admin config path, default /root/.kube/config")
 	fs.StringVar(&c.Namespace, "rbd-namespace", "rbd-system", "rbd component namespace")
 	fs.StringVar(&c.ClusterName, "cluster-name", "rainbondcluster", "rbd cluster name")
 	fs.StringVar(&c.EtcdSecretName, "rbd-etcd", "rbd-etcd-secret", "etcd cluster info saved in secret")
