@@ -29,6 +29,8 @@ const (
 	// RainbondPackageCompleted the processing of the installation package has been completed,
 	// including extracting the package, loading the images, and pushing the images.
 	RainbondPackageCompleted RainbondPackagePhase = "Completed"
+	// RainbondPackageFailed meas an unknown error occurred while processing the installation package
+	RainbondPackageFailed    RainbondPackagePhase = "Failed"
 )
 
 // RainbondPackageStatus defines the observed state of RainbondPackage
