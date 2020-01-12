@@ -15,6 +15,6 @@ func (l Labels) WithRainbondLabels() map[string]string {
 func LabelsForRainbondResource() map[string]string {
 	return map[string]string{
 		"creator":  "Rainbond",
-		"belongTo": "rainbond-operator",
+		"belongTo": "RainbondOperator",
 	}
 }

@@ -265,10 +265,14 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(
 	}
 
 	if len(controllerStatuses) == 0 {
+		s.Reason = "NoControllerStatuses"
+		s.Message = "Controller statuses not found."
 		s.Phase = rainbondv1alpha1.RainbondClusterPending
 	}
 	for _, cs := range controllerStatuses {
 		if cs.ReadyReplicas == 0 {
+			s.Reason = "ComponentNotReady"
+			s.Message = fmt.Sprintf("Component %s desires %d replicas, but onle %d are ready", cs.Name, cs.Replicas, cs.ReadyReplicas)
 			s.Phase = rainbondv1alpha1.RainbondClusterPending
 			break
 		}

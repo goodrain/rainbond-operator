@@ -103,6 +103,7 @@ func init() {
 func (in *RbdComponent) Labels() map[string]string {
 	return map[string]string{
 		"creator": "Rainbond",
+		"belongTo": "RainbondOperator",
 		"name":    in.Name,
 	}
 }
