@@ -3,5 +3,4 @@ kind: RainbondPackage
 metadata:
   name: example-rainbondpackage
 spec:
-  # Add fields here
-  size: 3
+  pkgPath: /opt/rainbond/pkg/rainbond-pkg-V5.2-dev.tgz
