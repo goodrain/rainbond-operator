@@ -1,0 +1,7 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RainbondPackage
+metadata:
+  name: rainbondpackage
+  namespace: rbd-system
+spec:
+  pkgPath: /opt/rainbond/pkg/rainbond-pkg-V5.2-dev.tgz

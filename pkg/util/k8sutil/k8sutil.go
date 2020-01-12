@@ -6,8 +6,8 @@ import (
 	"net"
 	"os"
 
-	corev1 "k8s.io/api/core/v1"
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -82,4 +82,8 @@ func InClusterConfig() (*rest.Config, error) {
 // HostPath returns a pointer to the HostPathType value passed in.
 func HostPath(hostpath corev1.HostPathType) *corev1.HostPathType {
 	return &hostpath
+}
+
+func IsKubernetesResourceNotFoundError(err error) bool {
+	return errors.IsNotFound(err)
 }

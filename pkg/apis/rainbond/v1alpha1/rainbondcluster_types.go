@@ -208,3 +208,13 @@ type RainbondClusterList struct {
 func init() {
 	SchemeBuilder.Register(&RainbondCluster{}, &RainbondClusterList{})
 }
+
+func (in *RainbondCluster) FindCondition(t RainbondClusterConditionType) *RainbondClusterCondition {
+	for _, c := range in.Status.Conditions {
+		if t == c.Type {
+			return &c
+		}
+	}
+
+	return nil
+}

@@ -28,6 +28,14 @@ type RainbondClusterListerExpansion interface{}
 // RainbondClusterNamespaceLister.
 type RainbondClusterNamespaceListerExpansion interface{}
 
+// RainbondPackageListerExpansion allows custom methods to be added to
+// RainbondPackageLister.
+type RainbondPackageListerExpansion interface{}
+
+// RainbondPackageNamespaceListerExpansion allows custom methods to be added to
+// RainbondPackageNamespaceLister.
+type RainbondPackageNamespaceListerExpansion interface{}
+
 // RbdComponentListerExpansion allows custom methods to be added to
 // RbdComponentLister.
 type RbdComponentListerExpansion interface{}
