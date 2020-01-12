@@ -70,8 +70,6 @@ spec:
               description: A brief CamelCase message indicating details about why
                 the pod is in this state.
               type: string
-          required:
-          - imageStatus
           type: object
       type: object
   version: v1alpha1

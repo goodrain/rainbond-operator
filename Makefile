@@ -16,6 +16,7 @@ openapi-gen:
     -p ./pkg/apis/$(GROUP)/$(VERSION) \
     -h ./hack/k8s/codegen/boilerplate.go.txt -r "-"
 sdk-gen:
+	chmod +x vendor/k8s.io/code-generator/generate-groups.sh
 	./hack/k8s/codegen/update-generated.sh
 sdk-verify:
 	./hack/k8s/codegen/verify-generated.sh

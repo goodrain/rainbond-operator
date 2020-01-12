@@ -52,7 +52,7 @@ type RainbondPackageStatus struct {
 	// +optional
 	Reason string `json:"reason,omitempty"`
 	// ImageStatus contains the status of each image in the installation package, including loaded and pushed.
-	ImageStatus map[string]ImageStatus `json:"imageStatus"`
+	ImageStatus map[string]ImageStatus `json:"imageStatus,omitempty"`
 }
 
 // +genclient
