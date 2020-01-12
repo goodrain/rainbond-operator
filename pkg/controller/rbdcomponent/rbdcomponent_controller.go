@@ -151,7 +151,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 			reqLogger.Error(err, "handle rainbond package")
 			return reconcile.Result{Requeue: true}, nil
 		}
-		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
+		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	fn, ok := resourcesFuncs[instance.Name]

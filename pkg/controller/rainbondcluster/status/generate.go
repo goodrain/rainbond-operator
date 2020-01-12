@@ -64,7 +64,12 @@ func GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster *rainb
 		},
 	}
 
-	if len(rainbondCluster.Spec.GatewayNodes) == 0 {
+	var gatewayIP string
+	if len(rainbondCluster.Spec.GatewayNodes) > 0 {
+		gatewayIP = rainbondCluster.Spec.GatewayNodes[0].NodeIP
+	} else if len(rainbondCluster.Status.NodeAvailPorts) > 0 {
+		gatewayIP = rainbondCluster.Status.NodeAvailPorts[0].NodeIP
+	} else {
 		condition.Status = rainbondv1alpha1.ConditionFalse
 		condition.Reason = NoGatewayIP
 		condition.Message = fmt.Sprint("gateway ip not found.")
@@ -72,7 +77,6 @@ func GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster *rainb
 	}
 
 	// TODO: check all gateway ips
-	gatewayIP := rainbondCluster.Spec.GatewayNodes[0].NodeIP
 
 	u, _ := url.Parse(fmt.Sprintf("https://%s/v2/", gatewayIP))
 	request := &http.Request{

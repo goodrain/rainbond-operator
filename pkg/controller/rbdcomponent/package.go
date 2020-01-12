@@ -202,6 +202,7 @@ func pushRainbondImages(imageDir string) error {
 			reqLogger.Error(err, fmt.Sprintf("push image %s", newImage))
 			return fmt.Errorf("push image %s: %v", newImage, err)
 		}
+		reqLogger.Info(fmt.Sprintf("Image %s pushed", newImage))
 	}
 
 	return nil

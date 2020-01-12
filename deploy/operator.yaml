@@ -16,7 +16,7 @@ spec:
     spec:
       serviceAccountName: rainbond-operator
       containers:
-        - name: rainbond-operator
+        - name: operator
           image: abewang/rainbond-operator:v0.0.1
           command:
             - rainbond-operator
@@ -41,13 +41,13 @@ spec:
               name: rbd-pkg
             - mountPath: /var/run
               name: dockersock
-        - name: rainbond-operator-openapi
-          image: a985850124/rainbond-operator-openapi
+        - name: openapi
+          image: abewang/rainbond-operator-openapi
           volumeMounts:
-            - mountPath: /root/.kube/config
-              name: kubecfg
             - mountPath: /opt/rainbond/pkg
               name: rbd-pkg
+        - name: ui
+          image: abewang/rbd-operator-ui
       volumes:
         - name: rbd-pkg
           hostPath:
@@ -57,7 +57,3 @@ spec:
           hostPath:
             path: /var/run
             type: Directory
-        - name: kubecfg
-          hostPath: 
-            path: /root/.kube/config
-            type: File
