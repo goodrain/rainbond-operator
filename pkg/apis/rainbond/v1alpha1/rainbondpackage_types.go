@@ -15,6 +15,8 @@ type RainbondPackagePhase string
 
 // These are the valid statuses of rainbondcluster.
 const (
+	// RainbondPackageWaiting means waiting for prerequisites to be ready
+	RainbondPackageWaiting RainbondPackagePhase = "Waiting"
 	// RainbondPackageExtracting means that the prerequisites are in place
 	// and the installation package is being extracted.
 	RainbondPackageExtracting RainbondPackagePhase = "Extracting"

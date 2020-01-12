@@ -118,6 +118,7 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 	}
 	p.setCluster(cluster)
 	if !p.preCheck() {
+		p.status.Phase = rainbondv1alpha1.RainbondPackageWaiting
 		p.status.Reason = "NotMeetPrerequisites"
 		p.status.Message = "not meet the prerequisites"
 		if err := p.updateCRStatus(); err != nil {
@@ -134,7 +135,7 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	return reconcile.Result{}, nil
+	return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 }
 
 type pkg struct {
@@ -151,7 +152,9 @@ func newpkg(client client.Client, p *rainbondv1alpha1.RainbondPackage) *pkg {
 	}
 	pkg.status = p.Status.DeepCopy()
 	if pkg.status == nil {
-		pkg.status = &rainbondv1alpha1.RainbondPackageStatus{}
+		pkg.status = &rainbondv1alpha1.RainbondPackageStatus{
+			ImageStatus: map[string]rainbondv1alpha1.ImageStatus{},
+		}
 	}
 	return pkg
 }
@@ -217,6 +220,11 @@ func (p *pkg) setMessage(msg string) {
 	p.status.Message = msg
 }
 
+func (p *pkg) clearMessageAndReason() {
+	p.status.Message = ""
+	p.status.Reason = ""
+}
+
 func (p *pkg) preCheck() bool {
 	if p.cluster == nil {
 		return false
@@ -242,8 +250,9 @@ func (p *pkg) findCondition(typ3 rainbondv1alpha1.RainbondClusterConditionType) 
 func (p *pkg) handle() error {
 	log.Info("start handling rainbond package.", "phase", p.status.Phase)
 
-	if p.status.Phase == "" || p.status.Phase == rainbondv1alpha1.RainbondPackageFailed {
-		p.status.Phase = rainbondv1alpha1.RainbondPackageExtracting
+	if p.status.Phase == "" || p.status.Phase == rainbondv1alpha1.RainbondPackageFailed ||
+		p.status.Phase == rainbondv1alpha1.RainbondPackageWaiting {
+		p.clearMessageAndReason()
 		if err := p.updateCRStatus(); err != nil {
 			p.status.Reason = "ErrUpdatePhase"
 			return fmt.Errorf("failed to update phase %s: %v", rainbondv1alpha1.RainbondPackageExtracting, err)
@@ -258,6 +267,7 @@ func (p *pkg) handle() error {
 		log.Info("successfully extract rainbond package.")
 
 		p.status.Phase = rainbondv1alpha1.RainbondPackageLoading
+		p.clearMessageAndReason()
 		if err := p.updateCRStatus(); err != nil {
 			p.status.Reason = "ErrUpdatePhase"
 			return fmt.Errorf("failed to update phase %s: %v", rainbondv1alpha1.RainbondPackageLoading, err)
@@ -272,6 +282,7 @@ func (p *pkg) handle() error {
 		log.Info("successfully load rainbond images")
 
 		p.status.Phase = rainbondv1alpha1.RainbondPackagePushing
+		p.clearMessageAndReason()
 		if err := p.updateCRStatus(); err != nil {
 			p.status.Reason = "ErrUpdatePhase"
 			return fmt.Errorf("failed to update phase %s: %v", rainbondv1alpha1.RainbondPackagePushing, err)
@@ -286,6 +297,7 @@ func (p *pkg) handle() error {
 		log.Info("successfully push rainbond images")
 
 		p.status.Phase = rainbondv1alpha1.RainbondPackageCompleted
+		p.clearMessageAndReason()
 		if err := p.updateCRStatus(); err != nil {
 			p.status.Reason = "ErrUpdatePhase"
 			return fmt.Errorf("failed to update phase %s: %v", rainbondv1alpha1.RainbondPackagePushing, err)
