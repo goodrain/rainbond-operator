@@ -15,8 +15,6 @@ type RainbondPackagePhase string
 
 // These are the valid statuses of rainbondcluster.
 const (
-	// RainbondPackageWaiting means waiting for prerequisites to be ready
-	RainbondPackageWaiting RainbondPackagePhase = "Waiting"
 	// RainbondPackageExtracting means that the prerequisites are in place
 	// and the installation package is being extracted.
 	RainbondPackageExtracting RainbondPackagePhase = "Extracting"
@@ -30,8 +28,15 @@ const (
 	// including extracting the package, loading the images, and pushing the images.
 	RainbondPackageCompleted RainbondPackagePhase = "Completed"
 	// RainbondPackageFailed meas an unknown error occurred while processing the installation package
-	RainbondPackageFailed    RainbondPackagePhase = "Failed"
+	RainbondPackageFailed RainbondPackagePhase = "Failed"
 )
+
+type ImageStatus struct {
+	// Loaded Indicates whether the image has been loaded.
+	Loaded bool `json:"loaded"`
+	// Pushed Indicates whether the image has been pushed.
+	Pushed bool `json:"pushed"`
+}
 
 // RainbondPackageStatus defines the observed state of RainbondPackage
 type RainbondPackageStatus struct {
@@ -46,6 +51,8 @@ type RainbondPackageStatus struct {
 	// A brief CamelCase message indicating details about why the pod is in this state.
 	// +optional
 	Reason string `json:"reason,omitempty"`
+	// ImageStatus contains the status of each image in the installation package, including loaded and pushed.
+	ImageStatus map[string]ImageStatus `json:"imageStatus"`
 }
 
 // +genclient

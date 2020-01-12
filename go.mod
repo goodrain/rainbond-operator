@@ -3,24 +3,22 @@ module github.com/GLYASAI/rainbond-operator
 go 1.13
 
 require (
-	cloud.google.com/go v0.38.0
 	github.com/cheggaaa/pb v2.0.7+incompatible
 	github.com/cheggaaa/pb/v3 v3.0.3
 	github.com/coreos/etcd v3.3.15+incompatible
-	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/docker v0.7.3-0.20190817195342-4760db040282
-	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
-	github.com/gin-contrib/cors v1.3.0
+	github.com/gin-contrib/cors v1.3.0 // indirect
 	github.com/gin-gonic/gin v1.5.0
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.3.1
 	github.com/google/go-cmp v0.3.2-0.20191028172631-481baca67f93 // indirect
 	github.com/jinzhu/gorm v1.9.11
 	github.com/operator-framework/operator-sdk v0.13.0
+	github.com/pquerna/ffjson v0.0.0-20180717144149-af8b230fcd20
 	github.com/schollz/progressbar/v2 v2.15.0
 	github.com/sirupsen/logrus v1.4.2
-	github.com/sparrc/go-ping v0.0.0-20190613174326-4e5b6552494c
+	github.com/sparrc/go-ping v0.0.0-20190613174326-4e5b6552494c // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
 	gopkg.in/VividCortex/ewma.v1 v1.1.1 // indirect
@@ -35,12 +33,12 @@ require (
 	k8s.io/code-generator v0.0.0
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20190918143330-0270cf2f1c1d
-	k8s.io/kubernetes v1.16.2
 	sigs.k8s.io/controller-runtime v0.4.0
 )
 
 // Pinned to kubernetes-1.16.2
 replace (
+	// github.com/docker/docker => github.com/docker/docker v1.4.2-0.20170504205632-89658bed64c2
 	k8s.io/api => k8s.io/api v0.0.0-20191016110408-35e52d86657a
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20191016113550-5357c4baaf65
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20191004115801-a2eda9f80ab8
