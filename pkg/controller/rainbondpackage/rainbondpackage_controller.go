@@ -127,12 +127,20 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{Requeue: true}, nil
 	}
 
+	if p.status.Phase == rainbondv1alpha1.RainbondPackageCompleted {
+		return reconcile.Result{}, nil
+	}
+
 	// handle package, extract, load images and push images
 	if err = p.handle(); err != nil {
 		reqLogger.Error(err, "failed to handle rainbond package.")
 		p.status.Message = fmt.Sprintf("failed to handle rainbond package %s: %v", p.pkg.Spec.PkgPath, err)
 		p.reportFailedStatus()
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	if p.status.Phase == rainbondv1alpha1.RainbondPackageCompleted {
+		return reconcile.Result{}, nil
 	}
 
 	return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
@@ -252,6 +260,7 @@ func (p *pkg) handle() error {
 
 	if p.status.Phase == "" || p.status.Phase == rainbondv1alpha1.RainbondPackageFailed ||
 		p.status.Phase == rainbondv1alpha1.RainbondPackageWaiting {
+		p.status.Phase = rainbondv1alpha1.RainbondPackageExtracting
 		p.clearMessageAndReason()
 		if err := p.updateCRStatus(); err != nil {
 			p.status.Reason = "ErrUpdatePhase"
@@ -351,7 +360,7 @@ func (p *pkg) loadImages() error {
 		imageStatus = make(map[string]rainbondv1alpha1.ImageStatus, len(images))
 	}
 	for _, image := range images {
-		image = strings.TrimLeft(image, ":latest")
+		image = trimLatest(image)
 		if _, ok := imageStatus[image]; ok {
 			continue
 		}
@@ -467,7 +476,6 @@ func (p *pkg) pushImages() error {
 			log.Error(err, "failed to push image", "image", newImage)
 			return fmt.Errorf("push image %s: %v", newImage, err)
 		}
-		var lastMsg string
 		if res != nil {
 			defer res.Close()
 
@@ -489,7 +497,7 @@ func (p *pkg) pushImages() error {
 				if jm.Error != nil {
 					return fmt.Errorf("error detail: %v", jm.Error)
 				}
-				log.Info("response from image loading", "msg", lastMsg)
+				log.Info("response from image pushing", "msg", jm.JSONString())
 			}
 		}
 
@@ -532,7 +540,7 @@ func parseImageName(s string) (string, error) {
 	}
 	str = strings.Replace(str, "Loaded image: ", "", -1)
 	str = strings.Replace(str, "\n", "", -1)
-	str = strings.TrimLeft(str, ":latest")
+	str = trimLatest(str)
 	return str, nil
 }
 
@@ -542,4 +550,11 @@ func encodeAuthToBase64(authConfig dtypes.AuthConfig) (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(buf), nil
+}
+
+func trimLatest(str string) string {
+	if !strings.HasSuffix(str, ":latest") {
+		return str
+	}
+	return str[:len(str)-len(":latest")]
 }

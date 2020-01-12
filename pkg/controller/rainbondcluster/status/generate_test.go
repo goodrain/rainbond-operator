@@ -1,120 +1,21 @@
 package status
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
-
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster/pkg/mock"
-	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster/types"
+	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-func TestGenerateRainbondClusterPackageExtractedCondition(t *testing.T) {
-	tests := []struct {
-		name            string
-		rainbondcluster *rainbondv1alpha1.RainbondCluster
-		ehistory        *types.ExtractionHistory
-		err             error
-		want            rainbondv1alpha1.RainbondClusterCondition
-	}{
-		{
-			name: "without installation package",
-			rainbondcluster: &rainbondv1alpha1.RainbondCluster{
-				Spec: rainbondv1alpha1.RainbondClusterSpec{
-					InstallMode: rainbondv1alpha1.InstallationModeWithoutPackage,
-				},
-			},
-			want: rainbondv1alpha1.RainbondClusterCondition{
-				Type:   rainbondv1alpha1.PackageExtracted,
-				Status: rainbondv1alpha1.ConditionTrue,
-				Reason: string(rainbondv1alpha1.InstallationModeWithoutPackage),
-			},
-		},
-		{
-			name: "error fetching extraction history",
-			rainbondcluster: &rainbondv1alpha1.RainbondCluster{
-				Spec: rainbondv1alpha1.RainbondClusterSpec{},
-			},
-			err: errors.New("foobar"),
-			want: rainbondv1alpha1.RainbondClusterCondition{
-				Type:   rainbondv1alpha1.PackageExtracted,
-				Status: rainbondv1alpha1.ConditionFalse,
-				Reason: ErrHistoryFetch,
-			},
-		},
-		{
-			name: "history status is false",
-			rainbondcluster: &rainbondv1alpha1.RainbondCluster{
-				Spec: rainbondv1alpha1.RainbondClusterSpec{},
-			},
-			ehistory: &types.ExtractionHistory{
-				Status: types.HistoryStatusFalse,
-				Reason: "foobar",
-			},
-			want: rainbondv1alpha1.RainbondClusterCondition{
-				Type:   rainbondv1alpha1.PackageExtracted,
-				Status: rainbondv1alpha1.ConditionFalse,
-				Reason: "foobar",
-			},
-		},
-		{
-			name: "ok",
-			rainbondcluster: &rainbondv1alpha1.RainbondCluster{
-				Spec: rainbondv1alpha1.RainbondClusterSpec{},
-			},
-			ehistory: &types.ExtractionHistory{
-				Status: types.HistoryStatusTrue,
-			},
-			want: rainbondv1alpha1.RainbondClusterCondition{
-				Type:   rainbondv1alpha1.PackageExtracted,
-				Status: rainbondv1alpha1.ConditionTrue,
-			},
-		},
-		{
-			name: "already extracted",
-			rainbondcluster: &rainbondv1alpha1.RainbondCluster{
-				Spec: rainbondv1alpha1.RainbondClusterSpec{},
-				Status: &rainbondv1alpha1.RainbondClusterStatus{
-					Conditions: []rainbondv1alpha1.RainbondClusterCondition{
-						{
-							Type:   rainbondv1alpha1.PackageExtracted,
-							Status: rainbondv1alpha1.ConditionTrue,
-						},
-					},
-				},
-			},
-			want: rainbondv1alpha1.RainbondClusterCondition{
-				Type:   rainbondv1alpha1.PackageExtracted,
-				Status: rainbondv1alpha1.ConditionTrue,
-			},
-		},
-	}
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	for i := range tests {
-		tc := tests[i]
-		t.Run(tc.name, func(t *testing.T) {
-			historyer := mock.NewMockHistoryInterface(ctrl)
-			historyer.EXPECT().ExtractionHistory().Return(tc.ehistory, tc.err).AnyTimes()
-
-			got := GenerateRainbondClusterPackageExtractedCondition(tc.rainbondcluster, historyer)
-			assert.Equal(t, tc.want.Type, got.Type)
-			assert.Equal(t, tc.want.Status, got.Status)
-			assert.Equal(t, tc.want.Reason, got.Reason)
-		})
-	}
-}
 
 func TestGenerateRainbondClusterImagesLoadedCondition(t *testing.T) {
 	tests := []struct {
 		name            string
 		rainbondcluster *rainbondv1alpha1.RainbondCluster
+		rainbondpackage *rainbondv1alpha1.RainbondPackage
 		images          []string
 		err             error
 		want            rainbondv1alpha1.RainbondClusterCondition
@@ -130,18 +31,6 @@ func TestGenerateRainbondClusterImagesLoadedCondition(t *testing.T) {
 				Type:   rainbondv1alpha1.ImagesLoaded,
 				Status: rainbondv1alpha1.ConditionTrue,
 				Reason: string(rainbondv1alpha1.InstallationModeWithoutPackage),
-			},
-		},
-		{
-			name: "Error getting metadata",
-			rainbondcluster: &rainbondv1alpha1.RainbondCluster{
-				Spec: rainbondv1alpha1.RainbondClusterSpec{},
-			},
-			err: fmt.Errorf("foobar"),
-			want: rainbondv1alpha1.RainbondClusterCondition{
-				Type:   rainbondv1alpha1.ImagesLoaded,
-				Status: rainbondv1alpha1.ConditionFalse,
-				Reason: ErrGetMetadata,
 			},
 		},
 		{
@@ -162,17 +51,200 @@ func TestGenerateRainbondClusterImagesLoadedCondition(t *testing.T) {
 				Status: rainbondv1alpha1.ConditionTrue,
 			},
 		},
+		{
+			name: "rainbondpackage not found",
+			rainbondcluster: &rainbondv1alpha1.RainbondCluster{
+				Spec:   rainbondv1alpha1.RainbondClusterSpec{},
+				Status: &rainbondv1alpha1.RainbondClusterStatus{},
+			},
+			want: rainbondv1alpha1.RainbondClusterCondition{
+				Type:   rainbondv1alpha1.ImagesLoaded,
+				Status: rainbondv1alpha1.ConditionFalse,
+				Reason: RainbondPackageNotFound,
+			},
+		},
+		{
+			name:            "rainbondpackage waiting",
+			rainbondcluster: &rainbondv1alpha1.RainbondCluster{},
+			rainbondpackage: &rainbondv1alpha1.RainbondPackage{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rainbondpackage",
+					Namespace: "rbd-system",
+				},
+				Status: &rainbondv1alpha1.RainbondPackageStatus{
+					Phase: rainbondv1alpha1.RainbondPackageWaiting,
+				},
+			},
+			want: rainbondv1alpha1.RainbondClusterCondition{
+				Type:   rainbondv1alpha1.ImagesLoaded,
+				Status: rainbondv1alpha1.ConditionFalse,
+				Reason: fmt.Sprintf("RainbondPackage%s", string(rainbondv1alpha1.RainbondPackageWaiting)),
+			},
+		},
+		{
+			name:            "rainbondpackage loading",
+			rainbondcluster: &rainbondv1alpha1.RainbondCluster{},
+			rainbondpackage: &rainbondv1alpha1.RainbondPackage{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rainbondpackage",
+					Namespace: "rbd-system",
+				},
+				Status: &rainbondv1alpha1.RainbondPackageStatus{
+					Phase: rainbondv1alpha1.RainbondPackageLoading,
+				},
+			},
+			want: rainbondv1alpha1.RainbondClusterCondition{
+				Type:   rainbondv1alpha1.ImagesLoaded,
+				Status: rainbondv1alpha1.ConditionFalse,
+				Reason: fmt.Sprintf("RainbondPackage%s", string(rainbondv1alpha1.RainbondPackageLoading)),
+			},
+		},
+		{
+			name:            "rainbondpackage pushing",
+			rainbondcluster: &rainbondv1alpha1.RainbondCluster{},
+			rainbondpackage: &rainbondv1alpha1.RainbondPackage{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rainbondpackage",
+					Namespace: "rbd-system",
+				},
+				Status: &rainbondv1alpha1.RainbondPackageStatus{
+					Phase: rainbondv1alpha1.RainbondPackagePushing,
+				},
+			},
+			want: rainbondv1alpha1.RainbondClusterCondition{
+				Type:   rainbondv1alpha1.ImagesLoaded,
+				Status: rainbondv1alpha1.ConditionTrue,
+			},
+		},
 	}
 
+	scheme := runtime.NewScheme()
+	rainbondv1alpha1.AddToScheme(scheme)
 	for i := range tests {
 		tc := tests[i]
 		t.Run(tc.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			packager := mock.NewMockPackageInterface(ctrl)
-			packager.EXPECT().GetMetadata().Return(tc.images, tc.err).AnyTimes()
+			s := Status{
+				client: fake.NewFakeClientWithScheme(scheme),
+			}
+			if tc.rainbondpackage != nil {
+				s.client = fake.NewFakeClientWithScheme(scheme, tc.rainbondpackage)
+			}
 
-			got := GenerateRainbondClusterImagesLoadedCondition(tc.rainbondcluster, packager)
+			got := s.GenerateRainbondClusterImagesLoadedCondition(tc.rainbondcluster)
+			assert.Equal(t, tc.want.Type, got.Type)
+			assert.Equal(t, tc.want.Status, got.Status)
+			assert.Equal(t, tc.want.Reason, got.Reason)
+		})
+	}
+}
+
+func TestGenerateRainbondClusterPackageExtractedCondition(t *testing.T) {
+	tests := []struct {
+		name            string
+		rainbondcluster *rainbondv1alpha1.RainbondCluster
+		rainbondPackage *rainbondv1alpha1.RainbondPackage
+		err             error
+		want            rainbondv1alpha1.RainbondClusterCondition
+	}{
+		{
+			name: "without installation package",
+			rainbondcluster: &rainbondv1alpha1.RainbondCluster{
+				Spec: rainbondv1alpha1.RainbondClusterSpec{
+					InstallMode: rainbondv1alpha1.InstallationModeWithoutPackage,
+				},
+			},
+			want: rainbondv1alpha1.RainbondClusterCondition{
+				Type:   rainbondv1alpha1.PackageExtracted,
+				Status: rainbondv1alpha1.ConditionTrue,
+				Reason: string(rainbondv1alpha1.InstallationModeWithoutPackage),
+			},
+		},
+		{
+			name: "already extracted",
+			rainbondcluster: &rainbondv1alpha1.RainbondCluster{
+				Spec: rainbondv1alpha1.RainbondClusterSpec{},
+				Status: &rainbondv1alpha1.RainbondClusterStatus{
+					Conditions: []rainbondv1alpha1.RainbondClusterCondition{
+						{
+							Type:   rainbondv1alpha1.PackageExtracted,
+							Status: rainbondv1alpha1.ConditionTrue,
+						},
+					},
+				},
+			},
+			want: rainbondv1alpha1.RainbondClusterCondition{
+				Type:   rainbondv1alpha1.PackageExtracted,
+				Status: rainbondv1alpha1.ConditionTrue,
+			},
+		},
+		{
+			name:            "rainbondpackage waiting",
+			rainbondcluster: &rainbondv1alpha1.RainbondCluster{},
+			rainbondPackage: &rainbondv1alpha1.RainbondPackage{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rainbondpackage",
+					Namespace: "rbd-system",
+				},
+				Status: &rainbondv1alpha1.RainbondPackageStatus{
+					Phase: rainbondv1alpha1.RainbondPackageWaiting,
+				},
+			},
+			want: rainbondv1alpha1.RainbondClusterCondition{
+				Type:   rainbondv1alpha1.PackageExtracted,
+				Status: rainbondv1alpha1.ConditionFalse,
+				Reason: fmt.Sprintf("RainbondPackage%s", string(rainbondv1alpha1.RainbondPackageWaiting)),
+			},
+		},
+		{
+			name:            "rainbondpackage extracting",
+			rainbondcluster: &rainbondv1alpha1.RainbondCluster{},
+			rainbondPackage: &rainbondv1alpha1.RainbondPackage{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rainbondpackage",
+					Namespace: "rbd-system",
+				},
+				Status: &rainbondv1alpha1.RainbondPackageStatus{
+					Phase: rainbondv1alpha1.RainbondPackageExtracting,
+				},
+			},
+			want: rainbondv1alpha1.RainbondClusterCondition{
+				Type:   rainbondv1alpha1.PackageExtracted,
+				Status: rainbondv1alpha1.ConditionFalse,
+				Reason: fmt.Sprintf("RainbondPackage%s", string(rainbondv1alpha1.RainbondPackageExtracting)),
+			},
+		},
+		{
+			name:            "rainbondpackage loading",
+			rainbondcluster: &rainbondv1alpha1.RainbondCluster{},
+			rainbondPackage: &rainbondv1alpha1.RainbondPackage{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rainbondpackage",
+					Namespace: "rbd-system",
+				},
+				Status: &rainbondv1alpha1.RainbondPackageStatus{
+					Phase: rainbondv1alpha1.RainbondPackageLoading,
+				},
+			},
+			want: rainbondv1alpha1.RainbondClusterCondition{
+				Type:   rainbondv1alpha1.PackageExtracted,
+				Status: rainbondv1alpha1.ConditionTrue,
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	rainbondv1alpha1.AddToScheme(scheme)
+	for i := range tests {
+		tc := tests[i]
+		t.Run(tc.name, func(t *testing.T) {
+			s := Status{
+				client: fake.NewFakeClientWithScheme(scheme),
+			}
+			if tc.rainbondPackage != nil {
+				s.client = fake.NewFakeClientWithScheme(scheme, tc.rainbondPackage)
+			}
+
+			got := s.GenerateRainbondClusterPackageExtractedCondition(tc.rainbondcluster)
 			assert.Equal(t, tc.want.Type, got.Type)
 			assert.Equal(t, tc.want.Status, got.Status)
 			assert.Equal(t, tc.want.Reason, got.Reason)

@@ -1,12 +1,14 @@
 package status
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster/pkg"
-	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster/types"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	"net/url"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -25,11 +27,35 @@ const (
 	ErrGetMetadata = "ErrGetMetadata"
 	// NotAllImagesLoaded means not all images has been loaded successfully.
 	NotAllImagesLoaded = "NotAllImagesLoaded"
+
+	RainbondPackageNotFound = "RainbondPackageNotFound"
+	ErrGetPackage           = "ErrGetPackage"
 )
+
+var rainbondPackagePhase2Int = map[string]int{
+	string(rainbondv1alpha1.RainbondPackageFailed):     -1,
+	string(rainbondv1alpha1.RainbondPackageWaiting):    0,
+	string(rainbondv1alpha1.RainbondPackageExtracting): 1,
+	string(rainbondv1alpha1.RainbondPackageLoading):    2,
+	string(rainbondv1alpha1.RainbondPackagePushing):    3,
+	string(rainbondv1alpha1.RainbondPackageCompleted):  4,
+}
+
+type Status struct {
+	client  client.Client
+	cluster *rainbondv1alpha1.RainbondCluster
+}
+
+func NewStatus(client client.Client, cluster *rainbondv1alpha1.RainbondCluster) *Status {
+	return &Status{
+		client:  client,
+		cluster: cluster,
+	}
+}
 
 // GenerateRainbondClusterStorageReadyCondition returns storageready condition if the storage is ready, else it
 // returns an unstorageready condition.
-func GenerateRainbondClusterStorageReadyCondition() rainbondv1alpha1.RainbondClusterCondition {
+func (s *Status) GenerateRainbondClusterStorageReadyCondition() rainbondv1alpha1.RainbondClusterCondition {
 	// TODO(huangrh): implementation
 	return rainbondv1alpha1.RainbondClusterCondition{
 		Type:   rainbondv1alpha1.StorageReady,
@@ -39,7 +65,7 @@ func GenerateRainbondClusterStorageReadyCondition() rainbondv1alpha1.RainbondClu
 
 // GenerateRainbondClusterImageRepositoryReadyCondition returns imagerepositoryready condition if the image repository is ready,
 // else it returns an unimagerepositoryready condition.
-func GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster *rainbondv1alpha1.RainbondCluster) rainbondv1alpha1.RainbondClusterCondition {
+func (s *Status) GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster *rainbondv1alpha1.RainbondCluster) rainbondv1alpha1.RainbondClusterCondition {
 	condition := rainbondv1alpha1.RainbondClusterCondition{
 		Type: rainbondv1alpha1.ImageRepositoryInstalled,
 	}
@@ -105,13 +131,15 @@ func GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster *rainb
 
 // GenerateRainbondClusterPackageExtractedCondition returns pakcageextracted condition if the image repository is ready,
 // else it returns an unpakcageextracted condition.
-func GenerateRainbondClusterPackageExtractedCondition(rainbondCluster *rainbondv1alpha1.RainbondCluster, history pkg.HistoryInterface) rainbondv1alpha1.RainbondClusterCondition {
+// TODO: merge GenerateRainbondClusterPackageExtractedCondition, GenerateRainbondClusterPackageLoadedCondition and GenerateRainbondClusterImagesPushedCondition
+func (s *Status) GenerateRainbondClusterPackageExtractedCondition(rainbondCluster *rainbondv1alpha1.RainbondCluster) rainbondv1alpha1.RainbondClusterCondition {
 	if condition := conditionAlreadyTrue(rainbondCluster.Status, rainbondv1alpha1.PackageExtracted); condition != nil {
 		return *condition
 	}
 
 	condition := rainbondv1alpha1.RainbondClusterCondition{
-		Type: rainbondv1alpha1.PackageExtracted,
+		Type:   rainbondv1alpha1.PackageExtracted,
+		Status: rainbondv1alpha1.ConditionFalse,
 	}
 
 	if rainbondCluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithoutPackage {
@@ -120,36 +148,37 @@ func GenerateRainbondClusterPackageExtractedCondition(rainbondCluster *rainbondv
 		return condition
 	}
 
-	// get extraction history
-	h, err := history.ExtractionHistory()
-	if err != nil {
-		condition.Status = rainbondv1alpha1.ConditionFalse
-		condition.Reason = ErrHistoryFetch
-		condition.Message = fmt.Sprintf("Error fetching extraction history: %v", err)
+	pkg := &rainbondv1alpha1.RainbondPackage{}
+	if err := s.client.Get(context.TODO(), types.NamespacedName{Namespace: rainbondCluster.Namespace, Name: "rainbondpackage"}, pkg); err != nil {
+		if errors.IsNotFound(err) {
+			condition.Reason = RainbondPackageNotFound
+			return condition
+		}
+		condition.Reason = ErrGetPackage
+		condition.Message = fmt.Sprintf("failed to get rainbondpackage: %v", err)
 		return condition
 	}
 
-	if h.Status == types.HistoryStatusFalse {
-		condition.Status = rainbondv1alpha1.ConditionFalse
-		condition.Reason = h.Reason
+	if rainbondPackagePhase2Int[string(pkg.Status.Phase)] <= rainbondPackagePhase2Int[string(rainbondv1alpha1.RainbondPackageExtracting)] {
+		condition.Reason = fmt.Sprintf("RainbondPackage%s", string(pkg.Status.Phase))
 		return condition
 	}
 
 	condition.Status = rainbondv1alpha1.ConditionTrue
-	condition.Reason = h.Reason
 
 	return condition
 }
 
 // GenerateRainbondClusterPackageLoadedCondition returns imagesloaded condition if the image repository is ready,
 // else it returns an unimagesloaded condition.
-func GenerateRainbondClusterImagesLoadedCondition(rainbondCluster *rainbondv1alpha1.RainbondCluster, packager pkg.PackageInterface) rainbondv1alpha1.RainbondClusterCondition {
+func (s *Status) GenerateRainbondClusterImagesLoadedCondition(rainbondCluster *rainbondv1alpha1.RainbondCluster) rainbondv1alpha1.RainbondClusterCondition {
 	if condition := conditionAlreadyTrue(rainbondCluster.Status, rainbondv1alpha1.ImagesLoaded); condition != nil {
 		return *condition
 	}
 
 	condition := rainbondv1alpha1.RainbondClusterCondition{
-		Type: rainbondv1alpha1.ImagesLoaded,
+		Type:   rainbondv1alpha1.ImagesLoaded,
+		Status: rainbondv1alpha1.ConditionFalse,
 	}
 
 	if rainbondCluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithoutPackage {
@@ -158,16 +187,64 @@ func GenerateRainbondClusterImagesLoadedCondition(rainbondCluster *rainbondv1alp
 		return condition
 	}
 
-	images, err := packager.GetMetadata()
-	if err != nil {
+	pkg := &rainbondv1alpha1.RainbondPackage{}
+	if err := s.client.Get(context.TODO(), types.NamespacedName{Namespace: rainbondCluster.Namespace, Name: "rainbondpackage"}, pkg); err != nil {
 		condition.Status = rainbondv1alpha1.ConditionFalse
-		condition.Reason = ErrGetMetadata
-		condition.Message = fmt.Sprintf("Error fetching metadata: %v", err)
+		if errors.IsNotFound(err) {
+			condition.Reason = RainbondPackageNotFound
+			return condition
+		}
+		condition.Reason = ErrGetPackage
+		condition.Message = fmt.Sprintf("failed to get rainbondpackage: %v", err)
 		return condition
 	}
 
-	// TODO: check if the image exits
-	_ = images
+	if rainbondPackagePhase2Int[string(pkg.Status.Phase)] <= rainbondPackagePhase2Int[string(rainbondv1alpha1.RainbondPackageLoading)] {
+		condition.Reason = fmt.Sprintf("RainbondPackage%s", string(pkg.Status.Phase))
+		return condition
+	}
+
+	condition.Status = rainbondv1alpha1.ConditionTrue
+
+	return condition
+}
+
+// GenerateRainbondClusterImagesPushedCondition returns imagespushed condition if all the images have been pushed,
+// else it returns an unimagespushed condition.
+func (s *Status) GenerateRainbondClusterImagesPushedCondition(rainbondCluster *rainbondv1alpha1.RainbondCluster) rainbondv1alpha1.RainbondClusterCondition {
+	if condition := conditionAlreadyTrue(rainbondCluster.Status, rainbondv1alpha1.ImagesPushed); condition != nil {
+		return *condition
+	}
+
+	condition := rainbondv1alpha1.RainbondClusterCondition{
+		Type:   rainbondv1alpha1.ImagesPushed,
+		Status: rainbondv1alpha1.ConditionFalse,
+	}
+
+	if rainbondCluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithoutPackage {
+		condition.Status = rainbondv1alpha1.ConditionTrue
+		condition.Reason = string(rainbondv1alpha1.InstallationModeWithoutPackage)
+		return condition
+	}
+
+	pkg := &rainbondv1alpha1.RainbondPackage{}
+	if err := s.client.Get(context.TODO(), types.NamespacedName{Namespace: rainbondCluster.Namespace, Name: "rainbondpackage"}, pkg); err != nil {
+		condition.Status = rainbondv1alpha1.ConditionFalse
+		if errors.IsNotFound(err) {
+			condition.Reason = RainbondPackageNotFound
+			return condition
+		}
+		condition.Reason = ErrGetPackage
+		condition.Message = fmt.Sprintf("failed to get rainbondpackage: %v", err)
+		return condition
+	}
+
+	if rainbondPackagePhase2Int[string(pkg.Status.Phase)] <= rainbondPackagePhase2Int[string(rainbondv1alpha1.RainbondPackagePushing)] {
+		condition.Reason = fmt.Sprintf("RainbondPackage%s", string(pkg.Status.Phase))
+		return condition
+	}
+
+	condition.Status = rainbondv1alpha1.ConditionTrue
 
 	return condition
 }

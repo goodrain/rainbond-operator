@@ -73,3 +73,12 @@ func TestParseImageName(t *testing.T) {
 		})
 	}
 }
+
+func TestTrimRight(t *testing.T) {
+	str := "rainbond/rbd-mesh-data-panel:latest"
+	if len(str) <= 7 {
+		return
+	}
+
+	t.Log(str[:len(str)-7])
+}

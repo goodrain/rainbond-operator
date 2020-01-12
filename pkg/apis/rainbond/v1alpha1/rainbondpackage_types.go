@@ -15,6 +15,8 @@ type RainbondPackagePhase string
 
 // These are the valid statuses of rainbondcluster.
 const (
+	// RainbondPackageFailed meas an unknown error occurred while processing the installation package
+	RainbondPackageFailed RainbondPackagePhase = "Failed"
 	// RainbondPackageWaiting means waiting for prerequisites to be ready
 	RainbondPackageWaiting RainbondPackagePhase = "Waiting"
 	// RainbondPackageExtracting means that the prerequisites are in place
@@ -29,8 +31,6 @@ const (
 	// RainbondPackageCompleted the processing of the installation package has been completed,
 	// including extracting the package, loading the images, and pushing the images.
 	RainbondPackageCompleted RainbondPackagePhase = "Completed"
-	// RainbondPackageFailed meas an unknown error occurred while processing the installation package
-	RainbondPackageFailed RainbondPackagePhase = "Failed"
 )
 
 type ImageStatus struct {

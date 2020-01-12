@@ -3,8 +3,6 @@ package rbdcomponent
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"github.com/go-logr/logr"
 	appv1 "k8s.io/api/apps/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -140,20 +138,6 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	if instance.Name == "rbd-package" {
-		rainbondcluster := &rainbondv1alpha1.RainbondCluster{}
-		if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "rainbondcluster"}, rainbondcluster); err != nil {
-			reqLogger.Error(err, "Error getting rainbondcluster")
-			return reconcile.Result{Requeue: true}, err
-		}
-
-		if err := handleRainbondPackage(r.client, rainbondcluster, "/opt/rainbond/pkg/rainbond-pkg-V5.2-dev.tgz", "/opt/rainbond/pkg"); err != nil {
-			reqLogger.Error(err, "handle rainbond package")
-			return reconcile.Result{Requeue: true}, nil
-		}
-		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
-	}
-
 	fn, ok := resourcesFuncs[instance.Name]
 	if !ok {
 		reqLogger.Info("Unsupported RbdComponent.")
@@ -232,7 +216,7 @@ func (r *ReconcileRbdComponent) updateOrCreateResource(reqLogger logr.Logger, ob
 	// obj exsits, update
 	reqLogger.Info("Object exists.", "Kind", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
 	if err := r.client.Update(context.TODO(), obj); err != nil {
-		reqLogger.Error(err, "Failed to update ", obj.GetObjectKind())
+		reqLogger.Error(err, "Failed to update", "Kind", obj.GetObjectKind())
 		return reconcile.Result{}, err
 	}
 
