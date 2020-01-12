@@ -22,4 +22,6 @@ package v1alpha1
 
 type RainbondClusterExpansion interface{}
 
+type RainbondPackageExpansion interface{}
+
 type RbdComponentExpansion interface{}

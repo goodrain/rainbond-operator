@@ -28,6 +28,8 @@ import (
 type Interface interface {
 	// RainbondClusters returns a RainbondClusterInformer.
 	RainbondClusters() RainbondClusterInformer
+	// RainbondPackages returns a RainbondPackageInformer.
+	RainbondPackages() RainbondPackageInformer
 	// RbdComponents returns a RbdComponentInformer.
 	RbdComponents() RbdComponentInformer
 }
@@ -46,6 +48,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // RainbondClusters returns a RainbondClusterInformer.
 func (v *version) RainbondClusters() RainbondClusterInformer {
 	return &rainbondClusterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// RainbondPackages returns a RainbondPackageInformer.
+func (v *version) RainbondPackages() RainbondPackageInformer {
+	return &rainbondPackageInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // RbdComponents returns a RbdComponentInformer.

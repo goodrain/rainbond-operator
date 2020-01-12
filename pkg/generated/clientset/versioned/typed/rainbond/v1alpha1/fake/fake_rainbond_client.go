@@ -34,6 +34,10 @@ func (c *FakeRainbondV1alpha1) RainbondClusters(namespace string) v1alpha1.Rainb
 	return &FakeRainbondClusters{c, namespace}
 }
 
+func (c *FakeRainbondV1alpha1) RainbondPackages(namespace string) v1alpha1.RainbondPackageInterface {
+	return &FakeRainbondPackages{c, namespace}
+}
+
 func (c *FakeRainbondV1alpha1) RbdComponents(namespace string) v1alpha1.RbdComponentInterface {
 	return &FakeRbdComponents{c, namespace}
 }
