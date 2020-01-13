@@ -1,50 +1,71 @@
-package rbdcomponent
+package handler
 
 import (
-	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
+	"context"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 )
 
-var rbdDBName = "rbd-db"
+var DBName = "rbd-db"
 
-func resourcesForDB(r *rainbondv1alpha1.RbdComponent) []interface{} {
-	return []interface{}{
-		statefulsetForDB(r),
-		serviceForDB(r),
-		configMapForDB(r),
-		initdbCMForDB(r),
+type db struct {
+	component *rainbondv1alpha1.RbdComponent
+	cluster   *rainbondv1alpha1.RainbondCluster
+	labels    map[string]string
+}
+
+func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+	return &db{
+		component: component,
+		cluster:   cluster,
+		labels:    component.Labels(),
 	}
 }
 
-func statefulsetForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := r.Labels()
+func (d *db) Before() error {
+	// TODO: check prerequisites
+	return nil
+}
+
+func (d *db) Resources() []interface{} {
+	return []interface{}{
+	}
+}
+
+func (d *db) After() error {
+	return nil
+}
+
+func (d *db) statefulsetForDB() interface{} {
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbdDBName,
-			Namespace: r.Namespace, // TODO: can use custom namespace?
-			Labels:    labels,
+			Name:      DBName,
+			Namespace: d.component.Namespace,
+			Labels:    d.labels,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas: commonutil.Int32(1),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: d.labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   rbdDBName,
-					Labels: labels,
+					Name:   DBName,
+					Labels: d.labels,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:            rbdDBName,
-							Image:           r.Spec.Image,
-							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
+							Name:            DBName,
+							Image:           d.component.Spec.Image,
+							ImagePullPolicy: d.component.ImagePullPolicy(),
 							Env: []corev1.EnvVar{
 								{
 									Name:  "MYSQL_ROOT_PASSWORD",
@@ -117,14 +138,12 @@ func statefulsetForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
 	return sts
 }
 
-func serviceForDB(rc *rainbondv1alpha1.RbdComponent) interface{} {
+func (d *db) serviceForDB() interface{} {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rbd-db",
-			Namespace: rc.Namespace,
-			Labels: map[string]string{
-				"name": "rbd-db",
-			},
+			Name:      DBName,
+			Namespace: d.component.Namespace,
+			Labels:    d.labels,
 		},
 		Spec: corev1.ServiceSpec{
 			ClusterIP: "None",
@@ -134,20 +153,18 @@ func serviceForDB(rc *rainbondv1alpha1.RbdComponent) interface{} {
 					Port: 3306,
 				},
 			},
-			Selector: map[string]string{
-				"name": "rbd-db",
-			},
+			Selector: d.labels,
 		},
 	}
 
 	return svc
 }
 
-func configMapForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
+func (d *db) configMapForDB() interface{} {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rbd-db-conf",
-			Namespace: r.Namespace,
+			Namespace: d.component.Namespace,
 		},
 		Data: map[string]string{
 			"mysql.cnf": `
@@ -171,11 +188,11 @@ collation_server       = utf8_general_ci`,
 	return cm
 }
 
-func initdbCMForDB(r *rainbondv1alpha1.RbdComponent) interface{} {
+func (d *db) initdbCMForDB() interface{} {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rbd-db-initdb",
-			Namespace: r.Namespace,
+			Namespace: d.component.Namespace,
 		},
 		Data: map[string]string{
 			"initdb.sql": "CREATE DATABASE console;",

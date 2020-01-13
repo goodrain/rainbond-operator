@@ -21,6 +21,10 @@ const (
 
 // RbdComponentSpec defines the desired state of RbdComponent
 type RbdComponentSpec struct {
+	// Number of desired pods. This is a pointer to distinguish between explicit
+	// zero and not specified. Defaults to 1.
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty"`
 	// type of rainbond component
 	Type string `json:"type,omitempty"`
 	// version of rainbond component

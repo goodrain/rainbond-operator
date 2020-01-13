@@ -1,4 +1,4 @@
-package rbdcomponent
+package handler
 
 import (
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -8,32 +8,52 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var rbdRepoName = "rbd-repo"
+var RepoName = "rbd-repo"
 
-func resourcesForRepo(r *rainbondv1alpha1.RbdComponent) []interface{} {
-	return []interface{}{
-		daemonSetForRepo(r),
-		serviceForRepo(r),
+type repo struct {
+	component *rainbondv1alpha1.RbdComponent
+	cluster   *rainbondv1alpha1.RainbondCluster
+	labels    map[string]string
+}
+
+func NewRepo(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+	return &repo{
+		component: component,
+		cluster:   cluster,
+		labels:    component.Labels(),
 	}
 }
 
-func daemonSetForRepo(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := r.Labels()
+func (r *repo) Before() error {
+	// TODO: check prerequisites
+	return nil
+}
 
+func (r *repo) Resources() []interface{} {
+	return []interface{}{
+		r.daemonSetForRepo(),
+	}
+}
+
+func (r *repo) After() error {
+	return nil
+}
+
+func (r *repo) daemonSetForRepo() interface{} {
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbdRepoName,
-			Namespace: r.Namespace,
-			Labels:    labels,
+			Name:      RepoName,
+			Namespace: r.component.Namespace,
+			Labels:    r.labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: r.labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   rbdRepoName,
-					Labels: labels,
+					Name:   RepoName,
+					Labels: r.labels,
 				},
 				Spec: corev1.PodSpec{
 					Tolerations: []corev1.Toleration{
@@ -47,9 +67,9 @@ func daemonSetForRepo(r *rainbondv1alpha1.RbdComponent) interface{} {
 					},
 					Containers: []corev1.Container{
 						{
-							Name:            rbdRepoName,
-							Image:           r.Spec.Image,
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							Name:            RepoName,
+							Image:           r.component.Spec.Image,
+							ImagePullPolicy: r.component.ImagePullPolicy(),
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "repo-data",
@@ -77,13 +97,12 @@ func daemonSetForRepo(r *rainbondv1alpha1.RbdComponent) interface{} {
 	return ds
 }
 
-func serviceForRepo(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := r.Labels()
+func (r *repo) serviceForRepo() interface{} {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbdRepoName,
-			Namespace: r.Namespace,
-			Labels:    labels,
+			Name:      RepoName,
+			Namespace: r.component.Namespace,
+			Labels:    r.labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
@@ -92,7 +111,7 @@ func serviceForRepo(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Port: 80,
 				},
 			},
-			Selector: labels,
+			Selector: r.labels,
 		},
 	}
 	return svc

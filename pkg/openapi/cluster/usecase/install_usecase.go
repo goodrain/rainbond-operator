@@ -49,7 +49,7 @@ func init() {
 		{name: "rbd-hub", image: "rainbond/rbd-registry:2.6.2"},
 		{name: "rbd-monitor", image: "goodrain.me/rbd-monitor:V5.2-dev"},
 		{name: "rbd-mq", image: "goodrain.me/rbd-mq:V5.2-dev"},
-		{name: "rbd-nfs-provisioner", image: "abewang/nfs-provisioner:v2.2.1-k8s1.12"},
+		{name: "rbd-nfs", image: "abewang/nfs-provisioner:v2.2.1-k8s1.12"},
 		{name: "rbd-node", image: "abewang/rbd-node:V5.2-dev"},
 		{name: "rbd-worker", image: "goodrain.me/rbd-worker:V5.2-dev"},
 		{name: "rbd-webcli", image: "goodrain.me/rbd-webcli:V5.2-dev"}, // not now

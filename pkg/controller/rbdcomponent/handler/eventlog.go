@@ -1,37 +1,63 @@
-package rbdcomponent
+package handler
 
 import (
+	"context"
+
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var rbdEventLogName = "rbd-eventlog"
+var EventLogName = "rbd-eventlog"
 
-func resourcesForEventLog(r *rainbondv1alpha1.RbdComponent) []interface{} {
-	return []interface{}{
-		daemonSetForEventLog(r),
+type eventlog struct {
+	component *rainbondv1alpha1.RbdComponent
+	cluster   *rainbondv1alpha1.RainbondCluster
+	labels    map[string]string
+}
+
+func NewEventLog(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+	return &eventlog{
+		component: component,
+		cluster:   cluster,
+		labels:    component.Labels(),
 	}
 }
 
-func daemonSetForEventLog(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := r.Labels()
+func (e *eventlog) Before() error {
+	// TODO: check prerequisites
+	return nil
+}
+
+func (e *eventlog) Resources() []interface{} {
+	return []interface{}{
+		e.daemonSetForEventLog(),
+	}
+}
+
+func (e *eventlog) After() error {
+	return nil
+}
+
+func (e *eventlog) daemonSetForEventLog() interface{} {
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbdEventLogName,
-			Namespace: r.Namespace,
-			Labels:    labels,
+			Name:      EventLogName,
+			Namespace: e.component.Namespace,
+			Labels:    e.labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: e.labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   rbdEventLogName,
-					Labels: labels,
+					Name:   EventLogName,
+					Labels: e.labels,
 				},
 				Spec: corev1.PodSpec{
 					HostNetwork: true,
@@ -47,9 +73,9 @@ func daemonSetForEventLog(r *rainbondv1alpha1.RbdComponent) interface{} {
 					},
 					Containers: []corev1.Container{
 						{
-							Name:            rbdEventLogName,
-							Image:           r.Spec.Image,
-							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
+							Name:            EventLogName,
+							Image:           e.component.Spec.Image,
+							ImagePullPolicy: e.component.ImagePullPolicy(),
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_IP",
@@ -61,7 +87,7 @@ func daemonSetForEventLog(r *rainbondv1alpha1.RbdComponent) interface{} {
 								},
 								{
 									Name:  "K8S_MASTER",
-									Value: "https://172.20.0.11:6443",
+									Value: "kubernetes",
 								},
 								{
 									Name:  "DOCKER_LOG_SAVE_DAY",
@@ -71,8 +97,8 @@ func daemonSetForEventLog(r *rainbondv1alpha1.RbdComponent) interface{} {
 							Args: []string{
 								"--cluster.bind.ip=$(POD_IP)",
 								"--cluster.instance.ip=$(POD_IP)",
-								"--db.url=root:rainbond@tcp(rbd-db:3306)/region",
-								"--discover.etcd.addr=http://etcd0:2379",
+								"--db.url=root:rainbond@tcp(rbd-db:3306)/region", // TODO: DO NOT HARD CODE
+								"--discover.etcd.addr=http://etcd0:2379",         // TODO: DO NOT HARD CODE
 								"--eventlog.bind.ip=$(POD_IP)",
 								"--websocket.bind.ip=$(POD_IP)",
 							},
@@ -89,7 +115,7 @@ func daemonSetForEventLog(r *rainbondv1alpha1.RbdComponent) interface{} {
 							Name: "grdata",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: "grdata",
+									ClaimName: constants.GrDataPVC,
 								},
 							},
 						},

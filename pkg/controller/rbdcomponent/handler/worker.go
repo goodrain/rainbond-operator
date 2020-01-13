@@ -1,6 +1,7 @@
-package rbdcomponent
+package handler
 
 import (
+	"fmt"
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -8,35 +9,55 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var rbdDNSName = "rbd-dns"
+var WorkerName = "rbd-worker"
 
-func resourcesForDNS(r *rainbondv1alpha1.RbdComponent) []interface{} {
-	return []interface{}{
-		daemonSetForDNS(r),
+type worker struct {
+	component *rainbondv1alpha1.RbdComponent
+	cluster   *rainbondv1alpha1.RainbondCluster
+	labels    map[string]string
+}
+
+func NewWorker(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+	return &worker{
+		component: component,
+		cluster:   cluster,
+		labels:    component.Labels(),
 	}
 }
 
-func daemonSetForDNS(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := r.Labels()
+func (w *worker) Before() error {
+	// TODO: check prerequisites
+	return nil
+}
+
+func (w *worker) Resources() []interface{} {
+	return []interface{}{
+		w.daemonSetForWorker(),
+	}
+}
+
+func (w *worker) After() error {
+	return nil
+}
+
+func (w *worker) daemonSetForWorker() interface{} {
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbdDNSName,
-			Namespace: r.Namespace,
-			Labels:    labels,
+			Name:      WorkerName,
+			Namespace: w.component.Namespace,
+			Labels:    w.labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: w.labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   rbdDNSName,
-					Labels: labels,
+					Name:   WorkerName,
+					Labels: w.labels,
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "rainbond-operator",
-					HostNetwork:        true,
-					DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",
@@ -48,9 +69,9 @@ func daemonSetForDNS(r *rainbondv1alpha1.RbdComponent) interface{} {
 					},
 					Containers: []corev1.Container{
 						{
-							Name:            rbdDNSName,
-							Image:           r.Spec.Image,
-							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
+							Name:            WorkerName,
+							Image:           w.component.Spec.Image,
+							ImagePullPolicy: w.component.ImagePullPolicy(),
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_IP",
@@ -68,17 +89,13 @@ func daemonSetForDNS(r *rainbondv1alpha1.RbdComponent) interface{} {
 										},
 									},
 								},
-								{
-									Name:  "EX_DOMAIN",
-									Value: "foobar.grapps.cn", // TODO: huangrh
-								},
 							},
-							Args: []string{ // TODO: huangrh
-								"--v=2",
-								"--healthz-port=8089",
-								"--dns-bind-address=$(POD_IP)",
-								"--nameservers=202.106.0.22,1.2.4.8",
-								"--recoders=goodrain.me=$(HOST_IP),*.goodrain.me=$(HOST_IP),rainbond.kubernetes.apiserver=$(HOST_IP)",
+							Args: []string{
+								fmt.Sprintf("--log-level=%s", w.component.LogLevel()),
+								"--host-ip=$(POD_IP)",
+								"--etcd-endpoints=http://etcd0:2379", // TODO: HARD CODE
+								"--node-name=$(HOST_IP)",
+								"--mysql=root:rainbond@tcp(rbd-db:3306)/region", // TODO: HARD CODE
 							},
 						},
 					},

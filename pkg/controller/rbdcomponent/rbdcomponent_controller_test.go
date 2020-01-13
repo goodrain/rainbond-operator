@@ -1,6 +1,7 @@
 package rbdcomponent
 
 import (
+	"github.com/GLYASAI/rainbond-operator/pkg/controller/rbdcomponent/handler"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +24,7 @@ func TestDetectControllerType(t *testing.T) {
 					Namespace: "rbd-system",
 				},
 			},
-			resourcesFunc: resourcesForAppUI,
+			resourcesFunc: handler.resourcesForAppUI,
 			want:          rainbondv1alpha1.ControllerTypeDeployment,
 		},
 		{
@@ -34,7 +35,7 @@ func TestDetectControllerType(t *testing.T) {
 					Namespace: "rbd-system",
 				},
 			},
-			resourcesFunc: resourcesForAPI,
+			resourcesFunc: handler.resourcesForAPI,
 			want:          rainbondv1alpha1.ControllerTypeDaemonSet,
 		},
 	}

@@ -1,27 +1,51 @@
-package rbdcomponent
+package handler
 
 import (
+	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
+
 )
 
-var rbdEtcdName = "rbd-etcd"
+var EtcdName = "rbd-etcd"
 
-func resourcesForEtcd(r *rainbondv1alpha1.RbdComponent) []interface{} {
-	return []interface{}{
-		podForEtcd0(r),
-		serviceForEtcd0(r),
+type etcd struct {
+	component *rainbondv1alpha1.RbdComponent
+	cluster   *rainbondv1alpha1.RainbondCluster
+}
+
+func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+	return &etcd{
+		component: component,
+		cluster:   cluster,
 	}
 }
 
-func podForEtcd0(r *rainbondv1alpha1.RbdComponent) interface{} {
+func (e *etcd) Before() error {
+	// No prerequisites, if no gateway-installed node is specified, install on all nodes that meet the conditions
+	return nil
+}
+
+func (e *etcd) Resources() []interface{} {
+	return []interface{}{
+		e.podForEtcd0(),
+		e.serviceForEtcd0(),
+	}
+}
+
+func (e *etcd) After() error {
+	return nil
+}
+
+func (e *etcd) podForEtcd0() interface{} {
 	po := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "etcd0",
-			Namespace: r.Namespace,
+			Namespace: e.component.Namespace,
 			Labels: map[string]string{
 				"app":       "etcd",
 				"etcd_node": "etcd0",
@@ -31,8 +55,8 @@ func podForEtcd0(r *rainbondv1alpha1.RbdComponent) interface{} {
 			Containers: []corev1.Container{
 				{
 					Name:            "etcd0",
-					Image:           r.Spec.Image,
-					ImagePullPolicy: corev1.PullIfNotPresent,
+					Image:           e.component.Spec.Image,
+					ImagePullPolicy: e.component.ImagePullPolicy(),
 					Command: []string{
 						"/usr/local/bin/etcd",
 						"--name",
@@ -85,14 +109,14 @@ func podForEtcd0(r *rainbondv1alpha1.RbdComponent) interface{} {
 	return po
 }
 
-func serviceForEtcd0(rc *rainbondv1alpha1.RbdComponent) interface{} {
+func (e *etcd) serviceForEtcd0() interface{} {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "etcd0",
-			Namespace: rc.Namespace,
+			Namespace: e.component.Namespace,
 			Labels: map[string]string{
 				"etcd_node": "etcd0",
-			}, // TODO
+			},
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
@@ -107,7 +131,7 @@ func serviceForEtcd0(rc *rainbondv1alpha1.RbdComponent) interface{} {
 			},
 			Selector: map[string]string{
 				"etcd_node": "etcd0",
-			}, // TODO
+			},
 		},
 	}
 

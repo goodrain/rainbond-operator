@@ -28,7 +28,7 @@ import (
 
 var log = logf.Log.WithName("controller_rbdcomponent")
 
-type handlerFunc func(component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) chandler.ComponentHandler
+type handlerFunc func(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) chandler.ComponentHandler
 
 var handlerFuncs map[string]handlerFunc
 
@@ -115,9 +115,12 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	reqLogger := log.WithValues("Namespace", request.Namespace, "Name", request.Name)
 	reqLogger.Info("Reconciling RbdComponent")
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Fetch the RbdComponent cpt
 	cpt := &rainbondv1alpha1.RbdComponent{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, cpt)
+	err := r.client.Get(ctx, request.NamespacedName, cpt)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -138,13 +141,13 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 
 	// check prerequisites
 	cluster := &rainbondv1alpha1.RainbondCluster{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondClusterName}, cluster); err != nil {
+	if err := r.client.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondClusterName}, cluster); err != nil {
 		reqLogger.Error(err, "failed to get rainbondcluster.")
 		// TODO: report status, events
 		return reconcile.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	hdl := fn(cpt, cluster)
+	hdl := fn(ctx, r.client, cpt, cluster)
 
 	if err := hdl.Before(); err != nil {
 		// TODO: report events
@@ -175,10 +178,10 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	if cpt.Name == "rbd-nfs-provisioner" { // TODO: move to prepare manager
 		class := storageClassForNFSProvisioner()
 		oldClass := &storagev1.StorageClass{}
-		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: class.Name}, oldClass); err != nil {
+		if err := r.client.Get(ctx, types.NamespacedName{Name: class.Name}, oldClass); err != nil {
 			if errors.IsNotFound(err) {
 				reqLogger.Info("StorageClass not found, will create a new one")
-				if err := r.client.Create(context.TODO(), class); err != nil {
+				if err := r.client.Create(ctx, class); err != nil {
 					reqLogger.Error(err, "Error creating storageclass")
 					return reconcile.Result{Requeue: true}, err
 				}
@@ -197,7 +200,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		ControllerType: controllerType,
 		ControllerName: cpt.Name,
 	}
-	if err := r.client.Status().Update(context.TODO(), cpt); err != nil {
+	if err := r.client.Status().Update(ctx, cpt); err != nil {
 		reqLogger.Error(err, "Update RbdComponent status", "Name", cpt.Name)
 		return reconcile.Result{Requeue: true}, err
 	}

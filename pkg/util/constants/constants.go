@@ -12,4 +12,6 @@ const (
 	DefStorageClass = "rbd-nfs"
 
 	DefImageRepository = "goodrain.me"
+
+	GrDataPVC = "grdata"
 )

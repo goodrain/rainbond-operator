@@ -1,8 +1,12 @@
 package handler
 
 import (
+	"context"
+
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
@@ -12,7 +16,7 @@ import (
 )
 
 var HubName = "rbd-hub"
-var hubDataPvcName = "hub-data"
+var hubDataPvcName = "hubdata"
 var hubImageRepository = "hub-image-repository"
 
 type hub struct {
@@ -20,7 +24,7 @@ type hub struct {
 	cluster   *rainbondv1alpha1.RainbondCluster
 }
 
-func NewHub(component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewHub(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &hub{
 		component: component,
 		cluster:   cluster,

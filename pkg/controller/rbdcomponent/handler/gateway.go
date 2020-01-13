@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var GatewayName = "rbd-gateway"
@@ -16,7 +18,7 @@ type gateway struct {
 	cluster   *rainbondv1alpha1.RainbondCluster
 }
 
-func NewGateway(component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewGateway(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &gateway{
 		component: component,
 		cluster:   cluster,

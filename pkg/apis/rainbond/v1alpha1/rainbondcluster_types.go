@@ -48,7 +48,7 @@ type RainbondClusterSpec struct {
 	// +optional
 	RainbondImageRepositoryDomain string `json:"rainbondImageRepositoryHost,omitempty"`
 	// Suffix of component default domain name
-	SuffixHTTPHost string `json:"suffixHTTPHost,omitempty"`
+	SuffixHTTPHost string `json:"suffixHTTPHost"`
 	// Ingress IP addresses of rbd-gateway. If not specified,
 	// the IP of the node where the rbd-gateway is located will be used.
 	GatewayIngressIPs []string `json:"gatewayIngressIPs,omitempty"`
@@ -234,4 +234,17 @@ func (in *RainbondCluster) ImageRepository() string {
 		return constants.DefImageRepository
 	}
 	return in.Spec.RainbondImageRepositoryDomain
+}
+
+func (in *RainbondCluster) GatewayIngressIP() string {
+	if len(in.Spec.GatewayIngressIPs) > 0 {
+		return in.Spec.GatewayIngressIPs[0]
+	}
+	if len(in.Spec.GatewayNodes) > 0 {
+		return in.Spec.GatewayNodes[0].NodeIP
+	}
+	if in.Status != nil && len(in.Status.NodeAvailPorts) > 0 {
+		return in.Status.NodeAvailPorts[0].NodeIP
+	}
+	return ""
 }

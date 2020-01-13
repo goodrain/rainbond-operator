@@ -1,39 +1,63 @@
-package rbdcomponent
+package handler
 
 import (
+	"context"
+
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var rbdChaosName = "rbd-chaos"
+var ChaosName = "rbd-chaos"
 
-func resourcesForChaos(r *rainbondv1alpha1.RbdComponent) []interface{} {
-	return []interface{}{
-		daemonSetForChaos(r),
+type chaos struct {
+	component *rainbondv1alpha1.RbdComponent
+	cluster   *rainbondv1alpha1.RainbondCluster
+	labels    map[string]string
+}
+
+func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+	return &chaos{
+		component: component,
+		cluster:   cluster,
+		labels:    component.Labels(),
 	}
 }
 
-func daemonSetForChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := r.Labels()
+func (c *chaos) Before() error {
+	// No prerequisites, if no gateway-installed node is specified, install on all nodes that meet the conditions
+	return nil
+}
 
+func (c *chaos) Resources() []interface{} {
+	return []interface{}{
+	}
+}
+
+func (c *chaos) After() error {
+	return nil
+}
+
+func (c *chaos) daemonSetForChaos() interface{} {
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbdChaosName,
-			Namespace: r.Namespace,
-			Labels:    labels,
+			Name:      ChaosName,
+			Namespace: c.component.Namespace,
+			Labels:    c.labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: c.labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   rbdChaosName,
-					Labels: labels,
+					Name:   ChaosName,
+					Labels: c.labels,
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "rainbond-operator",
@@ -48,9 +72,9 @@ func daemonSetForChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
 					},
 					Containers: []corev1.Container{
 						{
-							Name:            rbdChaosName,
-							Image:           r.Spec.Image,
-							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
+							Name:            ChaosName,
+							Image:           c.component.Spec.Image,
+							ImagePullPolicy: c.component.ImagePullPolicy(),
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_IP",
@@ -69,11 +93,11 @@ func daemonSetForChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
 									Value: "/cache",
 								},
 							},
-							Args: []string{ // TODO: huangrh
-								"--etcd-endpoints=http://etcd0:2379",
+							Args: []string{
+								"--etcd-endpoints=http://etcd0:2379", // TODO: DO NOT HARD CODE
 								"--hostIP=$(POD_IP)",
 								"--log-level=debug",
-								"--mysql=root:rainbond@tcp(rbd-db:3306)/region",
+								"--mysql=root:rainbond@tcp(rbd-db:3306)/region", // TODO: DO NOT HARD CODE
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
@@ -95,7 +119,7 @@ func daemonSetForChaos(r *rainbondv1alpha1.RbdComponent) interface{} {
 							Name: "grdata",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: "grdata",
+									ClaimName: constants.GrDataPVC,
 								},
 							},
 						},
