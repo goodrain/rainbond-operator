@@ -51,7 +51,6 @@ func init() {
 		{name: "rbd-mq", image: "goodrain.me/rbd-mq:V5.2-dev"},
 		{name: "rbd-nfs-provisioner", image: "abewang/nfs-provisioner:v2.2.1-k8s1.12"},
 		{name: "rbd-node", image: "abewang/rbd-node:V5.2-dev"},
-		{name: "rbd-package", image: ""},
 		{name: "rbd-worker", image: "goodrain.me/rbd-worker:V5.2-dev"},
 		{name: "rbd-webcli", image: "goodrain.me/rbd-webcli:V5.2-dev"}, // not now
 		{name: "rbd-repo", image: "goodrain.me/rbd-repo:6.16.0"},
@@ -93,6 +92,26 @@ func (ic *InstallUseCaseImpl) Install() error {
 
 	}
 	logrus.Debug("rainbond archive file already exits")
+
+	// rainbondpackage
+	pkg := &v1alpha1.RainbondPackage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rainbondpackage",
+			Namespace: ic.cfg.Namespace,
+		},
+		Spec: v1alpha1.RainbondPackageSpec{PkgPath: ic.cfg.ArchiveFilePath},
+	}
+	_, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(ic.cfg.Namespace).Get("rainbondpackage", metav1.GetOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			log.Info("no rainbondpackage found, create a new one.")
+			_, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(ic.cfg.Namespace).Create(pkg)
+			if err != nil {
+				return fmt.Errorf("failed to create rainbondpackage: %v", err)
+			}
+		}
+		return fmt.Errorf("failed to get rainbondpackage: %v", err)
+	}
 
 	// step 3 create custom resource
 	return ic.createComponents(componentClaims...)
