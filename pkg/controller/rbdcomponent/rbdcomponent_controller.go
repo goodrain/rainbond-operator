@@ -175,9 +175,10 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 					reqLogger.Error(err, "Error creating storageclass")
 					return reconcile.Result{Requeue: true}, err
 				}
+			} else {
+				reqLogger.Error(err, "Error checking if storageclass exists")
+				return reconcile.Result{Requeue: true}, err
 			}
-			reqLogger.Error(err, "Error checking if storageclass exists")
-			return reconcile.Result{Requeue: true}, err
 		}
 	}
 
