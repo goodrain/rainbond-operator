@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -70,6 +71,8 @@ type RainbondClusterSpec struct {
 	// the etcd connection information that rainbond component will be used.
 	// rainbond-operator will create one if EtcdConfig is empty
 	EtcdConfig *EtcdConfig `json:"etcdConfig,omitempty"`
+
+	// todo: version
 }
 
 // RainbondClusterPhase is a label for the condition of a rainbondcluster at the current time.
@@ -217,4 +220,18 @@ func (in *RainbondCluster) FindCondition(t RainbondClusterConditionType) *Rainbo
 	}
 
 	return nil
+}
+
+func (in *RainbondCluster) StorageClass() string {
+	if in.Spec.StorageClassName == "" {
+		return constants.DefStorageClass
+	}
+	return in.Spec.StorageClassName
+}
+
+func (in *RainbondCluster) ImageRepository() string {
+	if in.Spec.RainbondImageRepositoryDomain == "" {
+		return constants.DefImageRepository
+	}
+	return in.Spec.RainbondImageRepositoryDomain
 }

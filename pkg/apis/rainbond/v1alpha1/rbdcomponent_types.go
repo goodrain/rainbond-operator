@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -18,18 +19,6 @@ const (
 	LogLevelError LogLevel = "error"
 )
 
-// PullPolicy describes a policy for if/when to pull a container image
-type PullPolicy string
-
-const (
-	// PullAlways means that kubelet always attempts to pull the latest image. Container will fail If the pull fails.
-	PullAlways PullPolicy = "Always"
-	// PullNever means that kubelet never pulls an image, but only uses a local image. Container will fail if the image isn't present
-	PullNever PullPolicy = "Never"
-	// PullIfNotPresent means that kubelet pulls if the image isn't present on disk. Container will fail if the image isn't present and the pull fails.
-	PullIfNotPresent PullPolicy = "IfNotPresent"
-)
-
 // RbdComponentSpec defines the desired state of RbdComponent
 type RbdComponentSpec struct {
 	// type of rainbond component
@@ -43,7 +32,9 @@ type RbdComponentSpec struct {
 	// One of Always, Never, IfNotPresent.
 	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
 	// Cannot be updated.
-	ImagePullPolicy PullPolicy `json:"imagePullPolicy,omitempty"`
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+
+	PackagePath string `json:"packagePath,omitempty"`
 }
 
 // ControllerType -
@@ -67,10 +58,20 @@ func (c ControllerType) String() string {
 // RbdComponentStatus defines the observed state of RbdComponent
 type RbdComponentStatus struct {
 	// Type of Controller owned by RbdComponent
-	ControllerType ControllerType `json:"controller_type"`
+	ControllerType ControllerType `json:"controllerType"`
 	// ControllerName represents the Controller associated with RbdComponent
 	// The controller could be Deployment, StatefulSet or DaemonSet
-	ControllerName string `json:"controller_name"`
+	ControllerName string `json:"controllerName"`
+
+	PackageExtracted bool `json:"packageExtracted"`
+
+	ImagesLoaded bool `json:"imagesLoaded"`
+
+	ImagesPushed bool `json:"imagesPushed"`
+
+	Reason string `json:"reason"`
+
+	Message string `json:"message"`
 }
 
 // +genclient
@@ -102,8 +103,22 @@ func init() {
 
 func (in *RbdComponent) Labels() map[string]string {
 	return map[string]string{
-		"creator": "Rainbond",
+		"creator":  "Rainbond",
 		"belongTo": "RainbondOperator",
-		"name":    in.Name,
+		"name":     in.Name,
 	}
+}
+
+func (in *RbdComponent) ImagePullPolicy() corev1.PullPolicy {
+	if in.Spec.ImagePullPolicy == "" {
+		return corev1.PullAlways
+	}
+	return in.Spec.ImagePullPolicy
+}
+
+func (in *RbdComponent) LogLevel() LogLevel {
+	if in.Spec.LogLevel == "" {
+		return LogLevelInfo
+	}
+	return in.Spec.LogLevel
 }

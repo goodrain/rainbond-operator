@@ -1,38 +1,56 @@
-package rbdcomponent
+package handler
 
 import (
+	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/rbduitl"
 )
 
-var defaultPVCName = "hubdata"
-var rbdHubServiceName = "rbd-hub"
+var HubName = "rbd-hub"
+var hubDataPvcName = "hub-data"
+var hubImageRepository = "hub-image-repository"
 
-func resourcesForHub(r *rainbondv1alpha1.RbdComponent) []interface{} {
-	return []interface{}{
-		secretForHub(r),
-		daemonSetForHub(r),
-		serviceForHub(r),
-		persistentVolumeClaimForHub(r),
-		ingressForHub(r),
+type hub struct {
+	component *rainbondv1alpha1.RbdComponent
+	cluster   *rainbondv1alpha1.RainbondCluster
+}
+
+func NewHub(component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+	return &hub{
+		component: component,
+		cluster:   cluster,
 	}
 }
 
-// daemonSetForHub returns a privateregistry Daemonset object
-func daemonSetForHub(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := r.Labels()
+func (h *hub) Before() error {
+	return nil
+}
+
+func (h *hub) Resources() []interface{} {
+	return []interface{}{
+		h.secretForHub(), // important! create secret before ingress.
+		h.daemonSetForHub(),
+		h.secretForHub(),
+		h.persistentVolumeClaimForHub(),
+		h.ingressForHub(),
+	}
+}
+
+func (h *hub) After() error {
+	return nil
+}
+
+func (h *hub) daemonSetForHub() interface{} {
+	labels := h.component.Labels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rbd-hub",
-			Namespace: r.Namespace,
+			Name:      HubName,
+			Namespace: h.component.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -41,7 +59,7 @@ func daemonSetForHub(r *rainbondv1alpha1.RbdComponent) interface{} {
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   "rbd-hub",
+					Name:   HubName,
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
@@ -57,8 +75,8 @@ func daemonSetForHub(r *rainbondv1alpha1.RbdComponent) interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            "rbd-hub",
-							Image:           r.Spec.Image,
-							ImagePullPolicy: corev1.PullAlways, // TODO: custom
+							Image:           h.component.Spec.Image,
+							ImagePullPolicy: h.component.ImagePullPolicy(),
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "hubdata",
@@ -72,7 +90,7 @@ func daemonSetForHub(r *rainbondv1alpha1.RbdComponent) interface{} {
 							Name: "hubdata",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: defaultPVCName,
+									ClaimName: hubDataPvcName,
 								},
 							},
 						},
@@ -85,14 +103,12 @@ func daemonSetForHub(r *rainbondv1alpha1.RbdComponent) interface{} {
 	return ds
 }
 
-func serviceForHub(rc *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := rbdutil.LabelsForRainbondResource()
-	labels["name"] = rbdHubServiceName
-
+func (h *hub) serviceForHub() interface{} {
+	labels := h.component.Labels()
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbdHubServiceName,
-			Namespace: rc.Namespace,
+			Name:      HubName,
+			Namespace: h.component.Namespace,
 			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{
@@ -105,19 +121,19 @@ func serviceForHub(rc *rainbondv1alpha1.RbdComponent) interface{} {
 					},
 				},
 			},
-			Selector: labelsForPrivateRegistry("rbd-hub"), // TODO
+			Selector: labels,
 		},
 	}
 
 	return svc
 }
 
-func persistentVolumeClaimForHub(p *rainbondv1alpha1.RbdComponent) interface{} {
-	storageRequest := resource.NewQuantity(10, resource.DecimalSI)
+func (h *hub) persistentVolumeClaimForHub() interface{} {
+	storageRequest := resource.NewQuantity(10, resource.DecimalSI) // TODO: DO NOT HARD CODE.
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      defaultPVCName,
-			Namespace: p.Namespace,
+			Name:      hubDataPvcName,
+			Namespace: h.component.Namespace,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{
@@ -128,21 +144,19 @@ func persistentVolumeClaimForHub(p *rainbondv1alpha1.RbdComponent) interface{} {
 					corev1.ResourceStorage: *storageRequest,
 				},
 			},
-			StorageClassName: commonutil.String("rbd-nfs"), // TODO: do not hard code
+			StorageClassName: commonutil.String(h.cluster.StorageClass()),
 		},
 	}
 
 	return pvc
 }
 
-func ingressForHub(rc *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := rbdutil.LabelsForRainbondResource()
-	labels["name"] = "rbd-hub"
-
+func (h *hub) ingressForHub() interface{} {
+	labels := h.component.Labels()
 	ing := &extensions.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rbd-hub",
-			Namespace: rc.Namespace,
+			Name:      HubName,
+			Namespace: h.component.Namespace,
 			Annotations: map[string]string{
 				"nginx.ingress.kubernetes.io/weight":                       "100",
 				"nginx.ingress.kubernetes.io/proxy-body-size":              "0",
@@ -163,7 +177,7 @@ func ingressForHub(rc *rainbondv1alpha1.RbdComponent) interface{} {
 								{
 									Path: "/v2/",
 									Backend: extensions.IngressBackend{
-										ServiceName: rbdHubServiceName,
+										ServiceName: HubName,
 										ServicePort: intstr.FromInt(5000),
 									},
 								},
@@ -175,9 +189,9 @@ func ingressForHub(rc *rainbondv1alpha1.RbdComponent) interface{} {
 			TLS: []extensions.IngressTLS{
 				{
 					Hosts: []string{
-						"goodrain.me",
+						h.cluster.ImageRepository(),
 					},
-					SecretName: "rbd-hub-goodrain.me",
+					SecretName: hubImageRepository,
 				},
 			},
 		},
@@ -186,16 +200,16 @@ func ingressForHub(rc *rainbondv1alpha1.RbdComponent) interface{} {
 	return ing
 }
 
-func secretForHub(rc *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := rbdutil.LabelsForRainbondResource()
-	labels["name"] = "rbd-hub-goodrain.me"
+func (h *hub) secretForHub() interface{} {
+	labels := h.component.Labels()
+	labels["name"] = hubImageRepository
 
-	_, pem, key, _ := commonutil.DomainSign("goodrain.me")
+	_, pem, key, _ := commonutil.DomainSign(h.cluster.ImageRepository())
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rbd-hub-goodrain.me",
-			Namespace: rc.Namespace,
+			Name:      hubImageRepository,
+			Namespace: h.component.Namespace,
 			Labels:    labels,
 		},
 		Data: map[string][]byte{
@@ -206,10 +220,4 @@ func secretForHub(rc *rainbondv1alpha1.RbdComponent) interface{} {
 	}
 
 	return secret
-}
-
-// labelsForPrivateRegistry returns the labels for selecting the resources
-// belonging to the given PrivateRegistry CR name.
-func labelsForPrivateRegistry(name string) map[string]string {
-	return map[string]string{"name": "rbd-hub"} // TODO: only one rainbond?
 }

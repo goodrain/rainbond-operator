@@ -42,6 +42,8 @@ spec:
             logLevel:
               description: LogLevel -
               type: string
+            packagePath:
+              type: string
             type:
               description: type of rainbond component
               type: string
@@ -52,16 +54,31 @@ spec:
         status:
           description: RbdComponentStatus defines the observed state of RbdComponent
           properties:
-            controller_name:
+            controllerName:
               description: ControllerName represents the Controller associated with
                 RbdComponent The controller could be Deployment, StatefulSet or DaemonSet
               type: string
-            controller_type:
+            controllerType:
               description: Type of Controller owned by RbdComponent
               type: string
+            imagesLoaded:
+              type: boolean
+            imagesPushed:
+              type: boolean
+            message:
+              type: string
+            packageExtracted:
+              type: boolean
+            reason:
+              type: string
           required:
-          - controller_name
-          - controller_type
+          - controllerName
+          - controllerType
+          - imagesLoaded
+          - imagesPushed
+          - message
+          - packageExtracted
+          - reason
           type: object
       type: object
   version: v1alpha1

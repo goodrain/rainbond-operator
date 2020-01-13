@@ -1,52 +1,73 @@
-package rbdcomponent
+package handler
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var rbdNFSProvisionerName = "rbd-nfs-provisioner"
+var NFSName = constants.DefStorageClass
+var nfsProvisionerName = "rainbond.io/nfs"
 
-func resourcesForNFSProvisioner(r *rainbondv1alpha1.RbdComponent) []interface{} {
-	return []interface{}{
-		statefulsetForNFSProvisioner(r),
-		serviceForNFSProvisioner(r),
+type nfsProvisioner struct {
+	component *rainbondv1alpha1.RbdComponent
+	cluster   *rainbondv1alpha1.RainbondCluster
+}
+
+func NewNFSProvisioner(component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+	return &nfsProvisioner{
+		component: component,
+		cluster:   cluster,
 	}
 }
 
-func statefulsetForNFSProvisioner(r *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := r.Labels()
+func (n *nfsProvisioner) Before() error {
+	// No prerequisites, if no gateway-installed node is specified, install on all nodes that meet the conditions
+	return nil
+}
 
+func (n *nfsProvisioner) Resources() []interface{} {
+	return []interface{}{
+		n.statefulsetForNFSProvisioner(),
+		n.serviceForNFSProvisioner(),
+	}
+}
+
+func (n *nfsProvisioner) After() error {
+	return nil
+}
+
+func (n *nfsProvisioner) statefulsetForNFSProvisioner() interface{} {
+	labels := n.component.Labels()
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbdNFSProvisionerName,
-			Namespace: r.Namespace, // TODO: can use custom namespace?
+			Name:      NFSName,
+			Namespace: n.component.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas:    commonutil.Int32(1),
-			ServiceName: rbdNFSProvisionerName,
+			ServiceName: NFSName,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   rbdNFSProvisionerName,
+					Name:   NFSName,
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: "rainbond-operator", // TODO: do not hard code
+					ServiceAccountName: "rainbond-operator", // TODO: do not hard code, get sa from configuration.
 					Containers: []corev1.Container{
 						{
-							Name:            rbdNFSProvisionerName,
-							Image:           r.Spec.Image,
-							ImagePullPolicy: corev1.PullIfNotPresent, // TODO: custom
+							Name:            NFSName,
+							Image:           n.component.Spec.Image,
+							ImagePullPolicy: n.component.ImagePullPolicy(),
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "nfs",
@@ -85,11 +106,11 @@ func statefulsetForNFSProvisioner(r *rainbondv1alpha1.RbdComponent) interface{} 
 								},
 								{
 									Name:  "SERVICE_NAME",
-									Value: rbdNFSProvisionerName,
+									Value: NFSName,
 								},
 							},
 							Args: []string{
-								"-provisioner=rainbond.io/nfs",
+								"-provisioner=" + nfsProvisionerName,
 							},
 							SecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{
@@ -112,7 +133,7 @@ func statefulsetForNFSProvisioner(r *rainbondv1alpha1.RbdComponent) interface{} 
 							Name: "export-volume",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/srv",
+									Path: "/opt/rainbond/data/nfs",
 									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 								},
 							},
@@ -126,13 +147,13 @@ func statefulsetForNFSProvisioner(r *rainbondv1alpha1.RbdComponent) interface{} 
 	return sts
 }
 
-func serviceForNFSProvisioner(rc *rainbondv1alpha1.RbdComponent) interface{} {
-	labels := rc.Labels()
+func (n *nfsProvisioner) serviceForNFSProvisioner() interface{} {
+	labels := n.component.Labels()
 
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbdNFSProvisionerName,
-			Namespace: rc.Namespace,
+			Name:      NFSName,
+			Namespace: n.component.Namespace,
 			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{
@@ -160,18 +181,4 @@ func serviceForNFSProvisioner(rc *rainbondv1alpha1.RbdComponent) interface{} {
 	}
 
 	return svc
-}
-
-func storageClassForNFSProvisioner() *storagev1.StorageClass {
-	sc := &storagev1.StorageClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "rbd-nfs",
-		},
-		Provisioner: "rainbond.io/nfs",
-		MountOptions: []string{
-			"vers=4.1",
-		},
-	}
-
-	return sc
 }

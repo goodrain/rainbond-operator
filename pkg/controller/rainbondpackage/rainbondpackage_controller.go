@@ -352,6 +352,7 @@ func (p *pkg) loadImages() error {
 		return fmt.Errorf("failed to update image status: %v", err)
 	}
 
+	// TODO: retry
 	return filepath.Walk(dir, func(pstr string, info os.FileInfo, err error) error {
 		l := log.WithValues("file", pstr)
 		if err != nil {
@@ -373,7 +374,7 @@ func (p *pkg) loadImages() error {
 		}
 		log.Info("start loading image", "file", pstr)
 		ctx := context.Background()
-		res, err := cli.ImageLoad(ctx, f, true)
+		res, err := cli.ImageLoad(ctx, f, true) // load one, push one.
 		if err != nil {
 			return fmt.Errorf("path: %s; failed to load images: %v", pstr, err)
 		}

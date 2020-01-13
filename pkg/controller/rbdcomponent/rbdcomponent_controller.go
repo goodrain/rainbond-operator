@@ -3,6 +3,9 @@ package rbdcomponent
 import (
 	"context"
 	"fmt"
+	"time"
+
+	chandler "github.com/GLYASAI/rainbond-operator/pkg/controller/rbdcomponent/handler"
 	"github.com/go-logr/logr"
 	appv1 "k8s.io/api/apps/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -20,32 +23,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 )
 
 var log = logf.Log.WithName("controller_rbdcomponent")
 
-type resourcesFunc func(r *rainbondv1alpha1.RbdComponent) []interface{}
+type handlerFunc func(component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) chandler.ComponentHandler
 
-var resourcesFuncs map[string]resourcesFunc
+var handlerFuncs map[string]handlerFunc
+
+func AddHandlerFunc(name string, handlerFunc handlerFunc) {
+	handlerFuncs[name] = handlerFunc
+}
 
 func init() {
-	resourcesFuncs = map[string]resourcesFunc{
-		"rbd-db":              resourcesForDB,
-		"rbd-etcd":            resourcesForEtcd,
-		"rbd-hub":             resourcesForHub,
-		"rbd-gateway":         resourcesForGateway,
-		"rbd-node":            resourcesForNode,
-		"rbd-api":             resourcesForAPI,
-		"rbd-app-ui":          resourcesForAppUI,
-		"rbd-worker":          resourcesForWorker,
-		"rbd-chaos":           resourcesForChaos,
-		"rbd-eventlog":        resourcesForEventLog,
-		"rbd-monitor":         resourcesForMonitor,
-		"rbd-mq":              resourcesForMQ,
-		"rbd-dns":             resourcesForDNS,
-		"rbd-nfs-provisioner": resourcesForNFSProvisioner,
-		"rbd-repo":            resourcesForRepo,
-	}
+	handlerFuncs = map[string]handlerFunc{}
 }
 
 // Add creates a new RbdComponent Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -124,9 +116,9 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	reqLogger := log.WithValues("Namespace", request.Namespace, "Name", request.Name)
 	reqLogger.Info("Reconciling RbdComponent")
 
-	// Fetch the RbdComponent instance
-	instance := &rainbondv1alpha1.RbdComponent{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	// Fetch the RbdComponent cpt
+	cpt := &rainbondv1alpha1.RbdComponent{}
+	err := r.client.Get(context.TODO(), request.NamespacedName, cpt)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -138,26 +130,42 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	fn, ok := resourcesFuncs[instance.Name]
+	fn, ok := handlerFuncs[cpt.Name]
 	if !ok {
+		// TODO: report status, events
 		reqLogger.Info("Unsupported RbdComponent.")
 		return reconcile.Result{}, nil
 	}
 
-	// TODO: check if the component is ready to be created
+	// check prerequisites
+	cluster := &rainbondv1alpha1.RainbondCluster{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondClusterName}, cluster); err != nil {
+		reqLogger.Error(err, "failed to get rainbondcluster.")
+		// TODO: report status, events
+		return reconcile.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
+	hdl := fn(cpt, cluster)
+
+	if err := hdl.Before(); err != nil {
+		// TODO: report events
+		reqLogger.Info("error checking the prerequisites", "err", err)
+		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	resourceses := hdl.Resources()
 
 	controllerType := rainbondv1alpha1.ControllerTypeUnknown
-	for _, res := range fn(instance) {
+	for _, res := range resourceses {
 		if ct := detectControllerType(res); ct != rainbondv1alpha1.ControllerTypeUnknown {
 			controllerType = ct
 		}
 
-		// Set RbdComponent instance as the owner and controller
-		if err := controllerutil.SetControllerReference(instance, res.(metav1.Object), r.scheme); err != nil {
+		// Set RbdComponent cpt as the owner and controller
+		if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.scheme); err != nil {
 			return reconcile.Result{}, err
 		}
 
-		// TODO: do not update secret for hub every times.
 		// Check if the resource already exists, if not create a new one
 		reconcileResult, err := r.updateOrCreateResource(reqLogger, res.(runtime.Object), res.(metav1.Object))
 		if err != nil {
@@ -165,7 +173,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		}
 	}
 
-	if instance.Name == "rbd-nfs-provisioner" {
+	if cpt.Name == "rbd-nfs-provisioner" { // TODO: move to prepare manager
 		class := storageClassForNFSProvisioner()
 		oldClass := &storagev1.StorageClass{}
 		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: class.Name}, oldClass); err != nil {
@@ -182,16 +190,16 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		}
 	}
 
-	if instance.Name == "rbd-etcd" { // TODO:
+	if cpt.Name == "rbd-etcd" { // TODO:
 		return reconcile.Result{}, nil
 	}
-	instance.Status = &rainbondv1alpha1.RbdComponentStatus{
-		ControllerType: controllerType,
-		ControllerName: instance.Name,
-	}
 
-	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
-		reqLogger.Error(err, "Update RbdComponent status", "Name", instance.Name)
+	cpt.Status = &rainbondv1alpha1.RbdComponentStatus{
+		ControllerType: controllerType,
+		ControllerName: cpt.Name,
+	}
+	if err := r.client.Status().Update(context.TODO(), cpt); err != nil {
+		reqLogger.Error(err, "Update RbdComponent status", "Name", cpt.Name)
 		return reconcile.Result{Requeue: true}, err
 	}
 
@@ -268,4 +276,18 @@ func detectControllerType(ctrl interface{}) rainbondv1alpha1.ControllerType {
 		return rainbondv1alpha1.ControllerTypeDaemonSet
 	}
 	return rainbondv1alpha1.ControllerTypeUnknown
+}
+
+func storageClassForNFSProvisioner() *storagev1.StorageClass {
+	sc := &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "rbd-nfs",
+		},
+		Provisioner: "rainbond.io/nfs",
+		MountOptions: []string{
+			"vers=4.1",
+		},
+	}
+
+	return sc
 }
