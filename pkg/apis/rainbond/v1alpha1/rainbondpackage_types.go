@@ -34,8 +34,6 @@ const (
 )
 
 type ImageStatus struct {
-	// Loaded Indicates whether the image has been loaded.
-	Loaded bool `json:"loaded"`
 	// Pushed Indicates whether the image has been pushed.
 	Pushed bool `json:"pushed"`
 }
@@ -53,7 +51,9 @@ type RainbondPackageStatus struct {
 	// A brief CamelCase message indicating details about why the pod is in this state.
 	// +optional
 	Reason string `json:"reason,omitempty"`
-	// ImageStatus contains the status of each image in the installation package, including loaded and pushed.
+	// The number of images that should be load and pushed.
+	ImagesNumber int32 `json:"imagesNumber"`
+	// ImageStatus contains the status of each image in the installation package.
 	ImageStatus map[string]ImageStatus `json:"imageStatus,omitempty"`
 }
 

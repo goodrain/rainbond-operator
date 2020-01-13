@@ -8,7 +8,6 @@ import (
 	"github.com/pquerna/ffjson/ffjson"
 	"io"
 	"io/ioutil"
-
 	"os"
 	"path"
 	"path/filepath"
@@ -342,31 +341,13 @@ func (p *pkg) loadImages() error {
 	}
 
 	dir := pkgDir(p.pkg.Spec.PkgPath, pkgDst)
-	mfile, err := os.Open(path.Join(dir, "metadata.json"))
-	if err != nil && !os.IsExist(err) {
-		return fmt.Errorf("failed to open %s: %v", path.Join(dir, "metadata.json"), err)
-	}
-	bytes, err := ioutil.ReadAll(mfile)
+	imagesNumber, err := countImages(dir)
 	if err != nil {
-		return fmt.Errorf("failed to read from file: %v", err)
+		return fmt.Errorf("failed to count the number of images: %v", err)
 	}
 
-	var images []string
-	if err := ffjson.Unmarshal(bytes, &images); err != nil {
-		return fmt.Errorf("failed to unmarshal images info: %v", err)
-	}
-	imageStatus := p.status.ImageStatus
-	if imageStatus == nil {
-		imageStatus = make(map[string]rainbondv1alpha1.ImageStatus, len(images))
-	}
-	for _, image := range images {
-		image = trimLatest(image)
-		if _, ok := imageStatus[image]; ok {
-			continue
-		}
-		imageStatus[image] = rainbondv1alpha1.ImageStatus{}
-	}
-	p.status.ImageStatus = imageStatus
+	p.status.ImagesNumber = imagesNumber
+	p.status.ImageStatus = make(map[string]rainbondv1alpha1.ImageStatus)
 	if err := p.updateCRStatus(); err != nil {
 		return fmt.Errorf("failed to update image status: %v", err)
 	}
@@ -427,18 +408,12 @@ func (p *pkg) loadImages() error {
 			return fmt.Errorf("failed to parse image name: %v", err)
 		}
 
-		status, ok := p.status.ImageStatus[imageName]
-		if ok {
-			status.Loaded = true
-			p.status.ImageStatus[imageName] = status
-			if err := p.updateCRStatus(); err != nil {
-				return fmt.Errorf("status: %#v; failed to update image status: %v", status, err)
-			}
-		} else {
-			log.Info(fmt.Sprintf("%s is not image in metadata", imageName))
+		p.status.ImageStatus[imageName] = rainbondv1alpha1.ImageStatus{}
+		if err := p.updateCRStatus(); err != nil {
+			return fmt.Errorf("failed to update image status: %v", err)
 		}
 
-		log.Info("successfully load images", "images", images)
+		log.Info("successfully load images")
 		return nil
 	})
 }
@@ -513,7 +488,8 @@ func (p *pkg) pushImages() error {
 }
 
 func pkgDir(pkgPath, dst string) string {
-	dirName := strings.Replace(path.Base(pkgPath), ".tgz", "", -1)
+	ext := path.Ext(pkgPath)
+	dirName := strings.Replace(path.Base(pkgPath), ext, "", -1)
 	return path.Join(dst, dirName)
 }
 
@@ -557,4 +533,25 @@ func trimLatest(str string) string {
 		return str
 	}
 	return str[:len(str)-len(":latest")]
+}
+
+func countImages(dir string) (int32, error) {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read dir %s: %v", dir, err)
+	}
+
+	var count int32
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		base := path.Base(file.Name())
+		if path.Ext(base) != ".tgz" || strings.HasPrefix(base, "._") {
+			continue
+		}
+		count++
+	}
+
+	return count, nil
 }
