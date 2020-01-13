@@ -23,6 +23,7 @@ import (
 	uctrl "github.com/GLYASAI/rainbond-operator/pkg/openapi/user/controller"
 	urepo "github.com/GLYASAI/rainbond-operator/pkg/openapi/user/repositry"
 	uucase "github.com/GLYASAI/rainbond-operator/pkg/openapi/user/usecase"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/corsutil"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 )
 
@@ -68,6 +69,7 @@ func main() {
 	db.Create(&model.User{Username: "admin", Password: "admin"})
 
 	r := gin.Default()
+	r.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
 
 	userRepo := urepo.NewSqlite3UserRepository(db)
 	userRepo.CreateIfNotExist(&model.User{Username: "admin", Password: "admin"})
@@ -86,4 +88,11 @@ func main() {
 		log.Info("Received signal", s.String(), "exiting gracefully.")
 	}
 	log.Info("See you next time!")
+}
+
+var corsMidle = func(f gin.HandlerFunc) gin.HandlerFunc {
+	return gin.HandlerFunc(func(ctx *gin.Context) {
+		corsutil.SetCORS(ctx)
+		f(ctx)
+	})
 }
