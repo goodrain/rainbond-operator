@@ -103,14 +103,14 @@ func (ic *InstallUseCaseImpl) Install() error {
 	}
 	_, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(ic.cfg.Namespace).Get("rainbondpackage", metav1.GetOptions{})
 	if err != nil {
-		if k8sErrors.IsNotFound(err) {
-			log.Info("no rainbondpackage found, create a new one.")
-			_, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(ic.cfg.Namespace).Create(pkg)
-			if err != nil {
-				return fmt.Errorf("failed to create rainbondpackage: %v", err)
-			}
+		if !k8sErrors.IsNotFound(err) {
+			return fmt.Errorf("failed to get rainbondpackage: %v", err)
 		}
-		return fmt.Errorf("failed to get rainbondpackage: %v", err)
+		log.Info("no rainbondpackage found, create a new one.")
+		_, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(ic.cfg.Namespace).Create(pkg)
+		if err != nil {
+			return fmt.Errorf("failed to create rainbondpackage: %v", err)
+		}
 	}
 
 	// step 3 create custom resource

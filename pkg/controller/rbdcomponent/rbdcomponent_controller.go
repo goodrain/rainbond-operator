@@ -32,12 +32,11 @@ type handlerFunc func(component *rainbondv1alpha1.RbdComponent, cluster *rainbon
 
 var handlerFuncs map[string]handlerFunc
 
-func AddHandlerFunc(name string, handlerFunc handlerFunc) {
-	handlerFuncs[name] = handlerFunc
-}
-
-func init() {
-	handlerFuncs = map[string]handlerFunc{}
+func AddHandlerFunc(name string, fn handlerFunc) {
+	if handlerFuncs == nil {
+		handlerFuncs = map[string]handlerFunc{}
+	}
+	handlerFuncs[name] = fn
 }
 
 // Add creates a new RbdComponent Controller and adds it to the Manager. The Manager will set fields on the Controller
