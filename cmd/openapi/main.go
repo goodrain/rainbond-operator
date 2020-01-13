@@ -11,6 +11,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
@@ -40,6 +41,11 @@ func init() {
 	pflag.Parse()
 
 	restConfig := k8sutil.MustNewKubeConfig(cfg.KubeconfigPath)
+	cfg.RestConfig = restConfig
+	if err := rest.LoadTLSFiles(cfg.RestConfig); err != nil {
+		panic("can't load kubernetes tls file")
+	}
+
 	cfg.KubeClient = kubernetes.NewForConfigOrDie(restConfig)
 	cfg.RainbondKubeClient = versioned.NewForConfigOrDie(restConfig)
 }

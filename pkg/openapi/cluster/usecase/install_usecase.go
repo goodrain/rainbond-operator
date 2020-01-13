@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/GLYASAI/rainbond-operator/pkg/util/downloadutil"
+	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -23,6 +24,8 @@ var (
 
 	componentClaims []componentClaim
 )
+
+// TODO fanyangyang use logrus
 
 type componentClaim struct {
 	namespace string
@@ -80,7 +83,15 @@ func NewInstallUseCase(cfg *option.Config) *InstallUseCaseImpl {
 
 // Install install
 func (ic *InstallUseCaseImpl) Install() error {
-	// step 1 check if archive is exists or not
+	if err := ic.BeforeInstall(); err != nil {
+		return err
+	}
+
+	// step 3 create custom resource
+	return ic.createComponents(componentClaims...) // TODO fanyangyang do not install for test download
+}
+
+func (ic *InstallUseCaseImpl) canInstallOrNot() error {
 	if ic.downloadListener != nil {
 		return customerror.NewDownloadingError("install process is processon, please hold on")
 	}
@@ -95,9 +106,10 @@ func (ic *InstallUseCaseImpl) Install() error {
 		}
 
 	}
-	logger := log.WithValues("install")
-	logger.Info("rainbond archive file already exists")
+	return nil
+}
 
+func (ic *InstallUseCaseImpl) initRainbondPackage() error {
 	// rainbondpackage
 	pkg := &v1alpha1.RainbondPackage{
 		ObjectMeta: metav1.ObjectMeta{
@@ -117,9 +129,59 @@ func (ic *InstallUseCaseImpl) Install() error {
 			return fmt.Errorf("failed to create rainbondpackage: %v", err)
 		}
 	}
+	return nil
+}
 
-	// step 3 create custom resource
-	return ic.createComponents(componentClaims...) // TODO fanyangyang do not install for test download
+func (ic *InstallUseCaseImpl) initKubeCfg() error {
+	kubeCfg := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ic.cfg.KubeCfgSecretName,
+			Namespace: ic.cfg.Namespace,
+		},
+		Data: map[string][]byte{
+			"ca":   ic.cfg.RestConfig.CAData,
+			"cert": ic.cfg.RestConfig.CertData,
+			"key":  ic.cfg.RestConfig.KeyData,
+		},
+	}
+	_, err := ic.cfg.KubeClient.CoreV1().Secrets(ic.cfg.Namespace).Get(kubeCfg.Name, metav1.GetOptions{})
+	if err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return fmt.Errorf("failed to get kubecfg secret: %v", err)
+		}
+		log.Info("no kubecfg secret found, create a new one.")
+		_, err := ic.cfg.KubeClient.CoreV1().Secrets(ic.cfg.Namespace).Create(&kubeCfg)
+		if err != nil {
+			return fmt.Errorf("failed to create kubecfg secret : %v", err)
+		}
+	}
+	return nil
+}
+
+func (ic *InstallUseCaseImpl) initResourceDep() error {
+	if err := ic.initRainbondPackage(); err != nil {
+		return err
+	}
+	if err := ic.initKubeCfg(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// BeforeInstall before install check
+func (ic *InstallUseCaseImpl) BeforeInstall() error {
+	// step 1 check if archive is exists or not
+	if err := ic.canInstallOrNot(); err != nil {
+		return err
+	}
+	logger := log.WithValues("install")
+	logger.Info("rainbond archive file already exists")
+
+	if err := ic.initResourceDep(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) error {
