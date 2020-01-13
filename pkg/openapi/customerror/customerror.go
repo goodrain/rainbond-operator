@@ -15,3 +15,18 @@ func NewDownLoadError(msg string) *DownLoadError {
 func (err *DownLoadError) Error() string {
 	return err.Msg
 }
+
+// DownloadingError downloading error
+type DownloadingError struct {
+	Msg  string
+	Code int
+}
+
+func (err *DownloadingError) Error() string {
+	return err.Msg
+}
+
+// NewDownloadingError new downloading error
+func NewDownloadingError(msg string) *DownloadingError {
+	return &DownloadingError{Code: 1002, Msg: msg}
+}

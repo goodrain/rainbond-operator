@@ -2,18 +2,16 @@ package usecase
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
-	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/customerror"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
 
-	pbv3 "github.com/cheggaaa/pb/v3"
 	"github.com/sirupsen/logrus"
 
+	"github.com/GLYASAI/rainbond-operator/pkg/util/downloadutil"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -71,23 +69,27 @@ func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 
 // InstallUseCaseImpl install case
 type InstallUseCaseImpl struct {
-	cfg   *option.Config
-	state *pbv3.State
+	cfg              *option.Config
+	downloadListener *downloadutil.DownloadWithProgress
 }
 
 // NewInstallUseCase new install case
 func NewInstallUseCase(cfg *option.Config) *InstallUseCaseImpl {
-	return &InstallUseCaseImpl{cfg: cfg, state: &pbv3.State{}}
+	return &InstallUseCaseImpl{cfg: cfg}
 }
 
 // Install install
 func (ic *InstallUseCaseImpl) Install() error {
 	// step 1 check if archive is exists or not
+	if ic.downloadListener != nil {
+		return customerror.NewDownloadingError("install process is processon, please hold on")
+	}
+
 	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
 		logrus.Info("rainbond archive file does not exists, downloading background ...")
 
 		// step 2 download archive
-		if err := ic.downloadFile(ic.cfg.ArchiveFilePath, ""); err != nil {
+		if err := ic.downloadFile(); err != nil {
 			logrus.Errorf("download rainbond file error: %s", err.Error())
 			return customerror.NewDownLoadError("download rainbond.tar error, please try again or upload it using /uploads")
 		}
@@ -95,7 +97,6 @@ func (ic *InstallUseCaseImpl) Install() error {
 	}
 	logger := log.WithValues("install")
 	logger.Info("rainbond archive file already exists")
-	logrus.Debug("rainbond archive file already exits")
 
 	// rainbondpackage
 	pkg := &v1alpha1.RainbondPackage{
@@ -118,8 +119,7 @@ func (ic *InstallUseCaseImpl) Install() error {
 	}
 
 	// step 3 create custom resource
-	// ic.createComponents(componentClaims...) // TODO fanyangyang do not install for test download
-	return nil
+	return ic.createComponents(componentClaims...) // TODO fanyangyang do not install for test download
 }
 
 func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) error {
@@ -190,40 +190,23 @@ func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
 
 // step 2 download rainbond
 func (ic *InstallUseCaseImpl) stepDownload() model.InstallStatus {
+	installStatus := model.InstallStatus{StepName: "step_download"}
 	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
 		// file not found
-		return model.InstallStatus{
-			StepName: "step_download",
-			Status:   "status_waiting", // TODO fanyangyang waiting
-			Progress: 0,
-			Message:  "",
-		}
+		installStatus.Status = "status_waiting"
+		return installStatus
 	}
-	if ic.state.ProgressBar != nil {
+	if ic.downloadListener != nil {
 		// downloading...
-		if ic.state.IsFinished() {
-			return model.InstallStatus{
-				StepName: "step_download",
-				Status:   "status_finished", // TODO fanyangyang waiting
-				Progress: 100,
-				Message:  "",
-			}
-		}
-
-		percent := (100 * ic.state.ProgressBar.Current()) / ic.state.ProgressBar.Total()
-		return model.InstallStatus{
-			StepName: "step_download",
-			Status:   "status_processing", // TODO fanyangyang waiting
-			Progress: int(percent),
-			Message:  "",
+		if !ic.downloadListener.Finished {
+			installStatus.Progress = ic.downloadListener.Percent
+			installStatus.Status = "status_processing"
+			return installStatus
 		}
 	}
-	return model.InstallStatus{
-		StepName: "step_download",
-		Status:   "status_finished", // TODO fanyangyang waiting
-		Progress: 100,
-		Message:  "",
-	}
+	installStatus.Status = "status_finished"
+	installStatus.Progress = 100
+	return installStatus
 }
 
 func (ic *InstallUseCaseImpl) stepPrepare(stepName string, conditionType v1alpha1.RainbondClusterConditionType, source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
@@ -392,40 +375,11 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClust
 
 // downloadFile will download a url to a local file. It's efficient because it will
 // write as it downloads and not load the whole file into memory.
-func (ic *InstallUseCaseImpl) downloadFile(filepath string, downloadURL string) error {
-	if filepath == "" {
-		filepath = os.Getenv("RBD_ARCHIVE")
-		if filepath == "" {
-			filepath = defaultRainbondFilePath
-		}
-	}
-	if downloadURL == "" {
-		downloadURL = os.Getenv("RBD_DOWNLOAD_URL")
-		if downloadURL == "" {
-			downloadURL = defaultRainbondDownloadURL
-		}
-	}
-	// Get the data
-	resp, err := http.Get(downloadURL)
-	if err != nil { // TODO fanyangyang if can't create connection, download manual and upload it
-		return err
-	}
-	defer resp.Body.Close()
+func (ic *InstallUseCaseImpl) downloadFile() error {
+	ic.downloadListener = &downloadutil.DownloadWithProgress{URL: ic.cfg.DownloadURL, SavedPath: ic.cfg.ArchiveFilePath}
+	defer func() {
+		ic.downloadListener = nil
+	}()
+	return ic.downloadListener.Download()
 
-	// Create the file
-	out, err := os.Create(filepath) // TODO fanyangyang file path and generate test case
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	bar := pbv3.Full.Start64(resp.ContentLength)
-	ic.state.ProgressBar = bar
-	// create proxy reader
-	barReader := bar.NewProxyReader(resp.Body)
-	// Write the body to file
-	_, err = io.Copy(out, barReader)
-
-	ic.state.ProgressBar = nil
-	return err
 }

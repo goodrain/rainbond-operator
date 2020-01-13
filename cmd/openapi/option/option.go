@@ -12,6 +12,7 @@ type Config struct {
 	Namespace          string
 	ClusterName        string
 	EtcdSecretName     string
+	DownloadURL        string
 	ArchiveFilePath    string
 	KubeClient         kubernetes.Interface // TODO
 	RainbondKubeClient versioned.Interface
@@ -27,5 +28,6 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.ClusterName, "cluster-name", "rainbondcluster", "rbd cluster name")
 	fs.StringVar(&c.EtcdSecretName, "rbd-etcd", "rbd-etcd-secret", "etcd cluster info saved in secret")
 	fs.StringVar(&c.ArchiveFilePath, "rbd-archive", "/opt/rainbond/pkg/rainbond-pkg-V5.2-dev.tgz", "rbd base archive file path")
+	fs.StringVar(&c.DownloadURL, "rbd-download-url", "https://www.rainbond.com", "rbd base archive file path")
 	fs.StringVar(&c.SuffixHTTPHost, "suffix-configmap", "rbd-suffix-host", "rbd suffix http host configmap name")
 }

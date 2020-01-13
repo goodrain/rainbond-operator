@@ -3,6 +3,8 @@ module github.com/GLYASAI/rainbond-operator
 go 1.13
 
 require (
+	github.com/aliyun/aliyun-oss-go-sdk v2.0.5+incompatible
+	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/cheggaaa/pb v2.0.7+incompatible
 	github.com/cheggaaa/pb/v3 v3.0.3
 	github.com/coreos/etcd v3.3.15+incompatible

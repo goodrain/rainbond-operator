@@ -13,11 +13,12 @@ import (
 	"testing"
 	"time"
 
-	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/cheggaaa/pb"
 	pbv3 "github.com/cheggaaa/pb/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/schollz/progressbar/v2"
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 )
 
 func Test_downloadFile(t *testing.T) {
@@ -241,3 +242,65 @@ func Test6(t *testing.T) {
 
 	wg.Wait()
 }
+
+func Test7(t *testing.T) {
+	resp, err := http.Get("https://github.com/schollz/croc/releases/download/v4.1.4/croc_v4.1.4_Windows-64bit_GUI.zip")
+	if err != nil { // TODO fanyangyang if can't create connection, download manual and upload it
+		t.Fatal("get error : ", err.Error())
+	}
+	defer resp.Body.Close()
+
+	// Create the file
+	out, err := os.Create("/tmp/rainbond.tar") // TODO fanyangyang file path and generate test case
+	if err != nil {
+		t.Fatal("create errror: ", err.Error())
+	}
+	defer out.Close()
+	// start new bar
+	listener := OssProgressListener{TotalRwBytes: resp.ContentLength}
+	fmt.Println("total is : ", resp.ContentLength)
+	reader := oss.TeeReader(resp.Body, out, resp.ContentLength, &listener, nil)
+	defer reader.Close()
+	go func() {
+		for {
+			fmt.Printf("percent:%v, current: %v, total: %v \n", listener.Percent, listener.CurrentBytes, listener.TotalRwBytes)
+			time.Sleep(2 * time.Second)
+		}
+	}()
+	io.Copy(out, reader)
+
+	if err := os.Remove("/tmp/rainbond.tar"); err != nil {
+		t.Fatal(err)
+	}
+
+}
+
+
+// OssProgressListener is the progress listener
+type OssProgressListener struct {
+	TotalRwBytes int64
+	CurrentBytes int64
+	Percent int
+	Finished bool
+}
+
+// ProgressChanged handles progress event
+func (listener *OssProgressListener) ProgressChanged(event *oss.ProgressEvent) {
+	switch event.EventType {
+	case oss.TransferStartedEvent:
+		fmt.Printf("Transfer Started.\n")
+	case oss.TransferDataEvent:
+		listener.CurrentBytes = event.ConsumedBytes
+		if listener.TotalRwBytes != 0 {
+			listener.Percent = int(100*listener.CurrentBytes/listener.TotalRwBytes)
+		}
+		fmt.Printf("Transfer Data, This time consumedBytes: %d \n", event.ConsumedBytes)
+	case oss.TransferCompletedEvent:
+		listener.Finished = true
+		fmt.Printf("Transfer Completed, This time consumedBytes: %d.\n", event.ConsumedBytes)
+	case oss.TransferFailedEvent:
+		fmt.Printf("Transfer Failed, This time consumedBytes: %d.\n", event.ConsumedBytes)
+	default:
+	}
+}
+
