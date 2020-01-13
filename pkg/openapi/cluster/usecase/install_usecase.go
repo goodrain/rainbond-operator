@@ -2,17 +2,17 @@ package usecase
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
-	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/customerror"
 	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/GLYASAI/rainbond-operator/pkg/util/downloadutil"
+	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -24,6 +24,8 @@ var (
 
 	componentClaims []componentClaim
 )
+
+// TODO fanyangyang use logrus
 
 type componentClaim struct {
 	namespace string
@@ -70,7 +72,8 @@ func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 
 // InstallUseCaseImpl install case
 type InstallUseCaseImpl struct {
-	cfg *option.Config
+	cfg              *option.Config
+	downloadListener *downloadutil.DownloadWithProgress
 }
 
 // NewInstallUseCase new install case
@@ -80,19 +83,33 @@ func NewInstallUseCase(cfg *option.Config) *InstallUseCaseImpl {
 
 // Install install
 func (ic *InstallUseCaseImpl) Install() error {
-	// step 1 check if archive is exists or not
+	if err := ic.BeforeInstall(); err != nil {
+		return err
+	}
+
+	// step 3 create custom resource
+	return ic.createComponents(componentClaims...) // TODO fanyangyang do not install for test download
+}
+
+func (ic *InstallUseCaseImpl) canInstallOrNot() error {
+	if ic.downloadListener != nil {
+		return customerror.NewDownloadingError("install process is processon, please hold on")
+	}
+
 	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
 		logrus.Info("rainbond archive file does not exists, downloading background ...")
 
 		// step 2 download archive
-		if err := downloadFile(ic.cfg.ArchiveFilePath, ""); err != nil {
+		if err := ic.downloadFile(); err != nil {
 			logrus.Errorf("download rainbond file error: %s", err.Error())
 			return customerror.NewDownLoadError("download rainbond.tar error, please try again or upload it using /uploads")
 		}
 
 	}
-	logrus.Debug("rainbond archive file already exits")
+	return nil
+}
 
+func (ic *InstallUseCaseImpl) initRainbondPackage() error {
 	// rainbondpackage
 	pkg := &v1alpha1.RainbondPackage{
 		ObjectMeta: metav1.ObjectMeta{
@@ -112,9 +129,59 @@ func (ic *InstallUseCaseImpl) Install() error {
 			return fmt.Errorf("failed to create rainbondpackage: %v", err)
 		}
 	}
+	return nil
+}
 
-	// step 3 create custom resource
-	return ic.createComponents(componentClaims...)
+func (ic *InstallUseCaseImpl) initKubeCfg() error {
+	kubeCfg := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ic.cfg.KubeCfgSecretName,
+			Namespace: ic.cfg.Namespace,
+		},
+		Data: map[string][]byte{
+			"ca":   ic.cfg.RestConfig.CAData,
+			"cert": ic.cfg.RestConfig.CertData,
+			"key":  ic.cfg.RestConfig.KeyData,
+		},
+	}
+	_, err := ic.cfg.KubeClient.CoreV1().Secrets(ic.cfg.Namespace).Get(kubeCfg.Name, metav1.GetOptions{})
+	if err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return fmt.Errorf("failed to get kubecfg secret: %v", err)
+		}
+		log.Info("no kubecfg secret found, create a new one.")
+		_, err := ic.cfg.KubeClient.CoreV1().Secrets(ic.cfg.Namespace).Create(&kubeCfg)
+		if err != nil {
+			return fmt.Errorf("failed to create kubecfg secret : %v", err)
+		}
+	}
+	return nil
+}
+
+func (ic *InstallUseCaseImpl) initResourceDep() error {
+	if err := ic.initRainbondPackage(); err != nil {
+		return err
+	}
+	if err := ic.initKubeCfg(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// BeforeInstall before install check
+func (ic *InstallUseCaseImpl) BeforeInstall() error {
+	// step 1 check if archive is exists or not
+	if err := ic.canInstallOrNot(); err != nil {
+		return err
+	}
+	logger := log.WithValues("install")
+	logger.Info("rainbond archive file already exists")
+
+	if err := ic.initResourceDep(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) error {
@@ -151,30 +218,30 @@ func (ic *InstallUseCaseImpl) InstallStatus() ([]model.InstallStatus, error) {
 		return nil, err
 	}
 	if clusterInfo != nil {
-		statuses = parseInstallStatus(clusterInfo.Status)
+		statuses = ic.parseInstallStatus(clusterInfo.Status)
 	} else {
 		logrus.Warn("cluster config has not be created yet, something occured ? ")
 	}
 	return statuses, nil
 }
 
-func parseInstallStatus(source *v1alpha1.RainbondClusterStatus) (statuses []model.InstallStatus) {
+func (ic *InstallUseCaseImpl) parseInstallStatus(source *v1alpha1.RainbondClusterStatus) (statuses []model.InstallStatus) {
 	if source == nil {
 		return
 	}
-	statuses = append(statuses, stepSetting())
-	statuses = append(statuses, stepDownload())
-	statuses = append(statuses, stepPrepareStorage(source))
-	statuses = append(statuses, stepPrepareImageHub(source))
-	statuses = append(statuses, stepUnpack(source))
-	statuses = append(statuses, stepLoadImage(source))
-	statuses = append(statuses, stepPushImage(source))
-	statuses = append(statuses, stepCreateComponent(source))
+	statuses = append(statuses, ic.stepSetting())
+	statuses = append(statuses, ic.stepDownload())
+	statuses = append(statuses, ic.stepPrepareStorage(source))
+	statuses = append(statuses, ic.stepPrepareImageHub(source))
+	statuses = append(statuses, ic.stepUnpack(source))
+	statuses = append(statuses, ic.stepLoadImage(source))
+	statuses = append(statuses, ic.stepPushImage(source))
+	statuses = append(statuses, ic.stepCreateComponent(source))
 	return
 }
 
 // step 1 setting cluster
-func stepSetting() model.InstallStatus {
+func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
 	return model.InstallStatus{
 		StepName: "step_setting",
 		Status:   "status_finished", // TODO fanyangyang waiting
@@ -184,16 +251,24 @@ func stepSetting() model.InstallStatus {
 }
 
 // step 2 download rainbond
-func stepDownload() model.InstallStatus {
-	return model.InstallStatus{
-		StepName: "step_download",
-		Status:   "status_finished", // TODO fanyangyang waiting
-		Progress: 100,
-		Message:  "",
+func (ic *InstallUseCaseImpl) stepDownload() model.InstallStatus {
+	installStatus := model.InstallStatus{StepName: "step_download"}
+	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
+		// file not found
+		installStatus.Status = "status_waiting"
+		return installStatus
 	}
+	if ic.downloadListener != nil && !ic.downloadListener.Finished {
+		installStatus.Progress = ic.downloadListener.Percent
+		installStatus.Status = "status_processing"
+		return installStatus
+	}
+	installStatus.Status = "status_finished"
+	installStatus.Progress = 100
+	return installStatus
 }
 
-func stepPrepare(stepName string, conditionType v1alpha1.RainbondClusterConditionType, source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+func (ic *InstallUseCaseImpl) stepPrepare(stepName string, conditionType v1alpha1.RainbondClusterConditionType, source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
 	var status model.InstallStatus
 	switch source.Phase {
 	case v1alpha1.RainbondClusterWaiting:
@@ -245,16 +320,16 @@ func stepPrepare(stepName string, conditionType v1alpha1.RainbondClusterConditio
 }
 
 // step 3 prepare storage
-func stepPrepareStorage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
-	return stepPrepare("step_prepare_storage", v1alpha1.StorageReady, source)
+func (ic *InstallUseCaseImpl) stepPrepareStorage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	return ic.stepPrepare("step_prepare_storage", v1alpha1.StorageReady, source)
 }
 
 // step 4 prepare image hub
-func stepPrepareImageHub(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
-	return stepPrepare("step_prepare_image_hub", v1alpha1.ImageRepositoryInstalled, source)
+func (ic *InstallUseCaseImpl) stepPrepareImageHub(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	return ic.stepPrepare("step_prepare_image_hub", v1alpha1.ImageRepositoryInstalled, source)
 }
 
-func stepPackProcess(stepName string, conditionType v1alpha1.RainbondClusterConditionType, source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+func (ic *InstallUseCaseImpl) stepPackProcess(stepName string, conditionType v1alpha1.RainbondClusterConditionType, source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
 	var status model.InstallStatus
 	switch source.Phase {
 	case v1alpha1.RainbondClusterWaiting, v1alpha1.RainbondClusterPreparing:
@@ -307,22 +382,22 @@ func stepPackProcess(stepName string, conditionType v1alpha1.RainbondClusterCond
 }
 
 // step 5 unpack rainbond
-func stepUnpack(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
-	return stepPackProcess("step_unpacke", v1alpha1.PackageExtracted, source)
+func (ic *InstallUseCaseImpl) stepUnpack(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	return ic.stepPackProcess("step_unpacke", v1alpha1.PackageExtracted, source)
 }
 
 // step 6 load image
-func stepLoadImage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
-	return stepPackProcess("step_load_image", v1alpha1.ImagesLoaded, source)
+func (ic *InstallUseCaseImpl) stepLoadImage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	return ic.stepPackProcess("step_load_image", v1alpha1.ImagesLoaded, source)
 }
 
 // step 7 push image
-func stepPushImage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
-	return stepPackProcess("step_push_image", v1alpha1.ImagesPushed, source)
+func (ic *InstallUseCaseImpl) stepPushImage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	return ic.stepPackProcess("step_push_image", v1alpha1.ImagesPushed, source)
 }
 
 // step 8 create component
-func stepCreateComponent(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
 	var status model.InstallStatus
 	switch source.Phase {
 	case v1alpha1.RainbondClusterWaiting, v1alpha1.RainbondClusterPreparing, v1alpha1.RainbondClusterPackageProcessing:
@@ -359,34 +434,11 @@ func stepCreateComponent(source *v1alpha1.RainbondClusterStatus) model.InstallSt
 
 // downloadFile will download a url to a local file. It's efficient because it will
 // write as it downloads and not load the whole file into memory.
-func downloadFile(filepath string, downloadURL string) error {
-	if filepath == "" {
-		filepath = os.Getenv("RBD_ARCHIVE")
-		if filepath == "" {
-			filepath = defaultRainbondFilePath
-		}
-	}
-	if downloadURL == "" {
-		downloadURL = os.Getenv("RBD_DOWNLOAD_URL")
-		if downloadURL == "" {
-			downloadURL = defaultRainbondDownloadURL
-		}
-	}
-	// Get the data
-	resp, err := http.Get(downloadURL)
-	if err != nil { // TODO fanyangyang if can't create connection, download manual and upload it
-		return err
-	}
-	defer resp.Body.Close()
+func (ic *InstallUseCaseImpl) downloadFile() error {
+	ic.downloadListener = &downloadutil.DownloadWithProgress{URL: ic.cfg.DownloadURL, SavedPath: ic.cfg.ArchiveFilePath}
+	defer func() {
+		ic.downloadListener = nil
+	}()
+	return ic.downloadListener.Download()
 
-	// Create the file
-	out, err := os.Create(filepath) // TODO fanyangyang file path and generate test case
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-	return err
 }

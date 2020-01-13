@@ -11,6 +11,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
@@ -22,6 +23,7 @@ import (
 	uctrl "github.com/GLYASAI/rainbond-operator/pkg/openapi/user/controller"
 	urepo "github.com/GLYASAI/rainbond-operator/pkg/openapi/user/repositry"
 	uucase "github.com/GLYASAI/rainbond-operator/pkg/openapi/user/usecase"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/corsutil"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 )
 
@@ -40,6 +42,11 @@ func init() {
 	pflag.Parse()
 
 	restConfig := k8sutil.MustNewKubeConfig(cfg.KubeconfigPath)
+	cfg.RestConfig = restConfig
+	if err := rest.LoadTLSFiles(cfg.RestConfig); err != nil {
+		panic("can't load kubernetes tls file")
+	}
+
 	cfg.KubeClient = kubernetes.NewForConfigOrDie(restConfig)
 	cfg.RainbondKubeClient = versioned.NewForConfigOrDie(restConfig)
 }
@@ -62,6 +69,7 @@ func main() {
 	db.Create(&model.User{Username: "admin", Password: "admin"})
 
 	r := gin.Default()
+	r.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
 
 	userRepo := urepo.NewSqlite3UserRepository(db)
 	userRepo.CreateIfNotExist(&model.User{Username: "admin", Password: "admin"})
@@ -80,4 +88,11 @@ func main() {
 		log.Info("Received signal", s.String(), "exiting gracefully.")
 	}
 	log.Info("See you next time!")
+}
+
+var corsMidle = func(f gin.HandlerFunc) gin.HandlerFunc {
+	return gin.HandlerFunc(func(ctx *gin.Context) {
+		corsutil.SetCORS(ctx)
+		f(ctx)
+	})
 }

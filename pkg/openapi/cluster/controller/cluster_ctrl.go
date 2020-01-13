@@ -29,7 +29,6 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 	u := &ClusterController{clusterCase: clusterCase}
 
 	clusterEngine := g.Group("/cluster")
-	clusterEngine.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
 	clusterEngine.GET("/configs", corsMidle(u.Configs))
 	clusterEngine.PUT("/configs", corsMidle(u.UpdateConfig))
 
@@ -89,6 +88,8 @@ func (cc *ClusterController) Install(c *gin.Context) {
 	if err := cc.clusterCase.Install().Install(); err != nil { // TODO fanyangyang can't download rainbond file filter and return download URL
 		if downloadError, ok := err.(*customerror.DownLoadError); ok {
 			c.JSON(http.StatusOK, map[string]interface{}{"code": downloadError.Code, "msg": downloadError.Msg})
+		} else if downloadingError, ok := err.(*customerror.DownloadingError); ok {
+			c.JSON(http.StatusOK, map[string]interface{}{"code": downloadingError.Code, "msg": downloadingError.Msg})
 		} else {
 			c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		}
