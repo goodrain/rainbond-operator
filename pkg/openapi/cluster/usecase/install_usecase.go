@@ -196,13 +196,10 @@ func (ic *InstallUseCaseImpl) stepDownload() model.InstallStatus {
 		installStatus.Status = "status_waiting"
 		return installStatus
 	}
-	if ic.downloadListener != nil {
-		// downloading...
-		if !ic.downloadListener.Finished {
-			installStatus.Progress = ic.downloadListener.Percent
-			installStatus.Status = "status_processing"
-			return installStatus
-		}
+	if ic.downloadListener != nil && !ic.downloadListener.Finished {
+		installStatus.Progress = ic.downloadListener.Percent
+		installStatus.Status = "status_processing"
+		return installStatus
 	}
 	installStatus.Status = "status_finished"
 	installStatus.Progress = 100
