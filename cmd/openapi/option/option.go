@@ -20,6 +20,7 @@ type Config struct {
 	RestConfig         *rest.Config
 	SuffixHTTPHost     string // suffix http host configmap name
 	KubeCfgSecretName  string
+	Rainbondpackage    string
 	LogLevel           string
 }
 
@@ -34,4 +35,5 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.DownloadURL, "rbd-download-url", "", "download rainbond tar")
 	fs.StringVar(&c.SuffixHTTPHost, "suffix-configmap", "rbd-suffix-host", "rbd suffix http host configmap name")
 	fs.StringVar(&c.KubeCfgSecretName, "kube-secret", "kube-cfg-secret", "kubernetes account info used for cadvisor through kubelet")
+	fs.StringVar(&c.Rainbondpackage, "rainbond-package-name", "rainbondpackage", "kubernetes rainbondpackage resource name")
 }
