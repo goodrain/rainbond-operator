@@ -1,11 +1,12 @@
 package downloadutil
 
 import (
-	"fmt"
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"io"
 	"net/http"
 	"os"
+
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/sirupsen/logrus"
 )
 
 // DownloadWithProgress is the progress listener
@@ -21,11 +22,14 @@ type DownloadWithProgress struct {
 // Download download
 func (listener *DownloadWithProgress) Download() error {
 	// Get the data
+	if listener.URL == "" {
+		// listener.URL = "127.0.0.1"
+	}
 	resp, err := http.Get(listener.URL)
-	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	// Create the file
 	out, err := os.Create(listener.SavedPath)
@@ -45,18 +49,18 @@ func (listener *DownloadWithProgress) Download() error {
 func (listener *DownloadWithProgress) ProgressChanged(event *oss.ProgressEvent) {
 	switch event.EventType {
 	case oss.TransferStartedEvent:
-		fmt.Printf("Transfer Started.\n")
+		logrus.Debug("Transfer Started.\n")
 	case oss.TransferDataEvent:
 		listener.CurrentBytes = event.ConsumedBytes
 		if listener.TotalRwBytes != 0 {
 			listener.Percent = int(100 * listener.CurrentBytes / listener.TotalRwBytes)
 		}
-		fmt.Printf("Transfer Data, This time consumedBytes: %d \n", event.ConsumedBytes)
+		logrus.Debugf("Transfer Data, This time consumedBytes: %d \n", event.ConsumedBytes)
 	case oss.TransferCompletedEvent:
 		listener.Finished = true
-		fmt.Printf("Transfer Completed, This time consumedBytes: %d.\n", event.ConsumedBytes)
+		logrus.Debugf("Transfer Completed, This time consumedBytes: %d.\n", event.ConsumedBytes)
 	case oss.TransferFailedEvent:
-		fmt.Printf("Transfer Failed, This time consumedBytes: %d.\n", event.ConsumedBytes)
+		logrus.Debugf("Transfer Failed, This time consumedBytes: %d.\n", event.ConsumedBytes)
 	default:
 	}
 }

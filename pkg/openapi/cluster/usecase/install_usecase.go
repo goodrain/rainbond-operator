@@ -101,6 +101,7 @@ func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 type InstallUseCaseImpl struct {
 	cfg              *option.Config
 	downloadListener *downloadutil.DownloadWithProgress
+	downloadError    error
 }
 
 // NewInstallUseCase new install case
@@ -115,7 +116,7 @@ func (ic *InstallUseCaseImpl) Install() error {
 	}
 
 	// step 3 create custom resource
-	return ic.createComponents(componentClaims...) // TODO fanyangyang do not install for test download
+	return ic.createComponents(componentClaims...)
 }
 
 func (ic *InstallUseCaseImpl) canInstallOrNot() error {
@@ -269,7 +270,7 @@ func (ic *InstallUseCaseImpl) parseInstallStatus(source *v1alpha1.RainbondCluste
 func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
 	return model.InstallStatus{
 		StepName: StepSetting,
-		Status:   InstallStatusWaiting,
+		Status:   InstallStatusFinished,
 		Progress: 100,
 		Message:  "",
 	}
@@ -279,6 +280,11 @@ func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
 func (ic *InstallUseCaseImpl) stepDownload() model.InstallStatus {
 	installStatus := model.InstallStatus{StepName: StepDownload}
 	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
+		if ic.downloadError != nil { // download error
+			installStatus.Status = InstallStatusFailed
+			installStatus.Message = "download rainbond.tar error, please try again or upload it using /uploads"
+			return installStatus
+		}
 		// file not found
 		installStatus.Status = InstallStatusWaiting
 		return installStatus
@@ -307,6 +313,7 @@ func (ic *InstallUseCaseImpl) stepPrepareInfrastructure(source *v1alpha1.Rainbon
 	case v1alpha1.RainbondClusterPreparing:
 		status = model.InstallStatus{
 			StepName: StepPrepareInfrastructure,
+			Status:   InstallStatusProcessing,
 			Message:  "",
 		}
 		for _, condition := range source.Conditions {
@@ -480,9 +487,12 @@ func (ic *InstallUseCaseImpl) parsePendingComponentStatus() model.InstallStatus 
 // write as it downloads and not load the whole file into memory.
 func (ic *InstallUseCaseImpl) downloadFile() error {
 	ic.downloadListener = &downloadutil.DownloadWithProgress{URL: ic.cfg.DownloadURL, SavedPath: ic.cfg.ArchiveFilePath}
-	defer func() {
-		ic.downloadListener = nil
+	go func() {
+		if err := ic.downloadListener.Download(); err != nil {
+			ic.downloadError = err
+		}
+		ic.downloadListener = nil // download process finish, delete it
 	}()
-	return ic.downloadListener.Download()
+	return nil
 
 }
