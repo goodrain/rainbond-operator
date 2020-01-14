@@ -13,6 +13,7 @@ import (
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
+	appv1 "k8s.io/api/apps/v1"
 	"k8s.io/klog"
 )
 
@@ -56,11 +57,21 @@ func NewStatus(client client.Client, cluster *rainbondv1alpha1.RainbondCluster) 
 // GenerateRainbondClusterStorageReadyCondition returns storageready condition if the storage is ready, else it
 // returns an unstorageready condition.
 func (s *Status) GenerateRainbondClusterStorageReadyCondition() rainbondv1alpha1.RainbondClusterCondition {
-	// TODO(huangrh): implementation
-	return rainbondv1alpha1.RainbondClusterCondition{
+	condition := rainbondv1alpha1.RainbondClusterCondition{
 		Type:   rainbondv1alpha1.StorageReady,
-		Status: rainbondv1alpha1.ConditionTrue,
+		Status: rainbondv1alpha1.ConditionFalse,
 	}
+
+	sts := &appv1.StatefulSet{}
+	if err := s.client.Get(context.TODO(), types.NamespacedName{Namespace: s.cluster.Namespace, Name: s.cluster.StorageClass()}, sts); err != nil {
+		condition.Reason = "ErrGetProvisioner"
+		condition.Message = fmt.Sprintf("failed to get provisioner: %v", err)
+		return condition
+	}
+
+	condition.Status = rainbondv1alpha1.ConditionTrue
+
+	return condition
 }
 
 // GenerateRainbondClusterImageRepositoryReadyCondition returns imagerepositoryready condition if the image repository is ready,
