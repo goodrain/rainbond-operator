@@ -36,6 +36,7 @@ func (c *chaos) Before() error {
 
 func (c *chaos) Resources() []interface{} {
 	return []interface{}{
+		c.daemonSetForChaos(),
 	}
 }
 

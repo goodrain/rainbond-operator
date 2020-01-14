@@ -40,7 +40,7 @@ func (a *appui) Before() error {
 	listOpts := []client.ListOption{
 		client.MatchingLabels(map[string]string{
 			"name":     DBName,
-			"belongTo": "rainbond-operator",
+			"belongTo": "RainbondOperator", // TODO: DO NOT HARD CODE
 		}),
 	}
 	if err := a.client.List(a.ctx, eps, listOpts...); err != nil {
