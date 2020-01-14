@@ -39,7 +39,7 @@ func (h *hub) Resources() []interface{} {
 	return []interface{}{
 		h.secretForHub(), // important! create secret before ingress.
 		h.daemonSetForHub(),
-		h.secretForHub(),
+		h.serviceForHub(),
 		h.persistentVolumeClaimForHub(),
 		h.ingressForHub(),
 	}

@@ -6,9 +6,12 @@ import (
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -17,12 +20,16 @@ var NFSName = constants.DefStorageClass
 var nfsProvisionerName = "rainbond.io/nfs"
 
 type nfsProvisioner struct {
+	ctx       context.Context
+	client    client.Client
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 }
 
 func NewNFSProvisioner(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &nfsProvisioner{
+		ctx:       ctx,
+		client:    client,
 		component: component,
 		cluster:   cluster,
 	}
@@ -41,6 +48,16 @@ func (n *nfsProvisioner) Resources() []interface{} {
 }
 
 func (n *nfsProvisioner) After() error {
+	class := storageClassForNFSProvisioner()
+	oldClass := &storagev1.StorageClass{}
+	if err := n.client.Get(n.ctx, types.NamespacedName{Name: class.Name}, oldClass); err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		if err := n.client.Create(n.ctx, class); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -183,4 +200,18 @@ func (n *nfsProvisioner) serviceForNFSProvisioner() interface{} {
 	}
 
 	return svc
+}
+
+func storageClassForNFSProvisioner() *storagev1.StorageClass {
+	sc := &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: NFSName,
+		},
+		Provisioner: nfsProvisionerName,
+		MountOptions: []string{
+			"vers=4.1",
+		},
+	}
+
+	return sc
 }

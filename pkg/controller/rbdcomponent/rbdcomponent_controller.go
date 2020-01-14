@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	chandler "github.com/GLYASAI/rainbond-operator/pkg/controller/rbdcomponent/handler"
 	"github.com/go-logr/logr"
 	appv1 "k8s.io/api/apps/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -23,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	chandler "github.com/GLYASAI/rainbond-operator/pkg/controller/rbdcomponent/handler"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 )
 
@@ -165,7 +165,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 
 		// Set RbdComponent cpt as the owner and controller
 		if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.scheme); err != nil {
-			return reconcile.Result{}, err
+			return reconcile.Result{Requeue: true}, err
 		}
 
 		// Check if the resource already exists, if not create a new one
@@ -175,21 +175,9 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		}
 	}
 
-	if cpt.Name == "rbd-nfs-provisioner" { // TODO: move to prepare manager
-		class := storageClassForNFSProvisioner()
-		oldClass := &storagev1.StorageClass{}
-		if err := r.client.Get(ctx, types.NamespacedName{Name: class.Name}, oldClass); err != nil {
-			if errors.IsNotFound(err) {
-				reqLogger.Info("StorageClass not found, will create a new one")
-				if err := r.client.Create(ctx, class); err != nil {
-					reqLogger.Error(err, "Error creating storageclass")
-					return reconcile.Result{Requeue: true}, err
-				}
-			} else {
-				reqLogger.Error(err, "Error checking if storageclass exists")
-				return reconcile.Result{Requeue: true}, err
-			}
-		}
+	if err := hdl.After(); err != nil {
+		reqLogger.Error(err, "failed to execute after process")
+		return reconcile.Result{Requeue: true}, err
 	}
 
 	if cpt.Name == "rbd-etcd" { // TODO:
