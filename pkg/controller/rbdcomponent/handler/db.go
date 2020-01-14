@@ -36,6 +36,7 @@ func (d *db) Before() error {
 
 func (d *db) Resources() []interface{} {
 	return []interface{}{
+		d.statefulsetForDB(),
 	}
 }
 

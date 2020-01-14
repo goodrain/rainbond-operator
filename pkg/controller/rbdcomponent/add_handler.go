@@ -19,4 +19,5 @@ func init() {
 	AddHandlerFunc(handler.MQName, handler.NewMQ)
 	AddHandlerFunc(handler.RepoName, handler.NewRepo)
 	AddHandlerFunc(handler.NodeName, handler.NewNode)
+	AddHandlerFunc(handler.DBName, handler.NewDB)
 }
