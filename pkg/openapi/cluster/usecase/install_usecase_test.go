@@ -14,23 +14,23 @@ import (
 	"time"
 
 	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/cheggaaa/pb"
 	pbv3 "github.com/cheggaaa/pb/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/schollz/progressbar/v2"
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 )
 
 func Test_downloadFile(t *testing.T) {
-	if _, err := os.Stat("/tmp/rainbond.tar"); os.IsNotExist(err) {
-		t.Log("do not exists, downloading...")
-		ic := InstallUseCaseImpl{}
-		if err := ic.downloadFile("/tmp/rainbond.tar", "http://192.168.200.2"); err != nil {
-			t.Fatal(err)
-		}
-	} else {
-		t.Log("already exists, do not download again")
-	}
+	// if _, err := os.Stat("/tmp/rainbond.tar"); os.IsNotExist(err) {
+	// 	t.Log("do not exists, downloading...")
+	// 	ic := InstallUseCaseImpl{}
+	// 	if err := ic.downloadFile(); err != nil {
+	// 		t.Fatal(err)
+	// 	}
+	// } else {
+	// 	t.Log("already exists, do not download again")
+	// }
 	t.Log("success")
 }
 
@@ -275,13 +275,12 @@ func Test7(t *testing.T) {
 
 }
 
-
 // OssProgressListener is the progress listener
 type OssProgressListener struct {
 	TotalRwBytes int64
 	CurrentBytes int64
-	Percent int
-	Finished bool
+	Percent      int
+	Finished     bool
 }
 
 // ProgressChanged handles progress event
@@ -292,7 +291,7 @@ func (listener *OssProgressListener) ProgressChanged(event *oss.ProgressEvent) {
 	case oss.TransferDataEvent:
 		listener.CurrentBytes = event.ConsumedBytes
 		if listener.TotalRwBytes != 0 {
-			listener.Percent = int(100*listener.CurrentBytes/listener.TotalRwBytes)
+			listener.Percent = int(100 * listener.CurrentBytes / listener.TotalRwBytes)
 		}
 		fmt.Printf("Transfer Data, This time consumedBytes: %d \n", event.ConsumedBytes)
 	case oss.TransferCompletedEvent:
@@ -303,4 +302,3 @@ func (listener *OssProgressListener) ProgressChanged(event *oss.ProgressEvent) {
 	default:
 	}
 }
-
