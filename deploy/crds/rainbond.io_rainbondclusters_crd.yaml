@@ -163,6 +163,8 @@ spec:
                 username:
                   type: string
               type: object
+          required:
+          - suffixHTTPHost
           type: object
         status:
           description: RainbondClusterStatus defines the observed state of RainbondCluster

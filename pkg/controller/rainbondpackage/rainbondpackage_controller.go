@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/tarutil"
 	"github.com/pquerna/ffjson/ffjson"
 	"io"
 	"io/ioutil"
@@ -317,18 +318,7 @@ func (p *pkg) handle() error {
 
 func (p *pkg) untartar() error {
 	log.Info(fmt.Sprintf("start untartaring %s", p.pkg.Spec.PkgPath))
-
-	file, err := os.Open(p.pkg.Spec.PkgPath)
-	if err != nil {
-		return fmt.Errorf("open file: %v", err)
-	}
-
-	pkgDir := path.Join(pkgDst, strings.Replace(path.Base(p.pkg.Spec.PkgPath), ".tgz", "", -1))
-	if err := os.RemoveAll(pkgDir); err != nil {
-		return fmt.Errorf("failed to cleanup package directory %s: %v", pkgDir, err)
-	}
-
-	if err := commonutil.Untar(file, pkgDst); err != nil {
+	if err := tarutil.Untartar(p.pkg.Spec.PkgPath, pkgDst); err != nil {
 		return err
 	}
 	return nil

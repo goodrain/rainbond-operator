@@ -2,12 +2,13 @@ package tarutil
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/klauspost/compress/gzip"
 )
 
 // Thanks vladimirvivien(https://github.com/vladimirvivien/go-tar)
@@ -29,7 +30,7 @@ func Tartar(tarName string, paths []string) (err error) {
 
 	// enable compression if file ends in .gz
 	tw := tar.NewWriter(tarFile)
-	if strings.HasSuffix(tarName, ".gz") || strings.HasSuffix(tarName, ".gzip") {
+	if strings.HasSuffix(tarName, ".gz") || strings.HasSuffix(tarName, ".gzip") || strings.HasSuffix(tarName, ".tgz") {
 		gz := gzip.NewWriter(tarFile)
 		defer gz.Close()
 		tw = tar.NewWriter(gz)
@@ -120,7 +121,7 @@ func Untartar(tarName, xpath string) (err error) {
 	}
 
 	tr := tar.NewReader(tarFile)
-	if strings.HasSuffix(tarName, ".gz") || strings.HasSuffix(tarName, ".gzip") {
+	if strings.HasSuffix(tarName, ".gz") || strings.HasSuffix(tarName, ".gzip") || strings.HasSuffix(tarName, ".tgz") {
 		gz, err := gzip.NewReader(tarFile)
 		if err != nil {
 			return err

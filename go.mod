@@ -16,6 +16,8 @@ require (
 	github.com/golang/mock v1.3.1
 	github.com/google/go-cmp v0.3.2-0.20191028172631-481baca67f93 // indirect
 	github.com/jinzhu/gorm v1.9.11
+	github.com/klauspost/compress v1.9.7
+	github.com/klauspost/pgzip v1.2.1 // indirect
 	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/pquerna/ffjson v0.0.0-20180717144149-af8b230fcd20
 	github.com/schollz/progressbar/v2 v2.15.0
