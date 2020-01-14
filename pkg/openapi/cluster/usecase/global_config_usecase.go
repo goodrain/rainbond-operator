@@ -55,7 +55,7 @@ func (cc *GlobalConfigUseCaseImpl) getSuffixHTTPHost(ip string) (domain string, 
 		return "", err
 	}
 	if !strings.HasSuffix(domain, "grapps.cn") {
-		return "", fmt.Errorf("get suffix http host failure")
+		return "", fmt.Errorf("get suffix http host failure") // TODO 不能这样做
 	}
 	return domain, nil
 }

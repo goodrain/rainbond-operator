@@ -25,6 +25,33 @@ var (
 	componentClaims []componentClaim
 )
 
+var (
+
+	// StepSetting          StepSetting
+	StepSetting = "step_setting"
+	// StepDownload         StepDownload
+	StepDownload = "step_download"
+	// StepPrepareInfrastructure  StepPrepareInfrastructure
+	StepPrepareInfrastructure = "step_prepare_infrastructure"
+	// StepUnpack           StepUnpack
+	StepUnpack = "step_unpacke"
+	// StepHandleImage      StepHandleImage
+	StepHandleImage = "step_handle_image"
+	// StepInstallComponent StepInstallComponent
+	StepInstallComponent = "step_install_component"
+)
+
+var (
+	// InstallStatusWaiting    InstallStatus_Waiting
+	InstallStatusWaiting = "status_waiting"
+	// InstallStatusProcessing InstallStatus_Processing
+	InstallStatusProcessing = "status_processing"
+	// InstallStatusFinished   InstallStatus_Finished
+	InstallStatusFinished = "status_finished"
+	// InstallStatusFailed     InstallStatus_Failed
+	InstallStatusFailed = "status_failed"
+)
+
 // TODO fanyangyang use logrus
 
 type componentClaim struct {
@@ -74,6 +101,7 @@ func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 type InstallUseCaseImpl struct {
 	cfg              *option.Config
 	downloadListener *downloadutil.DownloadWithProgress
+	downloadError    error
 }
 
 // NewInstallUseCase new install case
@@ -88,7 +116,7 @@ func (ic *InstallUseCaseImpl) Install() error {
 	}
 
 	// step 3 create custom resource
-	return ic.createComponents(componentClaims...) // TODO fanyangyang do not install for test download
+	return ic.createComponents(componentClaims...)
 }
 
 func (ic *InstallUseCaseImpl) canInstallOrNot() error {
@@ -231,11 +259,9 @@ func (ic *InstallUseCaseImpl) parseInstallStatus(source *v1alpha1.RainbondCluste
 	}
 	statuses = append(statuses, ic.stepSetting())
 	statuses = append(statuses, ic.stepDownload())
-	statuses = append(statuses, ic.stepPrepareStorage(source))
-	statuses = append(statuses, ic.stepPrepareImageHub(source))
+	statuses = append(statuses, ic.stepPrepareInfrastructure(source))
 	statuses = append(statuses, ic.stepUnpack(source))
-	statuses = append(statuses, ic.stepLoadImage(source))
-	statuses = append(statuses, ic.stepPushImage(source))
+	statuses = append(statuses, ic.stepHandleImage(source))
 	statuses = append(statuses, ic.stepCreateComponent(source))
 	return
 }
@@ -243,8 +269,8 @@ func (ic *InstallUseCaseImpl) parseInstallStatus(source *v1alpha1.RainbondCluste
 // step 1 setting cluster
 func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
 	return model.InstallStatus{
-		StepName: "step_setting",
-		Status:   "status_finished", // TODO fanyangyang waiting
+		StepName: StepSetting,
+		Status:   InstallStatusFinished,
 		Progress: 100,
 		Message:  "",
 	}
@@ -252,66 +278,62 @@ func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
 
 // step 2 download rainbond
 func (ic *InstallUseCaseImpl) stepDownload() model.InstallStatus {
-	installStatus := model.InstallStatus{StepName: "step_download"}
+	installStatus := model.InstallStatus{StepName: StepDownload}
 	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
+		if ic.downloadError != nil { // download error
+			installStatus.Status = InstallStatusFailed
+			installStatus.Message = "download rainbond.tar error, please try again or upload it using /uploads"
+			return installStatus
+		}
 		// file not found
-		installStatus.Status = "status_waiting"
+		installStatus.Status = InstallStatusWaiting
 		return installStatus
 	}
 	if ic.downloadListener != nil && !ic.downloadListener.Finished {
 		installStatus.Progress = ic.downloadListener.Percent
-		installStatus.Status = "status_processing"
+		installStatus.Status = InstallStatusProcessing
 		return installStatus
 	}
-	installStatus.Status = "status_finished"
+	installStatus.Status = InstallStatusFinished
 	installStatus.Progress = 100
 	return installStatus
 }
 
-func (ic *InstallUseCaseImpl) stepPrepare(stepName string, conditionType v1alpha1.RainbondClusterConditionType, source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+// step 3 prepare storage and image hub
+func (ic *InstallUseCaseImpl) stepPrepareInfrastructure(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
 	var status model.InstallStatus
 	switch source.Phase {
 	case v1alpha1.RainbondClusterWaiting:
 		status = model.InstallStatus{
-			StepName: stepName,
-			Status:   "status_waiting", // TODO fanyangyang waiting
+			StepName: StepPrepareInfrastructure,
+			Status:   InstallStatusWaiting,
 			Progress: 0,
 			Message:  "",
 		}
 	case v1alpha1.RainbondClusterPreparing:
 		status = model.InstallStatus{
-			StepName: stepName,
+			StepName: StepPrepareInfrastructure,
+			Status:   InstallStatusProcessing,
 			Message:  "",
 		}
-		found := false
 		for _, condition := range source.Conditions {
-			if condition.Type == conditionType && !found {
+			if condition.Type == v1alpha1.ImageRepositoryInstalled || condition.Type == v1alpha1.StorageReady {
 				if condition.Status == v1alpha1.ConditionTrue {
-					status.Progress = 100
-					status.Status = "status_finished"
-				} else {
-					status.Progress = 0
-					status.Status = "status_processing"
+					status.Progress += 50
 				}
-				found = true
-				break
 			}
-		}
-		if !found {
-			status.Status = "status_processing"
-			status.Progress = 0
 		}
 	case v1alpha1.RainbondClusterPackageProcessing, v1alpha1.RainbondClusterPending, v1alpha1.RainbondClusterRunning:
 		status = model.InstallStatus{
-			StepName: stepName,
-			Status:   "status_finished",
+			StepName: StepPrepareInfrastructure,
+			Status:   InstallStatusFinished,
 			Progress: 100,
 			Message:  "",
 		}
 	default:
 		status = model.InstallStatus{
-			StepName: stepName,
-			Status:   "status_waiting", // TODO fanyangyang waiting
+			StepName: StepPrepareInfrastructure,
+			Status:   InstallStatusWaiting,
 			Progress: 0,
 			Message:  "",
 		}
@@ -319,61 +341,43 @@ func (ic *InstallUseCaseImpl) stepPrepare(stepName string, conditionType v1alpha
 	return status
 }
 
-// step 3 prepare storage
-func (ic *InstallUseCaseImpl) stepPrepareStorage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
-	return ic.stepPrepare("step_prepare_storage", v1alpha1.StorageReady, source)
-}
-
-// step 4 prepare image hub
-func (ic *InstallUseCaseImpl) stepPrepareImageHub(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
-	return ic.stepPrepare("step_prepare_image_hub", v1alpha1.ImageRepositoryInstalled, source)
-}
-
-func (ic *InstallUseCaseImpl) stepPackProcess(stepName string, conditionType v1alpha1.RainbondClusterConditionType, source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+// step 4 unpack rainbond
+func (ic *InstallUseCaseImpl) stepUnpack(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
 	var status model.InstallStatus
 	switch source.Phase {
 	case v1alpha1.RainbondClusterWaiting, v1alpha1.RainbondClusterPreparing:
 		status = model.InstallStatus{
-			StepName: stepName,
-			Status:   "status_waiting", // TODO fanyangyang waiting
+			StepName: StepUnpack,
+			Status:   InstallStatusWaiting,
 			Progress: 0,
 			Message:  "",
 		}
 	case v1alpha1.RainbondClusterPackageProcessing:
 		status = model.InstallStatus{
-			StepName: stepName,
+			StepName: StepUnpack,
+			Status:   InstallStatusProcessing,
 			Message:  "",
 		}
-		found := false
 		for _, condition := range source.Conditions {
-			if condition.Type == conditionType && !found {
+			if condition.Type == v1alpha1.PackageExtracted {
 				if condition.Status == v1alpha1.ConditionTrue {
 					status.Progress = 100
-					status.Status = "status_finished"
-				} else {
-					status.Progress = 0
-					status.Status = "status_processing"
+					status.Status = InstallStatusFinished
+					break
 				}
-
-				found = true
-				break
 			}
-		}
-		if !found {
-			status.Status = "status_processing"
-			status.Progress = 0
 		}
 	case v1alpha1.RainbondClusterPending, v1alpha1.RainbondClusterRunning:
 		status = model.InstallStatus{
-			StepName: stepName,
-			Status:   "status_finished",
+			StepName: StepUnpack,
+			Status:   InstallStatusFinished,
 			Progress: 100,
 			Message:  "",
 		}
 	default:
 		status = model.InstallStatus{
-			StepName: stepName,
-			Status:   "status_waiting", // TODO fanyangyang waiting
+			StepName: StepUnpack,
+			Status:   InstallStatusWaiting,
 			Progress: 0,
 			Message:  "",
 		}
@@ -381,54 +385,101 @@ func (ic *InstallUseCaseImpl) stepPackProcess(stepName string, conditionType v1a
 	return status
 }
 
-// step 5 unpack rainbond
-func (ic *InstallUseCaseImpl) stepUnpack(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
-	return ic.stepPackProcess("step_unpacke", v1alpha1.PackageExtracted, source)
-}
-
-// step 6 load image
-func (ic *InstallUseCaseImpl) stepLoadImage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
-	return ic.stepPackProcess("step_load_image", v1alpha1.ImagesLoaded, source)
-}
-
-// step 7 push image
-func (ic *InstallUseCaseImpl) stepPushImage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
-	return ic.stepPackProcess("step_push_image", v1alpha1.ImagesPushed, source)
-}
-
-// step 8 create component
-func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+// step 5 handle image, load and push image to image hub
+func (ic *InstallUseCaseImpl) stepHandleImage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
 	var status model.InstallStatus
 	switch source.Phase {
-	case v1alpha1.RainbondClusterWaiting, v1alpha1.RainbondClusterPreparing, v1alpha1.RainbondClusterPackageProcessing:
+	case v1alpha1.RainbondClusterWaiting, v1alpha1.RainbondClusterPreparing:
 		status = model.InstallStatus{
-			StepName: "step_install_component",
-			Status:   "status_waiting", // TODO fanyangyang waiting
+			StepName: StepHandleImage,
+			Status:   InstallStatusWaiting,
 			Progress: 0,
 			Message:  "",
 		}
-	case v1alpha1.RainbondClusterPending:
+	case v1alpha1.RainbondClusterPackageProcessing:
 		status = model.InstallStatus{
-			StepName: "step_install_component",
-			Status:   "status_processing",
-			Progress: 0,
+			StepName: StepHandleImage,
+			Status:   InstallStatusProcessing,
 			Message:  "",
 		}
-	case v1alpha1.RainbondClusterRunning:
+		for _, condition := range source.Conditions {
+			if condition.Type == v1alpha1.PackageExtracted && condition.Status == v1alpha1.ConditionFalse {
+				status.Progress = 0
+				break
+			}
+			if condition.Type == v1alpha1.ImagesLoaded || condition.Type == v1alpha1.ImagesPushed {
+				if condition.Status == v1alpha1.ConditionTrue {
+					status.Progress += 50
+				}
+			}
+		}
+	case v1alpha1.RainbondClusterPending, v1alpha1.RainbondClusterRunning:
 		status = model.InstallStatus{
-			StepName: "step_install_component",
-			Status:   "status_finished",
+			StepName: StepHandleImage,
+			Status:   InstallStatusFinished,
 			Progress: 100,
 			Message:  "",
 		}
 	default:
 		status = model.InstallStatus{
-			StepName: "step_install_component",
-			Status:   "status_waiting", // TODO fanyangyang waiting
+			StepName: StepHandleImage,
+			Status:   InstallStatusWaiting,
 			Progress: 0,
 			Message:  "",
 		}
 	}
+	return status
+}
+
+// step 6 create component
+func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	var status model.InstallStatus
+	switch source.Phase {
+	case v1alpha1.RainbondClusterWaiting, v1alpha1.RainbondClusterPreparing, v1alpha1.RainbondClusterPackageProcessing:
+		status = model.InstallStatus{
+			StepName: StepInstallComponent,
+			Status:   InstallStatusWaiting,
+			Progress: 0,
+			Message:  "",
+		}
+	case v1alpha1.RainbondClusterPending:
+		status = ic.parsePendingComponentStatus()
+	case v1alpha1.RainbondClusterRunning:
+		status = model.InstallStatus{
+			StepName: StepInstallComponent,
+			Status:   InstallStatusFinished,
+			Progress: 100,
+			Message:  "",
+		}
+	default:
+		status = model.InstallStatus{
+			StepName: StepInstallComponent,
+			Status:   InstallStatusWaiting,
+			Progress: 0,
+			Message:  "",
+		}
+	}
+	return status
+}
+
+func (ic *InstallUseCaseImpl) parsePendingComponentStatus() model.InstallStatus {
+	status := model.InstallStatus{StepName: StepInstallComponent, Status: InstallStatusProcessing}
+	componentUsecase := NewComponentUsecase(ic.cfg)
+	componentStatuses, err := componentUsecase.List()
+	if err != nil {
+		return model.InstallStatus{StepName: StepInstallComponent, Status: InstallStatusFailed, Message: err.Error()}
+	}
+	total := len(componentStatuses)
+	if total == 0 {
+		return model.InstallStatus{StepName: StepInstallComponent, Status: InstallStatusWaiting}
+	}
+	finished := 0
+	for _, status := range componentStatuses {
+		if status.Replicas == status.ReadyReplicas {
+			finished++
+		}
+	}
+	status.Progress = finished / total
 	return status
 }
 
@@ -436,9 +487,12 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClust
 // write as it downloads and not load the whole file into memory.
 func (ic *InstallUseCaseImpl) downloadFile() error {
 	ic.downloadListener = &downloadutil.DownloadWithProgress{URL: ic.cfg.DownloadURL, SavedPath: ic.cfg.ArchiveFilePath}
-	defer func() {
-		ic.downloadListener = nil
+	go func() {
+		if err := ic.downloadListener.Download(); err != nil {
+			ic.downloadError = err
+		}
+		ic.downloadListener = nil // download process finish, delete it
 	}()
-	return ic.downloadListener.Download()
+	return nil
 
 }
