@@ -9,6 +9,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -40,12 +41,14 @@ func init() {
 	cfg = &option.Config{}
 	cfg.AddFlags(pflag.CommandLine)
 	pflag.Parse()
+	cfg.SetLog()
 
 	restConfig := k8sutil.MustNewKubeConfig(cfg.KubeconfigPath)
 	cfg.RestConfig = restConfig
 	if err := rest.LoadTLSFiles(cfg.RestConfig); err != nil {
 		panic("can't load kubernetes tls file")
 	}
+	logrus.Info("start rainbond-operator-openapi")
 
 	cfg.KubeClient = kubernetes.NewForConfigOrDie(restConfig)
 	cfg.RainbondKubeClient = versioned.NewForConfigOrDie(restConfig)
@@ -85,9 +88,9 @@ func main() {
 	signal.Notify(term, os.Interrupt, syscall.SIGTERM)
 	select {
 	case s := <-term:
-		log.Info("Received signal", s.String(), "exiting gracefully.")
+		logrus.Info("Received signal", s.String(), "exiting gracefully.")
 	}
-	log.Info("See you next time!")
+	logrus.Info("See you next time!")
 }
 
 var corsMidle = func(f gin.HandlerFunc) gin.HandlerFunc {
