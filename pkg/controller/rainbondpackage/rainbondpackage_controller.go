@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 
@@ -92,9 +93,12 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling RainbondPackage")
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Fetch the RainbondPackage instance
 	pkg := &rainbondv1alpha1.RainbondPackage{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, pkg)
+	err := r.client.Get(ctx, request.NamespacedName, pkg)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -106,11 +110,17 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	p := newpkg(r.client, pkg)
+	dcli, err := newDockerClient(ctx)
+	if err != nil {
+		reqLogger.Error(err, "failed to create docker client")
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+	p := newpkg(ctx, r.client, dcli, pkg)
 
 	// check prerequisites
 	cluster := &rainbondv1alpha1.RainbondCluster{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: pkg.Namespace, Name: "rainbondcluster"}, cluster); err != nil {
+	if err := r.client.Get(ctx, types.NamespacedName{Namespace: pkg.Namespace, Name: "rainbondcluster"}, cluster); err != nil {
 		reqLogger.Error(err, "failed to get rainbondcluster.")
 		p.setMessage(fmt.Sprintf("failed to get rainbondcluster: %v", err))
 		p.reportFailedStatus()
@@ -147,22 +157,24 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 }
 
 type pkg struct {
+	ctx     context.Context
 	client  client.Client
+	dcli    *dclient.Client
 	pkg     *rainbondv1alpha1.RainbondPackage
 	status  *rainbondv1alpha1.RainbondPackageStatus
 	cluster *rainbondv1alpha1.RainbondCluster
 }
 
-func newpkg(client client.Client, p *rainbondv1alpha1.RainbondPackage) *pkg {
+func newpkg(ctx context.Context, client client.Client, dcli *dclient.Client, p *rainbondv1alpha1.RainbondPackage) *pkg {
 	pkg := &pkg{
+		ctx:    ctx,
 		client: client,
 		pkg:    p,
+		dcli:   dcli,
 	}
 	pkg.status = p.Status.DeepCopy()
 	if pkg.status == nil {
-		pkg.status = &rainbondv1alpha1.RainbondPackageStatus{
-			ImageStatus: map[string]rainbondv1alpha1.ImageStatus{},
-		}
+		pkg.status = &rainbondv1alpha1.RainbondPackageStatus{}
 	}
 	return pkg
 }
@@ -188,7 +200,7 @@ func (p *pkg) reportFailedStatus() {
 		}
 
 		rp := &rainbondv1alpha1.RainbondPackage{}
-		err = p.client.Get(context.TODO(), types.NamespacedName{Namespace: p.pkg.Namespace, Name: p.pkg.Name}, rp)
+		err = p.client.Get(p.ctx, types.NamespacedName{Namespace: p.pkg.Namespace, Name: p.pkg.Name}, rp)
 		if err != nil {
 			// Update (PUT) will return conflict even if object is deleted since we have UID set in object.
 			// Because it will check UID first and return something like:
@@ -208,13 +220,14 @@ func (p *pkg) reportFailedStatus() {
 }
 
 func (p *pkg) updateCRStatus() error {
-	//if reflect.DeepEqual(p.pkg.Status, p.status) {
-	//	return nil
-	//}
+	// TODO: retry
+	if reflect.DeepEqual(p.pkg.Status, p.status) {
+		return nil
+	}
 
 	newPackage := p.pkg
 	newPackage.Status = p.status
-	err := p.client.Status().Update(context.TODO(), newPackage)
+	err := p.client.Status().Update(p.ctx, newPackage)
 	if err != nil {
 		return fmt.Errorf("failed to update rainbondpackage status: %v", err)
 	}
@@ -275,21 +288,6 @@ func (p *pkg) handle() error {
 		}
 		log.Info("successfully extract rainbond package.")
 
-		p.status.Phase = rainbondv1alpha1.RainbondPackageLoading
-		p.clearMessageAndReason()
-		if err := p.updateCRStatus(); err != nil {
-			p.status.Reason = "ErrUpdatePhase"
-			return fmt.Errorf("failed to update phase %s: %v", rainbondv1alpha1.RainbondPackageLoading, err)
-		}
-	}
-
-	if p.status.Phase == rainbondv1alpha1.RainbondPackageLoading {
-		if err := p.loadImages(); err != nil {
-			p.status.Reason = "ErrImageLoad"
-			return fmt.Errorf("failed to load images: %v", err)
-		}
-		log.Info("successfully load rainbond images")
-
 		p.status.Phase = rainbondv1alpha1.RainbondPackagePushing
 		p.clearMessageAndReason()
 		if err := p.updateCRStatus(); err != nil {
@@ -299,7 +297,7 @@ func (p *pkg) handle() error {
 	}
 
 	if p.status.Phase == rainbondv1alpha1.RainbondPackagePushing {
-		if err := p.pushImages(); err != nil {
+		if err := p.imagesLoadAndPush(); err != nil {
 			p.status.Reason = "ErrImagePush"
 			return fmt.Errorf("failed to push images: %v", err)
 		}
@@ -324,12 +322,7 @@ func (p *pkg) untartar() error {
 	return nil
 }
 
-func (p *pkg) loadImages() error {
-	cli, err := newDockerClient()
-	if err != nil {
-		return fmt.Errorf("failed to create docker client: %v", err)
-	}
-
+func (p *pkg) imagesLoadAndPush() error {
 	dir := pkgDir(p.pkg.Spec.PkgPath, pkgDst)
 	imagesNumber, err := countImages(dir)
 	if err != nil {
@@ -337,13 +330,12 @@ func (p *pkg) loadImages() error {
 	}
 
 	p.status.ImagesNumber = imagesNumber
-	p.status.ImageStatus = make(map[string]rainbondv1alpha1.ImageStatus)
+	p.status.ImagesPushed = make(map[string]struct{})
 	if err := p.updateCRStatus(); err != nil {
 		return fmt.Errorf("failed to update image status: %v", err)
 	}
 
-	// TODO: retry
-	return filepath.Walk(dir, func(pstr string, info os.FileInfo, err error) error {
+	walkFn := func(pstr string, info os.FileInfo, err error) error {
 		l := log.WithValues("file", pstr)
 		if err != nil {
 			l.Info(fmt.Sprintf("prevent panic by handling failure accessing a path %q: %v\n", pstr, err))
@@ -358,63 +350,81 @@ func (p *pkg) loadImages() error {
 			return nil
 		}
 
-		f, err := os.Open(pstr)
-		if err != nil {
-			return fmt.Errorf("open file %s: %v", pstr, err)
-		}
-		log.Info("start loading image", "file", pstr)
-		ctx := context.Background()
-		res, err := cli.ImageLoad(ctx, f, true) // load one, push one.
-		if err != nil {
-			return fmt.Errorf("path: %s; failed to load images: %v", pstr, err)
-		}
-		var lastMsg string
-		if res.Body != nil {
-			defer res.Body.Close()
-			dec := json.NewDecoder(res.Body)
-			for {
-				select {
-				case <-ctx.Done():
-					log.Error(ctx.Err(), "error form context")
-					return ctx.Err()
-				default:
-				}
-				var jm JSONMessage
-				if err := dec.Decode(&jm); err != nil {
-					if err == io.EOF {
-						break
-					}
-					return fmt.Errorf("failed to decode json message: %v", err)
-				}
-				if jm.Error != nil {
-					return fmt.Errorf("error detail: %v", jm.Error)
-				}
-				lastMsg = jm.JSONString()
-				l.Info("response from image loading", "msg", lastMsg)
+		f := func() (bool, error) {
+			imageName, err := p.imageLoad(pstr)
+			if err != nil {
+				l.Error(err, "load image")
+				return false, fmt.Errorf("load image: %v", err)
 			}
-		}
-		l.Info(fmt.Sprintf("last message: %s", lastMsg))
-		imageName, err := parseImageName(lastMsg)
-		if err != nil {
-			return fmt.Errorf("failed to parse image name: %v", err)
+
+			if err = p.imagePush(imageName); err != nil {
+				l.Error(err, "push image")
+				return false, fmt.Errorf("push image: %v", err)
+			}
+
+			p.status.ImagesPushed[imageName] = struct{}{}
+			if err := p.updateCRStatus(); err != nil {
+				return false, fmt.Errorf("update cr status: %v", err)
+			}
+			l.Info("successfully load image", "image", imageName)
+			return true, nil
 		}
 
-		p.status.ImageStatus[imageName] = rainbondv1alpha1.ImageStatus{}
-		if err := p.updateCRStatus(); err != nil {
-			return fmt.Errorf("failed to update image status: %v", err)
-		}
-
-		log.Info("successfully load images")
-		return nil
-	})
-}
-
-func (p *pkg) pushImages() error {
-	cli, err := newDockerClient() // TODO: put it into pkg
-	if err != nil {
-		return fmt.Errorf("failed to create docker client: %v", err)
+		return retryutil.Retry(1*time.Second, 3, f)
 	}
 
+	err = filepath.Walk(dir, walkFn)
+	if err != nil {
+		return fmt.Errorf("failed to walk file: %v", err)
+	}
+
+	return nil
+}
+
+func (p *pkg) imageLoad(file string) (string, error) {
+	log.Info("start loading image", "file", file)
+	f, err := os.Open(file)
+	if err != nil {
+		return "", fmt.Errorf("open file %s: %v", file, err)
+	}
+	res, err := p.dcli.ImageLoad(p.ctx, f, true) // load one, push one.
+	if err != nil {
+		return "", fmt.Errorf("path: %s; failed to load images: %v", file, err)
+	}
+	var lastMsg string
+	if res.Body != nil {
+		defer res.Body.Close()
+		dec := json.NewDecoder(res.Body)
+		for {
+			select {
+			case <-p.ctx.Done():
+				log.Error(p.ctx.Err(), "error form context")
+				return "", p.ctx.Err()
+			default:
+			}
+			var jm JSONMessage
+			if err := dec.Decode(&jm); err != nil {
+				if err == io.EOF {
+					break
+				}
+				return "", fmt.Errorf("failed to decode json message: %v", err)
+			}
+			if jm.Error != nil {
+				return "", fmt.Errorf("error detail: %v", jm.Error)
+			}
+			lastMsg = jm.JSONString()
+			log.Info("response from image loading", "msg", lastMsg)
+		}
+	}
+	log.Info(fmt.Sprintf("last message: %s", lastMsg))
+	imageName, err := parseImageName(lastMsg)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse image name: %v", err)
+	}
+	return imageName, nil
+}
+
+func (p *pkg) imagePush(image string) error {
 	var opts dtypes.ImagePushOptions
 	registryAuth, err := encodeAuthToBase64(dtypes.AuthConfig{
 		ServerAddress: "goodrain.me",
@@ -424,55 +434,40 @@ func (p *pkg) pushImages() error {
 	}
 	opts.RegistryAuth = registryAuth
 
-	ctx := context.Background()
-	for image, status := range p.status.ImageStatus {
-		if status.Pushed {
-			log.Info("has been pushed", "image", image)
-			continue
-		}
+	newImage := strings.Replace(image, "rainbond", "goodrain.me", -1) // TODO: parse image
+	if err := p.dcli.ImageTag(p.ctx, image, newImage); err != nil {
+		log.Error(err, fmt.Sprintf("rename image %s", image))
+		return fmt.Errorf("rename image %s: %v", image, err)
+	}
 
-		newImage := strings.Replace(image, "rainbond", "goodrain.me", -1)
-		if err := cli.ImageTag(ctx, image, newImage); err != nil {
-			log.Error(err, fmt.Sprintf("rename image %s", image))
-			return fmt.Errorf("rename image %s: %v", image, err)
-		}
+	res, err := p.dcli.ImagePush(p.ctx, newImage, opts)
+	if err != nil {
+		log.Error(err, "failed to push image", "image", newImage)
+		return fmt.Errorf("push image %s: %v", newImage, err)
+	}
+	if res != nil {
+		defer res.Close()
 
-		res, err := cli.ImagePush(ctx, newImage, opts)
-		if err != nil {
-			log.Error(err, "failed to push image", "image", newImage)
-			return fmt.Errorf("push image %s: %v", newImage, err)
-		}
-		if res != nil {
-			defer res.Close()
-
-			dec := json.NewDecoder(res)
-			for {
-				select {
-				case <-ctx.Done():
-					log.Error(ctx.Err(), "error form context")
-					return ctx.Err()
-				default:
-				}
-				var jm JSONMessage
-				if err := dec.Decode(&jm); err != nil {
-					if err == io.EOF {
-						break
-					}
-					return fmt.Errorf("failed to decode json message: %v", err)
-				}
-				if jm.Error != nil {
-					return fmt.Errorf("error detail: %v", jm.Error)
-				}
-				log.Info("response from image pushing", "msg", jm.JSONString())
+		dec := json.NewDecoder(res)
+		for {
+			select {
+			case <-p.ctx.Done():
+				log.Error(p.ctx.Err(), "error form context")
+				return p.ctx.Err()
+			default:
 			}
+			var jm JSONMessage
+			if err := dec.Decode(&jm); err != nil {
+				if err == io.EOF {
+					break
+				}
+				return fmt.Errorf("failed to decode json message: %v", err)
+			}
+			if jm.Error != nil {
+				return fmt.Errorf("error detail: %v", jm.Error)
+			}
+			log.Info("response from image pushing", "msg", jm.JSONString())
 		}
-
-		status.Pushed = true
-		p.status.ImageStatus[image] = status
-		if err := p.updateCRStatus(); err != nil {
-			return fmt.Errorf("status: %#v; failed to update image status: %v", status, err)
-		}
-		log.Info(fmt.Sprintf("Image %s pushed", newImage))
 	}
 
 	return nil
@@ -484,13 +479,13 @@ func pkgDir(pkgPath, dst string) string {
 	return path.Join(dst, dirName)
 }
 
-func newDockerClient() (*dclient.Client, error) {
+func newDockerClient(ctx context.Context) (*dclient.Client, error) {
 	cli, err := dclient.NewClientWithOpts(dclient.FromEnv)
 	if err != nil {
 		log.Error(err, "create new docker client")
 		return nil, fmt.Errorf("create new docker client: %v", err)
 	}
-	cli.NegotiateAPIVersion(context.TODO())
+	cli.NegotiateAPIVersion(ctx)
 
 	return cli, nil
 }

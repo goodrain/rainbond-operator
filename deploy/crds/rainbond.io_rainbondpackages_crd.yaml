@@ -40,22 +40,12 @@ spec:
         status:
           description: RainbondPackageStatus defines the observed state of RainbondPackage
           properties:
-            imageStatus:
-              additionalProperties:
-                properties:
-                  pushed:
-                    description: Pushed Indicates whether the image has been pushed.
-                    type: boolean
-                required:
-                - pushed
-                type: object
-              description: ImageStatus contains the status of each image in the installation
-                package.
-              type: object
             imagesNumber:
               description: The number of images that should be load and pushed.
               format: int32
               type: integer
+            imagesPushed:
+              description: ImagesPushed contains the images have been pushed.
             message:
               description: A human readable message indicating details about why the
                 pod is in this condition.

@@ -120,8 +120,6 @@ const (
 	ImageRepositoryInstalled RainbondClusterConditionType = "ImageRepositoryInstalled"
 	// PackageExtracted indicates whether the installation package has been decompressed.
 	PackageExtracted RainbondClusterConditionType = "PackageExtracted"
-	// ImagesLoaded means that all images from the installation package has been loaded successfully.
-	ImagesLoaded RainbondClusterConditionType = "ImagesLoaded"
 	// ImagesPushed means that all images from the installation package has been pushed successfully.
 	ImagesPushed RainbondClusterConditionType = "ImagesPushed"
 )
