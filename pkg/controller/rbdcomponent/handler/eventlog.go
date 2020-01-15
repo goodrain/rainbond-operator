@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
@@ -15,13 +17,19 @@ import (
 var EventLogName = "rbd-eventlog"
 
 type eventlog struct {
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
-	labels    map[string]string
+	ctx        context.Context
+	client     client.Client
+	component  *rainbondv1alpha1.RbdComponent
+	cluster    *rainbondv1alpha1.RainbondCluster
+	labels     map[string]string
+	db         *rainbondv1alpha1.Database
+	etcdSecret *corev1.Secret
 }
 
 func NewEventLog(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &eventlog{
+		ctx:       ctx,
+		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.Labels(),
@@ -29,7 +37,14 @@ func NewEventLog(ctx context.Context, client client.Client, component *rainbondv
 }
 
 func (e *eventlog) Before() error {
-	// TODO: check prerequisites
+	e.db = getDefaultDBInfo(e.cluster.Spec.UIDatabase)
+
+	secret, err := etcdSecret(e.ctx, e.client, e.cluster)
+	if err != nil {
+		return fmt.Errorf("failed to get etcd secret: %v", err)
+	}
+	e.etcdSecret = secret
+
 	return nil
 }
 
@@ -44,6 +59,37 @@ func (e *eventlog) After() error {
 }
 
 func (e *eventlog) daemonSetForEventLog() interface{} {
+	args := []string{
+		"--cluster.bind.ip=$(POD_IP)",
+		"--cluster.instance.ip=$(POD_IP)",
+		"--eventlog.bind.ip=$(POD_IP)",
+		"--websocket.bind.ip=$(POD_IP)",
+		"--db.url=" + e.db.RegionDataSource(),
+		"--discover.etcd.addr=" + strings.Join(etcdEndpoints(e.cluster), ","),
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "grdata",
+			MountPath: "/grdata",
+		},
+	}
+	volumes := []corev1.Volume{
+		{
+			Name: "grdata",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: constants.GrDataPVC,
+				},
+			},
+		},
+	}
+	if e.etcdSecret != nil {
+		volume, mount := volumeByEtcd(e.etcdSecret)
+		volumeMounts = append(volumeMounts, mount)
+		volumes = append(volumes, volume)
+		args = append(args, etcdSSLArgs()...)
+	}
+
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EventLogName,
@@ -94,32 +140,11 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 									Value: "7",
 								},
 							},
-							Args: []string{
-								"--cluster.bind.ip=$(POD_IP)",
-								"--cluster.instance.ip=$(POD_IP)",
-								"--db.url=root:rainbond@tcp(rbd-db:3306)/region", // TODO: DO NOT HARD CODE
-								"--discover.etcd.addr=http://etcd0:2379",         // TODO: DO NOT HARD CODE
-								"--eventlog.bind.ip=$(POD_IP)",
-								"--websocket.bind.ip=$(POD_IP)",
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "grdata",
-									MountPath: "/grdata",
-								},
-							},
+							Args:         args,
+							VolumeMounts: volumeMounts,
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "grdata",
-							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: constants.GrDataPVC,
-								},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 		},

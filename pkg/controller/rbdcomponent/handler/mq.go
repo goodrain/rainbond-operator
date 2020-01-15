@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -13,13 +15,18 @@ import (
 var MQName = "rbd-mq"
 
 type mq struct {
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
-	labels    map[string]string
+	ctx        context.Context
+	client     client.Client
+	component  *rainbondv1alpha1.RbdComponent
+	cluster    *rainbondv1alpha1.RainbondCluster
+	labels     map[string]string
+	etcdSecret *corev1.Secret
 }
 
 func NewMQ(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &mq{
+		ctx:       ctx,
+		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.Labels(),
@@ -27,7 +34,11 @@ func NewMQ(ctx context.Context, client client.Client, component *rainbondv1alpha
 }
 
 func (m *mq) Before() error {
-	// TODO: check prerequisites
+	secret, err := etcdSecret(m.ctx, m.client, m.cluster)
+	if err != nil {
+		return fmt.Errorf("failed to get etcd secret: %v", err)
+	}
+	m.etcdSecret = secret
 	return nil
 }
 
@@ -42,6 +53,20 @@ func (m *mq) After() error {
 }
 
 func (m *mq) daemonSetForMQ() interface{} {
+	args := []string{
+		"--log-level=" + string(m.component.Spec.LogLevel),
+		"--etcd-endpoints=" + strings.Join(etcdEndpoints(m.cluster), ","),
+		"--hostIP=$(POD_IP)",
+	}
+	var volumeMounts []corev1.VolumeMount
+	var volumes []corev1.Volume
+	if m.etcdSecret != nil {
+		volume, mount := volumeByEtcd(m.etcdSecret)
+		volumeMounts = append(volumeMounts, mount)
+		volumes = append(volumes, volume)
+		args = append(args, etcdSSLArgs()...)
+	}
+
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MQName,
@@ -82,13 +107,10 @@ func (m *mq) daemonSetForMQ() interface{} {
 									},
 								},
 							},
-							Args: []string{
-								"--log-level=" + string(m.component.Spec.LogLevel),
-								"--etcd-endpoints=http://etcd0:2379", // TODO: do not hard code
-								"--hostIP=$(POD_IP)",
-							},
+							VolumeMounts: volumeMounts,
 						},
 					},
+					Volumes: volumes,
 				},
 			},
 		},

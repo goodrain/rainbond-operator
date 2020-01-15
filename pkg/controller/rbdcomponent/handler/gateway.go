@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -14,19 +15,29 @@ import (
 var GatewayName = "rbd-gateway"
 
 type gateway struct {
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
+	ctx        context.Context
+	client     client.Client
+	etcdSecret *corev1.Secret
+
+	component  *rainbondv1alpha1.RbdComponent
+	cluster    *rainbondv1alpha1.RainbondCluster
 }
 
 func NewGateway(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &gateway{
+		ctx:       ctx,
+		client:    client,
 		component: component,
 		cluster:   cluster,
 	}
 }
 
 func (g *gateway) Before() error {
-	// No prerequisites, if no gateway-installed node is specified, install on all nodes that meet the conditions
+	secret, err := etcdSecret(g.ctx, g.client, g.cluster)
+	if err != nil {
+		return fmt.Errorf("failed to get etcd secret: %v", err)
+	}
+	g.etcdSecret = secret
 	return nil
 }
 
@@ -41,6 +52,21 @@ func (g *gateway) After() error {
 }
 
 func (g *gateway) daemonSetForGateway() interface{} {
+	args := []string{
+		fmt.Sprintf("--log-level=%s", g.component.LogLevel()),
+		"--error-log=/dev/stderr error",
+		"--enable-kubeapi=false",
+		"--etcd-endpoints=" + strings.Join(etcdEndpoints(g.cluster), ","),
+	}
+	var volumeMounts []corev1.VolumeMount
+	var volumes []corev1.Volume
+	if g.etcdSecret != nil {
+		volume, mount := volumeByEtcd(g.etcdSecret)
+		volumeMounts = append(volumeMounts, mount)
+		volumes = append(volumes, volume)
+		args = append(args, etcdSSLArgs()...)
+	}
+
 	labels := g.component.Labels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -75,14 +101,11 @@ func (g *gateway) daemonSetForGateway() interface{} {
 							Name:            GatewayName,
 							Image:           g.component.Spec.Image,
 							ImagePullPolicy: g.component.ImagePullPolicy(),
-							Args: []string{
-								fmt.Sprintf("--log-level=%s", g.component.LogLevel()),
-								"--error-log=/dev/stderr error",
-								"--enable-kubeapi=false",
-								"--etcd-endpoints=http://etcd0:2379", // TODO: use rainbondcluster
-							},
+							Args:            args,
+							VolumeMounts:    volumeMounts,
 						},
 					},
+					Volumes: volumes,
 				},
 			},
 		},

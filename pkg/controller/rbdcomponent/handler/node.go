@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
+	"strings"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
@@ -17,13 +18,18 @@ import (
 var NodeName = "rbd-node"
 
 type node struct {
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
-	labels    map[string]string
+	ctx        context.Context
+	client     client.Client
+	component  *rainbondv1alpha1.RbdComponent
+	cluster    *rainbondv1alpha1.RainbondCluster
+	labels     map[string]string
+	etcdSecret *corev1.Secret
 }
 
 func NewNode(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &node{
+		ctx:       ctx,
+		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.Labels(),
@@ -31,7 +37,11 @@ func NewNode(ctx context.Context, client client.Client, component *rainbondv1alp
 }
 
 func (n *node) Before() error {
-	// TODO: check prerequisites
+	secret, err := etcdSecret(n.ctx, n.client, n.cluster)
+	if err != nil {
+		return fmt.Errorf("failed to get etcd secret: %v", err)
+	}
+	n.etcdSecret = secret
 	return nil
 }
 
@@ -46,6 +56,100 @@ func (n *node) After() error {
 }
 
 func (n *node) daemonSetForRainbondNode() interface{} {
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "grdata",
+			MountPath: "/grdata",
+		},
+		{
+			Name:      "proc",
+			MountPath: "/proc",
+		},
+		{
+			Name:      "sys",
+			MountPath: "/sys",
+		},
+		{
+			Name:      "dockersock",
+			MountPath: "/var/run/docker.sock",
+		},
+		{
+			Name:      "docker", // for container logs
+			MountPath: "/var/lib/docker",
+		}, {
+			Name:      "dockercert", // for container logs
+			MountPath: "/etc/docker/certs.d",
+		},
+	}
+	volumes := []corev1.Volume{
+		{
+			Name: "grdata",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: constants.GrDataPVC,
+				},
+			},
+		},
+		{
+			Name: "proc",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/proc",
+					Type: k8sutil.HostPath(corev1.HostPathDirectory),
+				},
+			},
+		},
+		{
+			Name: "sys",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/sys",
+					Type: k8sutil.HostPath(corev1.HostPathDirectory),
+				},
+			},
+		},
+		{
+			Name: "docker",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/lib/docker",
+					Type: k8sutil.HostPath(corev1.HostPathDirectory),
+				},
+			},
+		}, {
+			Name: "dockercert",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/docker/certs.d",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+		{
+			Name: "dockersock",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/run/docker.sock",
+					Type: k8sutil.HostPath(corev1.HostPathFile),
+				},
+			},
+		},
+	}
+	args := []string{
+		fmt.Sprintf("--log-level=%s", n.component.LogLevel()),
+		"--etcd=" + strings.Join(etcdEndpoints(n.cluster), ","),
+		"--hostIP=$(POD_IP)",
+		"--run-mode master",
+		"--noderule manage,compute", // TODO: Let rbd-node recognize itself
+		"--nodeid=$(NODE_NAME)",
+	}
+	if n.etcdSecret != nil {
+		volume, mount := volumeByEtcd(n.etcdSecret)
+		volumeMounts = append(volumeMounts, mount)
+		volumes = append(volumes, volume)
+		args = append(args, etcdSSLArgs()...)
+	}
+
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      NodeName,
@@ -99,95 +203,11 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 									Value: hubImageRepository,
 								},
 							},
-							Args: []string{
-								fmt.Sprintf("--log-level=%s", n.component.LogLevel()),
-								"--etcd=http://etcd0:2379", // TODO: do not hard code
-								"--hostIP=$(POD_IP)",
-								"--run-mode master",
-								"--noderule manage,compute", // TODO: Let rbd-node recognize itself
-								"--nodeid=$(NODE_NAME)",
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "grdata",
-									MountPath: "/grdata",
-								},
-								{
-									Name:      "proc",
-									MountPath: "/proc",
-								},
-								{
-									Name:      "sys",
-									MountPath: "/sys",
-								},
-								{
-									Name:      "dockersock",
-									MountPath: "/var/run/docker.sock",
-								},
-								{
-									Name:      "docker", // for container logs
-									MountPath: "/var/lib/docker",
-								}, {
-									Name:      "dockercert", // for container logs
-									MountPath: "/etc/docker/certs.d",
-								},
-							},
+							Args:         args,
+							VolumeMounts: volumeMounts,
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "grdata",
-							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: constants.GrDataPVC,
-								},
-							},
-						},
-						{
-							Name: "proc",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/proc",
-									Type: k8sutil.HostPath(corev1.HostPathDirectory),
-								},
-							},
-						},
-						{
-							Name: "sys",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/sys",
-									Type: k8sutil.HostPath(corev1.HostPathDirectory),
-								},
-							},
-						},
-						{
-							Name: "docker",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/lib/docker",
-									Type: k8sutil.HostPath(corev1.HostPathDirectory),
-								},
-							},
-						}, {
-							Name: "dockercert",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/etc/docker/certs.d",
-									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-								},
-							},
-						},
-						{
-							Name: "dockersock",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/run/docker.sock",
-									Type: k8sutil.HostPath(corev1.HostPathFile),
-								},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 		},
