@@ -20,6 +20,7 @@ import (
 const (
 	// ImageRepositoryUnavailable means the image repository is nnavailable.
 	ImageRepositoryUnavailable = "ImageRepositoryUnavailable"
+	WrongImageRepositoryHost   = "WrongImageRepositoryHost"
 	// NoGatewayIP means gateway ip not found
 	NoGatewayIP = "NoGatewayIP"
 	// ErrHistoryFetch means failed to fetching installation package processing history.
@@ -74,7 +75,8 @@ func (s *Status) GenerateRainbondClusterStorageReadyCondition() rainbondv1alpha1
 // else it returns an unimagerepositoryready condition.
 func (s *Status) GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster *rainbondv1alpha1.RainbondCluster) rainbondv1alpha1.RainbondClusterCondition {
 	condition := rainbondv1alpha1.RainbondClusterCondition{
-		Type: rainbondv1alpha1.ImageRepositoryInstalled,
+		Type:   rainbondv1alpha1.ImageRepositoryInstalled,
+		Status: rainbondv1alpha1.ConditionFalse,
 	}
 
 	if rainbondCluster.Spec.ImageHub != nil {
@@ -97,36 +99,22 @@ func (s *Status) GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCl
 		},
 	}
 
-	var gatewayIP string
-	if len(rainbondCluster.Spec.GatewayNodes) > 0 {
-		gatewayIP = rainbondCluster.Spec.GatewayNodes[0].NodeIP
-	} else if len(rainbondCluster.Status.NodeAvailPorts) > 0 {
-		gatewayIP = rainbondCluster.Status.NodeAvailPorts[0].NodeIP
-	} else {
-		condition.Status = rainbondv1alpha1.ConditionFalse
-		condition.Reason = NoGatewayIP
-		condition.Message = fmt.Sprint("gateway ip not found.")
+	u, err := url.Parse(fmt.Sprintf("https://%s/v2/", domain))
+	if err != nil {
+		condition.Reason = WrongImageRepositoryHost
+		condition.Message = fmt.Sprintf("failed to parse url %s: %v", fmt.Sprintf("https://%s/v2/", domain), err)
 		return condition
 	}
-
-	// TODO: check all gateway ips
-
-	u, _ := url.Parse(fmt.Sprintf("https://%s/v2/", gatewayIP))
-	request := &http.Request{
-		URL:  u,
-		Host: domain,
-	}
+	request := &http.Request{URL: u}
 	res, err := client.Do(request)
 	if err != nil {
 		klog.Errorf("Error issuing a GET to %s: %v", domain, err)
-		condition.Status = rainbondv1alpha1.ConditionFalse
 		condition.Reason = ImageRepositoryUnavailable
 		condition.Message = fmt.Sprintf("image repository unavailable: %v", err)
 		return condition
 	}
 
 	if res.StatusCode != http.StatusOK {
-		condition.Status = rainbondv1alpha1.ConditionFalse
 		condition.Reason = ImageRepositoryUnavailable
 		condition.Message = fmt.Sprintf("image repository unavailable. http status code: %d", res.StatusCode)
 		return condition
@@ -138,7 +126,6 @@ func (s *Status) GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCl
 
 // GenerateRainbondClusterPackageExtractedCondition returns pakcageextracted condition if the image repository is ready,
 // else it returns an unpakcageextracted condition.
-// TODO: merge GenerateRainbondClusterPackageExtractedCondition, GenerateRainbondClusterPackageLoadedCondition and GenerateRainbondClusterImagesPushedCondition
 func (s *Status) GenerateRainbondClusterPackageExtractedCondition(rainbondCluster *rainbondv1alpha1.RainbondCluster) rainbondv1alpha1.RainbondClusterCondition {
 	if condition := conditionAlreadyTrue(rainbondCluster.Status, rainbondv1alpha1.PackageExtracted); condition != nil {
 		return *condition

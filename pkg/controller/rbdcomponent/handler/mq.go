@@ -107,6 +107,7 @@ func (m *mq) daemonSetForMQ() interface{} {
 									},
 								},
 							},
+							Args:         args,
 							VolumeMounts: volumeMounts,
 						},
 					},
