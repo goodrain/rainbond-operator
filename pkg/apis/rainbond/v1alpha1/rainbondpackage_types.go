@@ -33,11 +33,6 @@ const (
 	RainbondPackageCompleted RainbondPackagePhase = "Completed"
 )
 
-type ImageStatus struct {
-	// Pushed Indicates whether the image has been pushed.
-	Pushed bool `json:"pushed"`
-}
-
 // RainbondPackageStatus defines the observed state of RainbondPackage
 type RainbondPackageStatus struct {
 	// The phase of a RainbondPackage is a simple, high-level summary of where the Pod is in its lifecycle.
@@ -50,11 +45,13 @@ type RainbondPackageStatus struct {
 	Message string `json:"message,omitempty"`
 	// A brief CamelCase message indicating details about why the pod is in this state.
 	// +optional
-	Reason string `json:"reason,omitempty"`
+	Reason          string `json:"reason,omitempty"`
+	FilesNumber     int32  `json:"filesNumber,omitempty"`
+	NumberExtracted int32  `json:"numberExtracted,omitempty"`
 	// The number of images that should be load and pushed.
 	ImagesNumber int32 `json:"imagesNumber"`
-	// ImageStatus contains the status of each image in the installation package.
-	ImageStatus map[string]ImageStatus `json:"imageStatus,omitempty"`
+	// ImagesPushed contains the images have been pushed.
+	ImagesPushed map[string]struct{} `json:"imagesPushed,omitempty"`
 }
 
 // +genclient

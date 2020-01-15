@@ -212,7 +212,6 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(rainbondCluster
 	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterStorageReadyCondition())
 	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster))
 	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterPackageExtractedCondition(rainbondCluster))
-	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterImagesLoadedCondition(rainbondCluster))
 	s.Conditions = append(s.Conditions, status.GenerateRainbondClusterImagesPushedCondition(rainbondCluster))
 
 	checkReadyFromConditionFn := func(t rainbondv1alpha1.RainbondClusterConditionType) bool {
@@ -233,9 +232,8 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(rainbondCluster
 
 	s.Phase = rainbondv1alpha1.RainbondClusterPackageProcessing
 	isPackageExtractedReady := checkReadyFromConditionFn(rainbondv1alpha1.PackageExtracted)
-	isImagesLoadedReady := checkReadyFromConditionFn(rainbondv1alpha1.ImagesLoaded)
 	isImagesPushedReady := checkReadyFromConditionFn(rainbondv1alpha1.ImagesPushed)
-	if !isPackageExtractedReady || !isImagesLoadedReady || !isImagesPushedReady {
+	if !isPackageExtractedReady || !isImagesPushedReady {
 		return s
 	}
 

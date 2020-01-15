@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
@@ -16,13 +18,19 @@ import (
 var ChaosName = "rbd-chaos"
 
 type chaos struct {
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
-	labels    map[string]string
+	ctx        context.Context
+	client     client.Client
+	component  *rainbondv1alpha1.RbdComponent
+	cluster    *rainbondv1alpha1.RainbondCluster
+	labels     map[string]string
+	db         *rainbondv1alpha1.Database
+	etcdSecret *corev1.Secret
 }
 
 func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &chaos{
+		ctx:       ctx,
+		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.Labels(),
@@ -30,8 +38,15 @@ func NewChaos(ctx context.Context, client client.Client, component *rainbondv1al
 }
 
 func (c *chaos) Before() error {
-	// No prerequisites, if no gateway-installed node is specified, install on all nodes that meet the conditions
-	return nil
+	c.db = getDefaultDBInfo(c.cluster.Spec.UIDatabase)
+
+	secret, err := etcdSecret(c.ctx, c.client, c.cluster)
+	if err != nil {
+		return fmt.Errorf("failed to get etcd secret: %v", err)
+	}
+	c.etcdSecret = secret
+
+	return isPhaseOK(c.cluster)
 }
 
 func (c *chaos) Resources() []interface{} {
@@ -45,6 +60,61 @@ func (c *chaos) After() error {
 }
 
 func (c *chaos) daemonSetForChaos() interface{} {
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "grdata",
+			MountPath: "/grdata",
+		},
+		{
+			Name:      "dockersock",
+			MountPath: "/var/run/docker.sock",
+		}, {
+			Name:      "cache",
+			MountPath: "/cache",
+		},
+	}
+	volumes := []corev1.Volume{
+		{
+			Name: "grdata",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: constants.GrDataPVC,
+				},
+			},
+		},
+		{
+			Name: "dockersock",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/run/docker.sock",
+					Type: k8sutil.HostPath(corev1.HostPathFile),
+				},
+			},
+		},
+		{
+			Name: "cache",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/cache",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+	}
+	args := []string{
+		"--hostIP=$(POD_IP)",
+		fmt.Sprintf("--log-level=%s", c.component.LogLevel()),
+		c.db.RegionDataSource(),
+		"--etcd-endpoints=" + strings.Join(etcdEndpoints(c.cluster), ","),
+	}
+
+	if c.etcdSecret != nil {
+		volume, mount := volumeByEtcd(c.etcdSecret)
+		volumeMounts = append(volumeMounts, mount)
+		volumes = append(volumes, volume)
+		args = append(args, etcdSSLArgs()...)
+	}
+
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ChaosName,
@@ -94,55 +164,11 @@ func (c *chaos) daemonSetForChaos() interface{} {
 									Value: "/cache",
 								},
 							},
-							Args: []string{
-								"--etcd-endpoints=http://etcd0:2379", // TODO: DO NOT HARD CODE
-								"--hostIP=$(POD_IP)",
-								"--log-level=debug",
-								"--mysql=root:rainbond@tcp(rbd-db:3306)/region", // TODO: DO NOT HARD CODE
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "grdata",
-									MountPath: "/grdata",
-								},
-								{
-									Name:      "dockersock",
-									MountPath: "/var/run/docker.sock",
-								}, {
-									Name:      "cache",
-									MountPath: "/cache",
-								},
-							},
+							Args:         args,
+							VolumeMounts: volumeMounts,
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "grdata",
-							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: constants.GrDataPVC,
-								},
-							},
-						},
-						{
-							Name: "dockersock",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/run/docker.sock",
-									Type: k8sutil.HostPath(corev1.HostPathFile),
-								},
-							},
-						},
-						{
-							Name: "cache",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/cache",
-									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-								},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 		},

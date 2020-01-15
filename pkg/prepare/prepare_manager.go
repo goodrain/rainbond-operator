@@ -128,20 +128,6 @@ func (m *Manager) prepareRainbondCluster() error {
 		},
 		Status: &rainbondv1alpha1.RainbondClusterStatus{
 			Phase: rainbondv1alpha1.RainbondClusterWaiting,
-			Conditions: []rainbondv1alpha1.RainbondClusterCondition{ // TODO: no need default conditions.
-				{
-					Type:   rainbondv1alpha1.PackageExtracted,
-					Status: rainbondv1alpha1.ConditionFalse,
-				},
-				{
-					Type:   rainbondv1alpha1.ImagesPushed,
-					Status: rainbondv1alpha1.ConditionFalse,
-				},
-				{
-					Type:   rainbondv1alpha1.ImagesLoaded,
-					Status: rainbondv1alpha1.ConditionFalse,
-				},
-			},
 		},
 	}
 

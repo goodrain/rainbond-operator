@@ -42,7 +42,7 @@ func (listener *DownloadWithProgress) Download() error {
 	listener.TotalRwBytes = resp.ContentLength
 	logrus.Debugf("package size total is : %d", resp.ContentLength/1024/1024)
 
-	reader := oss.TeeReader(resp.Body, out, listener.TotalRwBytes, listener, nil)
+	reader := oss.TeeReader(resp.Body, nil, listener.TotalRwBytes, listener, nil)
 	defer reader.Close()
 	if _, err = io.Copy(out, reader); err != nil {
 		return err

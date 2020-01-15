@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"fmt"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -36,9 +37,13 @@ type EtcdConfig struct {
 	// Endpoints is a list of URLs.
 	Endpoints []string `json:"endpoints,omitempty"`
 	// Whether to use tls to connect to etcd
-	UseTLS bool `json:"useTLS,omitempty"`
-	// Secret to mount to read certificate files for tls.
-	CertSecret metav1.LabelSelector `json:"selector,omitempty"`
+	SecretName string `json:"secretName,omitempty"`
+}
+
+// KubeletConfig defines the configuration of kubelet.
+type KubeletConfig struct {
+	// Whether to use tls to connect to etcd
+	SecretName string `json:"secretName,omitempty"`
 }
 
 // RainbondClusterSpec defines the desired state of RainbondCluster
@@ -72,7 +77,9 @@ type RainbondClusterSpec struct {
 	// rainbond-operator will create one if EtcdConfig is empty
 	EtcdConfig *EtcdConfig `json:"etcdConfig,omitempty"`
 
-	// todo: version
+	KubeletConfig *KubeletConfig `json:"kubeletConfig,omitempty"`
+
+	Version string `json:"version,omitempty"`
 }
 
 // RainbondClusterPhase is a label for the condition of a rainbondcluster at the current time.
@@ -94,6 +101,14 @@ const (
 	RainbondClusterRunning RainbondClusterPhase = "Running"
 )
 
+var RainbondClusterPhase2Range = map[RainbondClusterPhase]int{
+	RainbondClusterWaiting:           0,
+	RainbondClusterPreparing:         1,
+	RainbondClusterPackageProcessing: 2,
+	RainbondClusterPending:           3,
+	RainbondClusterRunning:           4,
+}
+
 // RainbondClusterConditionType is a valid value for RainbondClusterConditionType.Type
 type RainbondClusterConditionType string
 
@@ -105,8 +120,6 @@ const (
 	ImageRepositoryInstalled RainbondClusterConditionType = "ImageRepositoryInstalled"
 	// PackageExtracted indicates whether the installation package has been decompressed.
 	PackageExtracted RainbondClusterConditionType = "PackageExtracted"
-	// ImagesLoaded means that all images from the installation package has been loaded successfully.
-	ImagesLoaded RainbondClusterConditionType = "ImagesLoaded"
 	// ImagesPushed means that all images from the installation package has been pushed successfully.
 	ImagesPushed RainbondClusterConditionType = "ImagesPushed"
 )
@@ -247,4 +260,8 @@ func (in *RainbondCluster) GatewayIngressIP() string {
 		return in.Status.NodeAvailPorts[0].NodeIP
 	}
 	return ""
+}
+
+func (in *Database) RegionDataSource() string {
+	return fmt.Sprintf("--mysql=%s:%s@tcp(%s:%d)/region", in.Username, in.Password, in.Host, in.Port)
 }

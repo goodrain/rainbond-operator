@@ -1,8 +1,9 @@
 package handler
 
 import (
-	"fmt"
 	"context"
+	"fmt"
+	"strings"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
@@ -20,13 +21,19 @@ var APIName = "rbd-api"
 var apiSecretName = "rbd-api-ssl"
 
 type api struct {
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
-	labels    map[string]string
+	ctx        context.Context
+	client     client.Client
+	component  *rainbondv1alpha1.RbdComponent
+	cluster    *rainbondv1alpha1.RainbondCluster
+	db         *rainbondv1alpha1.Database
+	labels     map[string]string
+	etcdSecret *corev1.Secret
 }
 
 func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &api{
+		ctx:       ctx,
+		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.Labels(),
@@ -34,8 +41,15 @@ func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alph
 }
 
 func (a *api) Before() error {
-	// No prerequisites, if no gateway-installed node is specified, install on all nodes that meet the conditions
-	return nil
+	a.db = getDefaultDBInfo(a.cluster.Spec.UIDatabase)
+
+	secret, err := etcdSecret(a.ctx, a.client, a.cluster)
+	if err != nil {
+		return fmt.Errorf("failed to get etcd secret: %v", err)
+	}
+	a.etcdSecret = secret
+
+	return isPhaseOK(a.cluster)
 }
 
 func (a *api) Resources() []interface{} {
@@ -52,10 +66,40 @@ func (a *api) After() error {
 }
 
 func (a *api) daemonSetForAPI() interface{} {
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "grdata",
+			MountPath: "/grdata",
+		},
+	}
+	volumes := []corev1.Volume{
+		{
+			Name: "grdata",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: constants.GrDataPVC,
+				},
+			},
+		},
+	}
+	args := []string{
+		"--api-addr=$(POD_IP):8888",
+		"--api-ssl-enable=false",
+		fmt.Sprintf("--log-level=%s", a.component.LogLevel()),
+		a.db.RegionDataSource(),
+		"--etcd=" + strings.Join(etcdEndpoints(a.cluster), ","),
+	}
+	if a.etcdSecret != nil {
+		volume, mount := volumeByEtcd(a.etcdSecret)
+		volumeMounts = append(volumeMounts, mount)
+		volumes = append(volumes, volume)
+		args = append(args, etcdSSLArgs()...)
+	}
+
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      APIName,
-			Namespace: a.component.Namespace, // TODO: can use custom namespace?
+			Namespace: a.component.Namespace,
 			Labels:    a.labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -96,32 +140,11 @@ func (a *api) daemonSetForAPI() interface{} {
 									Value: a.cluster.Spec.SuffixHTTPHost,
 								},
 							},
-							Args: []string{
-								"--api-addr-ssl=0.0.0.0:8443",
-								"--api-addr=$(POD_IP):8888",
-								fmt.Sprintf("--log-level=%s", a.component.LogLevel()),
-								"--mysql=root:rainbond@tcp(rbd-db:3306)/region", // TODO: do not hard code
-								"--api-ssl-enable=false",
-								"--etcd=http://etcd0:2379", // TODO: do not hard code
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "grdata",
-									MountPath: "/grdata",
-								},
-							},
+							Args:         args,
+							VolumeMounts: volumeMounts,
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "grdata",
-							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: constants.GrDataPVC,
-								},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 		},

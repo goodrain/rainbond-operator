@@ -2,17 +2,16 @@ package handler
 
 import (
 	"context"
-	"errors"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
-	extensions "k8s.io/api/extensions/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var AppUIName = "rbd-app-ui"
@@ -23,6 +22,7 @@ type appui struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
+	db        *rainbondv1alpha1.Database
 }
 
 func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -36,24 +36,13 @@ func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1al
 }
 
 func (a *appui) Before() error {
-	eps := &corev1.EndpointsList{}
-	listOpts := []client.ListOption{
-		client.MatchingLabels(map[string]string{
-			"name":     DBName,
-			"belongTo": "RainbondOperator", // TODO: DO NOT HARD CODE
-		}),
-	}
-	if err := a.client.List(a.ctx, eps, listOpts...); err != nil {
+	a.db = getDefaultDBInfo(a.cluster.Spec.UIDatabase)
+
+	if err := isPhaseOK(a.cluster); err != nil {
 		return err
 	}
-	for _, ep := range eps.Items {
-		for _, subset := range ep.Subsets {
-			if len(subset.Addresses) > 0 {
-				return nil
-			}
-		}
-	}
-	return errors.New("No ready db endpoint address")
+
+	return isDBReady(a.ctx, a.client)
 }
 
 func (a *appui) Resources() []interface{} {
@@ -95,19 +84,19 @@ func (a *appui) deploymentForAppUI() interface{} {
 							Env: []corev1.EnvVar{
 								{
 									Name:  "MYSQL_HOST",
-									Value: "rbd-db",
+									Value: a.db.Host,
 								},
 								{
 									Name:  "MYSQL_PORT",
-									Value: "3306",
+									Value: string(a.db.Port),
 								},
 								{
 									Name:  "MYSQL_USER",
-									Value: "root",
+									Value: a.db.Username,
 								},
 								{
 									Name:  "MYSQL_PASS",
-									Value: "rainbond",
+									Value: a.db.Password,
 								},
 								{
 									Name:  "MYSQL_DB",
