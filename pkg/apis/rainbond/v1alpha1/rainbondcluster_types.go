@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"path"
 )
 
 // InstallMode is the mode of Rainbond cluster installation
@@ -243,14 +244,14 @@ func (in *RainbondCluster) StorageClass() string {
 }
 
 func (in *RainbondCluster) ImageRepository() string {
-	if in.Spec.RainbondImageRepositoryDomain == "" {
+	if in.Spec.ImageHub == nil {
 		return constants.DefImageRepository
 	}
-	return in.Spec.RainbondImageRepositoryDomain
+	return path.Join(in.Spec.ImageHub.Domain, in.Spec.ImageHub.Namespace)
 }
 
 func (in *RainbondCluster) GatewayIngressIP() string {
-	if len(in.Spec.GatewayIngressIPs) > 0 {
+	if len(in.Spec.GatewayIngressIPs) > 0 && in.Spec.GatewayIngressIPs[0] != "" {
 		return in.Spec.GatewayIngressIPs[0]
 	}
 	if len(in.Spec.GatewayNodes) > 0 {
