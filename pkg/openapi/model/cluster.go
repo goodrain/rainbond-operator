@@ -102,4 +102,5 @@ type InstallStatus struct {
 	Status   string `json:"status"`
 	Progress int    `json:"progress"`
 	Message  string `json:"message"`
+	Reason   string `json:"reason"`
 }
