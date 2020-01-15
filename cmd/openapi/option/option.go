@@ -1,7 +1,10 @@
 package option
 
 import (
+	"fmt"
+
 	"github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -36,4 +39,14 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.SuffixHTTPHost, "suffix-configmap", "rbd-suffix-host", "rbd suffix http host configmap name")
 	fs.StringVar(&c.KubeCfgSecretName, "kube-secret", "kube-cfg-secret", "kubernetes account info used for cadvisor through kubelet")
 	fs.StringVar(&c.Rainbondpackage, "rainbond-package-name", "rainbondpackage", "kubernetes rainbondpackage resource name")
+}
+
+// SetLog set log
+func (a *Config) SetLog() {
+	level, err := logrus.ParseLevel(a.LogLevel)
+	if err != nil {
+		fmt.Println("set log level error." + err.Error())
+		return
+	}
+	logrus.SetLevel(level)
 }

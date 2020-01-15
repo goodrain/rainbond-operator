@@ -3,6 +3,7 @@ package usecase
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -116,7 +117,19 @@ func (ic *InstallUseCaseImpl) Install() error {
 	}
 
 	// step 3 create custom resource
-	return ic.createComponents(componentClaims...)
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			if ic.downloadListener == nil {
+				logrus.Info("download progress finished, create resource")
+				ic.createComponents(componentClaims...)
+				break
+			}
+			logrus.Debug("waiting for download progress finish")
+		}
+	}()
+
+	return nil
 }
 
 func (ic *InstallUseCaseImpl) canInstallOrNot() error {
@@ -138,6 +151,7 @@ func (ic *InstallUseCaseImpl) canInstallOrNot() error {
 }
 
 func (ic *InstallUseCaseImpl) initRainbondPackage() error {
+	logrus.Debug("create rainbondpackage resource start")
 	// rainbondpackage
 	pkg := &v1alpha1.RainbondPackage{
 		ObjectMeta: metav1.ObjectMeta{
@@ -157,10 +171,12 @@ func (ic *InstallUseCaseImpl) initRainbondPackage() error {
 			return fmt.Errorf("failed to create rainbondpackage: %v", err)
 		}
 	}
+	logrus.Debug("create rainbondpackage resource finish")
 	return nil
 }
 
 func (ic *InstallUseCaseImpl) initKubeCfg() error {
+	logrus.Debug("create kubernetes secret resource start")
 	kubeCfg := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ic.cfg.KubeCfgSecretName,
@@ -183,6 +199,7 @@ func (ic *InstallUseCaseImpl) initKubeCfg() error {
 			return fmt.Errorf("failed to create kubecfg secret : %v", err)
 		}
 	}
+	logrus.Debug("create kubernetes secret resource finish")
 	return nil
 }
 
@@ -203,8 +220,6 @@ func (ic *InstallUseCaseImpl) BeforeInstall() error {
 	if err := ic.canInstallOrNot(); err != nil {
 		return err
 	}
-	logger := log.WithValues("install")
-	logger.Info("rainbond archive file already exists")
 
 	if err := ic.initResourceDep(); err != nil {
 		return err
@@ -278,6 +293,12 @@ func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
 // step 2 download rainbond
 func (ic *InstallUseCaseImpl) stepDownload() model.InstallStatus {
 	installStatus := model.InstallStatus{StepName: StepDownload}
+	if ic.downloadListener != nil && !ic.downloadListener.Finished {
+		installStatus.Progress = ic.downloadListener.Percent
+		installStatus.Status = InstallStatusProcessing
+		return installStatus
+	}
+
 	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
 		if ic.downloadError != nil { // download error
 			installStatus.Status = InstallStatusFailed
@@ -288,11 +309,7 @@ func (ic *InstallUseCaseImpl) stepDownload() model.InstallStatus {
 		installStatus.Status = InstallStatusWaiting
 		return installStatus
 	}
-	if ic.downloadListener != nil && !ic.downloadListener.Finished {
-		installStatus.Progress = ic.downloadListener.Percent
-		installStatus.Status = InstallStatusProcessing
-		return installStatus
-	}
+
 	installStatus.Status = InstallStatusFinished
 	installStatus.Progress = 100
 	return installStatus
@@ -413,19 +430,16 @@ func (ic *InstallUseCaseImpl) stepHandleImage(source *v1alpha1.RainbondClusterSt
 				status.Progress = 0
 				break
 			}
-			if condition.Type == v1alpha1.ImagesLoaded || condition.Type == v1alpha1.ImagesPushed {
-				if condition.Status == v1alpha1.ConditionTrue {
-					status.Progress += 50
-				}
-				if condition.Status == v1alpha1.ConditionFalse && condition.Reason != "" {
-					// handlle error condition
-					rbdpkgStatus := ic.getRainbondPackageStatus()
-					if rbdpkgStatus != nil {
+			if condition.Type == v1alpha1.ImagesPushed {
+				rbdpkgStatus := ic.getRainbondPackageStatus()
+				if rbdpkgStatus != nil {
+					if rbdpkgStatus.Phase == v1alpha1.RainbondPackageFailed {
 						status.Message = rbdpkgStatus.Message
 						status.Reason = rbdpkgStatus.Reason
 					}
-					break
+					status.Progress = 100 * len(rbdpkgStatus.ImagesPushed) / int(rbdpkgStatus.ImagesNumber)
 				}
+				break
 			}
 		}
 	case v1alpha1.RainbondClusterPending, v1alpha1.RainbondClusterRunning:
@@ -453,7 +467,7 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClust
 			Status:   InstallStatusWaiting,
 		}
 	case v1alpha1.RainbondClusterPending:
-		status = ic.parsePendingComponentStatus()
+
 	case v1alpha1.RainbondClusterRunning:
 		status = model.InstallStatus{
 			StepName: StepInstallComponent,
@@ -467,6 +481,7 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClust
 			Progress: 0,
 		}
 	}
+	status = ic.parsePendingComponentStatus()
 	return status
 }
 
@@ -487,7 +502,7 @@ func (ic *InstallUseCaseImpl) parsePendingComponentStatus() model.InstallStatus 
 			finished++
 		}
 	}
-	status.Progress = finished / total
+	status.Progress = 100 * finished / total
 	return status
 }
 
