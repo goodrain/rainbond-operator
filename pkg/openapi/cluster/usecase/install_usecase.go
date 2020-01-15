@@ -430,19 +430,16 @@ func (ic *InstallUseCaseImpl) stepHandleImage(source *v1alpha1.RainbondClusterSt
 				status.Progress = 0
 				break
 			}
-			if condition.Type == v1alpha1.ImagesLoaded || condition.Type == v1alpha1.ImagesPushed {
-				if condition.Status == v1alpha1.ConditionTrue {
-					status.Progress += 50
-				}
-				if condition.Status == v1alpha1.ConditionFalse && condition.Reason != "" {
-					// handlle error condition
-					rbdpkgStatus := ic.getRainbondPackageStatus()
-					if rbdpkgStatus != nil {
+			if condition.Type == v1alpha1.ImagesPushed {
+				rbdpkgStatus := ic.getRainbondPackageStatus()
+				if rbdpkgStatus != nil {
+					if rbdpkgStatus.Phase == v1alpha1.RainbondPackageFailed {
 						status.Message = rbdpkgStatus.Message
 						status.Reason = rbdpkgStatus.Reason
 					}
-					break
+					status.Progress = 100 * len(rbdpkgStatus.ImagesPushed) / int(rbdpkgStatus.ImagesNumber)
 				}
+				break
 			}
 		}
 	case v1alpha1.RainbondClusterPending, v1alpha1.RainbondClusterRunning:
