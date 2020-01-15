@@ -125,11 +125,11 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 	if source.Spec.EtcdConfig != nil {
 		clusterInfo.EtcdConfig = model.EtcdConfig{
 			Endpoints: source.Spec.EtcdConfig.Endpoints,
-			UseTLS:    source.Spec.EtcdConfig.UseTLS,
 			CertInfo:  model.EtcdCertInfo{},
 		}
-		if source.Spec.EtcdConfig.UseTLS {
-			etcdSecret, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(cc.cfg.EtcdSecretName, metav1.GetOptions{})
+		if source.Spec.EtcdConfig.SecretName != "" {
+			clusterInfo.EtcdConfig.UseTLS = true
+			etcdSecret, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(source.Spec.EtcdConfig.SecretName, metav1.GetOptions{})
 			if err != nil {
 				return nil, err
 			}
@@ -223,15 +223,15 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 	if !source.EtcdConfig.Default {
 		clusterInfo.Spec.EtcdConfig = &v1alpha1.EtcdConfig{
 			Endpoints: source.EtcdConfig.Endpoints,
-			UseTLS:    source.EtcdConfig.UseTLS,
 		}
 		if source.EtcdConfig.UseTLS {
+			clusterInfo.Spec.EtcdConfig.SecretName = cc.cfg.EtcdSecretName
 			if err := cc.updateOrCreateEtcdCertInfo(source.EtcdConfig.CertInfo); err != nil {
 				return nil, err
 			}
 		} else {
 			// if update config set etcd that do not use tls, update config, remove etcd cert secret selector
-			clusterInfo.Spec.EtcdConfig.CertSecret = metav1.LabelSelector{}
+			clusterInfo.Spec.EtcdConfig.SecretName = ""
 		}
 	}
 
