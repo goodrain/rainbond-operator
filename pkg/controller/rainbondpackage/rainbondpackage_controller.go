@@ -462,9 +462,14 @@ func (p *pkg) imageLoad(file string) (string, error) {
 
 func (p *pkg) imagePush(image string) error {
 	var opts dtypes.ImagePushOptions
-	registryAuth, err := encodeAuthToBase64(dtypes.AuthConfig{
-		ServerAddress: "goodrain.me",
-	})
+	authConfig := dtypes.AuthConfig{
+		ServerAddress: p.cluster.ImageRepository(),
+	}
+	if p.cluster.Spec.ImageHub != nil {
+		authConfig.Username = p.cluster.Spec.ImageHub.Username
+		authConfig.Password = p.cluster.Spec.ImageHub.Password
+	}
+	registryAuth, err := encodeAuthToBase64(authConfig)
 	if err != nil {
 		return fmt.Errorf("failed to encode auth config: %v", err)
 	}
