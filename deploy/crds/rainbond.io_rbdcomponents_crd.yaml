@@ -44,6 +44,11 @@ spec:
               type: string
             packagePath:
               type: string
+            replicas:
+              description: Number of desired pods. This is a pointer to distinguish
+                between explicit zero and not specified. Defaults to 1.
+              format: int32
+              type: integer
             type:
               description: type of rainbond component
               type: string
