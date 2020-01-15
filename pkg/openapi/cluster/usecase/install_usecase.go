@@ -355,46 +355,26 @@ func (ic *InstallUseCaseImpl) stepPrepareInfrastructure(source *v1alpha1.Rainbon
 
 // step 4 unpack rainbond
 func (ic *InstallUseCaseImpl) stepUnpack(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
-	var status model.InstallStatus
-	switch source.Phase {
-	case v1alpha1.RainbondClusterWaiting, v1alpha1.RainbondClusterPreparing:
-		status = model.InstallStatus{
-			StepName: StepUnpack,
-			Status:   InstallStatusWaiting,
-		}
-	case v1alpha1.RainbondClusterPackageProcessing:
-		status = model.InstallStatus{
-			StepName: StepUnpack,
-			Status:   InstallStatusProcessing,
-		}
-		for _, condition := range source.Conditions {
-			if condition.Type == v1alpha1.PackageExtracted {
-				if condition.Status == v1alpha1.ConditionTrue {
-					status.Progress = 100
-					status.Status = InstallStatusFinished
-					break
-				}
-				if condition.Status == v1alpha1.ConditionFalse && condition.Reason != "" {
-					// handlle error condition
-					rbdpkgStatus := ic.getRainbondPackageStatus()
-					if rbdpkgStatus != nil {
-						status.Message = rbdpkgStatus.Message
-						status.Reason = rbdpkgStatus.Reason
-					}
-					break
-				}
+	status := model.InstallStatus{
+		StepName: StepUnpack,
+	}
+	rbdpkgStatus := ic.getRainbondPackageStatus()
+	if rbdpkgStatus != nil {
+		status.Message = rbdpkgStatus.Message
+		status.Reason = rbdpkgStatus.Reason
+		switch rbdpkgStatus.Phase {
+		case v1alpha1.RainbondPackageFailed:
+			status.Status = InstallStatusFailed
+		case v1alpha1.RainbondPackageWaiting:
+			status.Status = InstallStatusWaiting
+		case v1alpha1.RainbondPackageExtracting:
+			status.Status = InstallStatusProcessing
+			if rbdpkgStatus.FilesNumber != 0 {
+				status.Progress = 100 * int(rbdpkgStatus.NumberExtracted/rbdpkgStatus.FilesNumber)
 			}
-		}
-	case v1alpha1.RainbondClusterPending, v1alpha1.RainbondClusterRunning:
-		status = model.InstallStatus{
-			StepName: StepUnpack,
-			Status:   InstallStatusFinished,
-			Progress: 100,
-		}
-	default:
-		status = model.InstallStatus{
-			StepName: StepUnpack,
-			Status:   InstallStatusWaiting,
+		case v1alpha1.RainbondPackagePushing, v1alpha1.RainbondPackageCompleted:
+			status.Status = InstallStatusFinished
+			status.Progress = 100
 		}
 	}
 	return status
@@ -411,47 +391,26 @@ func (ic *InstallUseCaseImpl) getRainbondPackageStatus() *v1alpha1.RainbondPacka
 
 // step 5 handle image, load and push image to image hub
 func (ic *InstallUseCaseImpl) stepHandleImage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
-	var status model.InstallStatus
-	switch source.Phase {
-	case v1alpha1.RainbondClusterWaiting, v1alpha1.RainbondClusterPreparing:
-		status = model.InstallStatus{
-			StepName: StepHandleImage,
-			Status:   InstallStatusWaiting,
-		}
-	case v1alpha1.RainbondClusterPackageProcessing:
-		status = model.InstallStatus{
-			StepName: StepHandleImage,
-			Status:   InstallStatusProcessing,
-			Message:  source.Message,
-			Reason:   source.Reason,
-		}
-		for _, condition := range source.Conditions {
-			if condition.Type == v1alpha1.PackageExtracted && condition.Status == v1alpha1.ConditionFalse {
-				status.Progress = 0
-				break
+	status := model.InstallStatus{
+		StepName: StepHandleImage,
+	}
+	rbdpkgStatus := ic.getRainbondPackageStatus()
+	if rbdpkgStatus != nil {
+		status.Message = rbdpkgStatus.Message
+		status.Reason = rbdpkgStatus.Reason
+		switch rbdpkgStatus.Phase {
+		case v1alpha1.RainbondPackageFailed:
+			status.Status = InstallStatusFailed
+		case v1alpha1.RainbondPackageWaiting, v1alpha1.RainbondPackageExtracting:
+			status.Status = InstallStatusWaiting
+		case v1alpha1.RainbondPackagePushing:
+			status.Status = InstallStatusProcessing
+			if rbdpkgStatus.ImagesNumber != 0 {
+				status.Progress = 100 * int(rbdpkgStatus.NumberExtracted/rbdpkgStatus.ImagesNumber)
 			}
-			if condition.Type == v1alpha1.ImagesPushed {
-				rbdpkgStatus := ic.getRainbondPackageStatus()
-				if rbdpkgStatus != nil {
-					if rbdpkgStatus.Phase == v1alpha1.RainbondPackageFailed {
-						status.Message = rbdpkgStatus.Message
-						status.Reason = rbdpkgStatus.Reason
-					}
-					status.Progress = 100 * len(rbdpkgStatus.ImagesPushed) / int(rbdpkgStatus.ImagesNumber)
-				}
-				break
-			}
-		}
-	case v1alpha1.RainbondClusterPending, v1alpha1.RainbondClusterRunning:
-		status = model.InstallStatus{
-			StepName: StepHandleImage,
-			Status:   InstallStatusFinished,
-			Progress: 100,
-		}
-	default:
-		status = model.InstallStatus{
-			StepName: StepHandleImage,
-			Status:   InstallStatusWaiting,
+		case v1alpha1.RainbondPackageCompleted:
+			status.Status = InstallStatusFinished
+			status.Progress = 100
 		}
 	}
 	return status
