@@ -33,6 +33,7 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 	clusterEngine.PUT("/configs", corsMidle(u.UpdateConfig))
 
 	// install
+	clusterEngine.GET("/install/precheck", corsMidle(u.InstallPreCheck))
 	clusterEngine.POST("/install", corsMidle(u.Install))
 	clusterEngine.GET("/install/status", corsMidle(u.InstallStatus))
 
@@ -83,6 +84,16 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
 }
 
+// InstallPreCheck install precheck check can process install or not, if rainbond.tar is not ready, can't install
+func (cc *ClusterController) InstallPreCheck(c *gin.Context) {
+	status, err := cc.clusterCase.Install().InstallPreCheck()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": status})
+}
+
 // Install install
 func (cc *ClusterController) Install(c *gin.Context) {
 	if err := cc.clusterCase.Install().Install(); err != nil { // TODO fanyangyang can't download rainbond file filter and return download URL
@@ -90,6 +101,8 @@ func (cc *ClusterController) Install(c *gin.Context) {
 			c.JSON(http.StatusOK, map[string]interface{}{"code": downloadError.Code, "msg": downloadError.Msg})
 		} else if downloadingError, ok := err.(*customerror.DownloadingError); ok {
 			c.JSON(http.StatusOK, map[string]interface{}{"code": downloadingError.Code, "msg": downloadingError.Msg})
+		} else if notExistsError, ok := err.(*customerror.RainbondTarNotExistError); ok {
+			c.JSON(http.StatusOK, map[string]interface{}{"code": notExistsError.Code, "msg": notExistsError.Msg})
 		} else {
 			c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		}

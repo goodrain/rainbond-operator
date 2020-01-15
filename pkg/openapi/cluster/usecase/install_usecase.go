@@ -3,7 +3,6 @@ package usecase
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -110,41 +109,51 @@ func NewInstallUseCase(cfg *option.Config) *InstallUseCaseImpl {
 	return &InstallUseCaseImpl{cfg: cfg}
 }
 
+// InstallPreCheck pre check
+func (ic *InstallUseCaseImpl) InstallPreCheck() (model.InstallStatus, error) {
+	status := model.InstallStatus{StepName: StepDownload}
+	// step 1 check if archive is exists or not
+	if err := ic.canInstallOrNot(StepDownload); err != nil {
+		if _, ok := err.(*customerror.DownloadingError); ok {
+			status.Status = InstallStatusProcessing
+			status.Progress = ic.downloadListener.Percent
+		} else {
+			status.Status = InstallStatusFailed
+			status.Message = err.Error()
+		}
+		return status, nil
+	}
+	status.Status = InstallStatusFinished
+	status.Progress = 100
+
+	return status, nil
+}
+
 // Install install
 func (ic *InstallUseCaseImpl) Install() error {
 	if err := ic.BeforeInstall(); err != nil {
 		return err
 	}
-
-	// step 3 create custom resource
-	go func() {
-		for {
-			time.Sleep(5 * time.Second)
-			if ic.downloadListener == nil {
-				logrus.Info("download progress finished, create resource")
-				ic.createComponents(componentClaims...)
-				break
-			}
-			logrus.Debug("waiting for download progress finish")
-		}
-	}()
-
-	return nil
+	return ic.createComponents(componentClaims...)
 }
 
-func (ic *InstallUseCaseImpl) canInstallOrNot() error {
+func (ic *InstallUseCaseImpl) canInstallOrNot(step string) error {
 	if ic.downloadListener != nil {
 		return customerror.NewDownloadingError("install process is processon, please hold on")
 	}
 
 	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
 		logrus.Info("rainbond archive file does not exists, downloading background ...")
-
-		// step 2 download archive
-		if err := ic.downloadFile(); err != nil {
-			logrus.Errorf("download rainbond file error: %s", err.Error())
-			return customerror.NewDownLoadError("download rainbond.tar error, please try again or upload it using /uploads")
+		if step == StepDownload {
+			// step 2 download archive
+			if err := ic.downloadFile(); err != nil {
+				logrus.Errorf("download rainbond file error: %s", err.Error())
+				return customerror.NewDownLoadError("download rainbond.tar error, please try again or upload it using /uploads")
+			}
+			return customerror.NewDownloadingError("install process is processon, please hold on")
 		}
+		logrus.Error("rainbond tar do not exists")
+		return customerror.NewRainbondTarNotExistError("rainbond tar do not exists")
 
 	}
 	return nil
@@ -217,7 +226,7 @@ func (ic *InstallUseCaseImpl) initResourceDep() error {
 // BeforeInstall before install check
 func (ic *InstallUseCaseImpl) BeforeInstall() error {
 	// step 1 check if archive is exists or not
-	if err := ic.canInstallOrNot(); err != nil {
+	if err := ic.canInstallOrNot(""); err != nil {
 		return err
 	}
 
