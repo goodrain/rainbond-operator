@@ -42,12 +42,11 @@ spec:
             - mountPath: /var/run
               name: dockersock
         - name: openapi
-          image: abewang/rbd-operator-openapi
+          image: a985850124/rainbond-operator-openapi
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - mountPath: /opt/rainbond/pkg
               name: rbd-pkg
-        - name: ui
-          image: abewang/rbd-operator-ui
       volumes:
         - name: rbd-pkg
           hostPath:
