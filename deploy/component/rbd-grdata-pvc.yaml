@@ -9,4 +9,4 @@ spec:
   resources:
     requests:
       storage: 8Gi
-  storageClassName: nfs
+  storageClassName: rbd-nfs
