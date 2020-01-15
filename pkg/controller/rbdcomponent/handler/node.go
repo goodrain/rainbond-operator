@@ -76,9 +76,14 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 		{
 			Name:      "docker", // for container logs
 			MountPath: "/var/lib/docker",
-		}, {
+		},
+		{
 			Name:      "dockercert", // for container logs
 			MountPath: "/etc/docker/certs.d",
+		},
+		{
+			Name:      "hosts", // for container logs
+			MountPath: "/etc/hosts",
 		},
 	}
 	volumes := []corev1.Volume{
@@ -130,6 +135,15 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/var/run/docker.sock",
+					Type: k8sutil.HostPath(corev1.HostPathFile),
+				},
+			},
+		},
+		{
+			Name: "hosts",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/hosts",
 					Type: k8sutil.HostPath(corev1.HostPathFile),
 				},
 			},

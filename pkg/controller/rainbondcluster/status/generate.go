@@ -12,7 +12,6 @@ import (
 	"time"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	appv1 "k8s.io/api/apps/v1"
 	"k8s.io/klog"
 )
@@ -85,27 +84,23 @@ func (s *Status) GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCl
 		return condition
 	}
 
-	domain := rainbondCluster.Spec.RainbondImageRepositoryDomain
-	if domain == "" {
-		domain = constants.DefImageRepositoryDomain
-	}
-
 	client := &http.Client{
 		Timeout: 1 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, // TODO: can't ignore TLS
 			},
 		},
 	}
 
-	u, err := url.Parse(fmt.Sprintf("https://%s/v2/", domain))
+	domain := s.cluster.ImageRepository()
+	u, err := url.Parse(fmt.Sprintf("https://%s/v2/", s.cluster.GatewayIngressIP()))
 	if err != nil {
 		condition.Reason = WrongImageRepositoryHost
 		condition.Message = fmt.Sprintf("failed to parse url %s: %v", fmt.Sprintf("https://%s/v2/", domain), err)
 		return condition
 	}
-	request := &http.Request{URL: u}
+	request := &http.Request{URL: u, Host: domain}
 	res, err := client.Do(request)
 	if err != nil {
 		klog.Errorf("Error issuing a GET to %s: %v", domain, err)
