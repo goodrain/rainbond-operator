@@ -39,7 +39,7 @@ func (m *mq) Before() error {
 		return fmt.Errorf("failed to get etcd secret: %v", err)
 	}
 	m.etcdSecret = secret
-	return nil
+	return isPhaseOK(m.cluster)
 }
 
 func (m *mq) Resources() []interface{} {

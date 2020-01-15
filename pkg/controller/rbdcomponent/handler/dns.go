@@ -28,8 +28,7 @@ func NewDNS(ctx context.Context, client client.Client, component *rainbondv1alph
 }
 
 func (d *dns) Before() error {
-	// TODO: check prerequisites
-	return nil
+	return isPhaseOK(d.cluster)
 }
 
 func (d *dns) Resources() []interface{} {

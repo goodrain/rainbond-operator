@@ -45,7 +45,7 @@ func (e *eventlog) Before() error {
 	}
 	e.etcdSecret = secret
 
-	return nil
+	return isPhaseOK(e.cluster)
 }
 
 func (e *eventlog) Resources() []interface{} {

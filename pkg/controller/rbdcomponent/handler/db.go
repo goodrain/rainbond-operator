@@ -30,8 +30,7 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 }
 
 func (d *db) Before() error {
-	// TODO: check prerequisites
-	return nil
+	return isPhaseOK(d.cluster)
 }
 
 func (d *db) Resources() []interface{} {

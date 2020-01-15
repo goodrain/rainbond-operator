@@ -29,8 +29,7 @@ func NewRepo(ctx context.Context, client client.Client, component *rainbondv1alp
 }
 
 func (r *repo) Before() error {
-	// TODO: check prerequisites
-	return nil
+	return isPhaseOK(r.cluster)
 }
 
 func (r *repo) Resources() []interface{} {
