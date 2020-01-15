@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
@@ -22,6 +22,7 @@ var apiSecretName = "rbd-api-ssl"
 type api struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
+	db        *rainbondv1alpha1.Database
 	labels    map[string]string
 }
 
@@ -34,8 +35,9 @@ func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alph
 }
 
 func (a *api) Before() error {
-	// No prerequisites, if no gateway-installed node is specified, install on all nodes that meet the conditions
-	return nil
+	a.db = getDefaultDBInfo(a.cluster.Spec.UIDatabase)
+
+	return isPhaseOK(a.cluster)
 }
 
 func (a *api) Resources() []interface{} {
@@ -100,7 +102,7 @@ func (a *api) daemonSetForAPI() interface{} {
 								"--api-addr-ssl=0.0.0.0:8443",
 								"--api-addr=$(POD_IP):8888",
 								fmt.Sprintf("--log-level=%s", a.component.LogLevel()),
-								"--mysql=root:rainbond@tcp(rbd-db:3306)/region", // TODO: do not hard code
+								a.db.RegionDataSource(),
 								"--api-ssl-enable=false",
 								"--etcd=http://etcd0:2379", // TODO: do not hard code
 							},

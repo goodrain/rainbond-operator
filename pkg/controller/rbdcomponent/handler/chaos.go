@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
@@ -19,6 +20,7 @@ type chaos struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
+	db        *rainbondv1alpha1.Database
 }
 
 func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -30,8 +32,9 @@ func NewChaos(ctx context.Context, client client.Client, component *rainbondv1al
 }
 
 func (c *chaos) Before() error {
-	// No prerequisites, if no gateway-installed node is specified, install on all nodes that meet the conditions
-	return nil
+	c.db = getDefaultDBInfo(c.cluster.Spec.UIDatabase)
+
+	return isPhaseOK(c.cluster)
 }
 
 func (c *chaos) Resources() []interface{} {
@@ -97,8 +100,8 @@ func (c *chaos) daemonSetForChaos() interface{} {
 							Args: []string{
 								"--etcd-endpoints=http://etcd0:2379", // TODO: DO NOT HARD CODE
 								"--hostIP=$(POD_IP)",
-								"--log-level=debug",
-								"--mysql=root:rainbond@tcp(rbd-db:3306)/region", // TODO: DO NOT HARD CODE
+								fmt.Sprintf("--log-level=%s", c.component.LogLevel()),
+								c.cluster.RegionDataSource(),
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{

@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"fmt"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -93,6 +94,14 @@ const (
 	// For each component controller(eg. deploy, sts, ds), at least one Pod is already Ready.
 	RainbondClusterRunning RainbondClusterPhase = "Running"
 )
+
+var RainbondClusterPhase2Range = map[RainbondClusterPhase]int{
+	RainbondClusterWaiting:           0,
+	RainbondClusterPreparing:         1,
+	RainbondClusterPackageProcessing: 2,
+	RainbondClusterPending:           3,
+	RainbondClusterRunning:           4,
+}
 
 // RainbondClusterConditionType is a valid value for RainbondClusterConditionType.Type
 type RainbondClusterConditionType string
@@ -247,4 +256,8 @@ func (in *RainbondCluster) GatewayIngressIP() string {
 		return in.Status.NodeAvailPorts[0].NodeIP
 	}
 	return ""
+}
+
+func (in *Database) RegionDataSource() string {
+	return fmt.Sprintf("--mysql=%s:%s@tcp(%s:%d)/region", in.Username, in.Password, in.Host, in.Port)
 }

@@ -18,6 +18,7 @@ type worker struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
+	db        *rainbondv1alpha1.Database
 }
 
 func NewWorker(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -29,8 +30,9 @@ func NewWorker(ctx context.Context, client client.Client, component *rainbondv1a
 }
 
 func (w *worker) Before() error {
-	// TODO: check prerequisites
-	return nil
+	w.db = getDefaultDBInfo(w.cluster.Spec.UIDatabase)
+
+	return isPhaseOK(w.cluster)
 }
 
 func (w *worker) Resources() []interface{} {
@@ -98,7 +100,7 @@ func (w *worker) daemonSetForWorker() interface{} {
 								"--host-ip=$(POD_IP)",
 								"--etcd-endpoints=http://etcd0:2379", // TODO: HARD CODE
 								"--node-name=$(HOST_IP)",
-								"--mysql=root:rainbond@tcp(rbd-db:3306)/region", // TODO: HARD CODE
+								w.cluster.RegionDataSource(),
 							},
 						},
 					},
