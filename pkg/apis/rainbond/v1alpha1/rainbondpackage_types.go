@@ -45,7 +45,9 @@ type RainbondPackageStatus struct {
 	Message string `json:"message,omitempty"`
 	// A brief CamelCase message indicating details about why the pod is in this state.
 	// +optional
-	Reason string `json:"reason,omitempty"`
+	Reason          string `json:"reason,omitempty"`
+	FilesNumber     int32  `json:"filesNumber,omitempty"`
+	NumberExtracted int32  `json:"numberExtracted,omitempty"`
 	// The number of images that should be load and pushed.
 	ImagesNumber int32 `json:"imagesNumber"`
 	// ImagesPushed contains the images have been pushed.

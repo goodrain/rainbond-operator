@@ -12,7 +12,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"time"
 
@@ -174,7 +173,9 @@ func newpkg(ctx context.Context, client client.Client, dcli *dclient.Client, p *
 	}
 	pkg.status = p.Status.DeepCopy()
 	if pkg.status == nil {
-		pkg.status = &rainbondv1alpha1.RainbondPackageStatus{}
+		pkg.status = &rainbondv1alpha1.RainbondPackageStatus{
+			FilesNumber: 18,
+		}
 	}
 	return pkg
 }
@@ -221,10 +222,6 @@ func (p *pkg) reportFailedStatus() {
 
 func (p *pkg) updateCRStatus() error {
 	// TODO: retry
-	if reflect.DeepEqual(p.pkg.Status, p.status) {
-		return nil
-	}
-
 	newPackage := p.pkg
 	newPackage.Status = p.status
 	err := p.client.Status().Update(p.ctx, newPackage)
@@ -289,6 +286,7 @@ func (p *pkg) handle() error {
 		log.Info("successfully extract rainbond package.")
 
 		p.status.Phase = rainbondv1alpha1.RainbondPackagePushing
+		p.status.NumberExtracted = p.status.FilesNumber
 		p.clearMessageAndReason()
 		if err := p.updateCRStatus(); err != nil {
 			p.status.Reason = "ErrUpdatePhase"
@@ -316,10 +314,49 @@ func (p *pkg) handle() error {
 
 func (p *pkg) untartar() error {
 	log.Info(fmt.Sprintf("start untartaring %s", p.pkg.Spec.PkgPath))
-	if err := tarutil.Untartar(p.pkg.Spec.PkgPath, pkgDst); err != nil {
-		return err
+	errCh := make(chan error)
+	go func(errCh chan error) {
+		_ = os.RemoveAll(pkgDir(p.pkg.Spec.PkgPath, pkgDst))
+
+		if err := tarutil.Untartar(p.pkg.Spec.PkgPath, pkgDst); err != nil {
+			errCh <- err
+			return
+		}
+		errCh <- nil
+	}(errCh)
+
+	tick := time.Tick(1 * time.Second)
+	for {
+		select {
+		case err := <-errCh:
+			return err
+		case <-tick:
+			// count files
+			files, err := ioutil.ReadDir(pkgDir(p.pkg.Spec.PkgPath, pkgDst))
+			if err != nil {
+				// ignore error
+				log.Info("count image files: %v", err)
+			}
+			var num int32 = 0
+			for _, file := range files {
+				if file.IsDir() {
+					continue
+				}
+				if !validateFile(file.Name()) {
+					continue
+				}
+				num++
+			}
+			if p.status.NumberExtracted == num {
+				continue
+			}
+			p.status.NumberExtracted = num
+			if err := p.updateCRStatus(); err != nil {
+				// ignore error
+				log.Info("update number extracted: %v", err)
+			}
+		}
 	}
-	return nil
 }
 
 func (p *pkg) imagesLoadAndPush() error {
@@ -344,9 +381,8 @@ func (p *pkg) imagesLoadAndPush() error {
 		if !commonutil.IsFile(pstr) {
 			return nil
 		}
-		base := path.Base(pstr)
-		if path.Ext(base) != ".tgz" || strings.HasPrefix(base, "._") {
-			l.Info("invalid file, skip it")
+		if !validateFile(pstr) {
+			l.Info("invalid file, skip it1")
 			return nil
 		}
 
@@ -540,4 +576,12 @@ func countImages(dir string) (int32, error) {
 	}
 
 	return count, nil
+}
+
+func validateFile(file string) bool {
+	base := path.Base(file)
+	if path.Ext(base) != ".tgz" || strings.HasPrefix(base, "._") {
+		return false
+	}
+	return true
 }
