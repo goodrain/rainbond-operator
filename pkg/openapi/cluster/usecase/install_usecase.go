@@ -360,11 +360,11 @@ func (ic *InstallUseCaseImpl) stepUnpack(source *v1alpha1.RainbondClusterStatus)
 	}
 	rbdpkgStatus := ic.getRainbondPackageStatus()
 	if rbdpkgStatus != nil {
+		status.Message = rbdpkgStatus.Message
+		status.Reason = rbdpkgStatus.Reason
 		switch rbdpkgStatus.Phase {
 		case v1alpha1.RainbondPackageFailed:
 			status.Status = InstallStatusFailed
-			status.Reason = rbdpkgStatus.Reason
-			status.Message = rbdpkgStatus.Message
 		case v1alpha1.RainbondPackageWaiting:
 			status.Status = InstallStatusWaiting
 		case v1alpha1.RainbondPackageExtracting:
@@ -396,11 +396,11 @@ func (ic *InstallUseCaseImpl) stepHandleImage(source *v1alpha1.RainbondClusterSt
 	}
 	rbdpkgStatus := ic.getRainbondPackageStatus()
 	if rbdpkgStatus != nil {
+		status.Message = rbdpkgStatus.Message
+		status.Reason = rbdpkgStatus.Reason
 		switch rbdpkgStatus.Phase {
 		case v1alpha1.RainbondPackageFailed:
 			status.Status = InstallStatusFailed
-			status.Reason = rbdpkgStatus.Reason
-			status.Message = rbdpkgStatus.Message
 		case v1alpha1.RainbondPackageWaiting, v1alpha1.RainbondPackageExtracting:
 			status.Status = InstallStatusWaiting
 		case v1alpha1.RainbondPackagePushing:
