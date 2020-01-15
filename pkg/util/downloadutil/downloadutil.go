@@ -39,7 +39,7 @@ func (listener *DownloadWithProgress) Download() error {
 	}
 	listener.TotalRwBytes = resp.ContentLength
 
-	reader := oss.TeeReader(resp.Body, out, listener.TotalRwBytes, listener, nil)
+	reader := oss.TeeReader(resp.Body, nil, listener.TotalRwBytes, listener, nil)
 	defer reader.Close()
 	_, err = io.Copy(out, reader)
 	return err
