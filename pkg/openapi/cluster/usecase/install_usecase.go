@@ -426,7 +426,28 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClust
 			Status:   InstallStatusWaiting,
 		}
 	case v1alpha1.RainbondClusterPending:
-
+		status = ic.parsePendingComponentStatus()
+		componentUsecase := NewComponentUsecase(ic.cfg)
+		componentStatuses, err := componentUsecase.List()
+		if err != nil {
+			return model.InstallStatus{StepName: StepInstallComponent, Status: InstallStatusFailed, Message: err.Error()}
+		}
+		total := len(componentStatuses)
+		if total == 0 {
+			return model.InstallStatus{StepName: StepInstallComponent, Status: InstallStatusWaiting}
+		}
+		finished := 0 // running components size
+		for _, status := range componentStatuses {
+			if status.Replicas == status.ReadyReplicas {
+				finished++
+			}
+		}
+		// all component size
+		allComponent, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(ic.cfg.Namespace).List(metav1.ListOptions{})
+		if err != nil {
+			return model.InstallStatus{StepName: StepInstallComponent, Status: InstallStatusFailed, Message: err.Error()}
+		}
+		status.Progress = 100 * finished / len(allComponent.Items)
 	case v1alpha1.RainbondClusterRunning:
 		status = model.InstallStatus{
 			StepName: StepInstallComponent,
@@ -440,7 +461,7 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClust
 			Progress: 0,
 		}
 	}
-	status = ic.parsePendingComponentStatus()
+
 	return status
 }
 
