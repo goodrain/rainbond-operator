@@ -64,7 +64,7 @@ func isPhaseOK(cluster *rainbondv1alpha1.RainbondCluster) error {
 }
 
 func etcdSecret(ctx context.Context, cli client.Client, cluster *rainbondv1alpha1.RainbondCluster) (*corev1.Secret, error) {
-	if cluster.Spec.EtcdConfig.SecretName == "" {
+	if cluster.Spec.EtcdConfig == nil || cluster.Spec.EtcdConfig.SecretName == "" {
 		// SecretName is empty, not using TLS.
 		return nil, nil
 	}
