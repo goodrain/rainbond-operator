@@ -370,7 +370,7 @@ func (ic *InstallUseCaseImpl) stepUnpack(source *v1alpha1.RainbondClusterStatus)
 		case v1alpha1.RainbondPackageExtracting:
 			status.Status = InstallStatusProcessing
 			if rbdpkgStatus.FilesNumber != 0 {
-				status.Progress = 100 * int(rbdpkgStatus.NumberExtracted/rbdpkgStatus.FilesNumber)
+				status.Progress = int(100 * rbdpkgStatus.NumberExtracted / rbdpkgStatus.FilesNumber)
 			}
 		case v1alpha1.RainbondPackagePushing, v1alpha1.RainbondPackageCompleted:
 			status.Status = InstallStatusFinished
@@ -406,7 +406,7 @@ func (ic *InstallUseCaseImpl) stepHandleImage(source *v1alpha1.RainbondClusterSt
 		case v1alpha1.RainbondPackagePushing:
 			status.Status = InstallStatusProcessing
 			if rbdpkgStatus.ImagesNumber != 0 {
-				status.Progress = 100 * int(rbdpkgStatus.NumberExtracted/rbdpkgStatus.ImagesNumber)
+				status.Progress = int(100 * rbdpkgStatus.NumberExtracted / rbdpkgStatus.ImagesNumber)
 			}
 		case v1alpha1.RainbondPackageCompleted:
 			status.Status = InstallStatusFinished
