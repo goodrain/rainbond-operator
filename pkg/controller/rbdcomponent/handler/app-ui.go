@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"strconv"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
@@ -88,7 +89,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 								},
 								{
 									Name:  "MYSQL_PORT",
-									Value: string(a.db.Port),
+									Value: strconv.Itoa(a.db.Port),
 								},
 								{
 									Name:  "MYSQL_USER",
