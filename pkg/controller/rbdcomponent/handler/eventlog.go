@@ -37,7 +37,7 @@ func NewEventLog(ctx context.Context, client client.Client, component *rainbondv
 }
 
 func (e *eventlog) Before() error {
-	e.db = getDefaultDBInfo(e.cluster.Spec.UIDatabase)
+	e.db = getDefaultDBInfo(e.cluster.Spec.RegionDatabase)
 
 	secret, err := etcdSecret(e.ctx, e.client, e.cluster)
 	if err != nil {

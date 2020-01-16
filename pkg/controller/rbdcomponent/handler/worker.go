@@ -37,7 +37,7 @@ func NewWorker(ctx context.Context, client client.Client, component *rainbondv1a
 }
 
 func (w *worker) Before() error {
-	w.db = getDefaultDBInfo(w.cluster.Spec.UIDatabase)
+	w.db = getDefaultDBInfo(w.cluster.Spec.RegionDatabase)
 
 	secret, err := etcdSecret(w.ctx, w.client, w.cluster)
 	if err != nil {

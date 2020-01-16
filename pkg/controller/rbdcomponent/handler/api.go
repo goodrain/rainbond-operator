@@ -41,7 +41,7 @@ func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alph
 }
 
 func (a *api) Before() error {
-	a.db = getDefaultDBInfo(a.cluster.Spec.UIDatabase)
+	a.db = getDefaultDBInfo(a.cluster.Spec.RegionDatabase)
 
 	secret, err := etcdSecret(a.ctx, a.client, a.cluster)
 	if err != nil {

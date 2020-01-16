@@ -42,7 +42,7 @@ func (a *appui) Before() error {
 		return err
 	}
 
-	return isDBReady(a.ctx, a.client)
+	return isUIDBReady(a.ctx, a.client, a.cluster)
 }
 
 func (a *appui) Resources() []interface{} {

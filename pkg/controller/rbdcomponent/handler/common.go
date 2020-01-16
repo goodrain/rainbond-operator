@@ -17,7 +17,10 @@ const (
 	EtcdSSLPath = "/run/ssl/etcd"
 )
 
-func isDBReady(ctx context.Context, cli client.Client) error {
+func isUIDBReady(ctx context.Context, cli client.Client, cluster *rainbondv1alpha1.RainbondCluster) error {
+	if cluster.Spec.UIDatabase != nil {
+		return nil
+	}
 	eps := &corev1.EndpointsList{}
 	listOpts := []client.ListOption{
 		client.MatchingLabels(map[string]string{

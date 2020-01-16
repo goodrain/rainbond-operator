@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -30,6 +31,10 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 }
 
 func (d *db) Before() error {
+	if d.cluster.Spec.RegionDatabase != nil && d.cluster.Spec.UIDatabase != nil {
+		return fmt.Errorf("use custom database")
+	}
+
 	return isPhaseOK(d.cluster)
 }
 
