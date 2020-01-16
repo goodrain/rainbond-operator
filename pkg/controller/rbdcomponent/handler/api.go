@@ -181,7 +181,7 @@ func (a *api) secretForAPI() interface{} {
 	labels := a.component.Labels()
 	labels["name"] = apiSecretName
 
-	caPem, pem, key, _ := commonutil.DomainSign("region.goodrain.me") // sign all gateway ip
+	caPem, pem, key, _ := commonutil.DomainSign("rbd-api") // sign all gateway ip
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

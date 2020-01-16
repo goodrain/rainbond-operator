@@ -105,11 +105,11 @@ func (a *appui) deploymentForAppUI() interface{} {
 								},
 								{
 									Name:  "REGION_URL",
-									Value: "http://region.goodrain.me",
+									Value: "http://rbd-api:8888",
 								},
 								{
 									Name:  "REGION_WS_URL",
-									Value: "ws://region.goodrain.me",
+									Value: "ws://rbd-api:6060",
 								},
 								{
 									Name:  "REGION_HTTP_DOMAIN",
