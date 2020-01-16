@@ -148,10 +148,6 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	if p.status.Phase == rainbondv1alpha1.RainbondPackageCompleted {
-		return reconcile.Result{}, nil
-	}
-
 	return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 }
 
