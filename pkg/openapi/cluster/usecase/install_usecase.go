@@ -407,7 +407,8 @@ func (ic *InstallUseCaseImpl) stepHandleImage(source *v1alpha1.RainbondClusterSt
 		case v1alpha1.RainbondPackagePushing:
 			status.Status = InstallStatusProcessing
 			if rbdpkgStatus.ImagesNumber != 0 {
-				status.Progress = int(100 * rbdpkgStatus.NumberExtracted / rbdpkgStatus.ImagesNumber)
+				pushed := len(rbdpkgStatus.ImagesPushed)
+				status.Progress = int(100 * int32(pushed) / rbdpkgStatus.ImagesNumber)
 			}
 		case v1alpha1.RainbondPackageCompleted:
 			status.Status = InstallStatusFinished
