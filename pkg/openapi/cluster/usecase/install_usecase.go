@@ -159,6 +159,9 @@ func (ic *InstallUseCaseImpl) canInstallOrNot(step string) error {
 	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
 		logrus.Info("rainbond archive file does not exists, downloading background ...")
 		if step == StepDownload {
+			if ic.downloadError != nil {
+				return customerror.NewDownLoadError("download rainbond.tar error, please try again or upload it using /uploads")
+			}
 			// step 2 download archive
 			if err := ic.downloadFile(); err != nil {
 				logrus.Errorf("download rainbond file error: %s", err.Error())
