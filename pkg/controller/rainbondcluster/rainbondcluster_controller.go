@@ -160,6 +160,8 @@ func (r *ReconcileRainbondCluster) listNodeAvailablePorts() []*rainbondv1alpha1.
 		return true
 	}
 
+
+
 	gatewayPorts := []int{80, 443, 10254, 18080} // TODO: do not hard code
 	var nodeAvailPorts []*rainbondv1alpha1.NodeAvailPorts
 	for _, n := range nodeList.Items {
