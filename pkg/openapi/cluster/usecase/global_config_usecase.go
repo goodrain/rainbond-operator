@@ -287,3 +287,17 @@ func (cc *GlobalConfigUseCaseImpl) updateOrCreateEtcdCertInfo(certInfo model.Etc
 	_, err = cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Update(old)
 	return err
 }
+
+// Address address
+func (cc *GlobalConfigUseCaseImpl) Address() (string, error) {
+	cluster, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(cc.cfg.ClusterName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	addr := cluster.GatewayIngressIP()
+	if addr == "" {
+		return "", fmt.Errorf("can't get gatewayIngressIP")
+	}
+
+	return addr + ":7070", nil
+}

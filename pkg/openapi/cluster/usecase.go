@@ -18,6 +18,7 @@ type IClusterCase interface {
 type GlobalConfigUseCase interface {
 	GlobalConfigs() (*model.GlobalConfigs, error)
 	UpdateGlobalConfig(config *model.GlobalConfigs) error
+	Address() (string, error)
 }
 
 // ComponentUseCase cluster componse case
