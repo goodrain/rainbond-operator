@@ -471,6 +471,7 @@ func (ic *InstallUseCaseImpl) downloadFile() error {
 	ic.downloadListener = &downloadutil.DownloadWithProgress{URL: ic.cfg.DownloadURL, SavedPath: ic.cfg.ArchiveFilePath}
 	go func() {
 		if err := ic.downloadListener.Download(); err != nil {
+			logrus.Error("download rainbondtar error: ", err.Error())
 			ic.downloadError = err
 		}
 		ic.downloadListener = nil // download process finish, delete it
