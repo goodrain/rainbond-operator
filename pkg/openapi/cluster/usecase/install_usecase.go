@@ -113,9 +113,7 @@ func NewInstallUseCase(cfg *option.Config) *InstallUseCaseImpl {
 func (ic *InstallUseCaseImpl) InstallPreCheck() (model.StatusRes, error) {
 	statusres := model.StatusRes{}
 	statuses := make([]model.InstallStatus, 0)
-	settingStatus := ic.stepSetting()
-	statuses = append(statuses, settingStatus)
-
+	statuses = append(statuses, ic.stepSetting())
 	downStatus := model.InstallStatus{StepName: StepDownload}
 	// step 1 check if archive is exists or not
 	if err := ic.canInstallOrNot(StepDownload); err != nil {
@@ -131,6 +129,10 @@ func (ic *InstallUseCaseImpl) InstallPreCheck() (model.StatusRes, error) {
 		downStatus.Progress = 100
 	}
 	statuses = append(statuses, downStatus)
+	statuses = append(statuses, model.InstallStatus{StepName: StepPrepareInfrastructure, Status: InstallStatusWaiting})
+	statuses = append(statuses, model.InstallStatus{StepName: StepUnpack, Status: InstallStatusWaiting})
+	statuses = append(statuses, model.InstallStatus{StepName: StepHandleImage, Status: InstallStatusWaiting})
+	statuses = append(statuses, model.InstallStatus{StepName: StepInstallComponent, Status: InstallStatusWaiting})
 	statusres.StatusList = statuses
 	finalStatus := InstallStatusFinished
 	for _, status := range statuses {
