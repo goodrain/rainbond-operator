@@ -3,31 +3,30 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 	"strings"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var EventLogName = "rbd-eventlog"
+var WebCliName = "rbd-webcli"
 
-type eventlog struct {
+type webcli struct {
 	ctx        context.Context
 	client     client.Client
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
-	labels     map[string]string
 	db         *rainbondv1alpha1.Database
+	labels     map[string]string
 	etcdSecret *corev1.Secret
 }
 
-func NewEventLog(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
-	return &eventlog{
+func NewWebCli(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+	return &webcli{
 		ctx:       ctx,
 		client:    client,
 		component: component,
@@ -36,55 +35,64 @@ func NewEventLog(ctx context.Context, client client.Client, component *rainbondv
 	}
 }
 
-func (e *eventlog) Before() error {
-	e.db = getDefaultDBInfo(e.cluster.Spec.RegionDatabase)
-
-	secret, err := etcdSecret(e.ctx, e.client, e.cluster)
+func (w *webcli) Before() error {
+	secret, err := etcdSecret(w.ctx, w.client, w.cluster)
 	if err != nil {
 		return fmt.Errorf("failed to get etcd secret: %v", err)
 	}
-	e.etcdSecret = secret
+	w.etcdSecret = secret
 
-	return isPhaseOK(e.cluster)
+	return isPhaseOK(w.cluster)
 }
 
-func (e *eventlog) Resources() []interface{} {
+func (w *webcli) Resources() []interface{} {
 	return []interface{}{
-		e.daemonSetForEventLog(),
+		w.daemonSetForAPI(),
 	}
 }
 
-func (e *eventlog) After() error {
+func (w *webcli) After() error {
 	return nil
 }
 
-func (e *eventlog) daemonSetForEventLog() interface{} {
-	args := []string{
-		"--cluster.bind.ip=$(POD_IP)",
-		"--cluster.instance.ip=$(POD_IP)",
-		"--eventlog.bind.ip=$(POD_IP)",
-		"--websocket.bind.ip=$(POD_IP)",
-		"--db.url=" + strings.Replace(e.db.RegionDataSource(), "--mysql=", "", 1),
-		"--discover.etcd.addr=" + strings.Join(etcdEndpoints(e.cluster), ","),
-	}
+func (w *webcli) daemonSetForAPI() interface{} {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      "grdata",
-			MountPath: "/grdata",
+			Name:      "kubectl",
+			MountPath: "/usr/bin/kubectl",
+		},
+		{
+			Name:      "kubecfg",
+			MountPath: "/root/.kube",
 		},
 	}
 	volumes := []corev1.Volume{
 		{
-			Name: "grdata",
+			Name: "kubectl",
 			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: constants.GrDataPVC,
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/usr/bin/kubectl",
+					Type: k8sutil.HostPath(corev1.HostPathFile),
+				},
+			},
+		},
+		{
+			Name: "kubecfg",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/root/.kube",
+					Type: k8sutil.HostPath(corev1.HostPathDirectory),
 				},
 			},
 		},
 	}
-	if e.etcdSecret != nil {
-		volume, mount := volumeByEtcd(e.etcdSecret)
+	args := []string{
+		"--hostIP=$(POD_IP)",
+		fmt.Sprintf("--log-level=%s", w.component.LogLevel()),
+		"--etcd-endpoints=" + strings.Join(etcdEndpoints(w.cluster), ","),
+	}
+	if w.etcdSecret != nil {
+		volume, mount := volumeByEtcd(w.etcdSecret)
 		volumeMounts = append(volumeMounts, mount)
 		volumes = append(volumes, volume)
 		args = append(args, etcdSSLArgs()...)
@@ -92,22 +100,20 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      EventLogName,
-			Namespace: e.component.Namespace,
-			Labels:    e.labels,
+			Name:      WebCliName,
+			Namespace: w.component.Namespace,
+			Labels:    w.labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: e.labels,
+				MatchLabels: w.labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   EventLogName,
-					Labels: e.labels,
+					Name:   WebCliName,
+					Labels: w.labels,
 				},
 				Spec: corev1.PodSpec{
-					HostNetwork: true,
-					DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",
@@ -119,9 +125,9 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 					},
 					Containers: []corev1.Container{
 						{
-							Name:            EventLogName,
-							Image:           e.component.Spec.Image,
-							ImagePullPolicy: e.component.ImagePullPolicy(),
+							Name:            WebCliName,
+							Image:           w.component.Spec.Image,
+							ImagePullPolicy: w.component.ImagePullPolicy(),
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_IP",
@@ -130,14 +136,6 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 											FieldPath: "status.podIP",
 										},
 									},
-								},
-								{
-									Name:  "K8S_MASTER",
-									Value: "kubernetes",
-								},
-								{
-									Name:  "DOCKER_LOG_SAVE_DAY",
-									Value: "7",
 								},
 							},
 							Args:         args,
