@@ -101,13 +101,14 @@ func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 // InstallUseCaseImpl install case
 type InstallUseCaseImpl struct {
 	cfg              *option.Config
+	componentUsecase ComponentUseCase
 	downloadListener *downloadutil.DownloadWithProgress
 	downloadError    error
 }
 
 // NewInstallUseCase new install case
-func NewInstallUseCase(cfg *option.Config) *InstallUseCaseImpl {
-	return &InstallUseCaseImpl{cfg: cfg}
+func NewInstallUseCase(cfg *option.Config, componentUsecase ComponentUseCase) *InstallUseCaseImpl {
+	return &InstallUseCaseImpl{cfg: cfg, componentUsecase: componentUsecase}
 }
 
 // Install install
@@ -426,9 +427,12 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClust
 			Status:   InstallStatusWaiting,
 		}
 	case v1alpha1.RainbondClusterPending:
-		status = ic.parsePendingComponentStatus()
-		componentUsecase := NewComponentUsecase(ic.cfg)
-		componentStatuses, err := componentUsecase.List()
+		status = model.InstallStatus{
+			StepName: StepInstallComponent,
+			Status:   InstallStatusProcessing,
+		}
+
+		componentStatuses, err := ic.componentUsecase.List()
 		if err != nil {
 			return model.InstallStatus{StepName: StepInstallComponent, Status: InstallStatusFailed, Message: err.Error()}
 		}
@@ -462,27 +466,6 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClust
 		}
 	}
 
-	return status
-}
-
-func (ic *InstallUseCaseImpl) parsePendingComponentStatus() model.InstallStatus {
-	status := model.InstallStatus{StepName: StepInstallComponent, Status: InstallStatusProcessing}
-	componentUsecase := NewComponentUsecase(ic.cfg)
-	componentStatuses, err := componentUsecase.List()
-	if err != nil {
-		return model.InstallStatus{StepName: StepInstallComponent, Status: InstallStatusFailed, Message: err.Error()}
-	}
-	total := len(componentStatuses)
-	if total == 0 {
-		return model.InstallStatus{StepName: StepInstallComponent, Status: InstallStatusWaiting}
-	}
-	finished := 0
-	for _, status := range componentStatuses {
-		if status.Replicas == status.ReadyReplicas {
-			finished++
-		}
-	}
-	status.Progress = 100 * finished / total
 	return status
 }
 
