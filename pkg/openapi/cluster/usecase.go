@@ -28,9 +28,9 @@ type ComponentUseCase interface { // TODO: loop call
 
 // InstallUseCase cluster install case
 type InstallUseCase interface {
-	InstallPreCheck() ([]model.InstallStatus, error)
+	InstallPreCheck() (model.StatusRes, error)
 	Install() error
-	InstallStatus() ([]model.InstallStatus, error)
+	InstallStatus() (model.StatusRes, error)
 }
 
 // CaseImpl case

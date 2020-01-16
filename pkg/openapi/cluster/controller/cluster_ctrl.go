@@ -55,17 +55,15 @@ func (cc *ClusterController) Configs(c *gin.Context) {
 
 // UpdateConfig update cluster config info
 func (cc *ClusterController) UpdateConfig(c *gin.Context) {
-	installStatus, err := cc.clusterCase.Install().InstallStatus()
+	data, err := cc.clusterCase.Install().InstallStatus()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}
-	if installStatus != nil {
-		for _, status := range installStatus {
-			if status.StepName == "step_setting" && status.Status != "status_finished" {
-				c.JSON(http.StatusBadRequest, map[string]interface{}{"code": http.StatusBadRequest, "msg": "cluster is installing, can't update config"})
-				return
-			}
+	for _, status := range data.StatusList {
+		if status.StepName == "step_setting" && status.Status != "status_finished" { // TODO fanyangyang
+			c.JSON(http.StatusBadRequest, map[string]interface{}{"code": http.StatusBadRequest, "msg": "cluster is installing, can't update config"})
+			return
 		}
 	}
 	var req *model.GlobalConfigs
@@ -86,12 +84,12 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 
 // InstallPreCheck install precheck check can process install or not, if rainbond.tar is not ready, can't install
 func (cc *ClusterController) InstallPreCheck(c *gin.Context) {
-	status, err := cc.clusterCase.Install().InstallPreCheck()
+	data, err := cc.clusterCase.Install().InstallPreCheck()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": status})
+	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": data})
 }
 
 // Install install
@@ -113,12 +111,12 @@ func (cc *ClusterController) Install(c *gin.Context) {
 
 // InstallStatus install status
 func (cc *ClusterController) InstallStatus(c *gin.Context) {
-	status, err := cc.clusterCase.Install().InstallStatus()
+	data, err := cc.clusterCase.Install().InstallStatus()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": status})
+	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": data})
 }
 
 // Components components status

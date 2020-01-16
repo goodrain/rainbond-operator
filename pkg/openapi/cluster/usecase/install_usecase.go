@@ -110,7 +110,8 @@ func NewInstallUseCase(cfg *option.Config) *InstallUseCaseImpl {
 }
 
 // InstallPreCheck pre check
-func (ic *InstallUseCaseImpl) InstallPreCheck() ([]model.InstallStatus, error) {
+func (ic *InstallUseCaseImpl) InstallPreCheck() (model.StatusRes, error) {
+	statusres := model.StatusRes{}
 	statuses := make([]model.InstallStatus, 0)
 	settingStatus := ic.stepSetting()
 	statuses = append(statuses, settingStatus)
@@ -125,12 +126,21 @@ func (ic *InstallUseCaseImpl) InstallPreCheck() ([]model.InstallStatus, error) {
 			downStatus.Status = InstallStatusFailed
 			downStatus.Message = err.Error()
 		}
-		return statuses, nil
+	} else {
+		downStatus.Status = InstallStatusFinished
+		downStatus.Progress = 100
 	}
-	downStatus.Status = InstallStatusFinished
-	downStatus.Progress = 100
 	statuses = append(statuses, downStatus)
-	return statuses, nil
+	statusres.StatusList = statuses
+	finalStatus := InstallStatusFinished
+	for _, status := range statuses {
+		if status.Status != InstallStatusFinished {
+			finalStatus = InstallStatusProcessing
+			break
+		}
+	}
+	statusres.FinalStatus = finalStatus
+	return statusres, nil
 }
 
 // Install install
@@ -267,30 +277,42 @@ func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) err
 }
 
 // InstallStatus install status
-func (ic *InstallUseCaseImpl) InstallStatus() ([]model.InstallStatus, error) {
-	statuses := make([]model.InstallStatus, 0)
+func (ic *InstallUseCaseImpl) InstallStatus() (model.StatusRes, error) {
+	statusres := model.StatusRes{}
 	clusterInfo, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.cfg.Namespace).Get(ic.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return model.StatusRes{}, err
 	}
 	if clusterInfo != nil {
-		statuses = ic.parseInstallStatus(clusterInfo.Status)
+		statusres = ic.parseInstallStatus(clusterInfo.Status)
 	} else {
 		logrus.Warn("cluster config has not be created yet, something occured ? ")
 	}
-	return statuses, nil
+	return statusres, nil
 }
 
-func (ic *InstallUseCaseImpl) parseInstallStatus(source *v1alpha1.RainbondClusterStatus) (statuses []model.InstallStatus) {
+func (ic *InstallUseCaseImpl) parseInstallStatus(source *v1alpha1.RainbondClusterStatus) (statusres model.StatusRes) {
 	if source == nil {
 		return
 	}
+	statuses := make([]model.InstallStatus, 0)
 	statuses = append(statuses, ic.stepSetting())
 	statuses = append(statuses, ic.stepDownload())
 	statuses = append(statuses, ic.stepPrepareInfrastructure(source))
 	statuses = append(statuses, ic.stepUnpack(source))
 	statuses = append(statuses, ic.stepHandleImage(source))
 	statuses = append(statuses, ic.stepCreateComponent(source))
+	finalStatus := InstallStatusFinished
+	for _, status := range statuses {
+		if status.Status != InstallStatusFinished {
+			finalStatus = InstallStatusProcessing
+			break
+		}
+	}
+	statusres = model.StatusRes{
+		FinalStatus: finalStatus,
+		StatusList:  statuses,
+	}
 	return
 }
 
