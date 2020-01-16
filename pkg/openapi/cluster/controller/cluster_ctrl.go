@@ -34,6 +34,8 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 
 	clusterEngine.GET("/address", corsMidle(u.Address))
 
+	clusterEngine.PUT("/reset", corsMidle(u.Reset))
+
 	// install
 	clusterEngine.GET("/install/precheck", corsMidle(u.InstallPreCheck))
 	clusterEngine.POST("/install", corsMidle(u.Install))
@@ -92,6 +94,16 @@ func (cc *ClusterController) Address(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": data})
+}
+
+// Reset reset cluster
+func (cc *ClusterController) Reset(c *gin.Context) {
+	err := cc.clusterCase.GlobalConfigs().Reset()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
 }
 
 // InstallPreCheck install precheck check can process install or not, if rainbond.tar is not ready, can't install

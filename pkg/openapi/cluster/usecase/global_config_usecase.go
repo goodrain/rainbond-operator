@@ -301,3 +301,27 @@ func (cc *GlobalConfigUseCaseImpl) Address() (string, error) {
 
 	return addr + ":7070", nil
 }
+
+// Reset reset cluster
+func (cc *GlobalConfigUseCaseImpl) Reset() error {
+	components, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	var nfscomponent v1alpha1.RbdComponent
+	for _, component := range components.Items {
+		if component.Name == "rbd-nfs" {
+			nfscomponent = component
+			continue
+		}
+		err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Delete(component.Name, &metav1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Delete(nfscomponent.Name, &metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
