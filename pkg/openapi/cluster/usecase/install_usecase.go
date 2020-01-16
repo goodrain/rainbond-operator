@@ -110,23 +110,27 @@ func NewInstallUseCase(cfg *option.Config) *InstallUseCaseImpl {
 }
 
 // InstallPreCheck pre check
-func (ic *InstallUseCaseImpl) InstallPreCheck() (model.InstallStatus, error) {
-	status := model.InstallStatus{StepName: StepDownload}
+func (ic *InstallUseCaseImpl) InstallPreCheck() ([]model.InstallStatus, error) {
+	statuses := make([]model.InstallStatus, 0)
+	settingStatus := ic.stepSetting()
+	statuses = append(statuses, settingStatus)
+
+	downStatus := model.InstallStatus{StepName: StepDownload}
 	// step 1 check if archive is exists or not
 	if err := ic.canInstallOrNot(StepDownload); err != nil {
 		if _, ok := err.(*customerror.DownloadingError); ok {
-			status.Status = InstallStatusProcessing
-			status.Progress = ic.downloadListener.Percent
+			downStatus.Status = InstallStatusProcessing
+			downStatus.Progress = ic.downloadListener.Percent
 		} else {
-			status.Status = InstallStatusFailed
-			status.Message = err.Error()
+			downStatus.Status = InstallStatusFailed
+			downStatus.Message = err.Error()
 		}
-		return status, nil
+		return statuses, nil
 	}
-	status.Status = InstallStatusFinished
-	status.Progress = 100
-
-	return status, nil
+	downStatus.Status = InstallStatusFinished
+	downStatus.Progress = 100
+	statuses = append(statuses, downStatus)
+	return statuses, nil
 }
 
 // Install install
