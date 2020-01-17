@@ -299,7 +299,7 @@ func (cc *GlobalConfigUseCaseImpl) Address() (string, error) {
 		return "", fmt.Errorf("can't get gatewayIngressIP")
 	}
 
-	return addr + ":7070", nil
+	return fmt.Sprintf("http://%s:7070", addr), nil
 }
 
 // Reset reset cluster
