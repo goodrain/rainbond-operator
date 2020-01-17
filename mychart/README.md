@@ -24,5 +24,7 @@ git clone https://github.com/GLYASAI/rainbond-operator.git
 
 cd rainbond-operator
 
-kubectl create ns rbd-system && helm install my-release ./mychart --namespace=rbd-system
+kubectl create ns rbd-system
+
+helm install my-release ./mychart --namespace=rbd-system
 ```

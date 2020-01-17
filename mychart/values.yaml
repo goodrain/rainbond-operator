@@ -21,14 +21,14 @@ rainbondOperator:
   image:
     repository: abewang/rainbond-operator
     tag: v0.0.1
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
 
 # openapi
 openapi:
   name: openapi
   image:
-    repository: abewang/rbd-ops-ui
+    repository: abewang/rbd-op-ui
     tag: v0.0.1
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   port: 8080
   nodePort: 30008
