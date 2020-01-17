@@ -104,3 +104,9 @@ type InstallStatus struct {
 	Message  string `json:"message"`
 	Reason   string `json:"reason"`
 }
+
+// StatusRes StatusRes
+type StatusRes struct {
+	FinalStatus string          `json:"finalStatus"`
+	StatusList  []InstallStatus `json:"statusList"`
+}

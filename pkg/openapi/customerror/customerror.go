@@ -30,3 +30,18 @@ func (err *DownloadingError) Error() string {
 func NewDownloadingError(msg string) *DownloadingError {
 	return &DownloadingError{Code: 1002, Msg: msg}
 }
+
+// RainbondTarNotExistError RainbondTarNotExistError
+type RainbondTarNotExistError struct {
+	Msg  string
+	Code int
+}
+
+func (err *RainbondTarNotExistError) Error() string {
+	return err.Msg
+}
+
+// NewRainbondTarNotExistError new rainbond tar not exist error
+func NewRainbondTarNotExistError(msg string) *RainbondTarNotExistError {
+	return &RainbondTarNotExistError{Code: 1003, Msg: msg}
+}
