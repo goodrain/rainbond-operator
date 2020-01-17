@@ -44,4 +44,4 @@ mock:
 	./mockgen.sh
 
 build-api:
-	docker build . -f hack/openapi/Dockerfile -t abewang/rbd-operator-openapi
+	docker build . -f hack/openapi/Dockerfile -t abewang/rbd-op-ui:v0.0.1
