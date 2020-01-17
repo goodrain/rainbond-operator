@@ -3,7 +3,12 @@ package rainbondcluster
 import (
 	"context"
 	"fmt"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"net"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -85,9 +90,12 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling RainbondCluster")
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Fetch the RainbondCluster instance
 	rainbondcluster := &rainbondv1alpha1.RainbondCluster{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, rainbondcluster)
+	err := r.client.Get(ctx, request.NamespacedName, rainbondcluster)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -103,13 +111,23 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	rainbondcluster.Status = r.generateRainbondClusterStatus(rainbondcluster)
-	if err := r.client.Status().Update(context.TODO(), rainbondcluster); err != nil {
-		log.Error(err, "failed to update rainbondcluster status")
+	claim := r.grdataPersistentVolumeClaim(rainbondcluster)
+	// Set RbdComponent cpt as the owner and controller
+	if err := controllerutil.SetControllerReference(rainbondcluster, claim, r.scheme); err != nil {
+		return reconcile.Result{Requeue: true}, err
+	}
+	if err = k8sutil.UpdateOrCreateResource(ctx, r.client, reqLogger, claim, claim); err != nil {
+		reqLogger.Error(err, "failed to update or create grdata pvc")
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+	rainbondcluster.Status = r.generateRainbondClusterStatus(rainbondcluster)
+	if err := r.client.Status().Update(context.TODO(), rainbondcluster); err != nil {
+		reqLogger.Error(err, "failed to update rainbondcluster status")
+		return reconcile.Result{Requeue: true}, err
+	}
+
+	return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 }
 
 func (r *ReconcileRainbondCluster) availableStorageClasses() []*rainbondv1alpha1.StorageClass {
@@ -159,8 +177,6 @@ func (r *ReconcileRainbondCluster) listNodeAvailablePorts() []*rainbondv1alpha1.
 		defer conn.Close()
 		return true
 	}
-
-
 
 	gatewayPorts := []int{80, 443, 10254, 18080} // TODO: do not hard code
 	var nodeAvailPorts []*rainbondv1alpha1.NodeAvailPorts
@@ -350,4 +366,25 @@ func (r *ReconcileRainbondCluster) listDaemonSetStatuses() ([]*rainbondv1alpha1.
 		statues = append(statues, s)
 	}
 	return statues, nil
+}
+
+func (r *ReconcileRainbondCluster) grdataPersistentVolumeClaim(cluster *rainbondv1alpha1.RainbondCluster) *corev1.PersistentVolumeClaim {
+	storageRequest := resource.NewQuantity(10, resource.BinarySI) // TODO: size
+	return &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.Namespace,
+			Name:      "grdata",
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteMany,
+			},
+			Resources: corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceStorage: *storageRequest,
+				},
+			},
+			StorageClassName: commonutil.String(cluster.StorageClass()),
+		},
+	}
 }

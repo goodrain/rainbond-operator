@@ -15,32 +15,32 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func UpdateOrCreateResource(reqLogger logr.Logger, cli client.Client, obj runtime.Object, meta metav1.Object) (reconcile.Result, error) {
-	err := cli.Get(context.TODO(), types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
-	if err != nil && errors.IsNotFound(err) {
+func UpdateOrCreateResource(ctx context.Context, cli client.Client, reqLogger logr.Logger, obj runtime.Object, meta metav1.Object) error {
+	err := cli.Get(ctx, types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			reqLogger.Error(err, fmt.Sprintf("Failed to get %s", obj.GetObjectKind()))
+			return err
+		}
 		reqLogger.Info("Creating a new", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
-		err = cli.Create(context.TODO(), obj)
+		err = cli.Create(ctx, obj)
 		if err != nil {
 			reqLogger.Error(err, fmt.Sprintf("Failed to create new %s", obj.GetObjectKind()), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
-			return reconcile.Result{}, err
+			return err
 		}
-		return reconcile.Result{Requeue: true}, nil
-	} else if err != nil {
-		reqLogger.Error(err, fmt.Sprintf("Failed to get %s", obj.GetObjectKind()))
-		return reconcile.Result{}, err
+		return nil
 	}
 
 	// obj exsits, update
 	reqLogger.Info(fmt.Sprintf("Update %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
-	if err := cli.Update(context.TODO(), obj); err != nil {
+	if err := cli.Update(ctx, obj); err != nil {
 		reqLogger.Error(err, "Failed to update ", obj.GetObjectKind())
-		return reconcile.Result{}, err
+		return err
 	}
 
-	return reconcile.Result{}, nil
+	return nil
 }
 
 func MustNewKubeConfig(kubeconfigPath string) *rest.Config {
