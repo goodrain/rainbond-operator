@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -73,13 +74,16 @@ func main() {
 
 	r := gin.Default()
 	r.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
+	r.Use(static.Serve("/", static.LocalFile("/app/ui", true)))
 
 	userRepo := urepo.NewSqlite3UserRepository(db)
 	userRepo.CreateIfNotExist(&model.User{Username: "admin", Password: "admin"})
 	userUcase := uucase.NewUserUsecase(userRepo, "my-secret-key")
 	uctrl.NewUserController(r, userUcase)
+
 	clusterUcase := cluster.NewClusterCase(cfg)
 	clusterCtrl.NewClusterController(r, clusterUcase)
+
 	upload.NewUploadController(r, archiveFilePath)
 
 	go r.Run() // listen and serve on 0.0.0.0:8080

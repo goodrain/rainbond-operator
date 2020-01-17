@@ -41,6 +41,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
+            - name: SERVICE_ACCOUNT
+              value: {{ template "rainbond-operator.serviceAccountName" . }}
           volumeMounts:
             - mountPath: /opt/rainbond/pkg
               name: rbd-pkg

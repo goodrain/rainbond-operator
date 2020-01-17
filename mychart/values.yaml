@@ -27,8 +27,8 @@ rainbondOperator:
 openapi:
   name: openapi
   image:
-    repository: a985850124/rainbond-operator-openapi
-    tag: latest
+    repository: abewang/rbd-ops-ui
+    tag: v0.0.1
     pullPolicy: Always
   port: 8080
   nodePort: 30008
