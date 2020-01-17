@@ -116,6 +116,9 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 	}
 
 	p := newpkg(ctx, r.client, dcli, pkg)
+	if p.status.Phase == rainbondv1alpha1.RainbondPackageCompleted {
+		return reconcile.Result{}, nil
+	}
 
 	// check prerequisites
 	cluster := &rainbondv1alpha1.RainbondCluster{}
@@ -134,10 +137,6 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 			reqLogger.Error(err, "failed to update rainbondpackage status.")
 		}
 		return reconcile.Result{Requeue: true}, nil
-	}
-
-	if p.status.Phase == rainbondv1alpha1.RainbondPackageCompleted {
-		return reconcile.Result{}, nil
 	}
 
 	// handle package, extract, load images and push images
