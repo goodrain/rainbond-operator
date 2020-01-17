@@ -302,8 +302,8 @@ func (cc *GlobalConfigUseCaseImpl) Address() (string, error) {
 	return fmt.Sprintf("http://%s:7070", addr), nil
 }
 
-// Reset reset cluster
-func (cc *GlobalConfigUseCaseImpl) Reset() error {
+// Uninstall reset cluster
+func (cc *GlobalConfigUseCaseImpl) Uninstall() error {
 	components, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err

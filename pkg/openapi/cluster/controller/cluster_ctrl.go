@@ -98,7 +98,7 @@ func (cc *ClusterController) Address(c *gin.Context) {
 
 // Uninstall reset cluster
 func (cc *ClusterController) Uninstall(c *gin.Context) {
-	err := cc.clusterCase.GlobalConfigs().Reset()
+	err := cc.clusterCase.GlobalConfigs().Uninstall()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
