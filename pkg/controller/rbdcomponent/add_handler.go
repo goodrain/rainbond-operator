@@ -20,4 +20,5 @@ func init() {
 	AddHandlerFunc(handler.RepoName, handler.NewRepo)
 	AddHandlerFunc(handler.NodeName, handler.NewNode)
 	AddHandlerFunc(handler.DBName, handler.NewDB)
+	AddHandlerFunc(handler.WebCliName, handler.NewWebCli)
 }

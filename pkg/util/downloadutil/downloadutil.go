@@ -19,7 +19,7 @@ type DownloadWithProgress struct {
 	SavedPath    string
 }
 
-var tmpPath = "/tmp/rainbond-pkg.tar"
+var tmpPath = "/opt/rainbond/pkg/rainbond-pkg.tar"
 
 // Download download
 func (listener *DownloadWithProgress) Download() error {

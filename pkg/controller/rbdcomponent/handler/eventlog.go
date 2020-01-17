@@ -37,7 +37,7 @@ func NewEventLog(ctx context.Context, client client.Client, component *rainbondv
 }
 
 func (e *eventlog) Before() error {
-	e.db = getDefaultDBInfo(e.cluster.Spec.UIDatabase)
+	e.db = getDefaultDBInfo(e.cluster.Spec.RegionDatabase)
 
 	secret, err := etcdSecret(e.ctx, e.client, e.cluster)
 	if err != nil {
@@ -64,7 +64,7 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 		"--cluster.instance.ip=$(POD_IP)",
 		"--eventlog.bind.ip=$(POD_IP)",
 		"--websocket.bind.ip=$(POD_IP)",
-		"--db.url=" + e.db.RegionDataSource(),
+		"--db.url=" + strings.Replace(e.db.RegionDataSource(), "--mysql=", "", 1),
 		"--discover.etcd.addr=" + strings.Join(etcdEndpoints(e.cluster), ","),
 	}
 	volumeMounts := []corev1.VolumeMount{

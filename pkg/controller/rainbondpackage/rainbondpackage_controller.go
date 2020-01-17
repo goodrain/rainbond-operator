@@ -116,6 +116,9 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 	}
 
 	p := newpkg(ctx, r.client, dcli, pkg)
+	if p.status.Phase == rainbondv1alpha1.RainbondPackageCompleted {
+		return reconcile.Result{}, nil
+	}
 
 	// check prerequisites
 	cluster := &rainbondv1alpha1.RainbondCluster{}
@@ -136,20 +139,12 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	if p.status.Phase == rainbondv1alpha1.RainbondPackageCompleted {
-		return reconcile.Result{}, nil
-	}
-
 	// handle package, extract, load images and push images
 	if err = p.handle(); err != nil {
 		reqLogger.Error(err, "failed to handle rainbond package.")
 		p.status.Message = fmt.Sprintf("failed to handle rainbond package %s: %v", p.pkg.Spec.PkgPath, err)
 		p.reportFailedStatus()
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
-	}
-
-	if p.status.Phase == rainbondv1alpha1.RainbondPackageCompleted {
-		return reconcile.Result{}, nil
 	}
 
 	return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
@@ -462,9 +457,14 @@ func (p *pkg) imageLoad(file string) (string, error) {
 
 func (p *pkg) imagePush(image string) error {
 	var opts dtypes.ImagePushOptions
-	registryAuth, err := encodeAuthToBase64(dtypes.AuthConfig{
-		ServerAddress: "goodrain.me",
-	})
+	authConfig := dtypes.AuthConfig{
+		ServerAddress: p.cluster.ImageRepository(),
+	}
+	if p.cluster.Spec.ImageHub != nil {
+		authConfig.Username = p.cluster.Spec.ImageHub.Username
+		authConfig.Password = p.cluster.Spec.ImageHub.Password
+	}
+	registryAuth, err := encodeAuthToBase64(authConfig)
 	if err != nil {
 		return fmt.Errorf("failed to encode auth config: %v", err)
 	}

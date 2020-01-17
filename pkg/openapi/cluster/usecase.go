@@ -47,7 +47,7 @@ func NewClusterCase(conf *option.Config) IClusterCase {
 	clusterCase := &CaseImpl{}
 	clusterCase.componentUseCaseImpl = usecase.NewComponentUsecase(conf)
 	clusterCase.globalConfigUseCaseImpl = usecase.NewGlobalConfigUseCase(conf)
-	clusterCase.installCaseImpl = usecase.NewInstallUseCase(conf)
+	clusterCase.installCaseImpl = usecase.NewInstallUseCase(conf, clusterCase.componentUseCaseImpl)
 	return clusterCase
 }
 

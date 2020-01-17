@@ -7,6 +7,8 @@ import (
 
 	"github.com/go-logr/logr"
 	appv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	extensions "k8s.io/api/extensions/v1beta1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,32 +66,25 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to secondary resource DaemonSet and requeue the owner RbdComponent
-	err = c.Watch(&source.Kind{Type: &appv1.DaemonSet{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &rainbondv1alpha1.RbdComponent{},
-	})
-	if err != nil {
-		return err
+	secondaryResourceTypes := []runtime.Object{
+		&appv1.DaemonSet{},
+		&appv1.StatefulSet{},
+		&appv1.Deployment{},
+		&corev1.Service{},
+		&extensions.Ingress{},
+		&corev1.Secret{},
+		&corev1.ConfigMap{},
+		&corev1.PersistentVolumeClaim{},
 	}
 
-	// Watch for changes to secondary resource Deployment and requeue the owner RbdComponent
-	err = c.Watch(&source.Kind{Type: &appv1.Deployment{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &rainbondv1alpha1.RbdComponent{},
-	})
-	if err != nil {
-		return err
-	}
-
-	// TODO: duplicated code
-	// Watch for changes to secondary resource StatefulSet and requeue the owner RbdComponent
-	err = c.Watch(&source.Kind{Type: &appv1.StatefulSet{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &rainbondv1alpha1.RbdComponent{},
-	})
-	if err != nil {
-		return err
+	for _, t := range secondaryResourceTypes {
+		err = c.Watch(&source.Kind{Type: t}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &rainbondv1alpha1.RbdComponent{},
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

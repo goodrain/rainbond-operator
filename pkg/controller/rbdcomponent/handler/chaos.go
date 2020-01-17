@@ -38,7 +38,7 @@ func NewChaos(ctx context.Context, client client.Client, component *rainbondv1al
 }
 
 func (c *chaos) Before() error {
-	c.db = getDefaultDBInfo(c.cluster.Spec.UIDatabase)
+	c.db = getDefaultDBInfo(c.cluster.Spec.RegionDatabase)
 
 	secret, err := etcdSecret(c.ctx, c.client, c.cluster)
 	if err != nil {

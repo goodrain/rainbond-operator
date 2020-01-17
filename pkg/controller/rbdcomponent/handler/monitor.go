@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -42,12 +43,15 @@ func (m *monitor) Before() error {
 		return fmt.Errorf("failed to get etcd secret: %v", err)
 	}
 	m.etcdSecret = secret
+
 	return isPhaseOK(m.cluster)
 }
 
 func (m *monitor) Resources() []interface{} {
 	return []interface{}{
 		m.daemonSetForMonitor(),
+		m.serviceForMonitor(),
+		m.ingressForMonitor(),
 	}
 }
 
@@ -90,6 +94,7 @@ func (m *monitor) daemonSetForMonitor() interface{} {
 					Labels: m.labels,
 				},
 				Spec: corev1.PodSpec{
+					ServiceAccountName: "rainbond-operator",
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",
@@ -126,4 +131,50 @@ func (m *monitor) daemonSetForMonitor() interface{} {
 	}
 
 	return ds
+}
+
+func (m *monitor) serviceForMonitor() interface{} {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      MonitorName,
+			Namespace: m.component.Namespace,
+			Labels:    m.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "http",
+					Port: 9999,
+					TargetPort: intstr.IntOrString{
+						IntVal: 9999,
+					},
+				},
+			},
+			Selector: m.labels,
+		},
+	}
+
+	return svc
+}
+
+func (m *monitor) ingressForMonitor() interface{} {
+	ing := &extensions.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      MonitorName,
+			Namespace: m.component.Namespace,
+			Annotations: map[string]string{
+				"nginx.ingress.kubernetes.io/l4-enable": "true",
+				"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
+				"nginx.ingress.kubernetes.io/l4-port":   "9999",
+			},
+			Labels: m.labels,
+		},
+		Spec: extensions.IngressSpec{
+			Backend: &extensions.IngressBackend{
+				ServiceName: MonitorName,
+				ServicePort: intstr.FromString("http"),
+			},
+		},
+	}
+	return ing
 }

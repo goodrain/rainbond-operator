@@ -183,9 +183,15 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "rainbond-operator",
-					HostNetwork:        true,
-					HostPID:            true,
-					DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
+					HostAliases: []corev1.HostAlias{
+						{
+							IP:        n.cluster.GatewayIngressIP(),
+							Hostnames: []string{n.cluster.ImageRepository()},
+						},
+					},
+					HostNetwork: true,
+					HostPID:     true,
+					DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",

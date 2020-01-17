@@ -65,6 +65,12 @@ func (s *Status) GenerateRainbondClusterStorageReadyCondition() rainbondv1alpha1
 		return condition
 	}
 
+	if sts.Status.Replicas != sts.Status.ReadyReplicas {
+		condition.Reason = "NotReady"
+		condition.Message = fmt.Sprintf("disire %d, ready %d", sts.Status.ReadyReplicas, sts.Status.ReadyReplicas)
+		return condition
+	}
+
 	condition.Status = rainbondv1alpha1.ConditionTrue
 
 	return condition

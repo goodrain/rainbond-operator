@@ -41,7 +41,7 @@ func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alph
 }
 
 func (a *api) Before() error {
-	a.db = getDefaultDBInfo(a.cluster.Spec.UIDatabase)
+	a.db = getDefaultDBInfo(a.cluster.Spec.RegionDatabase)
 
 	secret, err := etcdSecret(a.ctx, a.client, a.cluster)
 	if err != nil {
@@ -58,6 +58,7 @@ func (a *api) Resources() []interface{} {
 		a.daemonSetForAPI(),
 		a.serviceForAPI(),
 		a.ingressForAPI(),
+		a.ingressForWebsocket(),
 	}
 }
 
@@ -169,6 +170,13 @@ func (a *api) serviceForAPI() interface{} {
 						IntVal: 8888,
 					},
 				},
+				{
+					Name: "ws",
+					Port: 6060,
+					TargetPort: intstr.IntOrString{
+						IntVal: 6060,
+					},
+				},
 			},
 			Selector: a.labels,
 		},
@@ -181,7 +189,7 @@ func (a *api) secretForAPI() interface{} {
 	labels := a.component.Labels()
 	labels["name"] = apiSecretName
 
-	caPem, pem, key, _ := commonutil.DomainSign("region.goodrain.me") // sign all gateway ip
+	caPem, pem, key, _ := commonutil.DomainSign("rbd-api") // sign all gateway ip
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -238,5 +246,27 @@ func (a *api) ingressForAPI() interface{} {
 		},
 	}
 
+	return ing
+}
+
+func (a *api) ingressForWebsocket() interface{} {
+	ing := &extensions.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      APIName + "-webcli",
+			Namespace: a.component.Namespace,
+			Annotations: map[string]string{
+				"nginx.ingress.kubernetes.io/l4-enable": "true",
+				"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
+				"nginx.ingress.kubernetes.io/l4-port":   "6060",
+			},
+			Labels: a.labels,
+		},
+		Spec: extensions.IngressSpec{
+			Backend: &extensions.IngressBackend{
+				ServiceName: APIName,
+				ServicePort: intstr.FromString("ws"),
+			},
+		},
+	}
 	return ing
 }

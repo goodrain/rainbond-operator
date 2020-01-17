@@ -48,7 +48,7 @@ func (n *nfsProvisioner) Resources() []interface{} {
 }
 
 func (n *nfsProvisioner) After() error {
-	class := storageClassForNFSProvisioner()
+	class := n.storageClassForNFSProvisioner()
 	oldClass := &storagev1.StorageClass{}
 	if err := n.client.Get(n.ctx, types.NamespacedName{Name: class.Name}, oldClass); err != nil {
 		if !errors.IsNotFound(err) {
@@ -202,10 +202,11 @@ func (n *nfsProvisioner) serviceForNFSProvisioner() interface{} {
 	return svc
 }
 
-func storageClassForNFSProvisioner() *storagev1.StorageClass {
+func (n *nfsProvisioner) storageClassForNFSProvisioner() *storagev1.StorageClass {
 	sc := &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: NFSName,
+			Name:   NFSName,
+			Labels: n.component.Labels(),
 		},
 		Provisioner: nfsProvisionerName,
 		MountOptions: []string{

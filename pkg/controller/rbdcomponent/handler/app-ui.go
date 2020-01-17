@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"strconv"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
@@ -42,7 +43,7 @@ func (a *appui) Before() error {
 		return err
 	}
 
-	return isDBReady(a.ctx, a.client)
+	return isUIDBReady(a.ctx, a.client, a.cluster)
 }
 
 func (a *appui) Resources() []interface{} {
@@ -88,7 +89,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 								},
 								{
 									Name:  "MYSQL_PORT",
-									Value: string(a.db.Port),
+									Value: strconv.Itoa(a.db.Port),
 								},
 								{
 									Name:  "MYSQL_USER",
@@ -104,11 +105,11 @@ func (a *appui) deploymentForAppUI() interface{} {
 								},
 								{
 									Name:  "REGION_URL",
-									Value: "http://region.goodrain.me",
+									Value: "http://rbd-api:8888",
 								},
 								{
 									Name:  "REGION_WS_URL",
-									Value: "ws://region.goodrain.me",
+									Value: "ws://rbd-api:6060",
 								},
 								{
 									Name:  "REGION_HTTP_DOMAIN",
