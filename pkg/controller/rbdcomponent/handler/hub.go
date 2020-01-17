@@ -67,6 +67,7 @@ func (h *hub) daemonSetForHub() interface{} {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",

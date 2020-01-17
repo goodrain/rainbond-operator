@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 	"strings"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -131,6 +132,7 @@ func (c *chaos) daemonSetForChaos() interface{} {
 					Labels: c.labels,
 				},
 				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName: "rainbond-operator",
 					Tolerations: []corev1.Toleration{
 						{

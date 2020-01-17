@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 	"strings"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -106,6 +107,7 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 					Labels: e.labels,
 				},
 				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					HostNetwork: true,
 					DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{

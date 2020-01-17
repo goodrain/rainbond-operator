@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
@@ -59,6 +60,7 @@ func (r *repo) daemonSetForRepo() interface{} {
 					Labels: r.labels,
 				},
 				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",

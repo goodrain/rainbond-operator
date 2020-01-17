@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,6 +53,7 @@ func (e *etcd) podForEtcd0() interface{} {
 			},
 		},
 		Spec: corev1.PodSpec{
+			TerminationGracePeriodSeconds: commonutil.Int64(0),
 			Containers: []corev1.Container{
 				{
 					Name:            "etcd0",

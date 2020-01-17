@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 
@@ -58,6 +59,7 @@ func (d *dns) daemonSetForDNS() interface{} {
 					Labels: d.labels,
 				},
 				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName: "rainbond-operator",
 					HostNetwork:        true,
 					DNSPolicy:          corev1.DNSClusterFirstWithHostNet,

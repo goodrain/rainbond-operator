@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 	"strings"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -84,6 +85,7 @@ func (g *gateway) daemonSetForGateway() interface{} {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName: "rainbond-operator",
 					HostNetwork:        true,
 					DNSPolicy:          corev1.DNSClusterFirstWithHostNet,

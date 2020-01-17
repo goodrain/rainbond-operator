@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	"strings"
 
@@ -182,6 +183,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 					Labels: n.labels,
 				},
 				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName: "rainbond-operator",
 					HostAliases: []corev1.HostAlias{
 						{

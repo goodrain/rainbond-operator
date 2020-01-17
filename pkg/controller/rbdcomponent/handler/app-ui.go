@@ -77,6 +77,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 					Labels: cpt.Labels(),
 				},
 				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{
 							Name:            AppUIName,

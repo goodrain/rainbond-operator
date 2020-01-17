@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -83,6 +84,7 @@ func (m *mq) daemonSetForMQ() interface{} {
 					Labels: m.labels,
 				},
 				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",

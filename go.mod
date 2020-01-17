@@ -11,6 +11,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/docker v0.7.3-0.20190817195342-4760db040282
 	github.com/gin-contrib/cors v1.3.0 // indirect
+	github.com/gin-gonic/contrib v0.0.0-20191209060500-d6e26eeaa607
 	github.com/gin-gonic/gin v1.5.0
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.3.1
