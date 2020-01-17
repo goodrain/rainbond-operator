@@ -1,0 +1,34 @@
+# Default values for mychart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# namespace
+namespace: rbd-system
+
+## Install Default RBAC roles and bindings
+rbac:
+  create: true
+  apiVersion: v1
+
+## Service account name and whether to create it
+serviceAccount:
+  create: true
+  name:
+
+# rainbondOperator
+rainbondOperator:
+  name: rainbond-operator
+  image:
+    repository: abewang/rainbond-operator
+    tag: v0.0.1
+    pullPolicy: Always
+
+# openapi
+openapi:
+  name: openapi
+  image:
+    repository: a985850124/rainbond-operator-openapi
+    tag: latest
+    pullPolicy: Always
+  port: 8080
+  nodePort: 30008
