@@ -309,12 +309,12 @@ func (cc *GlobalConfigUseCaseImpl) Uninstall() error {
 		return err
 	}
 	var nfscomponent *v1alpha1.RbdComponent
-	for _, component := range components.Items {
-		if component.Name == "rbd-nfs" {
-			nfscomponent = &component
+	for i := range components.Items {
+		if components.Items[i].Name == "rbd-nfs" {
+			nfscomponent = &components.Items[i]
 			continue
 		}
-		err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Delete(component.Name, &metav1.DeleteOptions{})
+		err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Delete(components.Items[i].Name, &metav1.DeleteOptions{})
 		if err != nil {
 			return err
 		}
