@@ -3,7 +3,6 @@ package usecase
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
 	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -111,41 +110,72 @@ func NewInstallUseCase(cfg *option.Config, componentUsecase ComponentUseCase) *I
 	return &InstallUseCaseImpl{cfg: cfg, componentUsecase: componentUsecase}
 }
 
+// InstallPreCheck pre check
+func (ic *InstallUseCaseImpl) InstallPreCheck() (model.StatusRes, error) {
+	statusres := model.StatusRes{}
+	statuses := make([]model.InstallStatus, 0)
+	statuses = append(statuses, ic.stepSetting())
+	downStatus := model.InstallStatus{StepName: StepDownload}
+	// step 1 check if archive is exists or not
+	if err := ic.canInstallOrNot(StepDownload); err != nil {
+		if _, ok := err.(*customerror.DownloadingError); ok {
+			downStatus.Status = InstallStatusProcessing
+			downStatus.Progress = ic.downloadListener.Percent
+		} else {
+			downStatus.Status = InstallStatusFailed
+			downStatus.Message = err.Error()
+		}
+	} else {
+		downStatus.Status = InstallStatusFinished
+		downStatus.Progress = 100
+	}
+	statuses = append(statuses, downStatus)
+
+	finalStatus := InstallStatusFinished
+	for _, status := range statuses {
+		if status.Status != InstallStatusFinished {
+			finalStatus = InstallStatusProcessing
+			break
+		}
+	}
+	statuses = append(statuses, model.InstallStatus{StepName: StepPrepareInfrastructure, Status: InstallStatusWaiting})
+	statuses = append(statuses, model.InstallStatus{StepName: StepUnpack, Status: InstallStatusWaiting})
+	statuses = append(statuses, model.InstallStatus{StepName: StepHandleImage, Status: InstallStatusWaiting})
+	statuses = append(statuses, model.InstallStatus{StepName: StepInstallComponent, Status: InstallStatusWaiting})
+
+	statusres.StatusList = statuses
+	statusres.FinalStatus = finalStatus
+	return statusres, nil
+}
+
 // Install install
 func (ic *InstallUseCaseImpl) Install() error {
 	if err := ic.BeforeInstall(); err != nil {
 		return err
 	}
-
-	// step 3 create custom resource
-	go func() {
-		for {
-			time.Sleep(5 * time.Second)
-			if ic.downloadListener == nil {
-				logrus.Info("download progress finished, create resource")
-				ic.createComponents(componentClaims...)
-				break
-			}
-			logrus.Debug("waiting for download progress finish")
-		}
-	}()
-
-	return nil
+	return ic.createComponents(componentClaims...)
 }
 
-func (ic *InstallUseCaseImpl) canInstallOrNot() error {
+func (ic *InstallUseCaseImpl) canInstallOrNot(step string) error {
 	if ic.downloadListener != nil {
 		return customerror.NewDownloadingError("install process is processon, please hold on")
 	}
 
 	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
 		logrus.Info("rainbond archive file does not exists, downloading background ...")
-
-		// step 2 download archive
-		if err := ic.downloadFile(); err != nil {
-			logrus.Errorf("download rainbond file error: %s", err.Error())
-			return customerror.NewDownLoadError("download rainbond.tar error, please try again or upload it using /uploads")
+		if step == StepDownload {
+			if ic.downloadError != nil {
+				return customerror.NewDownLoadError("download rainbond.tar error, please try again or upload it using /uploads")
+			}
+			// step 2 download archive
+			if err := ic.downloadFile(); err != nil {
+				logrus.Errorf("download rainbond file error: %s", err.Error())
+				return customerror.NewDownLoadError("download rainbond.tar error, please try again or upload it using /uploads")
+			}
+			return customerror.NewDownloadingError("install process is processon, please hold on")
 		}
+		logrus.Error("rainbond tar do not exists")
+		return customerror.NewRainbondTarNotExistError("rainbond tar do not exists")
 
 	}
 	return nil
@@ -218,7 +248,7 @@ func (ic *InstallUseCaseImpl) initResourceDep() error {
 // BeforeInstall before install check
 func (ic *InstallUseCaseImpl) BeforeInstall() error {
 	// step 1 check if archive is exists or not
-	if err := ic.canInstallOrNot(); err != nil {
+	if err := ic.canInstallOrNot(""); err != nil {
 		return err
 	}
 
@@ -255,30 +285,42 @@ func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) err
 }
 
 // InstallStatus install status
-func (ic *InstallUseCaseImpl) InstallStatus() ([]model.InstallStatus, error) {
-	statuses := make([]model.InstallStatus, 0)
+func (ic *InstallUseCaseImpl) InstallStatus() (model.StatusRes, error) {
+	statusres := model.StatusRes{}
 	clusterInfo, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.cfg.Namespace).Get(ic.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return model.StatusRes{}, err
 	}
 	if clusterInfo != nil {
-		statuses = ic.parseInstallStatus(clusterInfo.Status)
+		statusres = ic.parseInstallStatus(clusterInfo.Status)
 	} else {
 		logrus.Warn("cluster config has not be created yet, something occured ? ")
 	}
-	return statuses, nil
+	return statusres, nil
 }
 
-func (ic *InstallUseCaseImpl) parseInstallStatus(source *v1alpha1.RainbondClusterStatus) (statuses []model.InstallStatus) {
+func (ic *InstallUseCaseImpl) parseInstallStatus(source *v1alpha1.RainbondClusterStatus) (statusres model.StatusRes) {
 	if source == nil {
 		return
 	}
+	statuses := make([]model.InstallStatus, 0)
 	statuses = append(statuses, ic.stepSetting())
 	statuses = append(statuses, ic.stepDownload())
 	statuses = append(statuses, ic.stepPrepareInfrastructure(source))
 	statuses = append(statuses, ic.stepUnpack(source))
 	statuses = append(statuses, ic.stepHandleImage(source))
 	statuses = append(statuses, ic.stepCreateComponent(source))
+	finalStatus := InstallStatusFinished
+	for _, status := range statuses {
+		if status.Status != InstallStatusFinished {
+			finalStatus = InstallStatusProcessing
+			break
+		}
+	}
+	statusres = model.StatusRes{
+		FinalStatus: finalStatus,
+		StatusList:  statuses,
+	}
 	return
 }
 

@@ -18,6 +18,8 @@ type IClusterCase interface {
 type GlobalConfigUseCase interface {
 	GlobalConfigs() (*model.GlobalConfigs, error)
 	UpdateGlobalConfig(config *model.GlobalConfigs) error
+	Address() (string, error)
+	Uninstall() error
 }
 
 // ComponentUseCase cluster componse case
@@ -28,8 +30,9 @@ type ComponentUseCase interface { // TODO: loop call
 
 // InstallUseCase cluster install case
 type InstallUseCase interface {
+	InstallPreCheck() (model.StatusRes, error)
 	Install() error
-	InstallStatus() ([]model.InstallStatus, error)
+	InstallStatus() (model.StatusRes, error)
 }
 
 // CaseImpl case

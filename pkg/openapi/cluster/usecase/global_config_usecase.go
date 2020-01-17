@@ -287,3 +287,40 @@ func (cc *GlobalConfigUseCaseImpl) updateOrCreateEtcdCertInfo(certInfo model.Etc
 	_, err = cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Update(old)
 	return err
 }
+
+// Address address
+func (cc *GlobalConfigUseCaseImpl) Address() (string, error) {
+	cluster, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(cc.cfg.ClusterName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	addr := cluster.GatewayIngressIP()
+	if addr == "" {
+		return "", fmt.Errorf("can't get gatewayIngressIP")
+	}
+
+	return fmt.Sprintf("http://%s:7070", addr), nil
+}
+
+// Uninstall reset cluster
+func (cc *GlobalConfigUseCaseImpl) Uninstall() error {
+	components, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	var nfscomponent *v1alpha1.RbdComponent
+	for _, component := range components.Items {
+		if component.Name == "rbd-nfs" {
+			nfscomponent = &component
+			continue
+		}
+		err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Delete(component.Name, &metav1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	if nfscomponent == nil {
+		return nil
+	}
+	return cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Delete(nfscomponent.Name, &metav1.DeleteOptions{})
+}
