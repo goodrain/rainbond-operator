@@ -36,6 +36,7 @@ func (r *repo) Before() error {
 func (r *repo) Resources() []interface{} {
 	return []interface{}{
 		r.daemonSetForRepo(),
+		r.serviceForRepo(),
 	}
 }
 
