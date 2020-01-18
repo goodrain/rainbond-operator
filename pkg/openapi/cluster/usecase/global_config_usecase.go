@@ -319,8 +319,11 @@ func (cc *GlobalConfigUseCaseImpl) Uninstall() error {
 			return err
 		}
 	}
-	if nfscomponent == nil {
-		return nil
+	if nfscomponent != nil {
+		if err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Delete(nfscomponent.Name, &metav1.DeleteOptions{}); err != nil {
+			return err
+		}
 	}
-	return cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Delete(nfscomponent.Name, &metav1.DeleteOptions{})
+
+	return cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(cc.cfg.Namespace).Delete("rainbondpackage", &metav1.DeleteOptions{})
 }
