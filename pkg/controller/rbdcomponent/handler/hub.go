@@ -6,13 +6,13 @@ import (
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var HubName = "rbd-hub"
@@ -70,13 +70,11 @@ func (h *hub) daemonSetForHub() interface{} {
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Tolerations: []corev1.Toleration{
 						{
-							Key:    "node-role.kubernetes.io/master",
+							Key:    h.cluster.Status.MasterRoleLabel,
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",
-					},
+					NodeSelector: h.cluster.Status.MasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            "rbd-hub",

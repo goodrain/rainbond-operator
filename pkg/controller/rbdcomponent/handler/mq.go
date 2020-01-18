@@ -87,13 +87,11 @@ func (m *mq) daemonSetForMQ() interface{} {
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Tolerations: []corev1.Toleration{
 						{
-							Key:    "node-role.kubernetes.io/master",
+							Key:    m.cluster.Status.MasterRoleLabel,
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",
-					},
+					NodeSelector: m.cluster.Status.MasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            MQName,

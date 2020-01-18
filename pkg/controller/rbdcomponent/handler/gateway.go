@@ -91,13 +91,11 @@ func (g *gateway) daemonSetForGateway() interface{} {
 					DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
-							Key:    "node-role.kubernetes.io/master", // TODO: There are other labels used to identify the master
+							Key:    g.cluster.Status.MasterRoleLabel,
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "", // TODO: There are other labels used to identify the master
-					},
+					NodeSelector: g.cluster.Status.MasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            GatewayName,

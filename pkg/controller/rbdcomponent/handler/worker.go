@@ -107,16 +107,14 @@ func (w *worker) daemonSetForWorker() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName: "rainbond-operator",
+					ServiceAccountName:            "rainbond-operator",
 					Tolerations: []corev1.Toleration{
 						{
-							Key:    "node-role.kubernetes.io/master",
+							Key:    w.cluster.Status.MasterRoleLabel,
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",
-					},
+					NodeSelector: w.cluster.Status.MasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            WorkerName,

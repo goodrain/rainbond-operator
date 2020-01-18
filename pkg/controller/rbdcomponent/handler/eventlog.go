@@ -112,13 +112,11 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 					DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
-							Key:    "node-role.kubernetes.io/master",
+							Key:    e.cluster.Status.MasterRoleLabel,
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",
-					},
+					NodeSelector: e.cluster.Status.MasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            EventLogName,

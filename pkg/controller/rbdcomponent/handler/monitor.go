@@ -99,13 +99,11 @@ func (m *monitor) daemonSetForMonitor() interface{} {
 					ServiceAccountName: "rainbond-operator",
 					Tolerations: []corev1.Toleration{
 						{
-							Key:    "node-role.kubernetes.io/master",
+							Key:    m.cluster.Status.MasterRoleLabel,
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",
-					},
+					NodeSelector: m.cluster.Status.MasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            MonitorName,

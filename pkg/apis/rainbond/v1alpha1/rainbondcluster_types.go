@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubectl/pkg/describe"
 	"path"
 )
 
@@ -197,6 +198,8 @@ type RainbondClusterStatus struct {
 	PkgDestPath string `json:"pkgDestPath"`
 	// A list of controller statuses associated with rbdcomponent.
 	ControllerStatues []*ControllerStatus `json:"controllerStatus,omitempty"`
+
+	MasterRoleLabel string `json:"masterRoleLabel,omitempty"`
 }
 
 // +genclient
@@ -265,4 +268,19 @@ func (in *RainbondCluster) GatewayIngressIP() string {
 
 func (in *Database) RegionDataSource() string {
 	return fmt.Sprintf("--mysql=%s:%s@tcp(%s:%d)/region", in.Username, in.Password, in.Host, in.Port)
+}
+
+func (in *RainbondClusterStatus) MasterNodeLabel() map[string]string {
+	switch in.MasterRoleLabel {
+	case describe.LabelNodeRolePrefix + "master":
+		return map[string]string{
+			in.MasterRoleLabel: "",
+		}
+	case describe.NodeLabelRole:
+		return map[string]string{
+			describe.NodeLabelRole: "master",
+		}
+	}
+
+	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/kubectl/pkg/describe"
 	"net"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
@@ -121,7 +122,12 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	rainbondcluster.Status = r.generateRainbondClusterStatus(rainbondcluster)
+	status, err := r.generateRainbondClusterStatus(ctx, rainbondcluster)
+	if err != nil {
+		reqLogger.Error(err, "failed to generate rainbondcluster status")
+		return reconcile.Result{Requeue: true}, err
+	}
+	rainbondcluster.Status = status
 	if err := r.client.Status().Update(context.TODO(), rainbondcluster); err != nil {
 		reqLogger.Error(err, "failed to update rainbondcluster status")
 		return reconcile.Result{Requeue: true}, err
@@ -152,14 +158,12 @@ func (r *ReconcileRainbondCluster) availableStorageClasses() []*rainbondv1alpha1
 	return storageClasses
 }
 
-func (r *ReconcileRainbondCluster) listNodeAvailablePorts() []*rainbondv1alpha1.NodeAvailPorts {
+func (r *ReconcileRainbondCluster) listNodeAvailablePorts(masterRoleLabel map[string]string) []*rainbondv1alpha1.NodeAvailPorts {
 	klog.V(3).Info("Start checking rbd-gateway ports")
 	// list all node
 	nodeList := &corev1.NodeList{}
 	listOpts := []client.ListOption{
-		client.MatchingLabels(map[string]string{
-			"node-role.kubernetes.io/master": "", // TODO: This label does not necessarily exist. At this time, the user needs to specify
-		}),
+		client.MatchingLabels(masterRoleLabel),
 	}
 	if err := r.client.List(context.TODO(), nodeList, listOpts...); err != nil {
 		klog.Error(err, "list nodes")
@@ -217,13 +221,20 @@ func checkPortOccupation(address string) bool {
 
 // generateRainbondClusterStatus creates the final rainbondcluster status for a rainbondcluster, given the
 // internal rainbondcluster status.
-func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(rainbondCluster *rainbondv1alpha1.RainbondCluster) *rainbondv1alpha1.RainbondClusterStatus {
-	klog.V(3).Infof("Generating status for %q", format.RainbondCluster(rainbondCluster))
+func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(ctx context.Context, rainbondCluster *rainbondv1alpha1.RainbondCluster) (*rainbondv1alpha1.RainbondClusterStatus, error) {
+	klog.Infof("Generating status for %q", format.RainbondCluster(rainbondCluster))
+
+	masterRoleLabel, err := r.getMasterRoleLabel(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get master role label: %v", err)
+	}
+	klog.Infof("master role label: %s", masterRoleLabel)
 
 	s := &rainbondv1alpha1.RainbondClusterStatus{
-		StorageClasses: r.availableStorageClasses(),
-		NodeAvailPorts: r.listNodeAvailablePorts(),
+		MasterRoleLabel: masterRoleLabel,
+		StorageClasses:  r.availableStorageClasses(),
 	}
+	s.NodeAvailPorts = r.listNodeAvailablePorts(s.MasterNodeLabel())
 
 	status := status.NewStatus(r.client, rainbondCluster)
 
@@ -245,14 +256,14 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(rainbondCluster
 	isStorageReady := checkReadyFromConditionFn(rainbondv1alpha1.StorageReady)
 	isImageRepositoryReady := checkReadyFromConditionFn(rainbondv1alpha1.ImageRepositoryInstalled)
 	if !isStorageReady || !isImageRepositoryReady {
-		return s
+		return s, nil
 	}
 
 	s.Phase = rainbondv1alpha1.RainbondClusterPackageProcessing
 	isPackageExtractedReady := checkReadyFromConditionFn(rainbondv1alpha1.PackageExtracted)
 	isImagesPushedReady := checkReadyFromConditionFn(rainbondv1alpha1.ImagesPushed)
 	if !isPackageExtractedReady || !isImagesPushedReady {
-		return s
+		return s, nil
 	}
 
 	s.Phase = rainbondv1alpha1.RainbondClusterRunning
@@ -261,7 +272,7 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(rainbondCluster
 		s.Reason = "ErrListControllerStatuses"
 		s.Message = fmt.Sprintf("Error listing controller statuses: %v", err)
 		s.Phase = rainbondv1alpha1.RainbondClusterPending
-		return s
+		return s, nil
 	}
 
 	if len(controllerStatuses) == 0 {
@@ -278,7 +289,7 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(rainbondCluster
 		}
 	}
 
-	return s
+	return s, nil
 }
 
 // listControllerStatuses returns a list of controller statuses associated with rbdcomponent.
@@ -387,4 +398,24 @@ func (r *ReconcileRainbondCluster) grdataPersistentVolumeClaim(cluster *rainbond
 			StorageClassName: commonutil.String(cluster.StorageClass()),
 		},
 	}
+}
+
+func (r *ReconcileRainbondCluster) getMasterRoleLabel(ctx context.Context) (string, error) {
+	nodes := &corev1.NodeList{}
+	if err := r.client.List(ctx, nodes); err != nil {
+		log.Error(err, "list nodes: %v", err)
+		return "", nil
+	}
+	var label string
+	for _, node := range nodes.Items {
+		for key := range node.Labels {
+			if key == describe.LabelNodeRolePrefix + "master" {
+				label = key
+			}
+			if key == describe.NodeLabelRole && label != describe.LabelNodeRolePrefix + "master" {
+				label = key
+			}
+		}
+	}
+	return label, nil
 }

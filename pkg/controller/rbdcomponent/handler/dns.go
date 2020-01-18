@@ -60,18 +60,16 @@ func (d *dns) daemonSetForDNS() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName: "rainbond-operator",
-					HostNetwork:        true,
-					DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
+					ServiceAccountName:            "rainbond-operator",
+					HostNetwork:                   true,
+					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
-							Key:    "node-role.kubernetes.io/master",
+							Key:    d.cluster.Status.MasterRoleLabel,
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",
-					},
+					NodeSelector: d.cluster.Status.MasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            DNSName,
