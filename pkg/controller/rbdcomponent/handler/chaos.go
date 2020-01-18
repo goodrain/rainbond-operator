@@ -133,7 +133,13 @@ func (c *chaos) daemonSetForChaos() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName: "rainbond-operator",
+					ServiceAccountName:            "rainbond-operator",
+					HostAliases: []corev1.HostAlias{
+						{
+							IP:        c.cluster.GatewayIngressIP(),
+							Hostnames: []string{c.cluster.ImageRepository()},
+						},
+					},
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",
