@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -110,7 +111,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 								},
 								{
 									Name:  "REGION_WS_URL",
-									Value: "ws://rbd-api:6060",
+									Value: fmt.Sprintf("ws://%s:6060", a.cluster.GatewayIngressIP()),
 								},
 								{
 									Name:  "REGION_HTTP_DOMAIN",
