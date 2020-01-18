@@ -81,7 +81,6 @@ func (n *nfsProvisioner) statefulsetForNFSProvisioner() interface{} {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName: "rainbond-operator", // TODO: do not hard code, get sa from configuration.
 					Containers: []corev1.Container{
 						{
