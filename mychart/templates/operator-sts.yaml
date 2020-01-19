@@ -52,7 +52,7 @@ spec:
           image: "{{ .Values.openapi.image.repository }}:{{ .Values.openapi.image.tag }}"
           imagePullPolicy: {{ .Values.openapi.image.pullPolicy }}
           args:
-            - rbd-download-url="{{ .Values.openapi.downloadURL }}"
+            - --rbd-download-url="{{ .Values.openapi.downloadURL }}"
           volumeMounts:
             - mountPath: /opt/rainbond/pkg
               name: rbd-pkg
