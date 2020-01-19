@@ -86,6 +86,7 @@ func (a *api) daemonSetForAPI() interface{} {
 	args := []string{
 		"--api-addr=$(POD_IP):8888",
 		"--api-ssl-enable=false",
+		"--enable-feature=privileged",
 		fmt.Sprintf("--log-level=%s", a.component.LogLevel()),
 		a.db.RegionDataSource(),
 		"--etcd=" + strings.Join(etcdEndpoints(a.cluster), ","),
