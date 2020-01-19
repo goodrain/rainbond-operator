@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 
@@ -35,6 +36,7 @@ func (d *dns) Before() error {
 func (d *dns) Resources() []interface{} {
 	return []interface{}{
 		d.daemonSetForDNS(),
+		d.serviceForDNS(),
 	}
 }
 
@@ -112,4 +114,28 @@ func (d *dns) daemonSetForDNS() interface{} {
 	}
 
 	return ds
+}
+
+func (d *dns) serviceForDNS() interface{} {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      DNSName,
+			Namespace: d.component.Namespace,
+			Labels:    d.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "dns",
+					Port: 53,
+					TargetPort: intstr.IntOrString{
+						IntVal: 53,
+					},
+				},
+			},
+			Selector: d.labels,
+		},
+	}
+
+	return svc
 }
