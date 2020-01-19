@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -99,6 +98,22 @@ func (d *db) statefulsetForDB() interface{} {
 									Name:      "initdb",
 									MountPath: "/docker-entrypoint-initdb.d",
 								},
+							},
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									Exec: &corev1.ExecAction{Command: []string{"mysqladmin", "-u" + "root", "-p" + "rainbond", "ping"}},
+								},
+								InitialDelaySeconds: 30,
+								PeriodSeconds:       10,
+								TimeoutSeconds:      5,
+							},
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									Exec: &corev1.ExecAction{Command: []string{"mysql", "-u" + "root", "-p" + "rainbond", "-e", "SELECT 1"}},
+								},
+								InitialDelaySeconds: 5,
+								PeriodSeconds:       2,
+								TimeoutSeconds:      1,
 							},
 						},
 					},
