@@ -2,9 +2,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# namespace
-namespace: rbd-system
-
 ## Install Default RBAC roles and bindings
 rbac:
   create: true
@@ -32,3 +29,4 @@ openapi:
     pullPolicy: IfNotPresent
   port: 8080
   nodePort: 30008
+  downloadURL: https://hrhtest.oss-cn-shanghai.aliyuncs.com/rainbond-pkg-V5.2-dev.tgz?OSSAccessKeyId=LTAIVsBmV7qjFJzK&Expires=1579407682&Signature=2Nmf5ZBAGIo%2F05%2BogDyAgSaSJNI%3D

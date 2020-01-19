@@ -129,7 +129,7 @@ spec:
             version:
               type: string
           required:
-            - suffixHTTPHost
+          - suffixHTTPHost
           type: object
         status:
           description: RainbondClusterStatus defines the observed state of RainbondCluster
@@ -177,8 +177,8 @@ spec:
                     description: Type is the type of the condition.
                     type: string
                 required:
-                  - status
-                  - type
+                - status
+                - type
                 type: object
               type: array
             controllerStatus:
@@ -221,16 +221,16 @@ spec:
                   provisioner:
                     type: string
                 required:
-                  - name
-                  - provisioner
+                - name
+                - provisioner
                 type: object
               type: array
           required:
-            - pkgDestPath
+          - pkgDestPath
           type: object
       type: object
   version: v1alpha1
   versions:
-    - name: v1alpha1
-      served: true
-      storage: true
+  - name: v1alpha1
+    served: true
+    storage: true
