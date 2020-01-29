@@ -2,10 +2,11 @@ package upload
 
 import (
 	"fmt"
-	"net/http"
-
 	"github.com/GLYASAI/rainbond-operator/pkg/util/corsutil"
 	"github.com/gin-gonic/gin"
+	"net/http"
+	"os"
+	"path"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -38,6 +39,12 @@ func (u *Controller) Upload(c *gin.Context) {
 		return
 	}
 	fmt.Println(file.Filename)
+
+	// TODO: use mvc
+	if err := os.MkdirAll(path.Dir(u.archiveFilePath), os.ModePerm); err != nil {
+		c.JSON(400, map[string]interface{}{"msg": err.Error()})
+		return
+	}
 
 	// 上传文件至指定目录
 	if err := c.SaveUploadedFile(file, u.archiveFilePath); err != nil {

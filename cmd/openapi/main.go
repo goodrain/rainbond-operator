@@ -32,7 +32,7 @@ import (
 var log = logf.Log.WithName("openapi")
 
 var (
-	archiveFilePath = "/opt/rainbond/pkg/rainbond-pkg-V5.2-dev.tgz"
+	archiveFilePath = "/opt/rainbond/pkg/tgz/rainbond-pkg-V5.2-dev.tgz"
 )
 
 // APIServer api server

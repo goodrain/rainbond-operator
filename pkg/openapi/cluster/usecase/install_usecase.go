@@ -71,7 +71,7 @@ func init() {
 		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:V5.2-dev"},
 		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:V5.2-dev"},
 		{name: "rbd-db", image: "goodrain.me/mariadb"},
-		{name: "rbd-dns", image: "goodrain.me/rbd-dns:5.1.0"},
+		{name: "rbd-dns", image: "goodrain.me/rbd-dns"},
 		{name: "rbd-etcd", image: "quay.io/coreos/etcd:latest"},
 		{name: "rbd-eventlog", image: "goodrain.me/rbd-eventlog:V5.2-dev"},
 		{name: "rbd-gateway", image: "abewang/rbd-gateway:V5.2-dev"},

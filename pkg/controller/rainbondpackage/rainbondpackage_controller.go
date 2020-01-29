@@ -8,7 +8,6 @@ import (
 	"github.com/GLYASAI/rainbond-operator/pkg/util/tarutil"
 	"github.com/pquerna/ffjson/ffjson"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -20,6 +19,7 @@ import (
 	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/retryutil"
 
+	"github.com/docker/distribution/reference"
 	dtypes "github.com/docker/docker/api/types"
 	dclient "github.com/docker/docker/client"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -37,7 +37,7 @@ import (
 
 var log = logf.Log.WithName("controller_rainbondpackage")
 
-var pkgDst = "/opt/rainbond/pkg"
+var pkgDst = "/opt/rainbond/pkg/files"
 
 // Add creates a new RainbondPackage Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -169,7 +169,7 @@ func newpkg(ctx context.Context, client client.Client, dcli *dclient.Client, p *
 	pkg.status = p.Status.DeepCopy()
 	if pkg.status == nil {
 		pkg.status = &rainbondv1alpha1.RainbondPackageStatus{
-			FilesNumber: 18,
+			FilesNumber: 20,
 		}
 	}
 	return pkg
@@ -311,8 +311,8 @@ func (p *pkg) untartar() error {
 	log.Info(fmt.Sprintf("start untartaring %s", p.pkg.Spec.PkgPath))
 	errCh := make(chan error)
 	go func(errCh chan error) {
-		_ = os.RemoveAll(pkgDir(p.pkg.Spec.PkgPath, pkgDst))
-
+		_ = os.RemoveAll(pkgDst)
+		_ = os.MkdirAll(pkgDst, os.ModePerm)
 		if err := tarutil.Untartar(p.pkg.Spec.PkgPath, pkgDst); err != nil {
 			errCh <- err
 			return
@@ -327,21 +327,7 @@ func (p *pkg) untartar() error {
 			return err
 		case <-tick:
 			// count files
-			files, err := ioutil.ReadDir(pkgDir(p.pkg.Spec.PkgPath, pkgDst))
-			if err != nil {
-				// ignore error
-				log.Info("count image files: %v", err)
-			}
-			var num int32 = 0
-			for _, file := range files {
-				if file.IsDir() {
-					continue
-				}
-				if !validateFile(file.Name()) {
-					continue
-				}
-				num++
-			}
+			num := countImages(pkgDst)
 			if p.status.NumberExtracted == num {
 				continue
 			}
@@ -355,13 +341,7 @@ func (p *pkg) untartar() error {
 }
 
 func (p *pkg) imagesLoadAndPush() error {
-	dir := pkgDir(p.pkg.Spec.PkgPath, pkgDst)
-	imagesNumber, err := countImages(dir)
-	if err != nil {
-		return fmt.Errorf("failed to count the number of images: %v", err)
-	}
-
-	p.status.ImagesNumber = imagesNumber
+	p.status.ImagesNumber = countImages(pkgDst)
 	p.status.ImagesPushed = make(map[string]struct{})
 	if err := p.updateCRStatus(); err != nil {
 		return fmt.Errorf("failed to update image status: %v", err)
@@ -382,34 +362,36 @@ func (p *pkg) imagesLoadAndPush() error {
 		}
 
 		f := func() (bool, error) {
-			imageName, err := p.imageLoad(pstr)
+			image, err := p.imageLoad(pstr)
 			if err != nil {
 				l.Error(err, "load image")
 				return false, fmt.Errorf("load image: %v", err)
 			}
 
-			if err = p.imagePush(imageName); err != nil {
-				l.Error(err, "push image")
-				return false, fmt.Errorf("push image: %v", err)
+			newImage := newImageWithNewDomain(image, p.cluster.ImageRepository())
+
+			if err := p.dcli.ImageTag(p.ctx, image, newImage); err != nil {
+				l.Error(err, "tag image", "source", image, "target", newImage)
+				return false, fmt.Errorf("tag image: %v", err)
 			}
 
-			p.status.ImagesPushed[imageName] = struct{}{}
+			if err = p.imagePush(newImage); err != nil {
+				l.Error(err, "push image", "image", newImage)
+				return false, fmt.Errorf("push image %s: %v", newImage, err)
+			}
+
+			p.status.ImagesPushed[newImage] = struct{}{}
 			if err := p.updateCRStatus(); err != nil {
 				return false, fmt.Errorf("update cr status: %v", err)
 			}
-			l.Info("successfully load image", "image", imageName)
+			l.Info("successfully load image", "image", newImage)
 			return true, nil
 		}
 
 		return retryutil.Retry(1*time.Second, 3, f)
 	}
 
-	err = filepath.Walk(dir, walkFn)
-	if err != nil {
-		return fmt.Errorf("failed to walk file: %v", err)
-	}
-
-	return nil
+	return filepath.Walk(pkgDst, walkFn)
 }
 
 func (p *pkg) imageLoad(file string) (string, error) {
@@ -422,7 +404,7 @@ func (p *pkg) imageLoad(file string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("path: %s; failed to load images: %v", file, err)
 	}
-	var lastMsg string
+	var imageName string
 	if res.Body != nil {
 		defer res.Body.Close()
 		dec := json.NewDecoder(res.Body)
@@ -443,14 +425,15 @@ func (p *pkg) imageLoad(file string) (string, error) {
 			if jm.Error != nil {
 				return "", fmt.Errorf("error detail: %v", jm.Error)
 			}
-			lastMsg = jm.JSONString()
-			log.Info("response from image loading", "msg", lastMsg)
+			msg := jm.JSONString()
+			log.Info("response from image loading", "msg", msg)
+			if imageName == "" {
+				imageName, err = parseImageName(msg)
+				if err != nil {
+					return "", fmt.Errorf("failed to parse image name: %v", err)
+				}
+			}
 		}
-	}
-	log.Info(fmt.Sprintf("last message: %s", lastMsg))
-	imageName, err := parseImageName(lastMsg)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse image name: %v", err)
 	}
 	return imageName, nil
 }
@@ -470,16 +453,10 @@ func (p *pkg) imagePush(image string) error {
 	}
 	opts.RegistryAuth = registryAuth
 
-	newImage := strings.Replace(image, "rainbond", "goodrain.me", -1) // TODO: parse image
-	if err := p.dcli.ImageTag(p.ctx, image, newImage); err != nil {
-		log.Error(err, fmt.Sprintf("rename image %s", image))
-		return fmt.Errorf("rename image %s: %v", image, err)
-	}
-
-	res, err := p.dcli.ImagePush(p.ctx, newImage, opts)
+	res, err := p.dcli.ImagePush(p.ctx, image, opts)
 	if err != nil {
-		log.Error(err, "failed to push image", "image", newImage)
-		return fmt.Errorf("push image %s: %v", newImage, err)
+		log.Error(err, "failed to push image", "image", image)
+		return fmt.Errorf("push image %s: %v", image, err)
 	}
 	if res != nil {
 		defer res.Close()
@@ -492,6 +469,8 @@ func (p *pkg) imagePush(image string) error {
 				return p.ctx.Err()
 			default:
 			}
+			// TODO: use  github.com/docker/docker/pkg/jsonmessage
+			// ref: https://stackoverflow.com/questions/44452679/golang-docker-api-parse-result-of-imagepull/44509434
 			var jm JSONMessage
 			if err := dec.Decode(&jm); err != nil {
 				if err == io.EOF {
@@ -536,6 +515,9 @@ func parseImageName(s string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("wrong format")
 	}
+	if strings.HasPrefix(str, "Loaded image ID:") {
+		return "", nil
+	}
 	str = strings.Replace(str, "Loaded image: ", "", -1)
 	str = strings.Replace(str, "\n", "", -1)
 	str = trimLatest(str)
@@ -557,25 +539,25 @@ func trimLatest(str string) string {
 	return str[:len(str)-len(":latest")]
 }
 
-func countImages(dir string) (int32, error) {
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return 0, fmt.Errorf("failed to read dir %s: %v", dir, err)
-	}
-
+func countImages(dir string) int32 {
+	l := log.WithName("count images")
 	var count int32
-	for _, file := range files {
-		if file.IsDir() {
-			continue
+	_ = filepath.Walk(dir, func(pstr string, info os.FileInfo, err error) error {
+		if err != nil {
+			l.Info(fmt.Sprintf("walk path %s: %v", pstr, err))
+			return nil
 		}
-		base := path.Base(file.Name())
-		if path.Ext(base) != ".tgz" || strings.HasPrefix(base, "._") {
-			continue
+		if !commonutil.IsFile(pstr) {
+			return nil
+		}
+		if !validateFile(pstr) {
+			return nil
 		}
 		count++
-	}
+		return nil
+	})
 
-	return count, nil
+	return count
 }
 
 func validateFile(file string) bool {
@@ -584,4 +566,15 @@ func validateFile(file string) bool {
 		return false
 	}
 	return true
+}
+
+func newImageWithNewDomain(image string, newDomain string) string {
+	repo, _ := reference.Parse(image)
+	named := repo.(reference.Named)
+	remoteName := reference.Path(named)
+	tag := "latest"
+	if t, ok := repo.(reference.Tagged); ok {
+		tag = t.Tag()
+	}
+	return path.Join(newDomain, remoteName+":"+tag)
 }

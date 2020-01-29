@@ -37,11 +37,14 @@ check:
 
 test:operator-image
 	docker save -o /tmp/rainbond-operator.tgz abewang/rainbond-operator:v0.0.1
-	scp /tmp/rainbond-operator.tgz root@172.20.0.12:/root
+	scp /tmp/rainbond-operator.tgz root@172.20.0.20:/root
 
 .PHONY: mock
 mock:
 	./mockgen.sh
 
 build-api:
-	docker build . -f hack/openapi/Dockerfile -t abewang/rbd-op-ui:v0.0.1
+	docker build --no-cache . -f hack/openapi/Dockerfile -t abewang/rbd-op-ui:v0.0.1
+test-api: build-api
+	docker save -o /tmp/openapi.tgz abewang/rbd-op-ui:v0.0.1
+	scp /tmp/openapi.tgz root@172.20.0.20:/root

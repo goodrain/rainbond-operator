@@ -9,6 +9,7 @@ require (
 	github.com/cheggaaa/pb/v3 v3.0.3
 	github.com/coreos/etcd v3.3.15+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v0.7.3-0.20190817195342-4760db040282
 	github.com/gin-contrib/cors v1.3.0 // indirect
 	github.com/gin-gonic/contrib v0.0.0-20191209060500-d6e26eeaa607

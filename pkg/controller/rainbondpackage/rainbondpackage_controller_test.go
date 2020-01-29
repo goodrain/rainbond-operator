@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -73,13 +72,4 @@ func TestParseImageName(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestTrimRight(t *testing.T) {
-	files, err := ioutil.ReadDir(pkgDir("/Users/abewang/Downloads/rainbond-pkg-V5.2-dev.tgz", "/Users/abewang/Downloads/"))
-	if err != nil {
-		// ignore error
-		log.Info("count image files: %v", err)
-	}
-	t.Log(len(files))
 }
