@@ -45,6 +45,9 @@ mock:
 
 build-api:
 	docker build --no-cache . -f hack/openapi/Dockerfile -t abewang/rbd-op-ui:v0.0.1
-test-api: build-api
+test-api:
+	GOOS=linux go build -o openapi ./cmd/openapi
+	docker build --no-cache . -f hack/openapi/Dockerfile.dev -t abewang/rbd-op-ui:v0.0.1
+	rm -rf ./openapi
 	docker save -o /tmp/openapi.tgz abewang/rbd-op-ui:v0.0.1
 	scp /tmp/openapi.tgz root@172.20.0.20:/root

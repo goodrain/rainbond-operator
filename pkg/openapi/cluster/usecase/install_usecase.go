@@ -26,7 +26,6 @@ var (
 )
 
 var (
-
 	// StepSetting          StepSetting
 	StepSetting = "step_setting"
 	// StepDownload         StepDownload
@@ -67,19 +66,19 @@ func (c *componentClaim) getImage() string {
 
 func init() {
 	componentClaims = []componentClaim{
+		{name: "rbd-etcd", image: "registry.cn-hangzhou.aliyuncs.com/abewang/etcd:v3.3.18"}, // TODO: custom domain
+		{name: "rbd-gateway", image: "registry.cn-hangzhou.aliyuncs.com/abewang/rbd-gateway:V5.2-dev"},
+		{name: "rbd-hub", image: "registry.cn-hangzhou.aliyuncs.com/abewang/registry:2.6.2"},
+		{name: "rbd-node", image: "registry.cn-hangzhou.aliyuncs.com/abewang/rbd-node:V5.2-dev"},
+		{name: "rbd-nfs", image: "registry.cn-hangzhou.aliyuncs.com/abewang/nfs-provisioner:v2.2.1-k8s1.12"},
 		{name: "rbd-api", image: "goodrain.me/rbd-api:V5.2-dev"},
 		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:V5.2-dev"},
 		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:V5.2-dev"},
 		{name: "rbd-db", image: "goodrain.me/mariadb"},
 		{name: "rbd-dns", image: "goodrain.me/rbd-dns"},
-		{name: "rbd-etcd", image: "quay.io/coreos/etcd:latest"},
 		{name: "rbd-eventlog", image: "goodrain.me/rbd-eventlog:V5.2-dev"},
-		{name: "rbd-gateway", image: "abewang/rbd-gateway:V5.2-dev"},
-		{name: "rbd-hub", image: "rainbond/rbd-registry:2.6.2"},
 		{name: "rbd-monitor", image: "goodrain.me/rbd-monitor:V5.2-dev"},
 		{name: "rbd-mq", image: "goodrain.me/rbd-mq:V5.2-dev"},
-		{name: "rbd-nfs", image: "abewang/nfs-provisioner:v2.2.1-k8s1.12"},
-		{name: "rbd-node", image: "abewang/rbd-node:V5.2-dev"},
 		{name: "rbd-worker", image: "goodrain.me/rbd-worker:V5.2-dev"},
 		{name: "rbd-webcli", image: "goodrain.me/rbd-webcli:V5.2-dev"}, // not now
 		{name: "rbd-repo", image: "goodrain.me/rbd-repo:6.16.0"},
