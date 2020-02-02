@@ -112,14 +112,18 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	claim := r.grdataPersistentVolumeClaim(rainbondcluster)
-	// Set RbdComponent cpt as the owner and controller
-	if err := controllerutil.SetControllerReference(rainbondcluster, claim, r.scheme); err != nil {
-		return reconcile.Result{Requeue: true}, err
-	}
-	if err = k8sutil.UpdateOrCreateResource(ctx, r.client, reqLogger, claim, claim); err != nil {
-		reqLogger.Error(err, "failed to update or create grdata pvc")
-		return reconcile.Result{Requeue: true}, err
+	claims := r.claims(rainbondcluster)
+	for i := range claims {
+		claim := claims[i]
+		// Set RbdComponent cpt as the owner and controller
+		if err := controllerutil.SetControllerReference(rainbondcluster, claim, r.scheme); err != nil {
+			reqLogger.Error(err, "set controller reference")
+			return reconcile.Result{Requeue: true}, err
+		}
+		if err = k8sutil.UpdateOrCreateResource(ctx, r.client, reqLogger, claim, claim); err != nil {
+			reqLogger.Error(err, "update or create pvc")
+			return reconcile.Result{Requeue: true}, err
+		}
 	}
 
 	status, err := r.generateRainbondClusterStatus(ctx, rainbondcluster)
@@ -379,6 +383,48 @@ func (r *ReconcileRainbondCluster) listDaemonSetStatuses() ([]*rainbondv1alpha1.
 	return statues, nil
 }
 
+func (r *ReconcileRainbondCluster) claims(cluster *rainbondv1alpha1.RainbondCluster) []*corev1.PersistentVolumeClaim {
+	storageRequest := resource.NewQuantity(10, resource.BinarySI) // TODO: size
+
+	grdata := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.Namespace,
+			Name:      constants.GrDataPVC,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteMany,
+			},
+			Resources: corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceStorage: *storageRequest,
+				},
+			},
+			StorageClassName: commonutil.String(cluster.StorageClass()),
+		},
+	}
+
+	cache := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.Namespace,
+			Name:      "cache",
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteMany,
+			},
+			Resources: corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceStorage: *storageRequest,
+				},
+			},
+			StorageClassName: commonutil.String(cluster.StorageClass()),
+		},
+	}
+
+	return []*corev1.PersistentVolumeClaim{grdata, cache}
+}
+
 func (r *ReconcileRainbondCluster) grdataPersistentVolumeClaim(cluster *rainbondv1alpha1.RainbondCluster) *corev1.PersistentVolumeClaim {
 	storageRequest := resource.NewQuantity(10, resource.BinarySI) // TODO: size
 	return &corev1.PersistentVolumeClaim{
@@ -409,10 +455,10 @@ func (r *ReconcileRainbondCluster) getMasterRoleLabel(ctx context.Context) (stri
 	var label string
 	for _, node := range nodes.Items {
 		for key := range node.Labels {
-			if key == describe.LabelNodeRolePrefix + "master" {
+			if key == describe.LabelNodeRolePrefix+"master" {
 				label = key
 			}
-			if key == describe.NodeLabelRole && label != describe.LabelNodeRolePrefix + "master" {
+			if key == describe.NodeLabelRole && label != describe.LabelNodeRolePrefix+"master" {
 				label = key
 			}
 		}
