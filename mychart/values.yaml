@@ -29,4 +29,4 @@ openapi:
     pullPolicy: IfNotPresent
   port: 8080
   nodePort: 30008
-  downloadURL: https://hrhtest.oss-cn-shanghai.aliyuncs.com/rainbond-pkg-V5.2-dev.tgz?OSSAccessKeyId=LTAIVsBmV7qjFJzK&Expires=1579422481&Signature=cKHlvnYLdc%2BELhBXqTTGWhqk4SY%3D
+  downloadURL: https://hrhtest.oss-cn-shanghai.aliyuncs.com/rainbond.images.2020-01-25-5.2-dev.tgz?OSSAccessKeyId=LTAIVsBmV7qjFJzK&Expires=1580636625&Signature=E8Kwn2uRbBpgmIuWyebHU0p3wE0%3D

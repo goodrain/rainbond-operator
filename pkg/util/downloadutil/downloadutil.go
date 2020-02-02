@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/sirupsen/logrus"
@@ -48,6 +49,10 @@ func (listener *DownloadWithProgress) Download() error {
 		return err
 	}
 	logrus.Debug("download finished, move file to ", listener.SavedPath)
+	dir := path.Dir(listener.SavedPath)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return err
+	}
 	if err = os.Rename(tmpPath, listener.SavedPath); err != nil {
 		return err
 	}
