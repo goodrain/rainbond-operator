@@ -62,7 +62,7 @@ func (n *nfsProvisioner) After() error {
 }
 
 func (n *nfsProvisioner) statefulsetForNFSProvisioner() interface{} {
-	labels := n.component.Labels()
+	labels := n.component.GetLabels()
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      NFSName,
@@ -167,7 +167,7 @@ func (n *nfsProvisioner) statefulsetForNFSProvisioner() interface{} {
 }
 
 func (n *nfsProvisioner) serviceForNFSProvisioner() interface{} {
-	labels := n.component.Labels()
+	labels := n.component.GetLabels()
 
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -206,7 +206,7 @@ func (n *nfsProvisioner) storageClassForNFSProvisioner() *storagev1.StorageClass
 	sc := &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   NFSName,
-			Labels: n.component.Labels(),
+			Labels: n.component.GetLabels(),
 		},
 		Provisioner: nfsProvisionerName,
 		MountOptions: []string{

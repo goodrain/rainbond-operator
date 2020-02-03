@@ -34,7 +34,7 @@ func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1
 
 		component: component,
 		cluster:   cluster,
-		labels:    component.Labels(),
+		labels:    component.GetLabels(),
 	}
 }
 

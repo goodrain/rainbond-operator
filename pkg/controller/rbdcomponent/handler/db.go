@@ -25,7 +25,7 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 	return &db{
 		component: component,
 		cluster:   cluster,
-		labels:    component.Labels(),
+		labels:    component.GetLabels(),
 	}
 }
 

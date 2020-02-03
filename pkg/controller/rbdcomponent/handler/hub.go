@@ -50,7 +50,7 @@ func (h *hub) After() error {
 }
 
 func (h *hub) daemonSetForHub() interface{} {
-	labels := h.component.Labels()
+	labels := h.component.GetLabels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
@@ -107,7 +107,7 @@ func (h *hub) daemonSetForHub() interface{} {
 }
 
 func (h *hub) serviceForHub() interface{} {
-	labels := h.component.Labels()
+	labels := h.component.GetLabels()
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
@@ -155,7 +155,7 @@ func (h *hub) persistentVolumeClaimForHub() interface{} {
 }
 
 func (h *hub) ingressForHub() interface{} {
-	labels := h.component.Labels()
+	labels := h.component.GetLabels()
 	ing := &extensions.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
@@ -204,7 +204,7 @@ func (h *hub) ingressForHub() interface{} {
 }
 
 func (h *hub) secretForHub() interface{} {
-	labels := h.component.Labels()
+	labels := h.component.GetLabels()
 	labels["name"] = hubImageRepository
 
 	_, pem, key, _ := commonutil.DomainSign(h.cluster.ImageRepository())

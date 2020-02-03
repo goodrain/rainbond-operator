@@ -7,7 +7,6 @@ import (
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/kubectl/pkg/describe"
 	"net"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
@@ -455,10 +454,10 @@ func (r *ReconcileRainbondCluster) getMasterRoleLabel(ctx context.Context) (stri
 	var label string
 	for _, node := range nodes.Items {
 		for key := range node.Labels {
-			if key == describe.LabelNodeRolePrefix+"master" {
+			if key == rainbondv1alpha1.LabelNodeRolePrefix+"master" {
 				label = key
 			}
-			if key == describe.NodeLabelRole && label != describe.LabelNodeRolePrefix+"master" {
+			if key == rainbondv1alpha1.NodeLabelRole && label != rainbondv1alpha1.LabelNodeRolePrefix+"master" {
 				label = key
 			}
 		}

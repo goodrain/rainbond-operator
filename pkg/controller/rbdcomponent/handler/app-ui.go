@@ -33,7 +33,7 @@ func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1al
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.Labels(),
+		labels:    component.GetLabels(),
 	}
 }
 
@@ -65,17 +65,17 @@ func (a *appui) deploymentForAppUI() interface{} {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      AppUIName,
 			Namespace: cpt.Namespace,
-			Labels:    cpt.Labels(),
+			Labels:    cpt.GetLabels(),
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: commonutil.Int32(1),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: cpt.Labels(),
+				MatchLabels: cpt.GetLabels(),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   AppUIName,
-					Labels: cpt.Labels(),
+					Labels: cpt.GetLabels(),
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),

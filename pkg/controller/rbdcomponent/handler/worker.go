@@ -33,7 +33,7 @@ func NewWorker(ctx context.Context, client client.Client, component *rainbondv1a
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.Labels(),
+		labels:    component.GetLabels(),
 	}
 }
 

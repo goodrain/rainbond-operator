@@ -68,7 +68,7 @@ func (g *gateway) daemonSetForGateway() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
-	labels := g.component.Labels()
+	labels := g.component.GetLabels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayName,

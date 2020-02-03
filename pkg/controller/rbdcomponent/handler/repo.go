@@ -25,7 +25,7 @@ func NewRepo(ctx context.Context, client client.Client, component *rainbondv1alp
 	return &repo{
 		component: component,
 		cluster:   cluster,
-		labels:    component.Labels(),
+		labels:    component.GetLabels(),
 	}
 }
 

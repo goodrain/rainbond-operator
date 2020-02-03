@@ -36,7 +36,7 @@ func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alph
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.Labels(),
+		labels:    component.GetLabels(),
 	}
 }
 
@@ -186,7 +186,7 @@ func (a *api) serviceForAPI() interface{} {
 }
 
 func (a *api) secretForAPI() interface{} {
-	labels := a.component.Labels()
+	labels := a.component.GetLabels()
 	labels["name"] = apiSecretName
 
 	caPem, pem, key, _ := commonutil.DomainSign("rbd-api") // sign all gateway ip

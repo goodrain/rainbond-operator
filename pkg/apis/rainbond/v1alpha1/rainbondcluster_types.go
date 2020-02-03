@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubectl/pkg/describe"
 	"path"
 )
 
@@ -16,6 +15,16 @@ const (
 	InstallationModeWithPackage InstallMode = "WithPackage"
 	// InstallationModeWithoutPackage means all Rainbond images are from the specified image repository, not the installation package.
 	InstallationModeWithoutPackage InstallMode = "WithoutPackage"
+
+	// LoadBalancerWidth is the width how we describe load balancer
+	LoadBalancerWidth = 16
+
+	// LabelNodeRolePrefix is a label prefix for node roles
+	// It's copied over to here until it's merged in core: https://github.com/kubernetes/kubernetes/pull/39112
+	LabelNodeRolePrefix = "node-role.kubernetes.io/"
+
+	// NodeLabelRole specifies the role of a node
+	NodeLabelRole = "kubernetes.io/role"
 )
 
 // ImageHub image hub
@@ -284,13 +293,13 @@ func (in *Database) RegionDataSource() string {
 
 func (in *RainbondClusterStatus) MasterNodeLabel() map[string]string {
 	switch in.MasterRoleLabel {
-	case describe.LabelNodeRolePrefix + "master":
+	case LabelNodeRolePrefix + "master":
 		return map[string]string{
 			in.MasterRoleLabel: "",
 		}
-	case describe.NodeLabelRole:
+	case NodeLabelRole:
 		return map[string]string{
-			describe.NodeLabelRole: "master",
+			NodeLabelRole: "master",
 		}
 	}
 

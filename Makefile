@@ -32,7 +32,7 @@ ctrl-add:
 
 .PHONY: check
 check:
-	which ./bin/golangci-lint > /dev/null || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.22.2
+	which ./bin/golangci-lint > /dev/null || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.23.2
 	@bin/golangci-lint run
 
 test:operator-image

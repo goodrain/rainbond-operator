@@ -34,7 +34,7 @@ func NewChaos(ctx context.Context, client client.Client, component *rainbondv1al
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.Labels(),
+		labels:    component.GetLabels(),
 	}
 }
 

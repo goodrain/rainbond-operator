@@ -105,7 +105,7 @@ func init() {
 	SchemeBuilder.Register(&RbdComponent{}, &RbdComponentList{})
 }
 
-func (in *RbdComponent) Labels() map[string]string {
+func (in *RbdComponent) GetLabels() map[string]string {
 	return map[string]string{
 		"creator":  "Rainbond",
 		"belongTo": "RainbondOperator",
