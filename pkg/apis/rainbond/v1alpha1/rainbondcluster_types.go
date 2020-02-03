@@ -48,6 +48,16 @@ type KubeletConfig struct {
 	SecretName string `json:"secretName,omitempty"`
 }
 
+// FstabLine represents a line in file /etc/fstab.
+type FstabLine struct {
+	FileSystem string `json:"fileSystem,omitempty"`
+	MountPoint string `json:"mountPoint,omitempty"`
+	Type       string `json:"type,omitempty"`
+	Options    string `json:"options,omitempty"`
+	Dump       int    `json:"dump,omitempty"`
+	Pass       int    `json:"pass,omitempty"`
+}
+
 // RainbondClusterSpec defines the desired state of RainbondCluster
 type RainbondClusterSpec struct {
 	// Domain name of the image repository which Rainbond is installed
@@ -82,6 +92,8 @@ type RainbondClusterSpec struct {
 	KubeletConfig *KubeletConfig `json:"kubeletConfig,omitempty"`
 
 	Version string `json:"version,omitempty"`
+
+	FstabLines []FstabLine `json:"fstabLines,omitempty"`
 }
 
 // RainbondClusterPhase is a label for the condition of a rainbondcluster at the current time.
