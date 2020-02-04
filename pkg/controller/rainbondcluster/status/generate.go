@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	rbdutil "github.com/GLYASAI/rainbond-operator/pkg/util/rbduitl"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"net/http"
@@ -59,7 +60,7 @@ func (s *Status) GenerateRainbondClusterStorageReadyCondition() rainbondv1alpha1
 	}
 
 	sts := &appv1.StatefulSet{}
-	if err := s.client.Get(context.TODO(), types.NamespacedName{Namespace: s.cluster.Namespace, Name: s.cluster.StorageClass()}, sts); err != nil {
+	if err := s.client.Get(context.TODO(), types.NamespacedName{Namespace: s.cluster.Namespace, Name: rbdutil.GetStorageClass(s.cluster)}, sts); err != nil {
 		condition.Reason = "ErrGetProvisioner"
 		condition.Message = fmt.Sprintf("failed to get provisioner: %v", err)
 		return condition
@@ -99,7 +100,7 @@ func (s *Status) GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCl
 		},
 	}
 
-	domain := s.cluster.ImageRepository()
+	domain := rbdutil.GetImageRepository(s.cluster)
 	u, err := url.Parse(fmt.Sprintf("https://%s/v2/", s.cluster.GatewayIngressIP()))
 	if err != nil {
 		condition.Reason = WrongImageRepositoryHost

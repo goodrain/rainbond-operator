@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
+	rbdutil "github.com/GLYASAI/rainbond-operator/pkg/util/rbduitl"
 	"strings"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -137,7 +138,7 @@ func (c *chaos) daemonSetForChaos() interface{} {
 					HostAliases: []corev1.HostAlias{
 						{
 							IP:        c.cluster.GatewayIngressIP(),
-							Hostnames: []string{c.cluster.ImageRepository()},
+							Hostnames: []string{rbdutil.GetImageRepository(c.cluster)},
 						},
 					},
 					Tolerations: []corev1.Toleration{

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
+	rbdutil "github.com/GLYASAI/rainbond-operator/pkg/util/rbduitl"
 	"strings"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -158,7 +159,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 		"--noderule manage,compute", // TODO: Let rbd-node recognize itself
 		"--nodeid=$(NODE_NAME)",
 		"--image-repo-ip=" + n.cluster.GatewayIngressIP(),
-		"--image-repo-host=" + n.cluster.ImageRepository(),
+		"--image-repo-host=" + rbdutil.GetImageRepository(n.cluster),
 	}
 	if n.etcdSecret != nil {
 		volume, mount := volumeByEtcd(n.etcdSecret)
@@ -188,7 +189,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 					HostAliases: []corev1.HostAlias{
 						{
 							IP:        n.cluster.GatewayIngressIP(),
-							Hostnames: []string{n.cluster.ImageRepository()},
+							Hostnames: []string{rbdutil.GetImageRepository(n.cluster)},
 						},
 					},
 					HostNetwork: true,

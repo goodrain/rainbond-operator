@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	rbdutil "github.com/GLYASAI/rainbond-operator/pkg/util/rbduitl"
 
 	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
@@ -147,7 +148,7 @@ func (h *hub) persistentVolumeClaimForHub() interface{} {
 					corev1.ResourceStorage: *storageRequest,
 				},
 			},
-			StorageClassName: commonutil.String(h.cluster.StorageClass()),
+			StorageClassName: commonutil.String(rbdutil.GetStorageClass(h.cluster)),
 		},
 	}
 
@@ -191,9 +192,7 @@ func (h *hub) ingressForHub() interface{} {
 			},
 			TLS: []extensions.IngressTLS{
 				{
-					Hosts: []string{
-						h.cluster.ImageRepository(),
-					},
+					Hosts: []string{rbdutil.GetImageRepository(h.cluster)},
 					SecretName: hubImageRepository,
 				},
 			},
@@ -207,7 +206,7 @@ func (h *hub) secretForHub() interface{} {
 	labels := h.component.GetLabels()
 	labels["name"] = hubImageRepository
 
-	_, pem, key, _ := commonutil.DomainSign(h.cluster.ImageRepository())
+	_, pem, key, _ := commonutil.DomainSign(rbdutil.GetImageRepository(h.cluster))
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

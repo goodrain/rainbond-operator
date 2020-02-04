@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	rbdutil "github.com/GLYASAI/rainbond-operator/pkg/util/rbduitl"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/tarutil"
 	"github.com/pquerna/ffjson/ffjson"
 	"io"
@@ -368,7 +369,7 @@ func (p *pkg) imagesLoadAndPush() error {
 				return false, fmt.Errorf("load image: %v", err)
 			}
 
-			newImage := newImageWithNewDomain(image, p.cluster.ImageRepository())
+			newImage := newImageWithNewDomain(image, rbdutil.GetImageRepository(p.cluster))
 
 			if err := p.dcli.ImageTag(p.ctx, image, newImage); err != nil {
 				l.Error(err, "tag image", "source", image, "target", newImage)
@@ -441,7 +442,7 @@ func (p *pkg) imageLoad(file string) (string, error) {
 func (p *pkg) imagePush(image string) error {
 	var opts dtypes.ImagePushOptions
 	authConfig := dtypes.AuthConfig{
-		ServerAddress: p.cluster.ImageRepository(),
+		ServerAddress: rbdutil.GetImageRepository(p.cluster),
 	}
 	if p.cluster.Spec.ImageHub != nil {
 		authConfig.Username = p.cluster.Spec.ImageHub.Username

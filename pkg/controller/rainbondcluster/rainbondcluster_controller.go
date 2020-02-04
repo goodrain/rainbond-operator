@@ -399,7 +399,7 @@ func (r *ReconcileRainbondCluster) claims(cluster *rainbondv1alpha1.RainbondClus
 					corev1.ResourceStorage: *storageRequest,
 				},
 			},
-			StorageClassName: commonutil.String(cluster.StorageClass()),
+			StorageClassName: commonutil.String(rbdutil.GetStorageClass(cluster)),
 		},
 	}
 
@@ -417,7 +417,7 @@ func (r *ReconcileRainbondCluster) claims(cluster *rainbondv1alpha1.RainbondClus
 					corev1.ResourceStorage: *storageRequest,
 				},
 			},
-			StorageClassName: commonutil.String(cluster.StorageClass()),
+			StorageClassName: commonutil.String(rbdutil.GetStorageClass(cluster)),
 		},
 	}
 
@@ -440,7 +440,7 @@ func (r *ReconcileRainbondCluster) grdataPersistentVolumeClaim(cluster *rainbond
 					corev1.ResourceStorage: *storageRequest,
 				},
 			},
-			StorageClassName: commonutil.String(cluster.StorageClass()),
+			StorageClassName: commonutil.String(rbdutil.GetStorageClass(cluster)),
 		},
 	}
 }
