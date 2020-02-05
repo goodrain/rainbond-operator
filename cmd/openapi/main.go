@@ -42,6 +42,7 @@ func init() {
 	cfg = &option.Config{}
 	cfg.AddFlags(pflag.CommandLine)
 	pflag.Parse()
+	cfg.Check()
 	cfg.SetLog()
 
 	restConfig := k8sutil.MustNewKubeConfig(cfg.KubeconfigPath)

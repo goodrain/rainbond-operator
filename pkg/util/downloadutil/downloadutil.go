@@ -1,7 +1,11 @@
 package downloadutil
 
 import (
+	"crypto/md5"
+	"encoding/hex"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -18,6 +22,7 @@ type DownloadWithProgress struct {
 	Finished     bool
 	URL          string
 	SavedPath    string
+	Wanted       string
 }
 
 var tmpPath = "/opt/rainbond/pkg/rainbond-pkg.tar"
@@ -45,10 +50,15 @@ func (listener *DownloadWithProgress) Download() error {
 
 	reader := oss.TeeReader(resp.Body, nil, listener.TotalRwBytes, listener, nil)
 	defer reader.Close()
+
 	if _, err = io.Copy(out, reader); err != nil {
 		return err
 	}
-	logrus.Debug("download finished, move file to ", listener.SavedPath)
+	logrus.Debug("download finished, check md5")
+	if err := listener.checkMD5(out); err != nil {
+		return err
+	}
+	logrus.Debug("check md5 finished, move file to ", listener.SavedPath)
 	dir := path.Dir(listener.SavedPath)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
@@ -77,4 +87,48 @@ func (listener *DownloadWithProgress) ProgressChanged(event *oss.ProgressEvent) 
 		logrus.Debugf("Transfer Failed, This time consumedBytes: %d.\n", event.ConsumedBytes)
 	default:
 	}
+}
+
+func (listener *DownloadWithProgress) checkMD5(target *os.File) error {
+	md5hash := md5.New()
+	if _, err := io.Copy(md5hash, target); err != nil {
+		fmt.Println("Copy", err)
+		return fmt.Errorf("prepare down file md5 error: %s", err.Error())
+	}
+	MD5Str := hex.EncodeToString(md5hash.Sum(nil))
+	wanted := listener.GetWanted()
+	if MD5Str != wanted {
+		return fmt.Errorf("download file md5: %s is not equal to wanted : %s", MD5Str, wanted)
+	}
+	return nil
+}
+
+func (listener *DownloadWithProgress) GetWanted() string {
+	return listener.Wanted
+}
+
+type md5Helper interface {
+	GetWanted() string
+}
+
+// OnlineMD5 get md5 online
+type OnlineMD5 struct {
+	wanted string
+	URL    string
+}
+
+func (h *OnlineMD5) GetWanted() string {
+	resp, err := http.Get(h.URL)
+	if err != nil {
+		logrus.Error("get md5 error: ", err.Error())
+		return ""
+	}
+	defer resp.Body.Close()
+	bs, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logrus.Error("read md5 error: ", err.Error())
+		return ""
+	}
+	h.wanted = hex.EncodeToString(bs)
+	return h.wanted
 }
