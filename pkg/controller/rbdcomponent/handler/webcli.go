@@ -21,7 +21,6 @@ type webcli struct {
 	client     client.Client
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
-	db         *rainbondv1alpha1.Database
 	labels     map[string]string
 	etcdSecret *corev1.Secret
 }

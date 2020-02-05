@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"sync"
 	"testing"
 	"time"
 
@@ -45,7 +44,7 @@ func Test1(t *testing.T) {
 	// create proxy reader
 	barReader := bar.NewProxyReader(reader)
 	// copy from proxy reader
-	io.Copy(writer, barReader)
+	_, _ = io.Copy(writer, barReader)
 	// finish bar
 	bar.Finish()
 }
@@ -77,7 +76,7 @@ func Test2(t *testing.T) {
 	// create proxy reader
 	barReader := bar.NewProxyReader(resp.Body)
 	// Write the body to file
-	_, err = io.Copy(out, barReader)
+	_, _ = io.Copy(out, barReader)
 
 	// t.Log("", bar.State().IsFinished())
 
@@ -90,12 +89,12 @@ func Test3(t *testing.T) {
 	urlToGet := "https://github.com/schollz/croc/releases/download/v4.1.4/croc_v4.1.4_Windows-64bit_GUI.zip"
 	req, _ := http.NewRequest("GET", urlToGet, nil)
 	resp, _ := http.DefaultClient.Do(req)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var out io.Writer
 	f, _ := os.OpenFile("croc_v4.1.4_Windows-64bit_GUI.zip", os.O_CREATE|os.O_WRONLY, 0644)
 	out = f
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	bar := progressbar.NewOptions(
 		int(resp.ContentLength),
@@ -107,9 +106,9 @@ func Test3(t *testing.T) {
 			time.Sleep(time.Second / 2)
 		}
 	}()
-	out = io.MultiWriter(out, bar)
+	_ = io.MultiWriter(out, bar)
 
-	// io.Copy(out, resp.Body)
+	//io.Copy(out, resp.Body)
 	t.Logf("-----------------pencent: %v, bytes: %v, all: %v, finisih: %v", bar.State().CurrentPercent, bar.State().CurrentBytes, bar.State().MaxBytes, (bar.State().MaxBytes-int64(bar.State().CurrentBytes)) < 1)
 }
 
@@ -132,7 +131,6 @@ func Test4(t *testing.T) {
 func Test5(t *testing.T) {
 
 	type Status struct {
-		currentPercent float64
 		finish         bool
 		state          *pbv3.State
 	}
@@ -186,61 +184,11 @@ func Test5(t *testing.T) {
 		// create proxy reader
 		barReader := bar.NewProxyReader(c.Request.Body)
 		// Write the body to file
-		_, err = io.Copy(out, barReader)
+		_, _ = io.Copy(out, barReader)
 
 		c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", file.Filename))
 	})
-	route.Run()
-}
-
-func Test6(t *testing.T) {
-	state := &pbv3.State{}
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	go func() {
-		resp, err := http.Get("https://github.com/schollz/croc/releases/download/v4.1.4/croc_v4.1.4_Windows-64bit_GUI.zip")
-		if err != nil { // TODO fanyangyang if can't create connection, download manual and upload it
-			t.Fatal("get error : ", err.Error())
-		}
-		defer resp.Body.Close()
-
-		// Create the file
-		out, err := os.Create("/tmp/rainbond.tar") // TODO fanyangyang file path and generate test case
-		if err != nil {
-			t.Fatal("create errror: ", err.Error())
-		}
-		defer out.Close()
-		// start new bar
-
-		bar := pbv3.Full.Start64(resp.ContentLength)
-		state.ProgressBar = bar
-		// create proxy reader
-		barReader := bar.NewProxyReader(resp.Body)
-		// Write the body to file
-		_, err = io.Copy(out, barReader)
-
-		// t.Log("", bar.State().IsFinished())
-
-		if err := os.Remove("/tmp/rainbond.tar"); err != nil {
-			t.Fatal(err)
-		}
-		wg.Done()
-	}()
-
-	go func() {
-		for {
-			fmt.Println("running...")
-			if state.ProgressBar != nil {
-				fmt.Println("current is : ", state.Current())
-				if state.IsFinished() {
-					wg.Done()
-				}
-			}
-			time.Sleep(2 * time.Second)
-		}
-	}()
-
-	wg.Wait()
+	_ = route.Run()
 }
 
 func Test7(t *testing.T) {
@@ -260,14 +208,14 @@ func Test7(t *testing.T) {
 	listener := OssProgressListener{TotalRwBytes: resp.ContentLength}
 	fmt.Println("total is : ", resp.ContentLength)
 	reader := oss.TeeReader(resp.Body, out, resp.ContentLength, &listener, nil)
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 	go func() {
 		for {
 			fmt.Printf("percent:%v, current: %v, total: %v \n", listener.Percent, listener.CurrentBytes, listener.TotalRwBytes)
 			time.Sleep(2 * time.Second)
 		}
 	}()
-	io.Copy(out, reader)
+	_, _ = io.Copy(out, reader)
 
 	if err := os.Remove("/tmp/rainbond.tar"); err != nil {
 		t.Fatal(err)

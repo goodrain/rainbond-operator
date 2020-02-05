@@ -7,10 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
-
-var log = logf.Log.WithName("openapi/uploads")
 
 // Controller upload controller
 type Controller struct {

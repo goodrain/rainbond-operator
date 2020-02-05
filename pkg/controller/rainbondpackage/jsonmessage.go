@@ -60,10 +60,9 @@ func (j *JSONMessage) JSONString() string {
 // value of the progress made towards Total. Total is the end value describing when
 // we made 100% progress for an operation.
 type JSONProgress struct {
-	terminalFd uintptr
-	Current    int64 `json:"current,omitempty"`
-	Total      int64 `json:"total,omitempty"`
-	Start      int64 `json:"start,omitempty"`
+	Current int64 `json:"current,omitempty"`
+	Total   int64 `json:"total,omitempty"`
+	Start   int64 `json:"start,omitempty"`
 	// If true, don't show xB/yB
 	HideCounts bool `json:"hidecounts,omitempty"`
 }

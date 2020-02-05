@@ -18,3 +18,8 @@ var (
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 	AddToScheme   = SchemeBuilder.AddToScheme
 )
+
+// Resource gets an EtcdCluster GroupResource for a specified resource
+func Resource(resource string) schema.GroupResource {
+	return SchemeGroupVersion.WithResource(resource).GroupResource()
+}

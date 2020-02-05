@@ -254,9 +254,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 	}
 
 	// must provide all, can't patch
-	for _, ip := range source.GatewayIngressIPs {
-		clusterInfo.Spec.GatewayIngressIPs = append(clusterInfo.Spec.GatewayIngressIPs, ip)
-	}
+	clusterInfo.Spec.GatewayIngressIPs = append(clusterInfo.Spec.GatewayIngressIPs, source.GatewayIngressIPs...)
 
 	if !source.Storage.Default {
 		clusterInfo.Spec.StorageClassName = source.Storage.StorageClassName

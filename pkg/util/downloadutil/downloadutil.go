@@ -25,18 +25,15 @@ var tmpPath = "/opt/rainbond/pkg/rainbond-pkg.tar"
 // Download download
 func (listener *DownloadWithProgress) Download() error {
 	// Get the data
-	if listener.URL == "" {
-		// listener.URL = "127.0.0.1"
-	}
 	resp, err := http.Get(listener.URL)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Create the file
 	out, err := os.Create(tmpPath)
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 	if err != nil {
 		return err
 	}
@@ -44,7 +41,7 @@ func (listener *DownloadWithProgress) Download() error {
 	logrus.Debugf("package size total is : %d", resp.ContentLength/1024/1024)
 
 	reader := oss.TeeReader(resp.Body, nil, listener.TotalRwBytes, listener, nil)
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 	if _, err = io.Copy(out, reader); err != nil {
 		return err
 	}

@@ -29,8 +29,6 @@ import (
 	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
 )
 
-var log = logf.Log.WithName("openapi")
-
 var (
 	archiveFilePath = "/opt/rainbond/pkg/tgz/rainbond-pkg-V5.2-dev.tgz"
 )
@@ -77,7 +75,6 @@ func main() {
 	r.Use(static.Serve("/", static.LocalFile("/app/ui", true)))
 
 	userRepo := urepo.NewSqlite3UserRepository(db)
-	userRepo.CreateIfNotExist(&model.User{Username: "admin", Password: "admin"})
 	userUcase := uucase.NewUserUsecase(userRepo, "my-secret-key")
 	uctrl.NewUserController(r, userUcase)
 
@@ -86,14 +83,12 @@ func main() {
 
 	upload.NewUploadController(r, archiveFilePath)
 
-	go r.Run() // listen and serve on 0.0.0.0:8080
+	go func() { _ = r.Run() }() // listen and serve on 0.0.0.0:8080
 
-	term := make(chan os.Signal)
+	term := make(chan os.Signal, 1)
 	signal.Notify(term, os.Interrupt, syscall.SIGTERM)
-	select {
-	case s := <-term:
-		logrus.Info("Received signal", s.String(), "exiting gracefully.")
-	}
+	s := <-term
+	logrus.Info("Received signal", s.String(), "exiting gracefully.")
 	logrus.Info("See you next time!")
 }
 
