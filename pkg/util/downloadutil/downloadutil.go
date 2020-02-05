@@ -103,10 +103,6 @@ func (listener *DownloadWithProgress) GetWanted() string {
 	return listener.Wanted
 }
 
-type md5Helper interface {
-	GetWanted() string
-}
-
 // OnlineMD5 get md5 online
 type OnlineMD5 struct {
 	wanted string
