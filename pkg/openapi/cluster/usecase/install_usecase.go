@@ -74,7 +74,7 @@ func init() {
 		{name: "rbd-api", image: "goodrain.me/rbd-api:V5.2-dev"},
 		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:V5.2-dev"},
 		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:V5.2-dev"},
-		{name: "rbd-db", image: "goodrain.me/mariadb"},
+		{name: "rbd-db", image: "goodrain.me/rbd-db:v5.1.9"},
 		{name: "rbd-dns", image: "goodrain.me/rbd-dns"},
 		{name: "rbd-eventlog", image: "goodrain.me/rbd-eventlog:V5.2-dev"},
 		{name: "rbd-monitor", image: "goodrain.me/rbd-monitor:V5.2-dev"},

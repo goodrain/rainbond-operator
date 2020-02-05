@@ -158,8 +158,6 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 		"--run-mode master",
 		"--noderule manage,compute", // TODO: Let rbd-node recognize itself
 		"--nodeid=$(NODE_NAME)",
-		"--image-repo-ip=" + n.cluster.GatewayIngressIP(),
-		"--image-repo-host=" + rbdutil.GetImageRepository(n.cluster),
 	}
 	if n.etcdSecret != nil {
 		volume, mount := volumeByEtcd(n.etcdSecret)
