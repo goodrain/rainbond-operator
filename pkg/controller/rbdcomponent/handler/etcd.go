@@ -2,8 +2,8 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,7 +27,9 @@ func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alp
 }
 
 func (e *etcd) Before() error {
-	// No prerequisites, if no gateway-installed node is specified, install on all nodes that meet the conditions
+	if e.cluster.Spec.EtcdConfig != nil {
+		return NewIgnoreError(fmt.Sprintf("specified etcd configuration"))
+	}
 	return nil
 }
 

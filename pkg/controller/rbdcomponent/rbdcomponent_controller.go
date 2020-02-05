@@ -9,7 +9,6 @@ import (
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
-	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -146,8 +145,12 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 
 	if err := hdl.Before(); err != nil {
 		// TODO: report events
+		if chandler.IsIgnoreError(err) {
+			reqLogger.Info("checking the prerequisites", "msg", err.Error())
+			return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
+		}
 		reqLogger.Info("error checking the prerequisites", "err", err)
-		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
 	resourceses := hdl.Resources()
@@ -236,20 +239,6 @@ func (r *ReconcileRbdComponent) createIfNotExistResource(reqLogger logr.Logger, 
 	return reconcile.Result{}, nil
 }
 
-// labelsForRbdComponent returns the labels for selecting the resources
-// belonging to the given RbdComponent CR name.
-func labelsForRbdComponent(labels map[string]string) map[string]string {
-	rbdlabels := map[string]string{
-		"creator": "Rainbond",
-	}
-
-	for k, v := range labels {
-		rbdlabels[k] = v
-	}
-
-	return rbdlabels
-}
-
 func detectControllerType(ctrl interface{}) rainbondv1alpha1.ControllerType {
 	if _, ok := ctrl.(*appv1.Deployment); ok {
 		return rainbondv1alpha1.ControllerTypeDeployment
@@ -261,18 +250,4 @@ func detectControllerType(ctrl interface{}) rainbondv1alpha1.ControllerType {
 		return rainbondv1alpha1.ControllerTypeDaemonSet
 	}
 	return rainbondv1alpha1.ControllerTypeUnknown
-}
-
-func storageClassForNFSProvisioner() *storagev1.StorageClass {
-	sc := &storagev1.StorageClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "rbd-nfs",
-		},
-		Provisioner: "rainbond.io/nfs",
-		MountOptions: []string{
-			"vers=4.1",
-		},
-	}
-
-	return sc
 }
