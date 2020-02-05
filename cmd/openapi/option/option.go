@@ -37,7 +37,7 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.EtcdSecretName, "rbd-etcd", "rbd-etcd-secret", "etcd cluster info saved in secret")
 	fs.StringVar(&c.ArchiveFilePath, "rbd-archive", "/opt/rainbond/pkg/tgz/rainbond-pkg-V5.2-dev.tgz", "rbd base archive file path")
 	fs.StringVar(&c.DownloadURL, "rbd-download-url", "", "download rainbond tar")
-	fs.StringVar(&c.DownloadMD5, "rbd-download-md5", "", "check down rainbond tar md5")
+	fs.StringVar(&c.DownloadMD5, "rbd-download-md5", "c82f8782ee1b71443799ca6182d017ea", "check down rainbond tar md5")
 	fs.StringVar(&c.SuffixHTTPHost, "suffix-configmap", "rbd-suffix-host", "rbd suffix http host configmap name")
 	fs.StringVar(&c.KubeCfgSecretName, "kube-secret", "kube-cfg-secret", "kubernetes account info used for cadvisor through kubelet")
 	fs.StringVar(&c.Rainbondpackage, "rainbond-package-name", "rainbondpackage", "kubernetes rainbondpackage resource name")
@@ -51,10 +51,4 @@ func (a *Config) SetLog() {
 		return
 	}
 	logrus.SetLevel(level)
-}
-
-func (a *Config) Check() {
-	if a.DownloadMD5 == "" {
-		panic("rbd-download-md5 required")
-	}
 }
