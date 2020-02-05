@@ -7,19 +7,19 @@ ENV GOPROXY=https://goproxy.cn
 WORKDIR /go/src/github.com/GLYASAI/rainbond-operator
 COPY go.mod .
 COPY go.sum .
-RUN go mod download
+#RUN go mod download
 
 COPY pkg pkg
 COPY cmd cmd
+COPY version version
 
 ARG GOARCH
 ARG LDFLAGS
-RUN go build -ldflags "$LDFLAGS" -o /openapi $PWD/cmd/openapi
+RUN go build -ldflags "$LDFLAGS" -o /opeator $PWD/cmd/manager
 
-FROM alpine:3.11.2
+FROM abewang/rbd-op-ui-base
 RUN apk add --update tzdata
 ENV TZ=Asia/Shanghai
-COPY --from=builder openapi /app
-EXPOSE 8080
+COPY --from=builder opeator /app
 
-ENTRYPOINT ["/app/openapi"]
+ENTRYPOINT ["/app/opeator"]
