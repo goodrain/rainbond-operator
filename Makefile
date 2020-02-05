@@ -47,7 +47,7 @@ build-operator:
 	docker build --no-cache . -f hack/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
 build: build-api build-operator
 
-push:
+push: build
 	docker login $(IMAGE_DOMAIN) -u $(DOCKER_USER) -p $(DOCKER_PASS)
 	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
 	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
