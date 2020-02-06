@@ -330,16 +330,16 @@ func (ic *InstallUseCaseImpl) parseInstallStatus(source *v1alpha1.RainbondCluste
 	downloadStatus := ic.stepDownload()
 	statuses = append(statuses, downloadStatus)
 
-	infrastructureStatus := ic.stepPrepareInfrastructure(source, downloadStatus.Status == InstallStatusWaiting)
+	infrastructureStatus := ic.stepPrepareInfrastructure(source, downloadStatus.Status != InstallStatusFinished)
 	statuses = append(statuses, infrastructureStatus)
 
-	unpackStatus := ic.stepUnpack(source, infrastructureStatus.Status == InstallStatusWaiting)
+	unpackStatus := ic.stepUnpack(source, infrastructureStatus.Status != InstallStatusFinished)
 	statuses = append(statuses, unpackStatus)
 
-	handleImageStatus := ic.stepHandleImage(source, unpackStatus.Status == InstallStatusWaiting)
+	handleImageStatus := ic.stepHandleImage(source, unpackStatus.Status != InstallStatusFinished)
 	statuses = append(statuses, handleImageStatus)
 
-	createComponentStatus := ic.stepCreateComponent(source, handleImageStatus.Status == InstallStatusWaiting)
+	createComponentStatus := ic.stepCreateComponent(source, handleImageStatus.Status != InstallStatusFinished)
 	statuses = append(statuses, createComponentStatus)
 
 	finalStatus := InstallStatusFinished
