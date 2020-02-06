@@ -18,8 +18,8 @@ type RbdComponent struct {
 
 // HTTPDomain http domain
 type HTTPDomain struct {
-	Default bool     `json:"default"`
-	Domain  []string `json:"domain"`
+	Default bool   `json:"default"`
+	Custom  string `json:"custom"`
 }
 
 // GatewayNode gateway

@@ -159,9 +159,9 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 	}
 
 	clusterInfo.GatewayNodes = allNode
-	if source.Spec.SuffixHTTPHost != "" {
+	if source.Spec.SuffixHTTPHost != "" && !strings.HasSuffix(source.Spec.SuffixHTTPHost, "grapps.cn") {
 		httpDomain := model.HTTPDomain{}
-		httpDomain.Domain = append(httpDomain.Domain, source.Spec.SuffixHTTPHost)
+		httpDomain.Custom = source.Spec.SuffixHTTPHost
 		clusterInfo.HTTPDomain = httpDomain
 	} else {
 		clusterInfo.HTTPDomain = model.HTTPDomain{Default: true}
@@ -239,18 +239,16 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 		clusterInfo.Spec.GatewayNodes = append(clusterInfo.Spec.GatewayNodes, v1alpha1.NodeAvailPorts{NodeIP: node.NodeIP})
 	}
 
-	if !source.HTTPDomain.Default {
-		if len(source.HTTPDomain.Domain) > 0 {
-			clusterInfo.Spec.SuffixHTTPHost = source.HTTPDomain.Domain[0]
-		} else {
-			clusterInfo.Spec.SuffixHTTPHost = "pass.grapps.cn" // example domain from ansible
-		}
+	if !source.HTTPDomain.Default || source.HTTPDomain.Custom != "" {
+		clusterInfo.Spec.SuffixHTTPHost = source.HTTPDomain.Custom
 	} else {
 		domain, err := cc.getSuffixHTTPHost(clusterInfo.Spec.GatewayNodes[0].NodeIP)
 		if err != nil {
-			return nil, fmt.Errorf("get suffix domain error: %s", err.Error())
+			logrus.Warn("get suffix http host error: ", err.Error())
+			clusterInfo.Spec.SuffixHTTPHost = "pass.grapps.cn"
+		} else {
+			clusterInfo.Spec.SuffixHTTPHost = domain
 		}
-		clusterInfo.Spec.SuffixHTTPHost = domain
 	}
 
 	// must provide all, can't patch
