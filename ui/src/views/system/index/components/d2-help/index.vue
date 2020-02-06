@@ -9,7 +9,7 @@
 
 <script>
 export default {
- methods: {
+  methods: {
     handleClick () {
       this.$router.push({
         name: 'InstallProcess'

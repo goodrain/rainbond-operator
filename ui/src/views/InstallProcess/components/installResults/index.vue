@@ -35,18 +35,18 @@
   </div>
 </template>
 <script>
-import Uploads from "../upload";
-import InstallComponent from "./installComponent";
-import RainbondComponent from "./rainbondComponent";
+import Uploads from '../upload'
+import InstallComponent from './installComponent'
+import RainbondComponent from './rainbondComponent'
 
 export default {
-  name: "installResults",
+  name: 'installResults',
   components: {
     Uploads,
     InstallComponent,
     RainbondComponent
   },
-  data() {
+  data () {
     return {
       nextLoading: false,
       dialogVisible: false,
@@ -54,132 +54,132 @@ export default {
       installList: [],
       loading: true,
       componentState: {
-        Running: "成功",
-        Waiting: "等待",
-        Terminated: "停止"
+        Running: '成功',
+        Waiting: '等待',
+        Terminated: '停止'
       },
       componentList: []
-    };
+    }
   },
-  created() {
-    this.detectionCluster();
+  created () {
+    this.detectionCluster()
   },
-  beforeDestroy() {
-    this.timer && clearInterval(this.timer);
-    this.timerp && clearInterval(this.timerp);
-    this.timers && clearInterval(this.timers);
+  beforeDestroy () {
+    this.timer && clearInterval(this.timer)
+    this.timerp && clearInterval(this.timerp)
+    this.timers && clearInterval(this.timers)
   },
   methods: {
-    detectionCluster() {
+    detectionCluster () {
       this.$store
-        .dispatch("detectionCluster")
+        .dispatch('detectionCluster')
         .then(res => {
-          this.loading = false;
+          this.loading = false
 
           if (res && res.code == 200) {
-            this.installList = res.data.statusList;
-            let arrs = res.data.statusList;
+            this.installList = res.data.statusList
+            let arrs = res.data.statusList
             if (arrs && arrs.length > 0) {
               arrs.map(item => {
-                const { stepName, status } = item;
+                const { stepName, status } = item
                 if (
-                  stepName === "step_download" &&
-                  status === "status_failed"
+                  stepName === 'step_download' &&
+                  status === 'status_failed'
                 ) {
-                  this.dialogVisible = true;
-                  this.timer && clearInterval(this.timer);
+                  this.dialogVisible = true
+                  this.timer && clearInterval(this.timer)
                 }
-              });
+              })
             }
 
             if (
-              res.data.finalStatus === "status_waiting" ||
-              res.data.finalStatus === "status_processing"
+              res.data.finalStatus === 'status_waiting' ||
+              res.data.finalStatus === 'status_processing'
             ) {
               this.timerp = setTimeout(() => {
-                this.detectionCluster();
-              }, 5000);
-            } else if (res.data.finalStatus === "status_finished") {
-              this.timerp && clearInterval(this.timerp);
-              this.addCluster();
+                this.detectionCluster()
+              }, 5000)
+            } else if (res.data.finalStatus === 'status_finished') {
+              this.timerp && clearInterval(this.timerp)
+              this.addCluster()
             } else {
-              this.dialogVisible = true;
+              this.dialogVisible = true
             }
           }
         })
         .catch(err => {
-          console.log(err);
-        });
+          console.log(err)
+        })
     },
 
-    addCluster() {
+    addCluster () {
       this.$store
-        .dispatch("addCluster")
+        .dispatch('addCluster')
         .then(en => {
           if (en && en.code == 200) {
-            this.fetchClusterInstallResults();
-            this.fetchClusterInstallResultsState();
+            this.fetchClusterInstallResults()
+            this.fetchClusterInstallResultsState()
           } else if (en && en.code == 1002) {
             this.$notify({
-              type: "warning",
-              title: "下载流程正在进行中",
-              message: "请稍后再试"
-            });
+              type: 'warning',
+              title: '下载流程正在进行中',
+              message: '请稍后再试'
+            })
           } else {
-            this.dialogVisible = true;
+            this.dialogVisible = true
           }
         })
         .catch(err => {
-          console.log(err);
-        });
+          console.log(err)
+        })
     },
 
-    format(percentage) {
-      return "";
+    format (percentage) {
+      return ''
     },
-    onSubmitLoads() {
-      this.addCluster();
+    onSubmitLoads () {
+      this.addCluster()
     },
-    fetchClusterInstallResults() {
-      this.$store.dispatch("fetchClusterInstallResults").then(res => {
+    fetchClusterInstallResults () {
+      this.$store.dispatch('fetchClusterInstallResults').then(res => {
         if (res) {
-          this.installList = res.data.statusList;
-          let arrs = res.data.statusList;
+          this.installList = res.data.statusList
+          let arrs = res.data.statusList
           if (arrs && arrs.length > 0) {
             arrs.map(item => {
-              const { stepName, status } = item;
-              if (stepName === "step_download" && status === "status_failed") {
-                this.dialogVisible = true;
-                this.timer && clearInterval(this.timer);
+              const { stepName, status } = item
+              if (stepName === 'step_download' && status === 'status_failed') {
+                this.dialogVisible = true
+                this.timer && clearInterval(this.timer)
               }
-            });
+            })
             if (
-              res.data.finalStatus === "status_finished" ||
-              res.data.finalStatus === "status_failed"
+              res.data.finalStatus === 'status_finished' ||
+              res.data.finalStatus === 'status_failed'
             ) {
               this.$router.push({
-                name: "successfulInstallation"
-              });
+                name: 'successfulInstallation'
+              })
             } else {
               this.timer = setTimeout(() => {
-                this.fetchClusterInstallResults();
-              }, 8000);
+                this.fetchClusterInstallResults()
+              }, 8000)
             }
           }
         }
-      });
+      })
     },
-    fetchClusterInstallResultsState() {
-      this.$store.dispatch("fetchClusterInstallResultsState").then(res => {
-          this.componentList = res.data;
-          this.num += 1;
-          this.timers = setTimeout(() => {
-            this.fetchClusterInstallResultsState();
-          }, 8000);
-      });
+    fetchClusterInstallResultsState () {
+      this.$store.dispatch('fetchClusterInstallResultsState').then(res => {
+        this.componentList = res.data
+        this.num += 1
+        this.timers = setTimeout(() => {
+          this.fetchClusterInstallResultsState()
+        }, 8000)
+      })
     }
   }
-};
+}
 </script>
 <style rel="stylesheet/scss" lang="scss" scoped>
 .d2-h-50 {
@@ -248,4 +248,3 @@ export default {
   }
 }
 </style>
-
