@@ -5,7 +5,7 @@ export default [
     title: '页面',
     icon: 'folder-o',
     children: [
-      { path: '/InstallProcess', title: '页面 1' },
+      { path: '/InstallProcess', title: '页面 1' }
     ]
   }
 ]

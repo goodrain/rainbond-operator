@@ -19,31 +19,44 @@
 </template>
 
 <script>
-import ClusterConfiguration from "./components/clusterConfiguration";
-import InstallResults from "./components/installResults";
+import ClusterConfiguration from './components/clusterConfiguration'
+import InstallResults from './components/installResults'
 
 export default {
-  name: "InstallProcess",
+  name: 'InstallProcess',
   components: {
     ClusterConfiguration,
     InstallResults
   },
-  data() {
+  data () {
     return {
-      activeName: "cluster",
-      resultShow: false,
-    };
+      activeName: 'cluster',
+      resultShow: false
+    }
   },
-  created() {
-    document.documentElement.scrollTop = 0;
+  created () {
+    document.documentElement.scrollTop = 0
+    this.fetchClusterInstallResults()
   },
   methods: {
-    handlePerform(name) {
-      this.activeName = name;
-      this.resultShow = true;
+    handlePerform (name) {
+      this.activeName = name
+      this.resultShow = true
+    },
+    fetchClusterInstallResults () {
+      this.$store.dispatch('fetchClusterInstallResults').then(res => {
+        if (res) {
+          if (
+            res.data.finalStatus !== 'status_failed' &&
+            res.data.finalStatus !== 'status_waiting'
+          ) {
+            this.fetchClusterInstallResults('startrRsults')
+          }
+        }
+      })
     }
   }
-};
+}
 </script>
 <style lang="scss" scoped>
 .clbr {

@@ -14,7 +14,7 @@ export default {
         props: { collapse: this.asideCollapse, uniqueOpened: true, defaultActive: this.active },
         ref: 'menu',
         on: { select: this.handleMenuSelect }
-      }, this.aside.map(menu => (menu.children === undefined ? elMenuItem : elSubmenu).call(this, createElement, menu))),
+      }, this.aside.map(menu => (menu.children === undefined ? elMenuItem : elSubmenu).call(this, createElement, menu)))
       // ...this.aside.length === 0 && !this.asideCollapse ? [
       //   createElement('div', { attrs: { class: 'd2-layout-header-aside-menu-empty', flex: 'dir:top main:center cross:center' } }, [
       //     createElement('d2-icon', { props: { name: 'inbox' } }),

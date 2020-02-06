@@ -55,7 +55,7 @@
               </el-radio-group>
             </template>
             <div v-show="!ruleForm.regionDatabase.default">
-              <el-form-item label="地址" label-width="85px" class="d2-mt d2-form-item">
+              <el-form-item label="地址" label-width="85px" class="d2-mt d2-form-item" prop="address">
                 <el-input
                   v-model="ruleForm.regionDatabase.host"
                   class="d2-input_inner_url d2-w-150"
@@ -89,7 +89,7 @@
               </el-radio-group>
             </template>
             <div v-show="!ruleForm.uiDatabase.default">
-              <el-form-item label="地址" label-width="85px" class="d2-mt d2-form-item">
+              <el-form-item label="地址" label-width="85px" class="d2-mt d2-form-item" prop="uiDatabase">
                 <el-input v-model="ruleForm.uiDatabase.host" class="d2-input_inner_url d2-w-150"></el-input>
                 <span class="d2-w-20">:</span>
                 <el-input v-model="ruleForm.uiDatabase.port" class="d2-input_inner_url d2-w-80"></el-input>
@@ -190,6 +190,14 @@
         <el-switch v-model="ruleForm.HTTPDomain.default"></el-switch>
         <div class="clues">默认域名是指Rainbond 为HTTP类应用动态分配的多级域名，默认域名在非离线安装模式下将动态创建公网DNS泛解析记录</div>
       </el-form-item>
+      <el-form-item label="自定义域名" v-if="!ruleForm.HTTPDomain.default">
+        <el-input
+          v-model="ruleForm.HTTPDomain.custom"
+          placeholder="请输入自定义域名"
+          class="d2-input_inner"
+        ></el-input>
+      </el-form-item>
+
       <el-form-item :label="'网关外网IP'" prop="ips">
         <div v-for="(item, indexs) in ruleForm.gatewayIngressIPs" :key="indexs" class="cen">
           <el-input v-model="ruleForm.gatewayIngressIPs[indexs]" class="d2-input_inner"></el-input>
@@ -334,160 +342,204 @@
 
 <script>
 export default {
-  name: "clusterConfiguration",
-  data() {
+  name: 'clusterConfiguration',
+  data () {
     let validateNodes = (rule, value, callback) => {
       if (this.setgatewayNodes.length === 0) {
-        callback(new Error("请至少选择一个网关安装节点"));
+        callback(new Error('请至少选择一个网关安装节点'))
       } else {
-        callback();
+        callback()
       }
-    };
+    }
 
     let validateIPs = (rule, value, callback) => {
-      let reg = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/;
+      let regIp = /^(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])$/
 
       let arr = this.ruleForm.gatewayIngressIPs.map(item => {
-        return reg.test(item);
-      });
+        return regIp.test(item)
+      })
 
       if (!arr[0]) {
-        callback(new Error("格式不对，请重新输入"));
+        callback(new Error('格式不对，请重新输入'))
       } else {
-        callback();
+        callback()
       }
-    };
+    }
+    let reg = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/
+
+    let validateAddress = (rule, value, callback) => {
+      let str = this.ruleForm.regionDatabase.port
+      let ress = reg.test(str)
+
+      if (!ress && str !== '') {
+        callback(new Error('格式不对，请重新输入'))
+      } else {
+        callback()
+      }
+    }
+    let validUiDateBase = (rule, value, callback) => {
+      let str = this.ruleForm.uiDatabase.port
+      let ress = reg.test(str)
+
+      if (!ress && str !== '') {
+        callback(new Error('格式不对，请重新输入'))
+      } else {
+        callback()
+      }
+    }
+
     return {
       upLoading: false,
       loading: true,
       ruleForm: false,
-      activeImageHubNames: "true",
-      activeregionDatabaseNames: "true",
-      activeUiDatabaseNames: "true",
-      activeETCDNames: "true",
-      activeStorageNames: "true",
-      activeFstabLineNames: "true",
+      activeImageHubNames: 'true',
+      activeregionDatabaseNames: 'true',
+      activeUiDatabaseNames: 'true',
+      activeETCDNames: 'true',
+      activeStorageNames: 'true',
+      activeFstabLineNames: 'true',
       setgatewayNodes: [],
       fileList: [],
       rules: {
         nodes: [
           {
             validator: validateNodes,
-            type: "array",
+            type: 'array',
             required: true,
-            trigger: "change"
+            trigger: 'change'
+          }
+        ],
+        address: [
+          {
+            validator: validateAddress,
+            type: 'string',
+            required: true,
+            trigger: 'change'
+          }
+        ],
+        uiDatabase: [
+          {
+            validator: validUiDateBase,
+            type: 'string',
+            required: true,
+            trigger: 'change'
           }
         ],
         ips: [
           {
             validator: validateIPs,
-            type: "array",
+            type: 'array',
             required: true,
-            trigger: "change"
+            trigger: 'change'
           }
         ]
       },
       fstabLineType: [
         {
-          value: "nfs",
-          label: "nfs"
+          value: 'nfs',
+          label: 'nfs'
         },
         {
-          value: "gfs",
-          label: "gfs"
+          value: 'gfs',
+          label: 'gfs'
         },
         {
-          value: "xfs",
-          label: "xfs"
+          value: 'xfs',
+          label: 'xfs'
         }
       ],
       fstabLineOptions: [
         {
-          value: "defaults",
-          label: "defaults"
+          value: 'defaults',
+          label: 'defaults'
         },
         {
-          value: "auto",
-          label: "auto"
+          value: 'auto',
+          label: 'auto'
         }
       ]
-    };
+    }
   },
-  created() {
-    this.fetchClusterInfo();
+  created () {
+    this.fetchClusterInfo()
+
+    let reg = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/
+
+    let str = reg.test(112)
+    console.log('str', str)
   },
   methods: {
-    changeImageHubRadio(value) {
-      this.activeImageHubNames = value + "";
+    changeImageHubRadio (value) {
+      this.activeImageHubNames = value + ''
       if (!value) {
-        this.ruleForm.imageHub.domain = "";
-        this.ruleForm.imageHub.namespace = "";
-        this.ruleForm.imageHub.username = "";
-        this.ruleForm.imageHub.password = "";
+        this.ruleForm.imageHub.domain = ''
+        this.ruleForm.imageHub.namespace = ''
+        this.ruleForm.imageHub.username = ''
+        this.ruleForm.imageHub.password = ''
       }
     },
-    changeregionDatabaseRadio(value) {
-      this.activeregionDatabaseNames = value + "";
+    changeregionDatabaseRadio (value) {
+      this.activeregionDatabaseNames = value + ''
       if (!value) {
-        this.ruleForm.regionDatabase.host = "";
-        this.ruleForm.regionDatabase.port = "";
-        this.ruleForm.regionDatabase.username = "";
-        this.ruleForm.regionDatabase.password = "";
+        this.ruleForm.regionDatabase.host = ''
+        this.ruleForm.regionDatabase.port = ''
+        this.ruleForm.regionDatabase.username = ''
+        this.ruleForm.regionDatabase.password = ''
       }
     },
-    changeUiDatabaseRadio(value) {
-      this.activeUiDatabaseNames = value + "";
+    changeUiDatabaseRadio (value) {
+      this.activeUiDatabaseNames = value + ''
       if (!value) {
-        this.ruleForm.uiDatabase.host = "";
-        this.ruleForm.uiDatabase.port = "";
-        this.ruleForm.uiDatabase.username = "";
-        this.ruleForm.uiDatabase.password = "";
+        this.ruleForm.uiDatabase.host = ''
+        this.ruleForm.uiDatabase.port = ''
+        this.ruleForm.uiDatabase.username = ''
+        this.ruleForm.uiDatabase.password = ''
       }
     },
-    changeETCDRadio(value) {
-      this.activeETCDNames = value + "";
+    changeETCDRadio (value) {
+      this.activeETCDNames = value + ''
       if (!value) {
-        this.ruleForm.etcdConfig.endpoints = [""];
-        this.ruleForm.etcdConfig.default = false;
-        this.ruleForm.etcdConfig.certInfo.ca_file = "";
-        this.ruleForm.etcdConfig.certInfo.cert_file = "";
-        this.ruleForm.etcdConfig.certInfo.key_file = "";
+        this.ruleForm.etcdConfig.endpoints = ['']
+        this.ruleForm.etcdConfig.default = false
+        this.ruleForm.etcdConfig.certInfo.ca_file = ''
+        this.ruleForm.etcdConfig.certInfo.cert_file = ''
+        this.ruleForm.etcdConfig.certInfo.key_file = ''
       }
     },
-    changeStorageRadio(value) {
-      this.activeStorageNames = value + "";
+    changeStorageRadio (value) {
+      this.activeStorageNames = value + ''
       if (!value) {
-        this.ruleForm.storage.storageClassName = "";
+        this.ruleForm.storage.storageClassName = ''
       }
     },
-    changeFstabLineRadio(value) {
-      this.activeFstabLineNames = value + "";
+    changeFstabLineRadio (value) {
+      this.activeFstabLineNames = value + ''
       if (!value) {
-        this.ruleForm.rainbondShareStorage.fstabLine.fileSystem = "";
-        this.ruleForm.rainbondShareStorage.fstabLine.mountPoint = "/grdata";
-        this.ruleForm.rainbondShareStorage.fstabLine.type = "";
-        this.ruleForm.rainbondShareStorage.fstabLine.options = "";
-        this.ruleForm.rainbondShareStorage.fstabLine.dump = 0;
-        this.ruleForm.rainbondShareStorage.fstabLine.pass = 0;
+        this.ruleForm.rainbondShareStorage.fstabLine.fileSystem = ''
+        this.ruleForm.rainbondShareStorage.fstabLine.mountPoint = '/grdata'
+        this.ruleForm.rainbondShareStorage.fstabLine.type = ''
+        this.ruleForm.rainbondShareStorage.fstabLine.options = ''
+        this.ruleForm.rainbondShareStorage.fstabLine.dump = 0
+        this.ruleForm.rainbondShareStorage.fstabLine.pass = 0
       }
     },
-    removeIP(index) {
-      this.ruleForm.gatewayIngressIPs.splice(index, 1);
+    removeIP (index) {
+      this.ruleForm.gatewayIngressIPs.splice(index, 1)
     },
-    addIP() {
-      this.ruleForm.gatewayIngressIPs.push("");
+    addIP () {
+      this.ruleForm.gatewayIngressIPs.push('')
     },
-    addEndpoints() {
-      this.ruleForm.etcdConfig.endpoints.push("");
+    addEndpoints () {
+      this.ruleForm.etcdConfig.endpoints.push('')
     },
-    removeEndpoints(index) {
-      this.ruleForm.etcdConfig.endpoints.splice(index, 1);
+    removeEndpoints (index) {
+      this.ruleForm.etcdConfig.endpoints.splice(index, 1)
     },
-    fetchClusterInfo() {
-      this.$store.dispatch("fetchClusterInfo").then(res => {
+    fetchClusterInfo () {
+      this.$store.dispatch('fetchClusterInfo').then(res => {
         if (res && res.data) {
-          this.loading = false;
-          this.ruleForm = res.data;
+          this.loading = false
+          this.ruleForm = res.data
           // this.ruleForm.rainbondShareStorage.fstabLine.default = true;
           // this.ruleForm.rainbondShareStorage.fstabLine.dump = 0;
           // this.ruleForm.rainbondShareStorage.fstabLine.pass = 0;
@@ -496,36 +548,36 @@ export default {
             (res.data.gatewayIngressIPs &&
               res.data.gatewayIngressIPs.length === 0)
           ) {
-            this.ruleForm.gatewayIngressIPs = [""];
+            this.ruleForm.gatewayIngressIPs = ['']
           }
-          let arr = [];
+          let arr = []
           res.data.gatewayNodes &&
             res.data.gatewayNodes.length > 0 &&
             res.data.gatewayNodes.map(item => {
-              const { selected, nodeIP } = item;
+              const { selected, nodeIP } = item
               if (selected) {
-                arr.push(nodeIP);
+                arr.push(nodeIP)
               }
-            });
-          this.setgatewayNodes = arr;
+            })
+          this.setgatewayNodes = arr
         }
-      });
+      })
     },
-    submitForm(formName, next) {
+    submitForm (formName, next) {
       this.$refs[formName].validate(valid => {
         if (valid) {
-          let arr = [];
+          let arr = []
           this.setgatewayNodes.length > 0 &&
             this.setgatewayNodes.map(item => {
-              arr.push({ nodeIP: item });
-            });
-          this.ruleForm.gatewayNodes = arr;
-          this.loading = true;
+              arr.push({ nodeIP: item })
+            })
+          this.ruleForm.gatewayNodes = arr
+          this.loading = true
           this.ruleForm.regionDatabase.port = Number(
             this.ruleForm.regionDatabase.port
-          );
+          )
 
-          this.ruleForm.uiDatabase.port = Number(this.ruleForm.uiDatabase.port);
+          this.ruleForm.uiDatabase.port = Number(this.ruleForm.uiDatabase.port)
           // this.ruleForm.rainbondShareStorage.fstabLine.dump = Number(
           //   this.ruleForm.fstabLine.dump
           // );
@@ -534,28 +586,28 @@ export default {
           // );
 
           this.$store
-            .dispatch("fixClusterInfo", this.ruleForm)
+            .dispatch('fixClusterInfo', this.ruleForm)
             .then(res => {
-              this.handleCancelLoading();
+              this.handleCancelLoading()
               if (res && res.code == 200) {
-                this.$emit("onResults");
+                this.$emit('onResults')
               }
             })
             .catch(err => {
-              console.log(err);
-            });
+              console.log(err)
+            })
         } else {
-          console.log("error submit!!");
-          return false;
+          console.log('error submit!!')
+          return false
         }
-      });
+      })
     },
 
-    handleCancelLoading() {
-      this.loading = false;
+    handleCancelLoading () {
+      this.loading = false
     }
   }
-};
+}
 </script>
 
 <style rel="stylesheet/scss" lang="scss" scoped>
@@ -664,4 +716,3 @@ export default {
   }
 }
 </style>
-
