@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/util/crutil"
 	"os"
 	"sync/atomic"
 	"time"
@@ -341,6 +342,9 @@ func (ic *InstallUseCaseImpl) InstallStatus() (model.StatusRes, error) {
 	statusres := model.StatusRes{}
 	clusterInfo, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.cfg.Namespace).Get(ic.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
+		if err = crutil.HandleClusterError(ic.cfg.RainbondKubeClient, err); err != nil {
+			return model.StatusRes{}, customerror.NewCRNotFoundError("rainbondCluster do not exists, please create it manually")
+		}
 		return model.StatusRes{}, err
 	}
 	if clusterInfo != nil {

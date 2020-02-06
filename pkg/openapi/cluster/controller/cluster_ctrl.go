@@ -6,10 +6,10 @@ import (
 
 	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
 
+	"github.com/gin-gonic/gin"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/customerror"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
-	"github.com/gin-gonic/gin"
 )
 
 // ClusterController k8s controller
@@ -50,6 +50,10 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 func (cc *ClusterController) Configs(c *gin.Context) {
 	configs, err := cc.clusterCase.GlobalConfigs().GlobalConfigs()
 	if err != nil {
+		if crNotFoundError, ok := err.(*customerror.CRNotFoundError); ok {
+			c.JSON(http.StatusOK, map[string]interface{}{"code": crNotFoundError.Code, "msg": crNotFoundError.Msg})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}
@@ -61,6 +65,10 @@ func (cc *ClusterController) Configs(c *gin.Context) {
 func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 	data, err := cc.clusterCase.Install().InstallStatus()
 	if err != nil {
+		if crNotFoundError, ok := err.(*customerror.CRNotFoundError); ok {
+			c.JSON(http.StatusOK, map[string]interface{}{"code": crNotFoundError.Code, "msg": crNotFoundError.Msg})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}
@@ -80,6 +88,10 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 		return
 	}
 	if err := cc.clusterCase.GlobalConfigs().UpdateGlobalConfig(req); err != nil {
+		if crNotFoundError, ok := err.(*customerror.CRNotFoundError); ok {
+			c.JSON(http.StatusOK, map[string]interface{}{"code": crNotFoundError.Code, "msg": crNotFoundError.Msg})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}
@@ -90,6 +102,10 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 func (cc *ClusterController) Address(c *gin.Context) {
 	data, err := cc.clusterCase.GlobalConfigs().Address()
 	if err != nil {
+		if crNotFoundError, ok := err.(*customerror.CRNotFoundError); ok {
+			c.JSON(http.StatusOK, map[string]interface{}{"code": crNotFoundError.Code, "msg": crNotFoundError.Msg})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}
@@ -137,6 +153,10 @@ func (cc *ClusterController) Install(c *gin.Context) {
 func (cc *ClusterController) InstallStatus(c *gin.Context) {
 	data, err := cc.clusterCase.Install().InstallStatus()
 	if err != nil {
+		if crNotFoundError, ok := err.(*customerror.CRNotFoundError); ok {
+			c.JSON(http.StatusOK, map[string]interface{}{"code": crNotFoundError.Code, "msg": crNotFoundError.Msg})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}

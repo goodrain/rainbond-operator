@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/customerror"
+	"github.com/goodrain/rainbond-operator/pkg/util/crutil"
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
@@ -29,6 +31,9 @@ func NewGlobalConfigUseCase(cfg *option.Config) *GlobalConfigUseCaseImpl {
 func (cc *GlobalConfigUseCaseImpl) GlobalConfigs() (*model.GlobalConfigs, error) {
 	clusterInfo, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(cc.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
+		if err = crutil.HandleClusterError(cc.cfg.RainbondKubeClient, err); err != nil {
+			return nil, customerror.NewCRNotFoundError("rainbondCluster do not exists, please create it manually")
+		}
 		return nil, err
 	}
 
@@ -41,7 +46,12 @@ func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *model.GlobalConfigs)
 	if err != nil {
 		return err
 	}
-	_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(clusterInfo)
+	if _, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(clusterInfo); err != nil {
+		if err = crutil.HandleClusterError(cc.cfg.RainbondKubeClient, err); err != nil {
+			return customerror.NewCRNotFoundError("rainbondCluster do not exists, please create it manually")
+		}
+	}
+
 	return err
 }
 
@@ -189,6 +199,9 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.GlobalConfigs) (*v1alpha1.RainbondCluster, error) {
 	old, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(cc.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
+		if err = crutil.HandleClusterError(cc.cfg.RainbondKubeClient, err); err != nil {
+			return nil, customerror.NewCRNotFoundError("rainbondCluster do not exists, please create it manually")
+		}
 		return nil, err
 	}
 
@@ -288,6 +301,9 @@ func (cc *GlobalConfigUseCaseImpl) updateOrCreateEtcdCertInfo(certInfo model.Etc
 func (cc *GlobalConfigUseCaseImpl) Address() (string, error) {
 	cluster, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(cc.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
+		if err = crutil.HandleClusterError(cc.cfg.RainbondKubeClient, err); err != nil {
+			return "", customerror.NewCRNotFoundError("rainbondCluster do not exists, please create it manually")
+		}
 		return "", err
 	}
 	addr := cluster.GatewayIngressIP()
