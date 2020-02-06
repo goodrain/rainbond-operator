@@ -49,30 +49,30 @@
 
 <script>
 export default {
-  name: "installComponent",
+  name: 'installComponent',
   props: {
     componentList: {
       type: Array,
       default: []
     }
   },
-  data() {
+  data () {
     return {
       componentColor: {
-        Pending: "rgba(0, 0, 0, 0.45)",
-        Running: "#52c41a",
-        Waiting: "rgba(0, 0, 0, 0.45)",
-        Terminated: "#f5222d"
+        Pending: 'rgba(0, 0, 0, 0.45)',
+        Running: '#52c41a',
+        Waiting: 'rgba(0, 0, 0, 0.45)',
+        Terminated: '#f5222d'
       }
-    };
+    }
   },
 
   watch: {
-    componentList(newValue, oldValue) {
-      this.componentList=newValue
+    componentList (newValue, oldValue) {
+      this.componentList = newValue
     }
   }
-};
+}
 </script>
 
 <style rel="stylesheet/scss" lang="scss" scoped>
