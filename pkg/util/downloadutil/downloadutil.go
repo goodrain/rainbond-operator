@@ -1,7 +1,7 @@
 package downloadutil
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -51,7 +51,12 @@ func (listener *DownloadWithProgress) Download() error {
 		return err
 	}
 	logrus.Debug("download finished, check md5")
-	if err := listener.checkMD5(out); err != nil {
+	target, err := os.Open(tmpPath) // reopen target file for check md5
+	if err != nil {
+		return err
+	}
+	defer target.Close()
+	if err := listener.CheckMD5(target); err != nil {
 		return err
 	}
 	logrus.Debug("check md5 finished, move file to ", listener.SavedPath)
@@ -85,8 +90,8 @@ func (listener *DownloadWithProgress) ProgressChanged(event *oss.ProgressEvent) 
 	}
 }
 
-func (listener *DownloadWithProgress) checkMD5(target *os.File) error {
-	md5hash := md5.New()
+func (listener *DownloadWithProgress) CheckMD5(target *os.File) error {
+	md5hash := sha256.New()
 	if _, err := io.Copy(md5hash, target); err != nil {
 		fmt.Println("Copy", err)
 		return fmt.Errorf("prepare down file md5 error: %s", err.Error())
