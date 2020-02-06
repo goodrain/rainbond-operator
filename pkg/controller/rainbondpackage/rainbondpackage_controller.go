@@ -7,7 +7,7 @@ import (
 	"fmt"
 	rbdutil "github.com/GLYASAI/rainbond-operator/pkg/util/rbduitl"
 	"github.com/GLYASAI/rainbond-operator/pkg/util/tarutil"
-	"github.com/pquerna/ffjson/ffjson"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"io"
 	"os"
 	"path"
@@ -416,7 +416,7 @@ func (p *pkg) imageLoad(file string) (string, error) {
 				return "", p.ctx.Err()
 			default:
 			}
-			var jm JSONMessage
+			var jm jsonmessage.JSONMessage
 			if err := dec.Decode(&jm); err != nil {
 				if err == io.EOF {
 					break
@@ -426,7 +426,7 @@ func (p *pkg) imageLoad(file string) (string, error) {
 			if jm.Error != nil {
 				return "", fmt.Errorf("error detail: %v", jm.Error)
 			}
-			msg := jm.JSONString()
+			msg := jm.Stream
 			log.Info("response from image loading", "msg", msg)
 			if imageName == "" {
 				imageName, err = parseImageName(msg)
@@ -470,9 +470,7 @@ func (p *pkg) imagePush(image string) error {
 				return p.ctx.Err()
 			default:
 			}
-			// TODO: use  github.com/docker/docker/pkg/jsonmessage
-			// ref: https://stackoverflow.com/questions/44452679/golang-docker-api-parse-result-of-imagepull/44509434
-			var jm JSONMessage
+			var jm jsonmessage.JSONMessage
 			if err := dec.Decode(&jm); err != nil {
 				if err == io.EOF {
 					break
@@ -482,7 +480,7 @@ func (p *pkg) imagePush(image string) error {
 			if jm.Error != nil {
 				return fmt.Errorf("error detail: %v", jm.Error)
 			}
-			log.Info("response from image pushing", "msg", jm.JSONString())
+			log.Info("response from image pushing", "msg", jm.Stream)
 		}
 	}
 
@@ -500,16 +498,8 @@ func newDockerClient(ctx context.Context) (*dclient.Client, error) {
 	return cli, nil
 }
 
-func parseImageName(s string) (string, error) {
-	// {"stream":"Loaded image: abewang/rainbond-operator:v0.0.1\n"}
-	m := map[string]string{}
-	if err := ffjson.Unmarshal([]byte(s), &m); err != nil {
-		return "", err
-	}
-	str, ok := m["stream"]
-	if !ok {
-		return "", fmt.Errorf("wrong format")
-	}
+func parseImageName(str string) (string, error) {
+	// Loaded image: rainbond/rbd-api:V5.2-dev\n
 	if strings.HasPrefix(str, "Loaded image ID:") {
 		return "", nil
 	}
