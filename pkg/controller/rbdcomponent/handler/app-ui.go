@@ -135,7 +135,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 							Name: "ssl",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: apiSecretName,
+									SecretName: apiClientSecretName,
 								},
 							},
 						},

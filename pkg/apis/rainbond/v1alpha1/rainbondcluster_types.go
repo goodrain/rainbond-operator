@@ -262,6 +262,29 @@ func (in *RainbondCluster) GatewayIngressIP() string {
 	return ""
 }
 
+//GatewayIngressIPs get all gateway ips
+func (in *RainbondCluster) GatewayIngressIPs() (ips []string) {
+	// custom ip ,contain eip
+	if len(in.Spec.GatewayIngressIPs) > 0 && in.Spec.GatewayIngressIPs[0] != "" {
+		return in.Spec.GatewayIngressIPs
+	}
+	// user select gateway node ip
+	if len(in.Spec.GatewayNodes) > 0 {
+		for _, node := range in.Spec.GatewayNodes {
+			ips = append(ips, node.NodeIP)
+		}
+		return
+	}
+	// all available gateway node ip
+	if in.Status != nil && len(in.Status.NodeAvailPorts) > 0 {
+		for _, node := range in.Status.NodeAvailPorts {
+			ips = append(ips, node.NodeIP)
+		}
+		return
+	}
+	return nil
+}
+
 func (in *Database) RegionDataSource() string {
 	return fmt.Sprintf("--mysql=%s:%s@tcp(%s:%d)/region", in.Username, in.Password, in.Host, in.Port)
 }

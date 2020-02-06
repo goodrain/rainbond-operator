@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"path"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -77,6 +78,13 @@ func etcdSecret(ctx context.Context, cli client.Client, cluster *rainbondv1alpha
 	}
 	return secret, nil
 }
+func getSecret(ctx context.Context, client client.Client, namespace, name string) (*corev1.Secret, error) {
+	secret := &corev1.Secret{}
+	if err := client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, secret); err != nil {
+		return nil, err
+	}
+	return secret, nil
+}
 
 func etcdEndpoints(cluster *rainbondv1alpha1.RainbondCluster) []string {
 	if cluster.Spec.EtcdConfig == nil {
@@ -96,6 +104,21 @@ func volumeByEtcd(etcdSecret *corev1.Secret) (corev1.Volume, corev1.VolumeMount)
 	mount := corev1.VolumeMount{
 		Name:      "etcdssl",
 		MountPath: "/run/ssl/etcd",
+	}
+	return volume, mount
+}
+
+func volumeByAPISecret(apiServerSecret *corev1.Secret) (corev1.Volume, corev1.VolumeMount) {
+	volume := corev1.Volume{
+		Name: "region-api-ssl",
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: apiServerSecret.Name,
+			},
+		}}
+	mount := corev1.VolumeMount{
+		Name:      "region-api-ssl",
+		MountPath: "/etc/goodrain/region.goodrain.me/ssl/",
 	}
 	return volume, mount
 }
