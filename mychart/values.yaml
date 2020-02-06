@@ -30,4 +30,4 @@ openapi:
   port: 8080
   nodePort: 30008
   downloadURL: https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/offline/5.1/rainbond.images.2020-02-05-5.2-dev.tgz
-  downloadMD5: 45a1aeac1bb14b21e9d6dca2c76dc58df6289a4252a16dc2c0a766a422f33137
+  downloadMD5: 61c5ba4f98ea7fcb1b4624951e3beb21dcdd4f85543f2ce15059633aa56d74f4
