@@ -16,7 +16,7 @@ ARG GOARCH
 ARG LDFLAGS
 RUN go build -ldflags "$LDFLAGS" -o /openapi $PWD/cmd/openapi
 
-FROM alpine:3.11.2
+FROM abewang/rbd-op-ui-base
 RUN apk add --update tzdata
 ENV TZ=Asia/Shanghai
 COPY --from=builder openapi /app

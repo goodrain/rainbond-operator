@@ -17,8 +17,8 @@ ARG GOARCH
 ARG LDFLAGS
 RUN go build -ldflags "$LDFLAGS" -o /opeator $PWD/cmd/manager
 
-FROM abewang/rbd-op-ui-base
-RUN apk add --update tzdata
+FROM alpine:3.11.2
+RUN apk add --update tzdata && mkdir /app
 ENV TZ=Asia/Shanghai
 COPY --from=builder opeator /app
 
