@@ -25,10 +25,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
-	"github.com/GLYASAI/rainbond-operator/pkg/apis"
-	"github.com/GLYASAI/rainbond-operator/pkg/controller"
-	"github.com/GLYASAI/rainbond-operator/pkg/prepare"
-	"github.com/GLYASAI/rainbond-operator/version"
+	"github.com/goodrain/rainbond-operator/pkg/apis"
+	"github.com/goodrain/rainbond-operator/pkg/controller"
+	"github.com/goodrain/rainbond-operator/pkg/prepare"
+	"github.com/goodrain/rainbond-operator/version"
 )
 
 // Change below variables to serve metrics on different host or port.

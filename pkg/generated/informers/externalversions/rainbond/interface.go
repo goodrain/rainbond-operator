@@ -21,8 +21,8 @@
 package rainbond
 
 import (
-	internalinterfaces "github.com/GLYASAI/rainbond-operator/pkg/generated/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/generated/informers/externalversions/rainbond/v1alpha1"
+	internalinterfaces "github.com/goodrain/rainbond-operator/pkg/generated/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/goodrain/rainbond-operator/pkg/generated/informers/externalversions/rainbond/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

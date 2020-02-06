@@ -4,7 +4,7 @@ ENV CGO_ENABLED=0
 ENV GOPATH=/go
 ENV GOPROXY=https://goproxy.cn
 
-WORKDIR /go/src/github.com/GLYASAI/rainbond-operator
+WORKDIR /go/src/github.com/goodrain/rainbond-operator
 COPY go.mod .
 COPY go.sum .
 RUN go mod download

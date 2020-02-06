@@ -25,9 +25,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
-	internalinterfaces "github.com/GLYASAI/rainbond-operator/pkg/generated/informers/externalversions/internalinterfaces"
-	rainbond "github.com/GLYASAI/rainbond-operator/pkg/generated/informers/externalversions/rainbond"
+	versioned "github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
+	internalinterfaces "github.com/goodrain/rainbond-operator/pkg/generated/informers/externalversions/internalinterfaces"
+	rainbond "github.com/goodrain/rainbond-operator/pkg/generated/informers/externalversions/rainbond"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

@@ -1,10 +1,10 @@
 # Goodrain rainbond-operator
 
-[rainbond-operator](https://github.com/GLYASAI/rainbond-operator) Simplify rainbond cluster
+[rainbond-operator](https://github.com/goodrain/rainbond-operator) Simplify rainbond cluster
 configuration and management.
 
 __DISCLAIMER:__ While this chart has been well-tested, the rainbond-operator is still currently in beta.
-Current project status is available [here](https://github.com/GLYASAI/rainbond-operator).
+Current project status is available [here](https://github.com/goodrain/rainbond-operator).
 
 ## Introduction
 
@@ -20,7 +20,7 @@ This chart bootstraps an rainbond-operator.
 To install the chart with the release name `my-release`:
 
 ```bash
-git clone https://github.com/GLYASAI/rainbond-operator.git
+git clone https://github.com/goodrain/rainbond-operator.git
 
 cd rainbond-operator
 
