@@ -16,7 +16,7 @@ serviceAccount:
 rainbondOperator:
   name: rainbond-operator
   image:
-    repository: registry.cn-hangzhou.aliyuncs.com/abewang/rainbond-operator
+    repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator
     tag: v0.0.1
     pullPolicy: IfNotPresent
 
@@ -24,7 +24,7 @@ rainbondOperator:
 openapi:
   name: openapi
   image:
-    repository: registry.cn-hangzhou.aliyuncs.com/abewang/rbd-op-ui
+    repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui
     tag: v0.0.1
     pullPolicy: IfNotPresent
   port: 8080
