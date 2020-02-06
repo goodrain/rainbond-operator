@@ -352,6 +352,19 @@ func (ic *InstallUseCaseImpl) stepDownload() model.InstallStatus {
 		return installStatus
 	}
 
+	// check md5
+	dp := downloadutil.DownloadWithProgress{Wanted: ic.cfg.DownloadMD5}
+	target, err := os.Open(ic.cfg.ArchiveFilePath)
+	if err != nil {
+		installStatus.Status = InstallStatusWaiting
+		return installStatus
+	}
+	if err := dp.CheckMD5(target); err != nil {
+		logrus.Warn("download tar md5 check error, waiting new download progress")
+		installStatus.Status = InstallStatusWaiting
+		return installStatus
+	}
+
 	installStatus.Status = InstallStatusFinished
 	installStatus.Progress = 100
 	return installStatus
