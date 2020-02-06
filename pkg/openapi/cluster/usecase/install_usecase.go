@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
-	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/customerror"
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/customerror"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/GLYASAI/rainbond-operator/pkg/util/downloadutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/downloadutil"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -1,7 +1,7 @@
 package apis
 
 import (
-	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 )
 
 func init() {

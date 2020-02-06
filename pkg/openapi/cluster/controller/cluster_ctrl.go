@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/GLYASAI/rainbond-operator/pkg/util/corsutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
 
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster"
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/customerror"
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/customerror"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	"github.com/gin-gonic/gin"
 )
 

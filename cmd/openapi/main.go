@@ -16,17 +16,17 @@ import (
 	"k8s.io/client-go/rest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
-	"github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster"
-	clusterCtrl "github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster/controller"
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/upload"
-	uctrl "github.com/GLYASAI/rainbond-operator/pkg/openapi/user/controller"
-	urepo "github.com/GLYASAI/rainbond-operator/pkg/openapi/user/repositry"
-	uucase "github.com/GLYASAI/rainbond-operator/pkg/openapi/user/usecase"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/corsutil"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
+	clusterCtrl "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/controller"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/upload"
+	uctrl "github.com/goodrain/rainbond-operator/pkg/openapi/user/controller"
+	urepo "github.com/goodrain/rainbond-operator/pkg/openapi/user/repositry"
+	uucase "github.com/goodrain/rainbond-operator/pkg/openapi/user/usecase"
+	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 )
 
 var (

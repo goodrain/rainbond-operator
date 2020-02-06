@@ -2,7 +2,7 @@ package upload
 
 import (
 	"fmt"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/corsutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"

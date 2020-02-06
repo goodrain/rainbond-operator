@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/GLYASAI/rainbond-operator/pkg/controller/rainbondcluster"
+	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondcluster"
 )
 
 func init() {
