@@ -3,15 +3,16 @@ package usecase
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/customerror"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/downloadutil"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/goodrain/rainbond-operator/pkg/util/downloadutil"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -94,6 +95,7 @@ type InstallUseCaseImpl struct {
 	componentUsecase ComponentUseCase
 	downloadListener *downloadutil.DownloadWithProgress
 	downloadError    error
+	checked          bool
 }
 
 // NewInstallUseCase new install case
@@ -103,6 +105,7 @@ func NewInstallUseCase(cfg *option.Config, componentUsecase ComponentUseCase) *I
 
 // InstallPreCheck pre check
 func (ic *InstallUseCaseImpl) InstallPreCheck() (model.StatusRes, error) {
+	defer commonutil.TimeConsume(time.Now())
 	statusres := model.StatusRes{}
 	statuses := make([]model.InstallStatus, 0)
 	statuses = append(statuses, ic.stepSetting())
@@ -141,6 +144,7 @@ func (ic *InstallUseCaseImpl) InstallPreCheck() (model.StatusRes, error) {
 
 // Install install
 func (ic *InstallUseCaseImpl) Install() error {
+	defer commonutil.TimeConsume(time.Now())
 	if err := ic.BeforeInstall(); err != nil {
 		return err
 	}
@@ -148,6 +152,7 @@ func (ic *InstallUseCaseImpl) Install() error {
 }
 
 func (ic *InstallUseCaseImpl) canInstallOrNot(step string) error {
+	defer commonutil.TimeConsume(time.Now())
 	if ic.downloadListener != nil {
 		return customerror.NewDownloadingError("install process is processon, please hold on")
 	}
@@ -155,7 +160,9 @@ func (ic *InstallUseCaseImpl) canInstallOrNot(step string) error {
 	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
 		logrus.Info("rainbond archive file does not exists, downloading background ...")
 		if step == StepDownload {
+			// the latest download progress failed
 			if ic.downloadError != nil {
+				ic.downloadError = nil
 				return customerror.NewDownLoadError("download rainbond.tar error, please try again or upload it using /uploads")
 			}
 			// step 2 download archive
@@ -169,10 +176,23 @@ func (ic *InstallUseCaseImpl) canInstallOrNot(step string) error {
 		return customerror.NewRainbondTarNotExistError("rainbond tar do not exists")
 
 	}
+	if !ic.checked {
+		// check md5
+		logrus.Info("check rainbond.tar's md5")
+		dp := downloadutil.DownloadWithProgress{Wanted: ic.cfg.DownloadMD5}
+		target, err := os.Open(ic.cfg.ArchiveFilePath)
+		if err != nil {
+		}
+		if err := dp.CheckMD5(target); err != nil {
+			logrus.Warn("download tar md5 check error, waiting new download progress")
+		}
+		ic.checked = true
+	}
 	return nil
 }
 
 func (ic *InstallUseCaseImpl) initRainbondPackage() error {
+	defer commonutil.TimeConsume(time.Now())
 	logrus.Debug("create rainbondpackage resource start")
 	// rainbondpackage
 	pkg := &v1alpha1.RainbondPackage{
@@ -198,6 +218,7 @@ func (ic *InstallUseCaseImpl) initRainbondPackage() error {
 }
 
 func (ic *InstallUseCaseImpl) initKubeCfg() error {
+	defer commonutil.TimeConsume(time.Now())
 	logrus.Debug("create kubernetes secret resource start")
 	kubeCfg := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -226,6 +247,7 @@ func (ic *InstallUseCaseImpl) initKubeCfg() error {
 }
 
 func (ic *InstallUseCaseImpl) initResourceDep() error {
+	defer commonutil.TimeConsume(time.Now())
 	if err := ic.initRainbondPackage(); err != nil {
 		return err
 	}
@@ -238,6 +260,7 @@ func (ic *InstallUseCaseImpl) initResourceDep() error {
 
 // BeforeInstall before install check
 func (ic *InstallUseCaseImpl) BeforeInstall() error {
+	defer commonutil.TimeConsume(time.Now())
 	// step 1 check if archive is exists or not
 	if err := ic.canInstallOrNot(""); err != nil {
 		return err
@@ -250,6 +273,7 @@ func (ic *InstallUseCaseImpl) BeforeInstall() error {
 }
 
 func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) error {
+	defer commonutil.TimeConsume(time.Now())
 	for _, rbdComponent := range components {
 		// component := &componentClaim{name: rbdComponent, version: version, namespace: ic.cfg.Namespace}
 		data := parseComponentClaim(rbdComponent)
@@ -277,6 +301,7 @@ func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) err
 
 // InstallStatus install status
 func (ic *InstallUseCaseImpl) InstallStatus() (model.StatusRes, error) {
+	defer commonutil.TimeConsume(time.Now())
 	statusres := model.StatusRes{}
 	clusterInfo, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.cfg.Namespace).Get(ic.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
@@ -291,6 +316,7 @@ func (ic *InstallUseCaseImpl) InstallStatus() (model.StatusRes, error) {
 }
 
 func (ic *InstallUseCaseImpl) parseInstallStatus(source *v1alpha1.RainbondClusterStatus) (statusres model.StatusRes) {
+	defer commonutil.TimeConsume(time.Now())
 	if source == nil {
 		return
 	}
@@ -317,6 +343,7 @@ func (ic *InstallUseCaseImpl) parseInstallStatus(source *v1alpha1.RainbondCluste
 
 // step 1 setting cluster
 func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
+	defer commonutil.TimeConsume(time.Now())
 	return model.InstallStatus{
 		StepName: StepSetting,
 		Status:   InstallStatusFinished,
@@ -326,44 +353,18 @@ func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
 
 // step 2 download rainbond
 func (ic *InstallUseCaseImpl) stepDownload() model.InstallStatus {
-	installStatus := model.InstallStatus{StepName: StepDownload}
-	if ic.downloadListener != nil && !ic.downloadListener.Finished {
-		installStatus.Progress = ic.downloadListener.Percent
-		installStatus.Status = InstallStatusProcessing
-		return installStatus
+	defer commonutil.TimeConsume(time.Now())
+	installStatus := model.InstallStatus{
+		StepName: StepDownload,
+		Status:   InstallStatusFinished,
+		Progress: 100,
 	}
-
-	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
-		if ic.downloadError != nil { // download error
-			installStatus.Status = InstallStatusFailed
-			installStatus.Message = "download rainbond.tar error, please try again or upload it using /uploads"
-			return installStatus
-		}
-		// file not found
-		installStatus.Status = InstallStatusWaiting
-		return installStatus
-	}
-
-	// check md5
-	dp := downloadutil.DownloadWithProgress{Wanted: ic.cfg.DownloadMD5}
-	target, err := os.Open(ic.cfg.ArchiveFilePath)
-	if err != nil {
-		installStatus.Status = InstallStatusWaiting
-		return installStatus
-	}
-	if err := dp.CheckMD5(target); err != nil {
-		logrus.Warn("download tar md5 check error, waiting new download progress")
-		installStatus.Status = InstallStatusWaiting
-		return installStatus
-	}
-
-	installStatus.Status = InstallStatusFinished
-	installStatus.Progress = 100
 	return installStatus
 }
 
 // step 3 prepare storage and image hub
 func (ic *InstallUseCaseImpl) stepPrepareInfrastructure(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	defer commonutil.TimeConsume(time.Now())
 	var status model.InstallStatus
 	switch source.Phase {
 	case v1alpha1.RainbondClusterWaiting:
@@ -402,6 +403,7 @@ func (ic *InstallUseCaseImpl) stepPrepareInfrastructure(source *v1alpha1.Rainbon
 
 // step 4 unpack rainbond
 func (ic *InstallUseCaseImpl) stepUnpack(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	defer commonutil.TimeConsume(time.Now())
 	status := model.InstallStatus{
 		StepName: StepUnpack,
 	}
@@ -428,6 +430,7 @@ func (ic *InstallUseCaseImpl) stepUnpack(source *v1alpha1.RainbondClusterStatus)
 }
 
 func (ic *InstallUseCaseImpl) getRainbondPackageStatus() *v1alpha1.RainbondPackageStatus {
+	defer commonutil.TimeConsume(time.Now())
 	rbdpkg, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(ic.cfg.Namespace).Get(ic.cfg.Rainbondpackage, metav1.GetOptions{})
 	if err != nil {
 		logrus.Errorf("get rainbondpackage error: %s", err.Error())
@@ -438,6 +441,7 @@ func (ic *InstallUseCaseImpl) getRainbondPackageStatus() *v1alpha1.RainbondPacka
 
 // step 5 handle image, load and push image to image hub
 func (ic *InstallUseCaseImpl) stepHandleImage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	defer commonutil.TimeConsume(time.Now())
 	status := model.InstallStatus{
 		StepName: StepHandleImage,
 	}
@@ -466,6 +470,7 @@ func (ic *InstallUseCaseImpl) stepHandleImage(source *v1alpha1.RainbondClusterSt
 
 // step 6 create component
 func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+	defer commonutil.TimeConsume(time.Now())
 	var status model.InstallStatus
 	switch source.Phase {
 	case v1alpha1.RainbondClusterWaiting, v1alpha1.RainbondClusterPreparing, v1alpha1.RainbondClusterPackageProcessing:
@@ -519,7 +524,10 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClust
 // downloadFile will download a url to a local file. It's efficient because it will
 // write as it downloads and not load the whole file into memory.
 func (ic *InstallUseCaseImpl) downloadFile() error {
+	defer commonutil.TimeConsume(time.Now())
 	ic.downloadListener = &downloadutil.DownloadWithProgress{URL: ic.cfg.DownloadURL, SavedPath: ic.cfg.ArchiveFilePath, Wanted: ic.cfg.DownloadMD5}
+	ic.checked = false
+	logrus.Info("download progress start, reset check as false")
 	go func() {
 		if err := ic.downloadListener.Download(); err != nil {
 			logrus.Error("download rainbondtar error: ", err.Error())
