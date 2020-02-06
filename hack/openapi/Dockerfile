@@ -2,7 +2,6 @@ FROM golang:1.13 as builder
 ENV GO111MODULE=on
 ENV CGO_ENABLED=0
 ENV GOPATH=/go
-ENV GOPROXY=https://goproxy.cn
 
 WORKDIR /go/src/github.com/goodrain/rainbond-operator
 COPY go.mod .
