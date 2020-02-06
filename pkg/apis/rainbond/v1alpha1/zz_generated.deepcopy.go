@@ -528,6 +528,13 @@ func (in *RbdComponentSpec) DeepCopyInto(out *RbdComponentSpec) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.Configs != nil {
+		in, out := &in.Configs, &out.Configs
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 
