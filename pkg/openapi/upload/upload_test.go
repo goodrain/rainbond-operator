@@ -19,9 +19,9 @@ func TestController_Upload(t *testing.T) {
 		fmt.Println(file.Filename)
 
 		// 上传文件至指定目录
-		c.SaveUploadedFile(file, "/tmp/"+file.Filename)
+		_ = c.SaveUploadedFile(file, "/tmp/"+file.Filename)
 
 		c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", file.Filename))
 	})
-	c.Run()
+	_ = c.Run()
 }

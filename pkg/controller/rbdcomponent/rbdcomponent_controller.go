@@ -220,25 +220,6 @@ func (r *ReconcileRbdComponent) updateOrCreateResource(reqLogger logr.Logger, ob
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileRbdComponent) createIfNotExistResource(reqLogger logr.Logger, obj runtime.Object, meta metav1.Object) (reconcile.Result, error) {
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
-		err = r.client.Create(context.TODO(), obj)
-		if err != nil {
-			reqLogger.Error(err, "Failed to create new", obj.GetObjectKind(), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
-			return reconcile.Result{}, err
-		}
-		// daemonset created successfully - return and requeue TODO: why?
-		return reconcile.Result{Requeue: true}, nil
-	} else if err != nil {
-		reqLogger.Error(err, "Failed to get ", obj.GetObjectKind())
-		return reconcile.Result{}, err
-	}
-
-	return reconcile.Result{}, nil
-}
-
 func detectControllerType(ctrl interface{}) rainbondv1alpha1.ControllerType {
 	if _, ok := ctrl.(*appv1.Deployment); ok {
 		return rainbondv1alpha1.ControllerTypeDeployment

@@ -321,12 +321,12 @@ func (p *pkg) untartar() error {
 		errCh <- nil
 	}(errCh)
 
-	tick := time.Tick(1 * time.Second)
 	for {
 		select {
 		case err := <-errCh:
 			return err
-		case <-tick:
+		default:
+			time.Sleep(1 * time.Second)
 			// count files
 			num := countImages(pkgDst)
 			if p.status.NumberExtracted == num {
@@ -487,12 +487,6 @@ func (p *pkg) imagePush(image string) error {
 	}
 
 	return nil
-}
-
-func pkgDir(pkgPath, dst string) string {
-	ext := path.Ext(pkgPath)
-	dirName := strings.Replace(path.Base(pkgPath), ext, "", -1)
-	return path.Join(dst, dirName)
 }
 
 func newDockerClient(ctx context.Context) (*dclient.Client, error) {

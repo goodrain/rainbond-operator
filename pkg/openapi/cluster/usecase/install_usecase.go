@@ -18,10 +18,6 @@ import (
 )
 
 var (
-	version                    = "V5.2-dev"
-	defaultRainbondDownloadURL = "192.168.2.222" // TODO fanyangyang download url
-	defaultRainbondFilePath    = "/opt/rainbond/rainbond.tar"
-
 	componentClaims []componentClaim
 )
 
@@ -58,10 +54,6 @@ type componentClaim struct {
 	name      string
 	version   string
 	image     string
-}
-
-func (c *componentClaim) getImage() string {
-	return fmt.Sprintf("%s/%s:%s", c.namespace, c.name, c.version)
 }
 
 func init() {

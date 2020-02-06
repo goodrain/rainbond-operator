@@ -1,9 +1,11 @@
 GROUP=rainbond
 VERSION=v1alpha1
+IMAGE_DOMAIN=registry.cn-hangzhou.aliyuncs.com
+IMAGE_NAMESPACE=abewang
+TAG=v0.0.1
 
 .PHONY: gen
 gen: crds-gen openapi-gen sdk-gen
-
 crds-gen:
 	operator-sdk generate crds
 openapi-gen:
@@ -24,9 +26,6 @@ sdk-verify:
 api-add:
 	operator-sdk add api --api-version=rainbond.io/$(VERSION) --kind=$(KIND)
 
-operator-image:
-	operator-sdk build abewang/rainbond-operator:v0.0.1
-
 ctrl-add:
 	operator-sdk add controller --api-version=rainbond.io/$(VERSION) --kind=$(KIND)
 
@@ -35,19 +34,31 @@ check:
 	which ./bin/golangci-lint > /dev/null || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.23.2
 	@bin/golangci-lint run
 
-test:operator-image
-	docker save -o /tmp/rainbond-operator.tgz abewang/rainbond-operator:v0.0.1
-	scp /tmp/rainbond-operator.tgz root@172.20.0.20:/root
+
 
 .PHONY: mock
 mock:
 	./mockgen.sh
 
+.PHONY: build
 build-api:
-	docker build --no-cache . -f hack/openapi/Dockerfile -t abewang/rbd-op-ui:v0.0.1
+	docker build --no-cache . -f hack/openapi/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
+build-operator:
+	docker build --no-cache . -f hack/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
+build: build-api build-operator
+
+push: build
+	docker login $(IMAGE_DOMAIN) -u $(DOCKER_USER) -p $(DOCKER_PASS)
+	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
+	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
+
+.PHONY: test
+test-operator:build-operator
+	docker save -o /tmp/rainbond-operator.tgz abewang/rainbond-operator:$(TAG)
+	scp /tmp/rainbond-operator.tgz root@172.20.0.20:/root
 test-api:
 	GOOS=linux go build -o openapi ./cmd/openapi
-	docker build --no-cache . -f hack/openapi/Dockerfile.dev -t abewang/rbd-op-ui:v0.0.1
+	docker build --no-cache . -f hack/openapi/Dockerfile.dev -t abewang/rbd-op-ui:$(TAG)
 	rm -rf ./openapi
-	docker save -o /tmp/openapi.tgz abewang/rbd-op-ui:v0.0.1
+	docker save -o /tmp/openapi.tgz abewang/rbd-op-ui:$(TAG)
 	scp /tmp/openapi.tgz root@172.20.0.20:/root

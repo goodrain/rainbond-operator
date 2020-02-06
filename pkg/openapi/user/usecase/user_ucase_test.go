@@ -51,7 +51,7 @@ func TestUserUsecase_Login(t *testing.T) {
 			m := mock.NewMockRepository(ctrl)
 			m.EXPECT().GetByUsername(tc.username).Return(tc.ret, tc.repoErr)
 
-			ucase := NewUserUsecase(m)
+			ucase := NewUserUsecase(m, "foobar")
 			_, err := ucase.Login(tc.username, tc.password)
 			if err != tc.wantErr {
 				t.Errorf("want error %v, but got %v", tc.wantErr, err)

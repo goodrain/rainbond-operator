@@ -106,7 +106,7 @@ func TestGenerateRainbondClusterPackageExtractedCondition(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	rainbondv1alpha1.AddToScheme(scheme)
+	_ = rainbondv1alpha1.AddToScheme(scheme)
 	for i := range tests {
 		tc := tests[i]
 		t.Run(tc.name, func(t *testing.T) {

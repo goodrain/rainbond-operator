@@ -300,7 +300,7 @@ func (r *ReconcileRainbondCluster) listControllerStatuses() ([]*rainbondv1alpha1
 	funcs := []listControllerStatuses{
 		r.listDeploymentStatuses,
 		r.listDaemonSetStatuses,
-		r.listDaemonSetStatuses,
+		r.listStatefulSetStatuses,
 	}
 
 	var result []*rainbondv1alpha1.ControllerStatus
@@ -422,27 +422,6 @@ func (r *ReconcileRainbondCluster) claims(cluster *rainbondv1alpha1.RainbondClus
 	}
 
 	return []*corev1.PersistentVolumeClaim{grdata, cache}
-}
-
-func (r *ReconcileRainbondCluster) grdataPersistentVolumeClaim(cluster *rainbondv1alpha1.RainbondCluster) *corev1.PersistentVolumeClaim {
-	storageRequest := resource.NewQuantity(10, resource.BinarySI) // TODO: size
-	return &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.Namespace,
-			Name:      "grdata",
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteMany,
-			},
-			Resources: corev1.ResourceRequirements{
-				Requests: map[corev1.ResourceName]resource.Quantity{
-					corev1.ResourceStorage: *storageRequest,
-				},
-			},
-			StorageClassName: commonutil.String(rbdutil.GetStorageClass(cluster)),
-		},
-	}
 }
 
 func (r *ReconcileRainbondCluster) getMasterRoleLabel(ctx context.Context) (string, error) {

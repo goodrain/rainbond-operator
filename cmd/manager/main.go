@@ -148,7 +148,7 @@ func main() {
 		log.Error(err, "start parepare manager")
 		os.Exit(1)
 	}
-	defer prepareManager.Stop()
+	defer func() { _ = prepareManager.Stop() }()
 
 	log.Info("Starting the Cmd.")
 	// Start the Cmd
