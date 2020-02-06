@@ -87,7 +87,7 @@ func (d *db) statefulsetForDB() interface{} {
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "rbd-db-data",
-									MountPath: "/var/lib/mysql",
+									MountPath: "/data",
 								},
 								{
 									Name:      "mysqlcnf",

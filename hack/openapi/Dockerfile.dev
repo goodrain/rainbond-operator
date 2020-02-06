@@ -1,6 +1,4 @@
 FROM abewang/rbd-op-ui-base
-RUN apk add --update tzdata
-ENV TZ=Asia/Shanghai
 COPY ./openapi /app
 EXPOSE 8080
 

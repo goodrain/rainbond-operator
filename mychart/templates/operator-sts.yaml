@@ -53,6 +53,7 @@ spec:
           imagePullPolicy: {{ .Values.openapi.image.pullPolicy }}
           args:
             - --rbd-download-url={{ .Values.openapi.downloadURL }}
+            - --rbd-download-md5={{ .Values.openapi.downloadMD5 }}
           volumeMounts:
             - mountPath: /opt/rainbond/pkg
               name: rbd-pkg

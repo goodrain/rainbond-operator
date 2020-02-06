@@ -54,11 +54,9 @@ push: build
 
 .PHONY: test
 test-operator:build-operator
-	docker save -o /tmp/rainbond-operator.tgz abewang/rainbond-operator:$(TAG)
+	docker save -o /tmp/rainbond-operator.tgz  $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
 	scp /tmp/rainbond-operator.tgz root@172.20.0.20:/root
 test-api:
 	GOOS=linux go build -o openapi ./cmd/openapi
-	docker build --no-cache . -f hack/openapi/Dockerfile.dev -t abewang/rbd-op-ui:$(TAG)
+	docker build --no-cache . -f hack/openapi/Dockerfile.dev -t  $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
 	rm -rf ./openapi
-	docker save -o /tmp/openapi.tgz abewang/rbd-op-ui:$(TAG)
-	scp /tmp/openapi.tgz root@172.20.0.20:/root
