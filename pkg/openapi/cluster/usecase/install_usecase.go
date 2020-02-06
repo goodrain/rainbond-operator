@@ -3,6 +3,7 @@ package usecase
 import (
 	"fmt"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
@@ -89,13 +90,24 @@ func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 	return component
 }
 
+const (
+	md5CheckStatusWait int32 = iota
+	md5CheckStatusProcess
+	md5CheckStatusPass
+	md5CheckStatusFailed
+)
+
+type md5Check struct {
+	checked int32
+}
+
 // InstallUseCaseImpl install case
 type InstallUseCaseImpl struct {
 	cfg              *option.Config
 	componentUsecase ComponentUseCase
 	downloadListener *downloadutil.DownloadWithProgress
 	downloadError    error
-	checked          bool
+	md5checkInfo     md5Check
 	downloaded       bool //only when precheck check file exists set as true
 }
 
@@ -121,9 +133,13 @@ func (ic *InstallUseCaseImpl) InstallPreCheck() (model.StatusRes, error) {
 			downStatus.Message = err.Error()
 		}
 	} else {
-		ic.downloaded = true
-		downStatus.Status = InstallStatusFinished
-		downStatus.Progress = 100
+		if atomic.LoadInt32(&ic.md5checkInfo.checked) == md5CheckStatusPass {
+			downStatus.Progress = 100
+			downStatus.Status = InstallStatusFinished
+			ic.downloaded = true
+		} else {
+			downStatus.Status = InstallStatusWaiting
+		}
 	}
 	statuses = append(statuses, downStatus)
 
@@ -178,18 +194,36 @@ func (ic *InstallUseCaseImpl) canInstallOrNot(step string) error {
 		return customerror.NewRainbondTarNotExistError("rainbond tar do not exists")
 
 	}
-	if !ic.checked {
-		// check md5
-		logrus.Info("check rainbond.tar's md5")
-		dp := downloadutil.DownloadWithProgress{Wanted: ic.cfg.DownloadMD5}
-		target, err := os.Open(ic.cfg.ArchiveFilePath)
-		if err != nil {
+	if step == StepDownload {
+		if atomic.LoadInt32(&ic.md5checkInfo.checked) == md5CheckStatusWait {
+			// check md5
+			go func() {
+				atomic.StoreInt32(&ic.md5checkInfo.checked, md5CheckStatusProcess)
+
+				logrus.Info("check rainbond.tar's md5")
+				dp := downloadutil.DownloadWithProgress{Wanted: ic.cfg.DownloadMD5}
+				target, err := os.Open(ic.cfg.ArchiveFilePath)
+				if err != nil {
+				}
+				if err := dp.CheckMD5(target); err != nil {
+					logrus.Warn("download tar md5 check error, waiting new download progress")
+					atomic.StoreInt32(&ic.md5checkInfo.checked, md5CheckStatusFailed)
+					return
+				}
+				atomic.StoreInt32(&ic.md5checkInfo.checked, md5CheckStatusPass)
+			}()
 		}
-		if err := dp.CheckMD5(target); err != nil {
-			logrus.Warn("download tar md5 check error, waiting new download progress")
+		if atomic.LoadInt32(&ic.md5checkInfo.checked) == md5CheckStatusFailed {
+			logrus.Warn("exists rainbond.tar md5 check failed, re-download it")
+			// step 2 download archive (it will reset md5check info)
+			if err := ic.downloadFile(); err != nil {
+				logrus.Errorf("download rainbond file error: %s", err.Error())
+				return customerror.NewDownLoadError("download rainbond.tar error, please try again or upload it using /uploads")
+			}
+			return customerror.NewDownLoadError("download rainbond.tar error, please try again or upload it using /uploads")
 		}
-		ic.checked = true
 	}
+
 	return nil
 }
 
@@ -586,7 +620,7 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClust
 func (ic *InstallUseCaseImpl) downloadFile() error {
 	defer commonutil.TimeConsume(time.Now())
 	ic.downloadListener = &downloadutil.DownloadWithProgress{URL: ic.cfg.DownloadURL, SavedPath: ic.cfg.ArchiveFilePath, Wanted: ic.cfg.DownloadMD5}
-	ic.checked = false
+	ic.md5checkInfo = md5Check{} // reset md5check info
 	logrus.Info("download progress start, reset check as false")
 	go func() {
 		if err := ic.downloadListener.Download(); err != nil {

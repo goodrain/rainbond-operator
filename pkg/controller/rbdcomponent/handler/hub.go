@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+
 	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -16,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+//HubName name
 var HubName = "rbd-hub"
 var hubDataPvcName = "hubdata"
 var hubImageRepository = "hub-image-repository"
@@ -23,12 +25,17 @@ var hubImageRepository = "hub-image-repository"
 type hub struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
+	client    client.Client
+	ctx       context.Context
 }
 
+//NewHub nw hub
 func NewHub(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &hub{
 		component: component,
 		cluster:   cluster,
+		client:    client,
+		ctx:       ctx,
 	}
 }
 
@@ -192,7 +199,7 @@ func (h *hub) ingressForHub() interface{} {
 			},
 			TLS: []extensions.IngressTLS{
 				{
-					Hosts: []string{rbdutil.GetImageRepository(h.cluster)},
+					Hosts:      []string{rbdutil.GetImageRepository(h.cluster)},
 					SecretName: hubImageRepository,
 				},
 			},
@@ -203,12 +210,14 @@ func (h *hub) ingressForHub() interface{} {
 }
 
 func (h *hub) secretForHub() interface{} {
+	secret, _ := h.getSecret(hubImageRepository)
+	if secret != nil {
+		return nil
+	}
 	labels := h.component.GetLabels()
 	labels["name"] = hubImageRepository
-
-	_, pem, key, _ := commonutil.DomainSign(rbdutil.GetImageRepository(h.cluster))
-
-	secret := &corev1.Secret{
+	_, pem, key, _ := commonutil.DomainSign(nil, rbdutil.GetImageRepository(h.cluster))
+	secret = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      hubImageRepository,
 			Namespace: h.component.Namespace,
@@ -222,4 +231,8 @@ func (h *hub) secretForHub() interface{} {
 	}
 
 	return secret
+}
+
+func (h *hub) getSecret(name string) (*corev1.Secret, error) {
+	return getSecret(h.ctx, h.client, h.component.Namespace, name)
 }

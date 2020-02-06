@@ -37,8 +37,9 @@ type RbdComponentSpec struct {
 	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
 	// Cannot be updated.
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-
-	PackagePath string `json:"packagePath,omitempty"`
+	// component config map
+	Configs     map[string]string `json:"configs,omitempty"`
+	PackagePath string            `json:"packagePath,omitempty"`
 }
 
 // ControllerType -
