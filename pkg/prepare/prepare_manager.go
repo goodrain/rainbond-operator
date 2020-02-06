@@ -8,8 +8,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	rainbondv1alpha1client "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	rainbondv1alpha1client "github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 )
 
 var log = logf.Log.WithName("prepare_manager")

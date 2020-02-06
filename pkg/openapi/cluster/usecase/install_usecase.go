@@ -6,15 +6,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
-	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/customerror"
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/customerror"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/downloadutil"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/downloadutil"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -109,6 +108,7 @@ type InstallUseCaseImpl struct {
 	downloadListener *downloadutil.DownloadWithProgress
 	downloadError    error
 	md5checkInfo     md5Check
+	downloaded       bool //only when precheck check file exists set as true
 }
 
 // NewInstallUseCase new install case
@@ -136,6 +136,7 @@ func (ic *InstallUseCaseImpl) InstallPreCheck() (model.StatusRes, error) {
 		if atomic.LoadInt32(&ic.md5checkInfo.checked) == md5CheckStatusPass {
 			downStatus.Progress = 100
 			downStatus.Status = InstallStatusFinished
+			ic.downloaded = true
 		} else {
 			downStatus.Status = InstallStatusWaiting
 		}
@@ -356,19 +357,36 @@ func (ic *InstallUseCaseImpl) parseInstallStatus(source *v1alpha1.RainbondCluste
 		return
 	}
 	statuses := make([]model.InstallStatus, 0)
+
 	statuses = append(statuses, ic.stepSetting())
-	statuses = append(statuses, ic.stepDownload())
-	statuses = append(statuses, ic.stepPrepareInfrastructure(source))
-	statuses = append(statuses, ic.stepUnpack(source))
-	statuses = append(statuses, ic.stepHandleImage(source))
-	statuses = append(statuses, ic.stepCreateComponent(source))
+
+	downloadStatus := ic.stepDownload()
+	statuses = append(statuses, downloadStatus)
+
+	infrastructureStatus := ic.stepPrepareInfrastructure(source, downloadStatus.Status != InstallStatusFinished)
+	statuses = append(statuses, infrastructureStatus)
+
+	unpackStatus := ic.stepUnpack(source, infrastructureStatus.Status != InstallStatusFinished)
+	statuses = append(statuses, unpackStatus)
+
+	handleImageStatus := ic.stepHandleImage(source, unpackStatus.Status != InstallStatusFinished)
+	statuses = append(statuses, handleImageStatus)
+
+	createComponentStatus := ic.stepCreateComponent(source, handleImageStatus.Status != InstallStatusFinished)
+	statuses = append(statuses, createComponentStatus)
+
 	finalStatus := InstallStatusFinished
-	for _, status := range statuses {
-		if status.Status != InstallStatusFinished {
-			finalStatus = InstallStatusProcessing
-			break
+	if downloadStatus.Status == InstallStatusWaiting {
+		finalStatus = InstallStatusWaiting // have not installed
+	} else {
+		for _, status := range statuses {
+			if status.Status != InstallStatusFinished {
+				finalStatus = InstallStatusProcessing
+				break
+			}
 		}
 	}
+
 	statusres = model.StatusRes{
 		FinalStatus: finalStatus,
 		StatusList:  statuses,
@@ -389,6 +407,23 @@ func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
 // step 2 download rainbond
 func (ic *InstallUseCaseImpl) stepDownload() model.InstallStatus {
 	defer commonutil.TimeConsume(time.Now())
+	if ic.downloadListener != nil {
+		// downloading
+		return model.InstallStatus{
+			StepName: StepDownload,
+			Status:   InstallStatusProcessing,
+			Progress: ic.downloadListener.Percent,
+		}
+	}
+
+	if !ic.downloaded {
+		// have not installed
+		return model.InstallStatus{
+			StepName: StepDownload,
+			Status:   InstallStatusWaiting,
+		}
+	}
+
 	installStatus := model.InstallStatus{
 		StepName: StepDownload,
 		Status:   InstallStatusFinished,
@@ -398,8 +433,14 @@ func (ic *InstallUseCaseImpl) stepDownload() model.InstallStatus {
 }
 
 // step 3 prepare storage and image hub
-func (ic *InstallUseCaseImpl) stepPrepareInfrastructure(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+func (ic *InstallUseCaseImpl) stepPrepareInfrastructure(source *v1alpha1.RainbondClusterStatus, waiting bool) model.InstallStatus {
 	defer commonutil.TimeConsume(time.Now())
+	if waiting {
+		return model.InstallStatus{
+			StepName: StepPrepareInfrastructure,
+			Status:   InstallStatusWaiting,
+		}
+	}
 	var status model.InstallStatus
 	switch source.Phase {
 	case v1alpha1.RainbondClusterWaiting:
@@ -437,8 +478,14 @@ func (ic *InstallUseCaseImpl) stepPrepareInfrastructure(source *v1alpha1.Rainbon
 }
 
 // step 4 unpack rainbond
-func (ic *InstallUseCaseImpl) stepUnpack(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+func (ic *InstallUseCaseImpl) stepUnpack(source *v1alpha1.RainbondClusterStatus, waiting bool) model.InstallStatus {
 	defer commonutil.TimeConsume(time.Now())
+	if waiting {
+		return model.InstallStatus{
+			StepName: StepUnpack,
+			Status:   InstallStatusWaiting,
+		}
+	}
 	status := model.InstallStatus{
 		StepName: StepUnpack,
 	}
@@ -475,8 +522,14 @@ func (ic *InstallUseCaseImpl) getRainbondPackageStatus() *v1alpha1.RainbondPacka
 }
 
 // step 5 handle image, load and push image to image hub
-func (ic *InstallUseCaseImpl) stepHandleImage(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+func (ic *InstallUseCaseImpl) stepHandleImage(source *v1alpha1.RainbondClusterStatus, waiting bool) model.InstallStatus {
 	defer commonutil.TimeConsume(time.Now())
+	if waiting {
+		return model.InstallStatus{
+			StepName: StepHandleImage,
+			Status:   InstallStatusWaiting,
+		}
+	}
 	status := model.InstallStatus{
 		StepName: StepHandleImage,
 	}
@@ -504,8 +557,14 @@ func (ic *InstallUseCaseImpl) stepHandleImage(source *v1alpha1.RainbondClusterSt
 }
 
 // step 6 create component
-func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClusterStatus) model.InstallStatus {
+func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClusterStatus, waiting bool) model.InstallStatus {
 	defer commonutil.TimeConsume(time.Now())
+	if waiting {
+		return model.InstallStatus{
+			StepName: StepInstallComponent,
+			Status:   InstallStatusWaiting,
+		}
+	}
 	var status model.InstallStatus
 	switch source.Phase {
 	case v1alpha1.RainbondClusterWaiting, v1alpha1.RainbondClusterPreparing, v1alpha1.RainbondClusterPackageProcessing:

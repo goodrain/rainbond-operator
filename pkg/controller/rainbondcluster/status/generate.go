@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	rbdutil "github.com/GLYASAI/rainbond-operator/pkg/util/rbduitl"
+	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"net/http"
@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 
-	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	appv1 "k8s.io/api/apps/v1"
 	"k8s.io/klog"
 )

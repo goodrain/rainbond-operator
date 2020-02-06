@@ -1,7 +1,7 @@
 package rbdcomponent
 
 import (
-	"github.com/GLYASAI/rainbond-operator/pkg/controller/rbdcomponent/handler"
+	"github.com/goodrain/rainbond-operator/pkg/controller/rbdcomponent/handler"
 )
 
 func init() {

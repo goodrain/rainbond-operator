@@ -3,13 +3,13 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
-	rbdutil "github.com/GLYASAI/rainbond-operator/pkg/util/rbduitl"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
+	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
 	"strings"
 
-	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

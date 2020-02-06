@@ -5,8 +5,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/user/mock"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/user/mock"
 )
 
 func TestUserUsecase_Login(t *testing.T) {

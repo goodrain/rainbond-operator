@@ -2,9 +2,9 @@ package usecase
 
 import (
 	"fmt"
-	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
-	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	v1 "github.com/GLYASAI/rainbond-operator/pkg/openapi/types/v1"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	plabels "k8s.io/apimachinery/pkg/labels"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"

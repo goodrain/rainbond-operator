@@ -23,10 +23,10 @@ package v1alpha1
 import (
 	time "time"
 
-	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	versioned "github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
-	internalinterfaces "github.com/GLYASAI/rainbond-operator/pkg/generated/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/generated/listers/rainbond/v1alpha1"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	versioned "github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
+	internalinterfaces "github.com/goodrain/rainbond-operator/pkg/generated/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/goodrain/rainbond-operator/pkg/generated/listers/rainbond/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"

@@ -3,7 +3,7 @@ package format
 import (
 	"fmt"
 
-	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 )
 

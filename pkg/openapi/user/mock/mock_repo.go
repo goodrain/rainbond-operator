@@ -5,7 +5,7 @@
 package mock
 
 import (
-	model "github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
+	model "github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 )

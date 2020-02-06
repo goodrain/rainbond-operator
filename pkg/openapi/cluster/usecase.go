@@ -1,10 +1,10 @@
 package cluster
 
 import (
-	"github.com/GLYASAI/rainbond-operator/cmd/openapi/option"
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/cluster/usecase"
-	"github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
-	v1 "github.com/GLYASAI/rainbond-operator/pkg/openapi/types/v1"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/usecase"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 )
 
 // IClusterCase cluster case

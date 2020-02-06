@@ -21,7 +21,7 @@
 package v1alpha1
 
 import (
-	internalinterfaces "github.com/GLYASAI/rainbond-operator/pkg/generated/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/goodrain/rainbond-operator/pkg/generated/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

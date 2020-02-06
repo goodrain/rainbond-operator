@@ -1,8 +1,8 @@
 package rbdutil
 
 import (
-	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
+	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"path"
 )
 

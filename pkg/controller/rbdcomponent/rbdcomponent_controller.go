@@ -22,9 +22,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	chandler "github.com/GLYASAI/rainbond-operator/pkg/controller/rbdcomponent/handler"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	chandler "github.com/goodrain/rainbond-operator/pkg/controller/rbdcomponent/handler"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 )
 
 var log = logf.Log.WithName("controller_rbdcomponent")

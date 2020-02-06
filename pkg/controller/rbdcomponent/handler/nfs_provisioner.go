@@ -2,10 +2,10 @@ package handler
 
 import (
 	"context"
-	rainbondv1alpha1 "github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/commonutil"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/constants"
-	"github.com/GLYASAI/rainbond-operator/pkg/util/k8sutil"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 

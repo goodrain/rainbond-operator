@@ -1,4 +1,4 @@
-module github.com/GLYASAI/rainbond-operator
+module github.com/goodrain/rainbond-operator
 
 go 1.13
 
@@ -21,7 +21,6 @@ require (
 	github.com/klauspost/compress v1.9.7
 	github.com/klauspost/pgzip v1.2.1 // indirect
 	github.com/operator-framework/operator-sdk v0.13.0
-	github.com/pquerna/ffjson v0.0.0-20180717144149-af8b230fcd20
 	github.com/schollz/progressbar/v2 v2.15.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/sparrc/go-ping v0.0.0-20190613174326-4e5b6552494c // indirect

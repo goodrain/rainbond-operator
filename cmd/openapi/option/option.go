@@ -3,7 +3,7 @@ package option
 import (
 	"fmt"
 
-	"github.com/GLYASAI/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GLYASAI/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/cheggaaa/pb"
 	pbv3 "github.com/cheggaaa/pb/v3"

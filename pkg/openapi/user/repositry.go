@@ -1,6 +1,6 @@
 package user
 
-import "github.com/GLYASAI/rainbond-operator/pkg/openapi/model"
+import "github.com/goodrain/rainbond-operator/pkg/openapi/model"
 
 // Repository represent the user's repository contract
 type Repository interface {
