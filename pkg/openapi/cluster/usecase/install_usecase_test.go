@@ -131,8 +131,8 @@ func Test4(t *testing.T) {
 func Test5(t *testing.T) {
 
 	type Status struct {
-		finish         bool
-		state          *pbv3.State
+		finish bool
+		state  *pbv3.State
 	}
 
 	status := Status{state: &pbv3.State{}}
@@ -249,4 +249,12 @@ func (listener *OssProgressListener) ProgressChanged(event *oss.ProgressEvent) {
 		fmt.Printf("Transfer Failed, This time consumedBytes: %d.\n", event.ConsumedBytes)
 	default:
 	}
+}
+
+func TestStat(t *testing.T) {
+	now := time.Now()
+	if _, err := os.Stat("/opt/rainbond/pkg/tgz/rainbond-pkg-V5.2-dev.tgz"); os.IsNotExist(err) {
+		t.Log("file is not exists")
+	}
+	t.Log(time.Since(now))
 }
