@@ -96,6 +96,7 @@ type InstallUseCaseImpl struct {
 	componentUsecase ComponentUseCase
 	downloadListener *downloadutil.DownloadWithProgress
 	downloadError    error
+	checked          bool
 }
 
 // NewInstallUseCase new install case
@@ -175,6 +176,18 @@ func (ic *InstallUseCaseImpl) canInstallOrNot(step string) error {
 		logrus.Error("rainbond tar do not exists")
 		return customerror.NewRainbondTarNotExistError("rainbond tar do not exists")
 
+	}
+	if !ic.checked {
+		// check md5
+		logrus.Info("check rainbond.tar's md5")
+		dp := downloadutil.DownloadWithProgress{Wanted: ic.cfg.DownloadMD5}
+		target, err := os.Open(ic.cfg.ArchiveFilePath)
+		if err != nil {
+		}
+		if err := dp.CheckMD5(target); err != nil {
+			logrus.Warn("download tar md5 check error, waiting new download progress")
+		}
+		ic.checked = true
 	}
 	return nil
 }
@@ -342,39 +355,11 @@ func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
 // step 2 download rainbond
 func (ic *InstallUseCaseImpl) stepDownload() model.InstallStatus {
 	defer commonutil.TimeConsume(time.Now())
-	installStatus := model.InstallStatus{StepName: StepDownload}
-	if ic.downloadListener != nil && !ic.downloadListener.Finished {
-		installStatus.Progress = ic.downloadListener.Percent
-		installStatus.Status = InstallStatusProcessing
-		return installStatus
+	installStatus := model.InstallStatus{
+		StepName: StepDownload,
+		Status:   InstallStatusFinished,
+		Progress: 100,
 	}
-
-	if _, err := os.Stat(ic.cfg.ArchiveFilePath); os.IsNotExist(err) {
-		if ic.downloadError != nil { // download error
-			installStatus.Status = InstallStatusFailed
-			installStatus.Message = "download rainbond.tar error, please try again or upload it using /uploads"
-			return installStatus
-		}
-		// file not found
-		installStatus.Status = InstallStatusWaiting
-		return installStatus
-	}
-
-	// check md5
-	dp := downloadutil.DownloadWithProgress{Wanted: ic.cfg.DownloadMD5}
-	target, err := os.Open(ic.cfg.ArchiveFilePath)
-	if err != nil {
-		installStatus.Status = InstallStatusWaiting
-		return installStatus
-	}
-	if err := dp.CheckMD5(target); err != nil {
-		logrus.Warn("download tar md5 check error, waiting new download progress")
-		installStatus.Status = InstallStatusWaiting
-		return installStatus
-	}
-
-	installStatus.Status = InstallStatusFinished
-	installStatus.Progress = 100
 	return installStatus
 }
 
@@ -542,6 +527,8 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(source *v1alpha1.RainbondClust
 func (ic *InstallUseCaseImpl) downloadFile() error {
 	defer commonutil.TimeConsume(time.Now())
 	ic.downloadListener = &downloadutil.DownloadWithProgress{URL: ic.cfg.DownloadURL, SavedPath: ic.cfg.ArchiveFilePath, Wanted: ic.cfg.DownloadMD5}
+	ic.checked = false
+	logrus.Info("download progress start, reset check as false")
 	go func() {
 		if err := ic.downloadListener.Download(); err != nil {
 			logrus.Error("download rainbondtar error: ", err.Error())
