@@ -3,10 +3,11 @@ package rainbondpackage
 import (
 	"context"
 	"encoding/json"
-	"github.com/docker/docker/pkg/jsonmessage"
 	"io"
 	"os"
 	"testing"
+
+	"github.com/docker/docker/pkg/jsonmessage"
 
 	"github.com/docker/docker/client"
 )
@@ -15,7 +16,7 @@ func TestImageLoad(t *testing.T) {
 	cli, _ := client.NewClientWithOpts(client.FromEnv)
 	cli.NegotiateAPIVersion(context.TODO())
 
-	file, err := os.Open("/Users/abewang/Downloads/rainbond/api.tgz")
+	file, err := os.Open("/tmp/rainbond/rainbond/api.tgz")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,11 +36,11 @@ func TestImageLoad(t *testing.T) {
 				if err == io.EOF {
 					break
 				}
-				t.Error(err)
+				t.Fatal(err)
 				return
 			}
 			if jm.Error != nil {
-				t.Error(err)
+				t.Fatal(jm.Error)
 				return
 			}
 			t.Logf("%s\n", jm.Stream)

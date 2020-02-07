@@ -55,6 +55,8 @@ spec:
           volumeMounts:
             - mountPath: /opt/rainbond/pkg
               name: rbd-pkg
+            - mountPath: /data
+              name: data  
       volumes:
         - name: rbd-pkg
           hostPath:
@@ -64,3 +66,6 @@ spec:
           hostPath:
             path: /var/run
             type: Directory
+        - name: data
+          hostPath:
+            path: /opt/rainbond/data/rbd-op-ui    

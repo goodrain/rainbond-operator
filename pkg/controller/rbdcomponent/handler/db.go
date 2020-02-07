@@ -45,6 +45,7 @@ func (d *db) Resources() []interface{} {
 	return []interface{}{
 		d.statefulsetForDB(),
 		d.serviceForDB(),
+		d.serviceForExporter(),
 		d.configMapForDB(),
 		d.initdbCMForDB(),
 	}
@@ -178,25 +179,7 @@ func (d *db) statefulsetForDB() interface{} {
 	return sts
 }
 
-func (d *db) serviceForDB() []interface{} {
-	exporterSvc := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      DBName + "-exporter",
-			Namespace: d.component.Namespace,
-			Labels:    d.labels,
-		},
-		Spec: corev1.ServiceSpec{
-			ClusterIP: "None",
-			Ports: []corev1.ServicePort{
-				{
-					Name: "exporter",
-					Port: 9104,
-				},
-			},
-			Selector: d.labels,
-		},
-	}
-
+func (d *db) serviceForDB() interface{} {
 	mysqlSvc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
@@ -214,8 +197,27 @@ func (d *db) serviceForDB() []interface{} {
 			Selector: d.labels,
 		},
 	}
+	return mysqlSvc
+}
 
-	return []interface{}{mysqlSvc, exporterSvc}
+func (d *db) serviceForExporter() interface{} {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      DBName + "-exporter",
+			Namespace: d.component.Namespace,
+			Labels:    d.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			ClusterIP: "None",
+			Ports: []corev1.ServicePort{
+				{
+					Name: "exporter",
+					Port: 9104,
+				},
+			},
+			Selector: d.labels,
+		},
+	}
 }
 
 func (d *db) configMapForDB() interface{} {

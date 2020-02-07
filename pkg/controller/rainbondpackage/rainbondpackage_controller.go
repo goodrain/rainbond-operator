@@ -5,15 +5,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
-	"github.com/goodrain/rainbond-operator/pkg/util/tarutil"
-	"github.com/docker/docker/pkg/jsonmessage"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/docker/docker/pkg/jsonmessage"
+	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
+	"github.com/goodrain/rainbond-operator/pkg/util/tarutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
@@ -275,6 +276,7 @@ func (p *pkg) handle() error {
 	}
 
 	if p.status.Phase == rainbondv1alpha1.RainbondPackageExtracting {
+		//unstar the installation package
 		if err := p.untartar(); err != nil {
 			p.status.Reason = "ErrPkgExtract"
 			return fmt.Errorf("failed to untar %s: %v", p.pkg.Spec.PkgPath, err)
@@ -401,6 +403,7 @@ func (p *pkg) imageLoad(file string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("open file %s: %v", file, err)
 	}
+	defer f.Close()
 	res, err := p.dcli.ImageLoad(p.ctx, f, true) // load one, push one.
 	if err != nil {
 		return "", fmt.Errorf("path: %s; failed to load images: %v", file, err)

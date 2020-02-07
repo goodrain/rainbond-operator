@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -107,74 +108,8 @@ func Tartar(tarName string, paths []string) (err error) {
 
 // Untartar extract contant of file tarName into location xpath
 func Untartar(tarName, xpath string) (err error) {
-	tarFile, err := os.Open(tarName)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = tarFile.Close()
-	}()
-
-	absPath, err := filepath.Abs(xpath)
-	if err != nil {
-		return err
-	}
-
-	tr := tar.NewReader(tarFile)
-	if strings.HasSuffix(tarName, ".gz") || strings.HasSuffix(tarName, ".gzip") || strings.HasSuffix(tarName, ".tgz") {
-		gz, err := gzip.NewReader(tarFile)
-		if err != nil {
-			return err
-		}
-		defer gz.Close()
-		tr = tar.NewReader(gz)
-	}
-
-	// untar each segment
-	for {
-		hdr, err := tr.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
-
-		// determine proper file path info
-		finfo := hdr.FileInfo()
-		fileName := hdr.Name
-		if filepath.IsAbs(fileName) {
-			fmt.Printf("removing / prefix from %s\n", fileName)
-			fileName, err = filepath.Rel("/", fileName)
-			if err != nil {
-				return err
-			}
-		}
-		absFileName := filepath.Join(absPath, fileName)
-
-		if finfo.Mode().IsDir() {
-			if err := os.MkdirAll(absFileName, 0755); err != nil {
-				return err
-			}
-			continue
-		}
-
-		// create new file with original file mode
-		file, err := os.OpenFile(absFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, finfo.Mode().Perm())
-		if err != nil {
-			return err
-		}
-		fmt.Printf("x %s\n", absFileName)
-		n, cpErr := io.Copy(file, tr)
-		if closeErr := file.Close(); closeErr != nil { // close file immediately
-			return err
-		}
-		if cpErr != nil {
-			return cpErr
-		}
-		if n != finfo.Size() {
-			return fmt.Errorf("unexpected bytes written: wrote %d, want %d", n, finfo.Size())
-		}
-	}
-	return nil
+	cmd := exec.Command("tar", "-zxvf", tarName, "-C", xpath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Start()
 }

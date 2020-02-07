@@ -64,7 +64,11 @@ func main() {
 	// uniform and structured logs.
 	logf.SetLogger(zap.Logger())
 
-	db, _ := gorm.Open("sqlite3", "/tmp/gorm.db") // TODO hrh: data path and handle error
+	db, err := gorm.Open("sqlite3", "/data/gorm.db")
+	if err != nil {
+		logrus.Errorf("open sqlite3 db failure %s", "/data/gorm.db")
+		os.Exit(1)
+	}
 	defer db.Close()
 
 	db.AutoMigrate(model.User{})
