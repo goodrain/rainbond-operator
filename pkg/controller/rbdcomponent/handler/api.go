@@ -8,15 +8,16 @@ import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
-	"github.com/sirupsen/logrus"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+var log = logf.Log.WithName("rbdcomponent_handler")
 
 //APIName name
 var APIName = "rbd-api"
@@ -25,13 +26,13 @@ var apiCASecretName = "rbd-api-ca-cert"
 var apiClientSecretName = "rbd-api-client-cert"
 
 type api struct {
-	ctx                context.Context
-	client             client.Client
-	component          *rainbondv1alpha1.RbdComponent
-	cluster            *rainbondv1alpha1.RainbondCluster
-	db                 *rainbondv1alpha1.Database
-	labels             map[string]string
-	etcdSecret, server *corev1.Secret
+	ctx                      context.Context
+	client                   client.Client
+	component                *rainbondv1alpha1.RbdComponent
+	cluster                  *rainbondv1alpha1.RainbondCluster
+	db                       *rainbondv1alpha1.Database
+	labels                   map[string]string
+	etcdSecret, serverSecret *corev1.Secret
 }
 
 //NewAPI new api handle
@@ -101,8 +102,8 @@ func (a *api) daemonSetForAPI() interface{} {
 		volumes = append(volumes, volume)
 		args = append(args, etcdSSLArgs()...)
 	}
-	if a.server != nil {
-		volume, mount := volumeByAPISecret(a.etcdSecret)
+	if a.serverSecret != nil {
+		volume, mount := volumeByAPISecret(a.serverSecret)
 		volumeMounts = append(volumeMounts, mount)
 		volumes = append(volumes, volume)
 		args = append(args, "--api-ssl-enable=true",
@@ -185,6 +186,13 @@ func (a *api) serviceForAPI() interface{} {
 					},
 				},
 				{
+					Name: "https",
+					Port: 8443,
+					TargetPort: intstr.IntOrString{
+						IntVal: 8443,
+					},
+				},
+				{
 					Name: "ws",
 					Port: 6060,
 					TargetPort: intstr.IntOrString{
@@ -216,7 +224,7 @@ func (a *api) secretForAPI() []interface{} {
 		if caSecret != nil {
 			ca, err = commonutil.ParseCA(caSecret.Data["ca.pem"], caSecret.Data["ca.key.pem"])
 			if err != nil {
-				logrus.Errorf("create ca for api failure %s", err.Error())
+				log.Error(err, "parse ca for api")
 				return nil
 			}
 		}
@@ -224,23 +232,23 @@ func (a *api) secretForAPI() []interface{} {
 	if ca == nil {
 		ca, err = commonutil.CreateCA()
 		if err != nil {
-			logrus.Errorf("create ca for api failure %s", err.Error())
+			log.Error(err, "create ca for api")
 			return nil
 		}
 	}
 	serverPem, serverKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "region.goodrain.com")
 	if err != nil {
-		logrus.Errorf("create server cert for api failure %s", err.Error())
+		log.Error(err, "create serverSecret cert for api")
 		return nil
 	}
 	clientPem, clientKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "region.goodrain.com")
 	if err != nil {
-		logrus.Errorf("create client cert for api failure %s", err.Error())
+		log.Error(err, "create client cert for api")
 		return nil
 	}
 	caPem, err := ca.GetCAPem()
 	if err != nil {
-		logrus.Errorf("create ca pem for api failure %s", err.Error())
+		log.Error(err, "create ca pem for api")
 		return nil
 	}
 	var re []interface{}
@@ -258,7 +266,7 @@ func (a *api) secretForAPI() []interface{} {
 			"ca.pem":         caPem,
 		},
 	}
-	a.server = server
+	a.serverSecret = server
 	re = append(re, server)
 	re = append(re, &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -290,7 +298,7 @@ func (a *api) ingressForAPI() interface{} {
 		Spec: extensions.IngressSpec{
 			Backend: &extensions.IngressBackend{
 				ServiceName: APIName,
-				ServicePort: intstr.FromString("8443"),
+				ServicePort: intstr.FromString("https"),
 			},
 		},
 	}

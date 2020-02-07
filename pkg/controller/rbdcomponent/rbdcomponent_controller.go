@@ -157,6 +157,9 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 
 	controllerType := rainbondv1alpha1.ControllerTypeUnknown
 	for _, res := range resourceses {
+		if res == nil {
+			continue
+		}
 		if ct := detectControllerType(res); ct != rainbondv1alpha1.ControllerTypeUnknown {
 			controllerType = ct
 		}
