@@ -80,12 +80,16 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 			MountPath: "/var/lib/docker",
 		},
 		{
-			Name:      "dockercert", // for container logs
+			Name:      "vardocker", // for container logs
+			MountPath: "/var/docker",
+		},
+		{
+			Name:      "dockercert",
 			MountPath: "/etc/docker/certs.d",
 		},
 		{
-			Name:      "hosts", // for container logs
-			MountPath: "/etc/hosts",
+			Name:      "etc",
+			MountPath: "/newetc",
 		},
 	}
 	volumes := []corev1.Volume{
@@ -123,7 +127,18 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 					Type: k8sutil.HostPath(corev1.HostPathDirectory),
 				},
 			},
-		}, {
+		},
+		{
+			Name: "vardocker",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/docker",
+					Type: k8sutil.HostPath(corev1.HostPathDirectory),
+				},
+			},
+		},
+
+		{
 			Name: "dockercert",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
@@ -142,11 +157,11 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 			},
 		},
 		{
-			Name: "hosts",
+			Name: "etc",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/etc/hosts",
-					Type: k8sutil.HostPath(corev1.HostPathFile),
+					Path: "/etc",
+					Type: k8sutil.HostPath(corev1.HostPathDirectory),
 				},
 			},
 		},
@@ -158,8 +173,8 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 		"--run-mode master",
 		"--noderule manage,compute", // TODO: Let rbd-node recognize itself
 		"--nodeid=$(NODE_NAME)",
-		"--image-repo-ip=" + n.cluster.GatewayIngressIP(),
 		"--image-repo-host=" + rbdutil.GetImageRepository(n.cluster),
+		"--hostsfile=/newetc/hosts",
 	}
 	if n.etcdSecret != nil {
 		volume, mount := volumeByEtcd(n.etcdSecret)
