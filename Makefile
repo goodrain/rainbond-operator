@@ -42,19 +42,24 @@ mock:
 
 .PHONY: build
 build-ui:
-	docker build --no-cache . -f hack/ui/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui-base:$(TAG)
+	docker build . -f hack/ui/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui-base:$(TAG)
 build-api:
-	docker build --no-cache . -f hack/openapi/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
+	docker build . -f hack/openapi/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
 build-operator:
-	docker build --no-cache . -f hack/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
-build: build-api build-operator
+	docker build . -f hack/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
+build: build-ui build-api build-operator
 
 docker-login:
 	docker login $(IMAGE_DOMAIN) -u $(DOCKER_USER) -p $(DOCKER_PASS)
 
-push: docker-login build
+.PHONY: push
+push-ui: build-ui
+	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui-base:$(TAG)
+push-api: build-api
 	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
+push-operator: build-operator
 	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
+push: docker-login push-ui push-api push-operator
 
 .PHONY: test
 test-operator:build-operator
