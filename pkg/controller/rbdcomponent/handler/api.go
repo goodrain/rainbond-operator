@@ -111,7 +111,7 @@ func (a *api) daemonSetForAPI() interface{} {
 			"--client-ca-file=/etc/goodrain/region.goodrain.me/ssl/ca.pem",
 		)
 	}
-
+	a.labels["name"] = APIName
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      APIName,
