@@ -58,23 +58,26 @@ type componentClaim struct {
 	image     string
 }
 
+var rbdVersion = "V5.2-dev"
+
 func init() {
 	componentClaims = []componentClaim{
 		{name: "rbd-etcd", image: "registry.cn-hangzhou.aliyuncs.com/abewang/etcd:v3.3.18"}, // TODO: custom domain
-		{name: "rbd-gateway", image: "registry.cn-hangzhou.aliyuncs.com/abewang/rbd-gateway:V5.2-dev"},
+		{name: "rbd-gateway", image: "registry.cn-hangzhou.aliyuncs.com/abewang/rbd-gateway:" + rbdVersion},
 		{name: "rbd-hub", image: "registry.cn-hangzhou.aliyuncs.com/abewang/registry:2.6.2"},
-		{name: "rbd-node", image: "registry.cn-hangzhou.aliyuncs.com/abewang/rbd-node:V5.2-dev"},
+		{name: "rbd-node", image: "registry.cn-hangzhou.aliyuncs.com/abewang/rbd-node:" + rbdVersion},
 		{name: "rbd-nfs", image: "registry.cn-hangzhou.aliyuncs.com/abewang/nfs-provisioner:v2.2.1-k8s1.12"},
-		{name: "rbd-api", image: "goodrain.me/rbd-api:V5.2-dev"},
-		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:V5.2-dev"},
-		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:V5.2-dev"},
+		{name: "rbd-api", image: "goodrain.me/rbd-api:" + rbdVersion},
+		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:" + rbdVersion},
+		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:" + rbdVersion},
 		{name: "rbd-db", image: "goodrain.me/rbd-db:v5.1.9"},
 		{name: "rbd-dns", image: "goodrain.me/rbd-dns"},
-		{name: "rbd-eventlog", image: "goodrain.me/rbd-eventlog:V5.2-dev"},
-		{name: "rbd-monitor", image: "goodrain.me/rbd-monitor:V5.2-dev"},
-		{name: "rbd-mq", image: "goodrain.me/rbd-mq:V5.2-dev"},
-		{name: "rbd-worker", image: "goodrain.me/rbd-worker:V5.2-dev"},
-		{name: "rbd-webcli", image: "goodrain.me/rbd-webcli:V5.2-dev"}, // not now
+		{name: "rbd-eventlog", image: "goodrain.me/rbd-eventlog:" + rbdVersion},
+		{name: "rbd-monitor", image: "goodrain.me/rbd-monitor:" + rbdVersion},
+		{name: "rbd-mq", image: "goodrain.me/rbd-mq:" + rbdVersion},
+		{name: "rbd-worker", image: "goodrain.me/rbd-worker:" + rbdVersion},
+		{name: "rbd-webcli", image: "goodrain.me/rbd-webcli:" + rbdVersion},
+		{name: "rbd-grctl", image: "goodrain.me/rbd-grctl:" + rbdVersion},
 		{name: "rbd-repo", image: "goodrain.me/rbd-repo:6.16.0"},
 	}
 }

@@ -6,6 +6,7 @@ ENV GOPATH=/go
 WORKDIR /go/src/github.com/goodrain/rainbond-operator
 COPY go.mod .
 COPY go.sum .
+ENV GOPROXY=https://goproxy.io
 RUN go mod download
 
 COPY pkg pkg
