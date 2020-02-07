@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -16,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+//NFSName nfs provider name
 var NFSName = constants.DefStorageClass
 var nfsProvisionerName = "rainbond.io/nfs"
 
@@ -26,6 +28,7 @@ type nfsProvisioner struct {
 	cluster   *rainbondv1alpha1.RainbondCluster
 }
 
+//NewNFSProvisioner new nfs provider
 func NewNFSProvisioner(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &nfsProvisioner{
 		ctx:       ctx,
@@ -81,7 +84,6 @@ func (n *nfsProvisioner) statefulsetForNFSProvisioner() interface{} {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					HostNetwork:        true,
 					DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
 					ServiceAccountName: "rainbond-operator", // TODO: do not hard code, get sa from configuration.
 					Containers: []corev1.Container{

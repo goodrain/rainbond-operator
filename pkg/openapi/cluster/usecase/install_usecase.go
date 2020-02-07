@@ -60,13 +60,16 @@ type componentClaim struct {
 
 var rbdVersion = "V5.2-dev"
 
+// TODO: custom domain
+var existHubDomain = "registry.cn-hangzhou.aliyuncs.com/goodrain"
+
 func init() {
 	componentClaims = []componentClaim{
-		{name: "rbd-etcd", image: "registry.cn-hangzhou.aliyuncs.com/abewang/etcd:v3.3.18"}, // TODO: custom domain
-		{name: "rbd-gateway", image: "registry.cn-hangzhou.aliyuncs.com/abewang/rbd-gateway:" + rbdVersion},
-		{name: "rbd-hub", image: "registry.cn-hangzhou.aliyuncs.com/abewang/registry:2.6.2"},
-		{name: "rbd-node", image: "registry.cn-hangzhou.aliyuncs.com/abewang/rbd-node:" + rbdVersion},
-		{name: "rbd-nfs", image: "registry.cn-hangzhou.aliyuncs.com/abewang/nfs-provisioner:v2.2.1-k8s1.12"},
+		{name: "rbd-etcd", image: existHubDomain + "/etcd:v3.3.18"},
+		{name: "rbd-gateway", image: existHubDomain + "/rbd-gateway:" + rbdVersion},
+		{name: "rbd-hub", image: existHubDomain + "/registry:2.6.2"},
+		{name: "rbd-node", image: existHubDomain + "/rbd-node:" + rbdVersion},
+		{name: "rbd-nfs", image: existHubDomain + "/nfs-provisioner:v2.2.1-k8s1.12"},
 		{name: "rbd-api", image: "goodrain.me/rbd-api:" + rbdVersion},
 		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:" + rbdVersion},
 		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:" + rbdVersion},
