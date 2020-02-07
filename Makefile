@@ -45,6 +45,8 @@ build-ui:
 	docker build . -f hack/ui/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui-base:$(TAG)
 build-api:
 	docker build . -f hack/openapi/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
+build-api-dev:
+	docker build . -f hack/openapi/Dockerfile.dev -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
 build-operator:
 	docker build . -f hack/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
 build-operator-dev:
