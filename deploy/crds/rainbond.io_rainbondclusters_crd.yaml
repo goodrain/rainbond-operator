@@ -100,10 +100,10 @@ spec:
                 fstabLine:
                   description: FstabLine represents a line in file /etc/fstab.
                   properties:
+                    device:
+                      type: string
                     dump:
                       type: integer
-                    fileSystem:
-                      type: string
                     mountPoint:
                       type: string
                     options:

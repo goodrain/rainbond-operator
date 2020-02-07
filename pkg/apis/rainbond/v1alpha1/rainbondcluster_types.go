@@ -58,7 +58,7 @@ type KubeletConfig struct {
 
 // FstabLine represents a line in file /etc/fstab.
 type FstabLine struct {
-	FileSystem string `json:"fileSystem,omitempty"`
+	Device     string `json:"device,omitempty"`
 	MountPoint string `json:"mountPoint,omitempty"`
 	Type       string `json:"type,omitempty"`
 	Options    string `json:"options,omitempty"`
@@ -68,8 +68,8 @@ type FstabLine struct {
 
 // RainbondShareStorage contains information about Rainbond share storage.
 type RainbondShareStorage struct {
-	StorageClassName string    `json:"storageClassName,omitempty"`
-	FstabLine        FstabLine `json:"fstabLine,omitempty"`
+	StorageClassName string     `json:"storageClassName,omitempty"`
+	FstabLine        *FstabLine `json:"fstabLine,omitempty"`
 }
 
 // RainbondClusterSpec defines the desired state of RainbondCluster
