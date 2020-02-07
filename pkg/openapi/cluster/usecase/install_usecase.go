@@ -346,10 +346,14 @@ func (ic *InstallUseCaseImpl) InstallStatus() (model.StatusRes, error) {
 	if err != nil {
 		return model.StatusRes{}, err
 	}
-	if clusterInfo != nil {
+	if clusterInfo != nil && clusterInfo.Status != nil {
 		statusres = ic.parseInstallStatus(clusterInfo.Status)
 	} else {
-		logrus.Warn("cluster config has not be created yet, something occured ? ")
+		logrus.Warn("cluster config has not be created yet, what happened ? ")
+		statusres = model.StatusRes{
+			FinalStatus: InstallStatusWaiting,
+			StatusList:  nil,
+		}
 	}
 	return statusres, nil
 }
