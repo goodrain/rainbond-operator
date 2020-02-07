@@ -66,6 +66,12 @@ type FstabLine struct {
 	Pass       int    `json:"pass,omitempty"`
 }
 
+// RainbondShareStorage contains information about Rainbond share storage.
+type RainbondShareStorage struct {
+	StorageClassName string    `json:"storageClassName,omitempty"`
+	FstabLine        FstabLine `json:"fstabLine,omitempty"`
+}
+
 // RainbondClusterSpec defines the desired state of RainbondCluster
 type RainbondClusterSpec struct {
 	// Domain name of the image repository which Rainbond is installed
@@ -101,7 +107,8 @@ type RainbondClusterSpec struct {
 
 	Version string `json:"version,omitempty"`
 
-	FstabLines []FstabLine `json:"fstabLines,omitempty"`
+	// RainbondShareStorage contains information about Rainbond share storage.
+	RainbondShareStorage RainbondShareStorage `json:"rainbondShareStorage,omitempty"`
 }
 
 // RainbondClusterPhase is a label for the condition of a rainbondcluster at the current time.

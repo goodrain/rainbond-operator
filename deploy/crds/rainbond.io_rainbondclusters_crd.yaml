@@ -44,24 +44,6 @@ spec:
                   description: Whether to use tls to connect to etcd
                   type: string
               type: object
-            fstabLines:
-              items:
-                description: FstabLine represents a line in file /etc/fstab.
-                properties:
-                  dump:
-                    type: integer
-                  fileSystem:
-                    type: string
-                  mountPoint:
-                    type: string
-                  options:
-                    type: string
-                  pass:
-                    type: integer
-                  type:
-                    type: string
-                type: object
-              type: array
             gatewayIngressIPs:
               description: Ingress IP addresses of rbd-gateway. If not specified,
                 the IP of the node where the rbd-gateway is located will be used.
@@ -111,6 +93,29 @@ spec:
               description: Domain name of the image repository which Rainbond is installed
                 Default goodrain.me
               type: string
+            rainbondShareStorage:
+              description: RainbondShareStorage contains information about Rainbond
+                share storage.
+              properties:
+                fstabLine:
+                  description: FstabLine represents a line in file /etc/fstab.
+                  properties:
+                    dump:
+                      type: integer
+                    fileSystem:
+                      type: string
+                    mountPoint:
+                      type: string
+                    options:
+                      type: string
+                    pass:
+                      type: integer
+                    type:
+                      type: string
+                  type: object
+                storageClassName:
+                  type: string
+              type: object
             regionDatabase:
               description: the region database information that rainbond component
                 will be used. rainbond-operator will create one if DBInfo is empty
