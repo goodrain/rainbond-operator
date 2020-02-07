@@ -3,9 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -13,6 +15,7 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 )
 
+// DBName name
 var DBName = "rbd-db"
 
 type db struct {
@@ -21,6 +24,7 @@ type db struct {
 	labels    map[string]string
 }
 
+//NewDB new db
 func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &db{
 		component: component,
@@ -51,6 +55,7 @@ func (d *db) After() error {
 }
 
 func (d *db) statefulsetForDB() interface{} {
+	var rootPassword = string(uuid.NewUUID())
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
@@ -77,7 +82,7 @@ func (d *db) statefulsetForDB() interface{} {
 							Env: []corev1.EnvVar{
 								{
 									Name:  "MYSQL_ROOT_PASSWORD",
-									Value: "rainbond",
+									Value: rootPassword,
 								},
 								{
 									Name:  "MYSQL_DATABASE",
@@ -114,6 +119,17 @@ func (d *db) statefulsetForDB() interface{} {
 								InitialDelaySeconds: 5,
 								PeriodSeconds:       2,
 								TimeoutSeconds:      1,
+							},
+						},
+						{
+							Name:            DBName + "-exporter",
+							Image:           "goodrain.me/mysqld-exporter",
+							ImagePullPolicy: d.component.ImagePullPolicy(),
+							Env: []corev1.EnvVar{
+								corev1.EnvVar{
+									Name:  "DATA_SOURCE_NAME",
+									Value: "root:" + rootPassword + "@tcp(127.0.0.1:3306)/",
+								},
 							},
 						},
 					},
@@ -162,8 +178,26 @@ func (d *db) statefulsetForDB() interface{} {
 	return sts
 }
 
-func (d *db) serviceForDB() interface{} {
-	svc := &corev1.Service{
+func (d *db) serviceForDB() []interface{} {
+	exporterSvc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      DBName + "-exporter",
+			Namespace: d.component.Namespace,
+			Labels:    d.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			ClusterIP: "None",
+			Ports: []corev1.ServicePort{
+				{
+					Name: "exporter",
+					Port: 9104,
+				},
+			},
+			Selector: d.labels,
+		},
+	}
+
+	mysqlSvc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
 			Namespace: d.component.Namespace,
@@ -181,7 +215,7 @@ func (d *db) serviceForDB() interface{} {
 		},
 	}
 
-	return svc
+	return []interface{}{mysqlSvc, exporterSvc}
 }
 
 func (d *db) configMapForDB() interface{} {

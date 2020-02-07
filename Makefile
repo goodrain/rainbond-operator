@@ -69,3 +69,7 @@ test-api:
 	GOOS=linux go build -o openapi ./cmd/openapi
 	docker build --no-cache . -f hack/openapi/Dockerfile.dev -t  $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
 	rm -rf ./openapi
+
+chart:
+	tar -cvf rainbond-operator-chart.tar ./mychart
+	
