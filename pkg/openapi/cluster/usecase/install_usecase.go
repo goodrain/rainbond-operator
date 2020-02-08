@@ -462,7 +462,7 @@ func (ic *InstallUseCaseImpl) stepPrepareInfrastructure(source *v1alpha1.Rainbon
 			Reason:   source.Reason,
 		}
 		for _, condition := range source.Conditions {
-			if condition.Type == v1alpha1.ImageRepositoryInstalled || condition.Type == v1alpha1.StorageReady {
+			if condition.Type == v1alpha1.ImageRepositoryReady || condition.Type == v1alpha1.StorageReady {
 				if condition.Status == v1alpha1.ConditionTrue {
 					status.Progress += 50
 				}

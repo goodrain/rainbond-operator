@@ -245,7 +245,7 @@ func (p *pkg) preCheck() bool {
 		return false
 	}
 
-	c := p.findCondition(rainbondv1alpha1.ImageRepositoryInstalled)
+	c := p.findCondition(rainbondv1alpha1.ImageRepositoryReady)
 	if c == nil || c.Status != rainbondv1alpha1.ConditionTrue {
 		return false
 	}

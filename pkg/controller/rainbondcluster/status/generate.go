@@ -13,7 +13,6 @@ import (
 	"time"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	appv1 "k8s.io/api/apps/v1"
 	"k8s.io/klog"
 )
 
@@ -54,34 +53,37 @@ func NewStatus(client client.Client, cluster *rainbondv1alpha1.RainbondCluster) 
 // GenerateRainbondClusterStorageReadyCondition returns storageready condition if the storage is ready, else it
 // returns an unstorageready condition.
 func (s *Status) GenerateRainbondClusterStorageReadyCondition() rainbondv1alpha1.RainbondClusterCondition {
-	condition := rainbondv1alpha1.RainbondClusterCondition{
-		Type:   rainbondv1alpha1.StorageReady,
-		Status: rainbondv1alpha1.ConditionFalse,
-	}
+	// TODO(huangrh): 20200208
+	//condition := rainbondv1alpha1.RainbondClusterCondition{
+	//	Type:   rainbondv1alpha1.StorageReady,
+	//	Status: rainbondv1alpha1.ConditionFalse,
+	//}
+	//
+	//sts := &appv1.StatefulSet{}
+	//if err := s.client.Get(context.TODO(), types.NamespacedName{Namespace: s.cluster.Namespace, Name: rbdutil.GetStorageClass(s.cluster)}, sts); err != nil {
+	//	condition.Reason = "ErrGetProvisioner"
+	//	condition.Message = fmt.Sprintf("failed to get provisioner: %v", err)
+	//	return condition
+	//}
+	//
+	//if sts.Status.Replicas != sts.Status.ReadyReplicas {
+	//	condition.Reason = "NotReady"
+	//	condition.Message = fmt.Sprintf("disire %d, ready %d", sts.Status.ReadyReplicas, sts.Status.ReadyReplicas)
+	//	return condition
+	//}
+	//
+	//condition.Status = rainbondv1alpha1.ConditionTrue
+	//
+	//return condition
 
-	sts := &appv1.StatefulSet{}
-	if err := s.client.Get(context.TODO(), types.NamespacedName{Namespace: s.cluster.Namespace, Name: rbdutil.GetStorageClass(s.cluster)}, sts); err != nil {
-		condition.Reason = "ErrGetProvisioner"
-		condition.Message = fmt.Sprintf("failed to get provisioner: %v", err)
-		return condition
-	}
-
-	if sts.Status.Replicas != sts.Status.ReadyReplicas {
-		condition.Reason = "NotReady"
-		condition.Message = fmt.Sprintf("disire %d, ready %d", sts.Status.ReadyReplicas, sts.Status.ReadyReplicas)
-		return condition
-	}
-
-	condition.Status = rainbondv1alpha1.ConditionTrue
-
-	return condition
+	return rainbondv1alpha1.RainbondClusterCondition{}
 }
 
 // GenerateRainbondClusterImageRepositoryReadyCondition returns imagerepositoryready condition if the image repository is ready,
 // else it returns an unimagerepositoryready condition.
 func (s *Status) GenerateRainbondClusterImageRepositoryReadyCondition(rainbondCluster *rainbondv1alpha1.RainbondCluster) rainbondv1alpha1.RainbondClusterCondition {
 	condition := rainbondv1alpha1.RainbondClusterCondition{
-		Type:   rainbondv1alpha1.ImageRepositoryInstalled,
+		Type:   rainbondv1alpha1.ImageRepositoryReady,
 		Status: rainbondv1alpha1.ConditionFalse,
 	}
 
