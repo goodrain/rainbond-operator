@@ -46,6 +46,22 @@ type EtcdConfig struct {
 	SecretName string `json:"secretName,omitempty"`
 }
 
+// FstabLine represents a line in file /etc/fstab.
+type FstabLine struct {
+	Device     string `json:"fileSystem,omitempty"`
+	MountPoint string `json:"mountPoint,omitempty"`
+	Type       string `json:"type,omitempty"`
+	Options    string `json:"options,omitempty"`
+	Dump       int    `json:"dump,omitempty"`
+	Pass       int    `json:"pass,omitempty"`
+}
+
+// RainbondShareStorage -
+type RainbondShareStorage struct {
+	StorageClassName string     `json:"storageClassName"`
+	FstabLine        *FstabLine `json:"fstabLine"`
+}
+
 // RainbondClusterSpec defines the desired state of RainbondCluster
 type RainbondClusterSpec struct {
 	// Repository of each Rainbond component image, eg. docker.io/rainbond.
@@ -76,77 +92,10 @@ type RainbondClusterSpec struct {
 	// rainbond-operator will create one if EtcdConfig is empty
 	EtcdConfig *EtcdConfig `json:"etcdConfig,omitempty"`
 	// define install rainbond version, This is usually image tag
-	InstallVersion string `json:"install_version,omitempty"`
-}
-
-// RainbondClusterPhase is a label for the condition of a rainbondcluster at the current time.
-type RainbondClusterPhase string
-
-// These are the valid statuses of rainbondcluster.
-const (
-	// RainbondClusterInitiating is initializing cluster information
-	RainbondClusterInitiating RainbondClusterPhase = "Initiating"
-	// RainbondClusterConfigaring is configuring cluster related configuration
-	RainbondClusterConfigaring RainbondClusterPhase = "Configuring"
-	// RainbondClusterInstalling is installing the cluster,
-	// including the processing of installation packages and the installation of Rainbond components.
-	RainbondClusterInstalling RainbondClusterPhase = "Installing"
-	// RainbondClusterRunning means all of the rainbond components has been created.
-	// For each component controller(eg. deploy, sts, ds), at least one Pod is already Ready.
-	RainbondClusterRunning RainbondClusterPhase = "Running"
-	// RainbondClusterUninstalling is uninstalling the cluster, clearing various kubernetes resources created by rainbond-operator
-	RainbondClusterUninstalling RainbondClusterPhase = "Uninstalling"
-)
-
-var RainbondClusterPhase2Range = map[RainbondClusterPhase]int{
-	RainbondClusterRunning: 4,
-}
-
-// RainbondClusterConditionType is a valid value for RainbondClusterConditionType.Type
-type RainbondClusterConditionType string
-
-// These are valid conditions of rainbondcluster.
-const (
-	// ImageRepositoryReady indicates whether the image repository is ready.
-	ImageRepositoryReady RainbondClusterConditionType = "ImageRepositoryReady"
-	// PackageDownloaded indicates whether the installation package has been downloaded.
-	PackageDownloaded RainbondClusterConditionType = "PackageDownloaded"
-	// PackageExtracted indicates whether the installation package has been decompressed.
-	PackageExtracted RainbondClusterConditionType = "PackageExtracted"
-	// ImagesPushed means that all images from the installation package has been pushed successfully.
-	ImagesPushed RainbondClusterConditionType = "ImagesPushed"
-)
-
-// ConditionStatus condition status
-type ConditionStatus string
-
-// These are valid condition statuses. "ConditionTrue" means a resource is in the condition.
-// "ConditionFalse" means a resource is not in the condition. "ConditionUnknown" means rainbond operator
-// can't decide if a resource is in the condition or not.
-const (
-	ConditionTrue    ConditionStatus = "True"
-	ConditionFalse   ConditionStatus = "False"
-	ConditionUnknown ConditionStatus = "Unknown"
-)
-
-// RainbondClusterCondition contains details for the current condition of this rainbondcluster.
-type RainbondClusterCondition struct {
-	// Type is the type of the condition.
-	Type RainbondClusterConditionType `json:"type"`
-	// Status is the status of the condition.
-	Status ConditionStatus `json:"status"`
-	// Last time we probed the condition.
-	// +optional
-	LastProbeTime *metav1.Time `json:"lastProbeTime,omitempty"`
-	// Last time the condition transitioned from one status to another.
-	// +optional
-	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
-	// Unique, one-word, CamelCase reason for the condition's last transition.
-	// +optional
-	Reason string `json:"reason,omitempty"`
-	// Human-readable message indicating details about last transition.
-	// +optional
-	Message string `json:"message,omitempty"`
+	InstallVersion       string               `json:"install_version,omitempty"`
+	RainbondShareStorage RainbondShareStorage `json:"rainbondShareStorage,omitempty"`
+	// Whether the configuration has been completed
+	ConfigCompleted bool `json:"configCompleted,omitempty"`
 }
 
 // NodeAvailPorts node avail port
@@ -162,34 +111,13 @@ type StorageClass struct {
 	Provisioner string `json:"provisioner"`
 }
 
-type ControllerStatus struct {
-	Name          string `json:"name,omitempty"`
-	Replicas      int32  `json:"replicas,omitempty"`
-	ReadyReplicas int32  `json:"readyReplicas,omitempty"`
-}
-
 // RainbondClusterStatus defines the observed state of RainbondCluster
 type RainbondClusterStatus struct {
-	// Rainbond cluster phase
-	Phase      RainbondClusterPhase       `json:"phase,omitempty"`
-	Conditions []RainbondClusterCondition `json:"conditions,omitempty"`
-	// A human readable message indicating details about why the pod is in this condition.
-	// +optional
-	Message string `json:"message,omitempty" protobuf:"bytes,3,opt,name=message"`
-	// A brief CamelCase message indicating details about why the pod is in this state.
-	// +optional
-	Reason string `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason"`
-
-	// +optional
 	NodeAvailPorts []*NodeAvailPorts `json:"NodeAvailPorts,omitempty"`
 	// List of existing StorageClasses in the cluster
 	// +optional
 	StorageClasses []*StorageClass `json:"storageClasses,omitempty"`
 	// Destination path of the installation package extraction.
-	PkgDestPath string `json:"pkgDestPath"`
-	// A list of controller statuses associated with rbdcomponent.
-	ControllerStatues []*ControllerStatus `json:"controllerStatus,omitempty"`
-
 	MasterRoleLabel string `json:"masterRoleLabel,omitempty"`
 }
 

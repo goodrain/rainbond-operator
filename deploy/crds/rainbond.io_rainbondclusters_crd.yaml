@@ -31,6 +31,9 @@ spec:
         spec:
           description: RainbondClusterSpec defines the desired state of RainbondCluster
           properties:
+            configCompleted:
+              description: Whether the configuration has been completed
+              type: boolean
             etcdConfig:
               description: the etcd connection information that rainbond component
                 will be used. rainbond-operator will create one if EtcdConfig is empty
@@ -79,6 +82,10 @@ spec:
                 username:
                   type: string
               type: object
+            install_version:
+              description: define install rainbond version, This is usually image
+                tag
+              type: string
             installMode:
               description: InstallMode is the mode of Rainbond cluster installation.
               type: string
@@ -86,16 +93,15 @@ spec:
               description: Repository of each Rainbond component image, eg. docker.io/rainbond.
               type: string
             rainbondShareStorage:
-              description: RainbondShareStorage contains information about Rainbond
-                share storage.
+              description: RainbondShareStorage -
               properties:
                 fstabLine:
                   description: FstabLine represents a line in file /etc/fstab.
                   properties:
-                    device:
-                      type: string
                     dump:
                       type: integer
+                    fileSystem:
+                      type: string
                     mountPoint:
                       type: string
                     options:
@@ -107,6 +113,9 @@ spec:
                   type: object
                 storageClassName:
                   type: string
+              required:
+              - fstabLine
+              - storageClassName
               type: object
             regionDatabase:
               description: the region database information that rainbond component
@@ -161,68 +170,8 @@ spec:
                     type: array
                 type: object
               type: array
-            conditions:
-              items:
-                description: RainbondClusterCondition contains details for the current
-                  condition of this rainbondcluster.
-                properties:
-                  lastProbeTime:
-                    description: Last time we probed the condition.
-                    format: date-time
-                    type: string
-                  lastTransitionTime:
-                    description: Last time the condition transitioned from one status
-                      to another.
-                    format: date-time
-                    type: string
-                  message:
-                    description: Human-readable message indicating details about last
-                      transition.
-                    type: string
-                  reason:
-                    description: Unique, one-word, CamelCase reason for the condition's
-                      last transition.
-                    type: string
-                  status:
-                    description: Status is the status of the condition.
-                    type: string
-                  type:
-                    description: Type is the type of the condition.
-                    type: string
-                required:
-                - status
-                - type
-                type: object
-              type: array
-            controllerStatus:
-              description: A list of controller statuses associated with rbdcomponent.
-              items:
-                properties:
-                  name:
-                    type: string
-                  readyReplicas:
-                    format: int32
-                    type: integer
-                  replicas:
-                    format: int32
-                    type: integer
-                type: object
-              type: array
             masterRoleLabel:
-              type: string
-            message:
-              description: A human readable message indicating details about why the
-                pod is in this condition.
-              type: string
-            phase:
-              description: Rainbond cluster phase
-              type: string
-            pkgDestPath:
               description: Destination path of the installation package extraction.
-              type: string
-            reason:
-              description: A brief CamelCase message indicating details about why
-                the pod is in this state.
               type: string
             storageClasses:
               description: List of existing StorageClasses in the cluster
@@ -238,8 +187,6 @@ spec:
                 - provisioner
                 type: object
               type: array
-          required:
-          - pkgDestPath
           type: object
       type: object
   version: v1alpha1
