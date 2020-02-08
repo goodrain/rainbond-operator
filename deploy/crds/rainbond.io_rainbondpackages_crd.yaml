@@ -40,32 +40,53 @@ spec:
         status:
           description: RainbondPackageStatus defines the observed state of RainbondPackage
           properties:
-            filesNumber:
-              format: int32
-              type: integer
+            conditions:
+              description: worker and master maintenance
+              items:
+                description: PackageCondition contains condition information for package.
+                properties:
+                  lastHeartbeatTime:
+                    description: Last time we got an update on a given condition.
+                    type: object
+                  lastTransitionTime:
+                    description: Last time the condition transit from one status to
+                      another.
+                    type: object
+                  message:
+                    description: Human readable message indicating details about last
+                      transition.
+                    type: string
+                  progress:
+                    description: The progress of the condition
+                    type: integer
+                  reason:
+                    description: (brief) reason for the condition's last transition.
+                    type: string
+                  status:
+                    description: Status of the condition, one of True, False, Unknown.
+                    type: string
+                  type:
+                    description: Type of package condition.
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              type: array
+            images:
+              description: ImagesPushed contains the images have been pushed.
+              items:
+                description: RainbondPackageImage image
+                properties:
+                  name:
+                    description: Name image name
+                    type: string
+                type: object
+              type: array
             imagesNumber:
               description: The number of images that should be load and pushed.
               format: int32
               type: integer
-            imagesPushed:
-              description: ImagesPushed contains the images have been pushed.
-            message:
-              description: A human readable message indicating details about why the
-                pod is in this condition.
-              type: string
-            numberExtracted:
-              format: int32
-              type: integer
-            phase:
-              description: The phase of a RainbondPackage is a simple, high-level
-                summary of where the Pod is in its lifecycle. The conditions array,
-                the reason and message fields, and the individual container status
-                arrays contain more detail about the pod's status.
-              type: string
-            reason:
-              description: A brief CamelCase message indicating details about why
-                the pod is in this state.
-              type: string
           required:
           - imagesNumber
           type: object

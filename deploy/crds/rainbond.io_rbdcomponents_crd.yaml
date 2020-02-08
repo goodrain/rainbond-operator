@@ -71,23 +71,18 @@ spec:
             controllerType:
               description: Type of Controller owned by RbdComponent
               type: string
-            imagesLoaded:
-              type: boolean
-            imagesPushed:
+            isInitComponent:
+              description: ' Whether this component needs to be created first'
               type: boolean
             message:
               type: string
-            packageExtracted:
-              type: boolean
             reason:
               type: string
           required:
           - controllerName
           - controllerType
-          - imagesLoaded
-          - imagesPushed
+          - isInitComponent
           - message
-          - packageExtracted
           - reason
           type: object
       type: object
