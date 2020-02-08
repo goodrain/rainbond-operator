@@ -75,6 +75,8 @@ type RainbondClusterSpec struct {
 	// the etcd connection information that rainbond component will be used.
 	// rainbond-operator will create one if EtcdConfig is empty
 	EtcdConfig *EtcdConfig `json:"etcdConfig,omitempty"`
+	// define install rainbond version, This is usually image tag
+	InstallVersion string `json:"install_version,omitempty"`
 }
 
 // RainbondClusterPhase is a label for the condition of a rainbondcluster at the current time.

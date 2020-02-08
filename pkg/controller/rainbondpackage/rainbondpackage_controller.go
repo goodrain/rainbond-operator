@@ -20,10 +20,10 @@ import (
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/retryutil"
 
 	"github.com/docker/distribution/reference"
+	dtype "github.com/docker/docker/api/types"
 	dtypes "github.com/docker/docker/api/types"
 	dclient "github.com/docker/docker/client"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -126,39 +126,47 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 	//need handle condition
 	p, err := newpkg(ctx, r.client, pkg, reqLogger)
 	if err != nil {
+		//TODO
 		reqLogger.Error(err, "create package handle failure ")
 		return reconcile.Result{RequeueAfter: time.Second * 5}, nil
 	}
 	// handle package
 	if err = p.handle(); err != nil {
 		reqLogger.Error(err, "failed to handle rainbond package.")
-		p.reportFailedStatus()
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+	return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 }
 func initPackageStatus() *rainbondv1alpha1.RainbondPackageStatus {
 	return &rainbondv1alpha1.RainbondPackageStatus{
 		Conditions: []rainbondv1alpha1.PackageCondition{
 			rainbondv1alpha1.PackageCondition{
-				Type:   rainbondv1alpha1.Init,
-				Status: rainbondv1alpha1.Running,
+				Type:               rainbondv1alpha1.Init,
+				Status:             rainbondv1alpha1.Running,
+				LastHeartbeatTime:  time.Now(),
+				LastTransitionTime: time.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
-				Type:   rainbondv1alpha1.DownloadPackage,
-				Status: rainbondv1alpha1.Waiting,
+				Type:               rainbondv1alpha1.DownloadPackage,
+				Status:             rainbondv1alpha1.Waiting,
+				LastHeartbeatTime:  time.Now(),
+				LastTransitionTime: time.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
-				Type:   rainbondv1alpha1.UnpackPackage,
-				Status: rainbondv1alpha1.Waiting,
+				Type:               rainbondv1alpha1.UnpackPackage,
+				Status:             rainbondv1alpha1.Waiting,
+				LastHeartbeatTime:  time.Now(),
+				LastTransitionTime: time.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
-				Type:   rainbondv1alpha1.PushImage,
-				Status: rainbondv1alpha1.Waiting,
+				Type:               rainbondv1alpha1.PushImage,
+				Status:             rainbondv1alpha1.Waiting,
+				LastHeartbeatTime:  time.Now(),
+				LastTransitionTime: time.Now(),
 			},
 		},
-		ImagesPushed: make(map[string]struct{}),
+		ImagesPushed: []rainbondv1alpha1.RainbondPackageImage{},
 	}
 }
 
@@ -188,13 +196,20 @@ func checkStatusCanReturn(pkg *rainbondv1alpha1.RainbondPackage) (updateStatus, 
 }
 
 type pkg struct {
-	ctx     context.Context
-	client  client.Client
-	dcli    *dclient.Client
-	pkg     *rainbondv1alpha1.RainbondPackage
-	status  *rainbondv1alpha1.RainbondPackageStatus
-	cluster *rainbondv1alpha1.RainbondCluster
-	log     logr.Logger
+	ctx                 context.Context
+	client              client.Client
+	dcli                *dclient.Client
+	pkg                 *rainbondv1alpha1.RainbondPackage
+	status              *rainbondv1alpha1.RainbondPackageStatus
+	cluster             *rainbondv1alpha1.RainbondCluster
+	log                 logr.Logger
+	downloadPackage     bool
+	downloadImageDomain string
+	pushImageDomain     string
+	totalImageNum       int32
+	//need download images
+	images  map[string]string
+	version string
 }
 
 func newpkg(ctx context.Context, client client.Client, p *rainbondv1alpha1.RainbondPackage, reqLogger logr.Logger) (*pkg, error) {
@@ -204,53 +219,49 @@ func newpkg(ctx context.Context, client client.Client, p *rainbondv1alpha1.Rainb
 		return nil, err
 	}
 	pkg := &pkg{
-		ctx:    ctx,
-		client: client,
-		pkg:    p,
-		dcli:   dcli,
-		log:    reqLogger,
+		ctx:           ctx,
+		client:        client,
+		pkg:           p,
+		dcli:          dcli,
+		totalImageNum: 23,
+		images:        make(map[string]string, 23),
+		log:           reqLogger,
+		version:       "V5.2-dev",
 	}
 	pkg.status = p.Status.DeepCopy()
 	return pkg, nil
 }
 
 func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) {
-	p.cluster = c
-}
-
-func (p *pkg) reportFailedStatus() {
-	log.Info("rainbondpackage failed. Reporting failed reason...")
-
-	retryInterval := 5 * time.Second
-	f := func() (bool, error) {
-		err := p.updateCRStatus()
-		if err == nil || k8sutil.IsKubernetesResourceNotFoundError(err) {
-			return true, nil
-		}
-
-		if !errors.IsConflict(err) {
-			log.Info(fmt.Sprintf("retry report status in %v: fail to update: %v", retryInterval, err))
-			return false, nil
-		}
-
-		rp := &rainbondv1alpha1.RainbondPackage{}
-		err = p.client.Get(p.ctx, types.NamespacedName{Namespace: p.pkg.Namespace, Name: p.pkg.Name}, rp)
-		if err != nil {
-			// Update (PUT) will return conflict even if object is deleted since we have UID set in object.
-			// Because it will check UID first and return something like:
-			// "Precondition failed: UID in precondition: 0xc42712c0f0, UID in object meta: ".
-			if k8sutil.IsKubernetesResourceNotFoundError(err) {
-				return true, nil
-			}
-			log.Info(fmt.Sprintf("retry report status in %v: fail to get latest version: %v", retryInterval, err))
-			return false, nil
-		}
-
-		p.pkg = rp
-		return false, nil
+	if c.Spec.InstallVersion != "" {
+		p.version = c.Spec.InstallVersion
 	}
-
-	_ = retryutil.Retry(retryInterval, 3, f)
+	p.cluster = c
+	p.images = map[string]string{
+		"/rbd-api:" + p.version:            "/rbd-api:" + p.version,
+		"/rbd-app-ui:" + p.version:         "/rbd-app-ui:" + p.version,
+		"/rbd-eventlog:" + p.version:       "/rbd-eventlog:" + p.version,
+		"/rbd-chaos:" + p.version:          "/rbd-chaos:" + p.version,
+		"/rbd-mq:" + p.version:             "/rbd-mq:" + p.version,
+		"/rbd-webcli:" + p.version:         "/rbd-webcli:" + p.version,
+		"/rbd-worker:" + p.version:         "/rbd-worker:" + p.version,
+		"/rbd-monitor:" + p.version:        "/rbd-monitor:" + p.version,
+		"/rbd-grctl:" + p.version:          "/rbd-grctl:" + p.version,
+		"/rbd-node:" + p.version:           "/rbd-node:" + p.version,
+		"/rbd-gateway:" + p.version:        "/rbd-gateway:" + p.version,
+		"/builder:5.2.0":                   "/builder",
+		"/rbd-dns":                         "/rbd-dns",
+		"/runner":                          "/runner",
+		"/kube-state-metrics":              "/kube-state-metrics",
+		"/mysqld-exporter":                 "/mysqld-exporter",
+		"/rbd-repo:6.5.9":                  "/rbd-repo:6.5.9",
+		"/rbd-registry:2.6.2":              "/rbd-registry:2.6.2",
+		"/rbd-db:v5.1.9":                   "/rbd-db:v5.1.9",
+		"/metrics-server:v0.3.6":           "/metrics-server:v0.3.6",
+		"/rbd-init-probe" + p.version:      "/rbd-init-probe",
+		"/rbd-mesh-data-panel" + p.version: "/rbd-mesh-data-panel",
+		"/plugins-tcm:5.1.7":               "/tcm",
+	}
 }
 
 func (p *pkg) updateCRStatus() error {
@@ -282,12 +293,25 @@ func (p *pkg) checkClusterConfig() error {
 	defer cancel()
 	if err := p.client.Get(ctx, types.NamespacedName{Namespace: p.pkg.Namespace, Name: "rainbondcluster"}, cluster); err != nil {
 		p.log.Error(err, "failed to get rainbondcluster.")
-		p.reportFailedStatus()
 		return err
 	}
 	p.setCluster(cluster)
-	//TODO: check cluster info
-
+	switch cluster.Spec.InstallMode {
+	case rainbondv1alpha1.InstallationModeWithPackage:
+		p.downloadPackage = true
+	default:
+		p.downloadPackage = false
+		p.downloadImageDomain = cluster.Spec.RainbondImageRepository
+		if p.downloadImageDomain == "" {
+			p.downloadImageDomain = "rainbond"
+		}
+		if cluster.Spec.ImageHub != nil {
+			p.pushImageDomain = cluster.Spec.ImageHub.Domain
+		}
+		if p.pushImageDomain == "" {
+			p.pushImageDomain = "goodrain.me"
+		}
+	}
 	return nil
 }
 
@@ -299,14 +323,113 @@ func (p *pkg) findCondition(typ3 rainbondv1alpha1.PackageConditionType) *rainbon
 	}
 	return nil
 }
+func (p *pkg) updateConditionStatus(typ3 rainbondv1alpha1.PackageConditionType, status rainbondv1alpha1.PackageConditionStatus) {
+	for i, condition := range p.pkg.Status.Conditions {
+		if condition.Type == typ3 {
+			if p.pkg.Status.Conditions[i].Status != status {
+				p.pkg.Status.Conditions[i].LastTransitionTime = time.Now()
+			}
+			p.pkg.Status.Conditions[i].LastHeartbeatTime = time.Now()
+			p.pkg.Status.Conditions[i].Status = status
+			p.pkg.Status.Conditions[i].Progress = 100
+		}
+	}
+}
+func (p *pkg) updateConditionResion(typ3 rainbondv1alpha1.PackageConditionType, resion, message string) {
+	for i, condition := range p.pkg.Status.Conditions {
+		if condition.Type == typ3 {
+			p.pkg.Status.Conditions[i].LastHeartbeatTime = time.Now()
+			p.pkg.Status.Conditions[i].Reason = resion
+			p.pkg.Status.Conditions[i].Message = message
+		}
+	}
+}
+func (p *pkg) updateConditionProgress(typ3 rainbondv1alpha1.PackageConditionType, progress int32) {
+	for i, condition := range p.pkg.Status.Conditions {
+		if condition.Type == typ3 {
+			p.pkg.Status.Conditions[i].LastHeartbeatTime = time.Now()
+			p.pkg.Status.Conditions[i].Progress = int(progress)
+		}
+	}
+}
+func (p *pkg) completeCondition(con *rainbondv1alpha1.PackageCondition) error {
+	if con == nil {
+		return nil
+	}
+	p.updateConditionStatus(con.Type, rainbondv1alpha1.Completed)
+	return p.updateCRStatus()
+}
+func (p *pkg) runningCondition(con *rainbondv1alpha1.PackageCondition) error {
+	if con == nil {
+		return nil
+	}
+	p.updateConditionStatus(con.Type, rainbondv1alpha1.Running)
+	return p.updateCRStatus()
+}
 func (p *pkg) canDownload() bool {
+	if con := p.findCondition(rainbondv1alpha1.DownloadPackage); con != nil {
+		if con.Status == rainbondv1alpha1.Waiting {
+			if !p.downloadPackage {
+				if err := p.completeCondition(con); err != nil {
+					p.log.Error(err, "complete download condition because of not need download failure %s")
+				}
+				return false
+			}
+			if err := p.runningCondition(con); err != nil {
+				p.log.Error(err, "complete download condition because of not need download failure %s")
+			}
+			return true
+		}
+		return false
+	}
 	return false
 }
 
 func (p *pkg) canUnpack() bool {
+	if con := p.findCondition(rainbondv1alpha1.DownloadPackage); con != nil {
+		//Must conditions are not met
+		if con.Status != rainbondv1alpha1.Completed {
+			return false
+		}
+		if uncon := p.findCondition(rainbondv1alpha1.UnpackPackage); uncon != nil {
+			//status is waiting
+			if uncon.Status == rainbondv1alpha1.Waiting {
+				if !p.downloadPackage {
+					if err := p.completeCondition(uncon); err != nil {
+						p.log.Error(err, "complete unpack package condition because of not need download failure %s")
+					}
+					return false
+				}
+				if err := p.runningCondition(uncon); err != nil {
+					p.log.Error(err, "running unpack package condition failure %s")
+				}
+				return true
+			}
+		}
+	}
 	return false
 }
 func (p *pkg) canPushImage() bool {
+	if uncon := p.findCondition(rainbondv1alpha1.UnpackPackage); uncon != nil {
+		if uncon.Status != rainbondv1alpha1.Completed {
+			return false
+		}
+		if pcon := p.findCondition(rainbondv1alpha1.PushImage); pcon != nil {
+			if pcon.Status == rainbondv1alpha1.Waiting {
+				if err := p.runningCondition(pcon); err != nil {
+					p.log.Error(err, "running push image condition failure %s")
+				}
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (p *pkg) canReady() bool {
+	if pcon := p.findCondition(rainbondv1alpha1.PushImage); pcon != nil && pcon.Status == rainbondv1alpha1.Completed {
+		return true
+	}
 	return false
 }
 func (p *pkg) setInitStatus() error {
@@ -321,50 +444,101 @@ func (p *pkg) setInitStatus() error {
 	}
 	return nil
 }
+
+//donwnloadPackage download package
+func (p *pkg) donwnloadPackage() error {
+	return nil
+}
+
+//handle
 func (p *pkg) handle() error {
 	p.log.Info("start handling rainbond package.")
 	// check prerequisites
 	if err := p.checkClusterConfig(); err != nil {
+		p.log.Error(err, "check cluster config")
+		p.updateConditionStatus(rainbondv1alpha1.Init, rainbondv1alpha1.Failed)
+		p.updateConditionResion(rainbondv1alpha1.Init, err.Error(), "get rainbond cluster config failure")
+		p.updateCRStatus()
 		return err
 	}
 	//update init condition status is complete
 	if err := p.setInitStatus(); err != nil {
+		p.log.Error(err, "set init status")
+		p.updateConditionStatus(rainbondv1alpha1.Init, rainbondv1alpha1.Failed)
+		p.updateConditionResion(rainbondv1alpha1.Init, err.Error(), "set init status failure")
+		p.updateCRStatus()
 		return err
 	}
 	if p.canDownload() {
 		//download pkg
+		if err := p.donwnloadPackage(); err != nil {
+			p.log.Error(err, "download package")
+			p.updateConditionStatus(rainbondv1alpha1.DownloadPackage, rainbondv1alpha1.Failed)
+			p.updateConditionResion(rainbondv1alpha1.DownloadPackage, err.Error(), "download package failure")
+			p.updateCRStatus()
+			return fmt.Errorf("failed to download package %s", err.Error())
+		}
+		p.log.Info("handle downlaod package success")
+		p.updateConditionStatus(rainbondv1alpha1.DownloadPackage, rainbondv1alpha1.Completed)
+		return p.updateCRStatus()
 	}
 
 	if p.canUnpack() {
 		//unstar the installation package
 		if err := p.untartar(); err != nil {
+			p.updateConditionStatus(rainbondv1alpha1.UnpackPackage, rainbondv1alpha1.Failed)
+			p.updateConditionResion(rainbondv1alpha1.UnpackPackage, err.Error(), "unpack package failure")
+			p.updateCRStatus()
 			return fmt.Errorf("failed to untar %s: %v", p.pkg.Spec.PkgPath, err)
 		}
-		log.Info("successfully extract rainbond package.")
-
-		if err := p.updateCRStatus(); err != nil {
-			return fmt.Errorf("failed to update status %s", err.Error())
-		}
+		p.log.Info("handle package unpack success")
+		p.updateConditionStatus(rainbondv1alpha1.UnpackPackage, rainbondv1alpha1.Completed)
+		return p.updateCRStatus()
 	}
 
 	if p.canPushImage() {
-		if err := p.imagesLoadAndPush(); err != nil {
-			return fmt.Errorf("failed to push images: %v", err)
+		if p.downloadPackage {
+			p.log.Info("start load and push images")
+			if err := p.imagesLoadAndPush(); err != nil {
+				p.updateConditionStatus(rainbondv1alpha1.PushImage, rainbondv1alpha1.Failed)
+				p.updateConditionResion(rainbondv1alpha1.PushImage, err.Error(), "load and push images failure")
+				p.updateCRStatus()
+				return fmt.Errorf("failed to load and push images: %v", err)
+			}
+
+		} else {
+			p.log.Info("start pull and push images")
+			if err := p.imagePullAndPush(); err != nil {
+				p.updateConditionStatus(rainbondv1alpha1.PushImage, rainbondv1alpha1.Failed)
+				p.updateConditionResion(rainbondv1alpha1.PushImage, err.Error(), "pull and push images failure")
+				p.updateCRStatus()
+				return fmt.Errorf("failed to pull and push images: %v", err)
+			}
 		}
-		log.Info("successfully push rainbond images")
-		if err := p.updateCRStatus(); err != nil {
-			return fmt.Errorf("failed to update status %v", err)
-		}
+		p.log.Info("handle images success")
+		p.updateConditionStatus(rainbondv1alpha1.PushImage, rainbondv1alpha1.Completed)
+		return p.updateCRStatus()
+	}
+
+	if p.canReady() {
+		p.updateConditionStatus(rainbondv1alpha1.Ready, rainbondv1alpha1.Completed)
+		return p.updateCRStatus()
 	}
 
 	return nil
 }
 
 func (p *pkg) untartar() error {
-	log.Info(fmt.Sprintf("start untartaring %s", p.pkg.Spec.PkgPath))
+	p.log.Info(fmt.Sprintf("start untartaring %s", p.pkg.Spec.PkgPath))
+	f, err := os.Open(p.pkg.Spec.PkgPath)
+	if f != nil {
+		f.Close()
+	}
+	if err != nil {
+		return err
+	}
 	errCh := make(chan error)
 	go func(errCh chan error) {
-		_ = os.RemoveAll(pkgDst)
 		_ = os.MkdirAll(pkgDst, os.ModePerm)
 		if err := tarutil.Untartar(p.pkg.Spec.PkgPath, pkgDst); err != nil {
 			errCh <- err
@@ -372,19 +546,23 @@ func (p *pkg) untartar() error {
 		}
 		errCh <- nil
 	}(errCh)
-
+	ticker := time.NewTicker(time.Second * 3)
+	defer ticker.Stop()
+	var totalImageNum int32 = 20
 	for {
 		select {
 		case err := <-errCh:
+			if err == nil {
+				if err := p.completeCondition(p.findCondition(rainbondv1alpha1.UnpackPackage)); err != nil {
+					return fmt.Errorf("update unpack condition complete failure %s", err.Error())
+				}
+				return nil
+			}
 			return err
-		default:
-			time.Sleep(1 * time.Second)
-			// count files
-			//num := countImages(pkgDst)
-			// if p.status.NumberExtracted == num {
-			// 	continue
-			// }
-			// p.status.NumberExtracted = num
+		case <-ticker.C:
+			num := countImages(pkgDst)
+			progress := num * 100 / totalImageNum
+			p.updateConditionProgress(rainbondv1alpha1.UnpackPackage, progress)
 			if err := p.updateCRStatus(); err != nil {
 				// ignore error
 				log.Info("update number extracted: %v", err)
@@ -393,13 +571,47 @@ func (p *pkg) untartar() error {
 	}
 }
 
-func (p *pkg) imagesLoadAndPush() error {
-	p.status.ImagesNumber = countImages(pkgDst)
-	p.status.ImagesPushed = make(map[string]struct{})
-	if err := p.updateCRStatus(); err != nil {
-		return fmt.Errorf("failed to update image status: %v", err)
+func (p *pkg) imagePullAndPush() error {
+	p.status.ImagesNumber = int32(len(p.images))
+	p.status.ImagesPushed = nil
+	var count int32
+	handleImgae := func(remoteImage, localImage string) error {
+		if err := p.imagePull(remoteImage); err != nil {
+			return fmt.Errorf("pull image %s falire %s", remoteImage, err.Error())
+		}
+		if err := p.dcli.ImageTag(p.ctx, remoteImage, localImage); err != nil {
+			return fmt.Errorf("change image tag(%s => %s) failure: %v", remoteImage, localImage, err)
+		}
+		if err := p.imagePush(localImage); err != nil {
+			return fmt.Errorf("push image %s falire %s", localImage, err.Error())
+		}
+		return nil
 	}
 
+	for old, new := range p.images {
+		remoteImage := p.downloadImageDomain + old
+		localImage := p.pushImageDomain + new
+		if err := handleImgae(remoteImage, localImage); err != nil {
+			err = handleImgae(remoteImage, localImage)
+			if err != nil {
+				return err
+			}
+		}
+		count++
+		p.status.ImagesPushed = append(p.status.ImagesPushed, rainbondv1alpha1.RainbondPackageImage{Name: localImage})
+		progress := count * 100 / p.status.ImagesNumber
+		p.updateConditionProgress(rainbondv1alpha1.PushImage, progress)
+		if err := p.updateCRStatus(); err != nil {
+			return fmt.Errorf("update cr status: %v", err)
+		}
+		p.log.Info("successfully load image", "image", localImage)
+	}
+	return nil
+}
+func (p *pkg) imagesLoadAndPush() error {
+	p.status.ImagesNumber = countImages(pkgDst)
+	p.status.ImagesPushed = nil
+	var count int32
 	walkFn := func(pstr string, info os.FileInfo, err error) error {
 		l := log.WithValues("file", pstr)
 		if err != nil {
@@ -432,8 +644,10 @@ func (p *pkg) imagesLoadAndPush() error {
 				l.Error(err, "push image", "image", newImage)
 				return false, fmt.Errorf("push image %s: %v", newImage, err)
 			}
-
-			p.status.ImagesPushed[newImage] = struct{}{}
+			count++
+			p.status.ImagesPushed = append(p.status.ImagesPushed, rainbondv1alpha1.RainbondPackageImage{Name: newImage})
+			progress := count * 100 / p.status.ImagesNumber
+			p.updateConditionProgress(rainbondv1alpha1.PushImage, progress)
 			if err := p.updateCRStatus(); err != nil {
 				return false, fmt.Errorf("update cr status: %v", err)
 			}
@@ -506,8 +720,9 @@ func (p *pkg) imagePush(image string) error {
 		return fmt.Errorf("failed to encode auth config: %v", err)
 	}
 	opts.RegistryAuth = registryAuth
-
-	res, err := p.dcli.ImagePush(p.ctx, image, opts)
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+	res, err := p.dcli.ImagePush(ctx, image, opts)
 	if err != nil {
 		log.Error(err, "failed to push image", "image", image)
 		return fmt.Errorf("push image %s: %v", image, err)
@@ -518,7 +733,7 @@ func (p *pkg) imagePush(image string) error {
 		dec := json.NewDecoder(res)
 		for {
 			select {
-			case <-p.ctx.Done():
+			case <-ctx.Done():
 				log.Error(p.ctx.Err(), "error form context")
 				return p.ctx.Err()
 			default:
@@ -533,10 +748,43 @@ func (p *pkg) imagePush(image string) error {
 			if jm.Error != nil {
 				return fmt.Errorf("error detail: %v", jm.Error)
 			}
-			log.Info("response from image pushing", "msg", jm.Stream)
+			log.V(5).Info("response from image pushing", "msg", jm.Stream)
 		}
 	}
 
+	return nil
+}
+
+func (p *pkg) imagePull(image string) error {
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+	res, err := p.dcli.ImagePull(ctx, image, dtype.ImagePullOptions{})
+	if err != nil {
+		return fmt.Errorf("pull image %s failure %s", image, err.Error())
+	}
+	if res != nil {
+		defer res.Close()
+		dec := json.NewDecoder(res)
+		for {
+			select {
+			case <-ctx.Done():
+				p.log.Error(ctx.Err(), "error form context")
+				return ctx.Err()
+			default:
+			}
+			var jm jsonmessage.JSONMessage
+			if err := dec.Decode(&jm); err != nil {
+				if err == io.EOF {
+					break
+				}
+				return fmt.Errorf("failed to decode json message: %v", err)
+			}
+			if jm.Error != nil {
+				return fmt.Errorf("error detail: %v", jm.Error)
+			}
+			p.log.V(5).Info("response from image pushing", "msg", jm.Stream)
+		}
+	}
 	return nil
 }
 
