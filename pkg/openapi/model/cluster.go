@@ -2,14 +2,15 @@ package model
 
 // GlobalConfigs check result
 type GlobalConfigs struct {
-	ImageHub          ImageHub      `json:"imageHub"`
-	RegionDatabase    Database      `json:"regionDatabase"`
-	UIDatabase        Database      `json:"uiDatabase"`
-	EtcdConfig        EtcdConfig    `json:"etcdConfig"`
-	GatewayNodes      []GatewayNode `json:"gatewayNodes"`
-	HTTPDomain        HTTPDomain    `json:"HTTPDomain"`
-	GatewayIngressIPs []string      `json:"gatewayIngressIPs"`
-	Storage           Storage       `json:"storage"`
+	ImageHub             ImageHub             `json:"imageHub"`
+	RegionDatabase       Database             `json:"regionDatabase"`
+	UIDatabase           Database             `json:"uiDatabase"`
+	EtcdConfig           EtcdConfig           `json:"etcdConfig"`
+	GatewayNodes         []GatewayNode        `json:"gatewayNodes"`
+	HTTPDomain           HTTPDomain           `json:"HTTPDomain"`
+	GatewayIngressIPs    []string             `json:"gatewayIngressIPs"`
+	Storage              Storage              `json:"storage"`
+	RainbondShareStorage RainbondShareStorage `json:"rainbondShareStorage"`
 }
 
 // RbdComponent rbd component
@@ -41,6 +42,23 @@ type Storage struct {
 type StorageOpts struct {
 	Name        string `json:"name"`
 	Provisioner string `json:"provisioner"`
+}
+
+// FstabLine represents a line in file /etc/fstab.
+type FstabLine struct {
+	Device     string `json:"fileSystem,omitempty"`
+	MountPoint string `json:"mountPoint,omitempty"`
+	Type       string `json:"type,omitempty"`
+	Options    string `json:"options,omitempty"`
+	Dump       int    `json:"dump,omitempty"`
+	Pass       int    `json:"pass,omitempty"`
+}
+
+// RainbondShareStorage -
+type RainbondShareStorage struct {
+	Default          bool       `json:"default"`
+	StorageClassName string     `json:"storageClassName"`
+	FstabLine        *FstabLine `json:"fstabLine"`
 }
 
 // NodeAvailPorts aval port

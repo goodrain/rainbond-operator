@@ -85,6 +85,29 @@ spec:
             rainbondImageRepository:
               description: Repository of each Rainbond component image, eg. docker.io/rainbond.
               type: string
+            rainbondShareStorage:
+              description: RainbondShareStorage contains information about Rainbond
+                share storage.
+              properties:
+                fstabLine:
+                  description: FstabLine represents a line in file /etc/fstab.
+                  properties:
+                    device:
+                      type: string
+                    dump:
+                      type: integer
+                    mountPoint:
+                      type: string
+                    options:
+                      type: string
+                    pass:
+                      type: integer
+                    type:
+                      type: string
+                  type: object
+                storageClassName:
+                  type: string
+              type: object
             regionDatabase:
               description: the region database information that rainbond component
                 will be used. rainbond-operator will create one if DBInfo is empty

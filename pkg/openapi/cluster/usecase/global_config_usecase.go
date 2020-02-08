@@ -182,6 +182,24 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 		}
 	}
 	clusterInfo.Storage = storage
+
+	rainbondShareStorage := model.RainbondShareStorage{}
+	if source.Spec.RainbondShareStorage.StorageClassName == "" && source.Spec.RainbondShareStorage.FstabLine == nil {
+		rainbondShareStorage.Default = true
+	} else if source.Spec.RainbondShareStorage.StorageClassName != "" {
+		rainbondShareStorage.StorageClassName = source.Spec.RainbondShareStorage.StorageClassName
+	} else {
+		rainbondShareStorage.FstabLine = &model.FstabLine{
+			Device:     source.Spec.RainbondShareStorage.FstabLine.Device,
+			MountPoint: source.Spec.RainbondShareStorage.FstabLine.MountPoint,
+			Type:       source.Spec.RainbondShareStorage.FstabLine.Type,
+			Options:    source.Spec.RainbondShareStorage.FstabLine.Options,
+			Dump:       source.Spec.RainbondShareStorage.FstabLine.Dump,
+			Pass:       source.Spec.RainbondShareStorage.FstabLine.Pass,
+		}
+	}
+	clusterInfo.RainbondShareStorage = rainbondShareStorage
+
 	return clusterInfo, nil
 }
 
@@ -257,6 +275,21 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 	if !source.Storage.Default {
 		clusterInfo.Spec.StorageClassName = source.Storage.StorageClassName
 	}
+
+	if source.RainbondShareStorage.StorageClassName != "" {
+		clusterInfo.Spec.RainbondShareStorage.StorageClassName = source.RainbondShareStorage.StorageClassName
+	}
+	if source.RainbondShareStorage.FstabLine != nil {
+		clusterInfo.Spec.RainbondShareStorage.FstabLine = &v1alpha1.FstabLine{
+			Device:     source.RainbondShareStorage.FstabLine.Device,
+			MountPoint: source.RainbondShareStorage.FstabLine.MountPoint,
+			Type:       source.RainbondShareStorage.FstabLine.Type,
+			Options:    source.RainbondShareStorage.FstabLine.Options,
+			Dump:       source.RainbondShareStorage.FstabLine.Dump,
+			Pass:       source.RainbondShareStorage.FstabLine.Pass,
+		}
+	}
+
 	return clusterInfo, nil
 }
 
