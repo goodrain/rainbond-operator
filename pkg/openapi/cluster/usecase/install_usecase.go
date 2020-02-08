@@ -139,12 +139,12 @@ func (ic *InstallUseCaseImpl) InstallPreCheck() (model.StatusRes, error) {
 			downStatus.Message = err.Error()
 		}
 	} else {
+		downStatus.Progress = 100
+		downStatus.Status = InstallStatusProcessing
+		// md5 check passed means download finish
 		if atomic.LoadInt32(&ic.md5checkInfo.checked) == md5CheckStatusPass {
-			downStatus.Progress = 100
 			downStatus.Status = InstallStatusFinished
 			ic.downloaded = true
-		} else {
-			downStatus.Status = InstallStatusWaiting
 		}
 	}
 	statuses = append(statuses, downStatus)

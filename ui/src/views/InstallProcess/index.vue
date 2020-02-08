@@ -50,7 +50,7 @@ export default {
             res.data.finalStatus !== 'status_failed' &&
             res.data.finalStatus !== 'status_waiting'
           ) {
-            this.fetchClusterInstallResults('startrRsults')
+            this.handlePerform('startrRsults')
           }
         }
       })
