@@ -68,7 +68,7 @@ spec:
                 type: object
               type: array
             imageHub:
-              description: ImageHub image hub
+              description: User-specified private image repository, replacing goodrain.me.
               properties:
                 domain:
                   type: string
@@ -82,16 +82,8 @@ spec:
             installMode:
               description: InstallMode is the mode of Rainbond cluster installation.
               type: string
-            kubeletConfig:
-              description: KubeletConfig defines the configuration of kubelet.
-              properties:
-                secretName:
-                  description: Whether to use tls to connect to etcd
-                  type: string
-              type: object
-            rainbondImageRepositoryHost:
-              description: Domain name of the image repository which Rainbond is installed
-                Default goodrain.me
+            rainbondImageRepository:
+              description: Repository of each Rainbond component image, eg. docker.io/rainbond.
               type: string
             rainbondShareStorage:
               description: RainbondShareStorage contains information about Rainbond
@@ -149,8 +141,6 @@ spec:
                 username:
                   type: string
               type: object
-            version:
-              type: string
           required:
           - suffixHTTPHost
           type: object

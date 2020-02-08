@@ -139,12 +139,12 @@ func (ic *InstallUseCaseImpl) InstallPreCheck() (model.StatusRes, error) {
 			downStatus.Message = err.Error()
 		}
 	} else {
+		downStatus.Progress = 100
+		downStatus.Status = InstallStatusProcessing
+		// md5 check passed means download finish
 		if atomic.LoadInt32(&ic.md5checkInfo.checked) == md5CheckStatusPass {
-			downStatus.Progress = 100
 			downStatus.Status = InstallStatusFinished
 			ic.downloaded = true
-		} else {
-			downStatus.Status = InstallStatusWaiting
 		}
 	}
 	statuses = append(statuses, downStatus)
@@ -462,7 +462,7 @@ func (ic *InstallUseCaseImpl) stepPrepareInfrastructure(source *v1alpha1.Rainbon
 			Reason:   source.Reason,
 		}
 		for _, condition := range source.Conditions {
-			if condition.Type == v1alpha1.ImageRepositoryInstalled || condition.Type == v1alpha1.StorageReady {
+			if condition.Type == v1alpha1.ImageRepositoryReady || condition.Type == v1alpha1.StorageReady {
 				if condition.Status == v1alpha1.ConditionTrue {
 					status.Progress += 50
 				}

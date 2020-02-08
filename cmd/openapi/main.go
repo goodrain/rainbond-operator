@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/sirupsen/logrus"
@@ -20,10 +19,8 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	clusterCtrl "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/controller"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/upload"
 	uctrl "github.com/goodrain/rainbond-operator/pkg/openapi/user/controller"
-	urepo "github.com/goodrain/rainbond-operator/pkg/openapi/user/repositry"
 	uucase "github.com/goodrain/rainbond-operator/pkg/openapi/user/usecase"
 	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
@@ -64,25 +61,23 @@ func main() {
 	// uniform and structured logs.
 	logf.SetLogger(zap.Logger())
 
-	db, _ := gorm.Open("sqlite3", "/tmp/gorm.db") // TODO hrh: data path and handle error
-	defer db.Close()
-
-	db.AutoMigrate(model.User{})
-	db.Create(&model.User{Username: "admin", Password: "admin"})
-
 	r := gin.Default()
 	r.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
 	r.Use(static.Serve("/", static.LocalFile("/app/ui", true)))
 
-	userRepo := urepo.NewSqlite3UserRepository(db)
-	userUcase := uucase.NewUserUsecase(userRepo, "my-secret-key")
+	userUcase := uucase.NewUserUsecase(nil, "my-secret-key")
 	uctrl.NewUserController(r, userUcase)
 
 	clusterUcase := cluster.NewClusterCase(cfg)
 	clusterCtrl.NewClusterController(r, clusterUcase)
 
 	upload.NewUploadController(r, archiveFilePath)
-
+	logrus.Infof("api server listen %s", func() string {
+		if port := os.Getenv("PORT"); port != "" {
+			return ":" + port
+		}
+		return ":8080"
+	}())
 	go func() { _ = r.Run() }() // listen and serve on 0.0.0.0:8080
 
 	term := make(chan os.Signal, 1)

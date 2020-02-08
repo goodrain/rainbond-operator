@@ -15,13 +15,9 @@ const (
 	// InstallationModeWithoutPackage means all Rainbond images are from the specified image repository, not the installation package.
 	InstallationModeWithoutPackage InstallMode = "WithoutPackage"
 
-	// LoadBalancerWidth is the width how we describe load balancer
-	LoadBalancerWidth = 16
-
 	// LabelNodeRolePrefix is a label prefix for node roles
 	// It's copied over to here until it's merged in core: https://github.com/kubernetes/kubernetes/pull/39112
 	LabelNodeRolePrefix = "node-role.kubernetes.io/"
-
 	// NodeLabelRole specifies the role of a node
 	NodeLabelRole = "kubernetes.io/role"
 )
@@ -50,34 +46,11 @@ type EtcdConfig struct {
 	SecretName string `json:"secretName,omitempty"`
 }
 
-// KubeletConfig defines the configuration of kubelet.
-type KubeletConfig struct {
-	// Whether to use tls to connect to etcd
-	SecretName string `json:"secretName,omitempty"`
-}
-
-// FstabLine represents a line in file /etc/fstab.
-type FstabLine struct {
-	Device     string `json:"device,omitempty"`
-	MountPoint string `json:"mountPoint,omitempty"`
-	Type       string `json:"type,omitempty"`
-	Options    string `json:"options,omitempty"`
-	Dump       int    `json:"dump,omitempty"`
-	Pass       int    `json:"pass,omitempty"`
-}
-
-// RainbondShareStorage contains information about Rainbond share storage.
-type RainbondShareStorage struct {
-	StorageClassName string     `json:"storageClassName,omitempty"`
-	FstabLine        *FstabLine `json:"fstabLine,omitempty"`
-}
-
 // RainbondClusterSpec defines the desired state of RainbondCluster
 type RainbondClusterSpec struct {
-	// Domain name of the image repository which Rainbond is installed
-	// Default goodrain.me
+	// Repository of each Rainbond component image, eg. docker.io/rainbond.
 	// +optional
-	RainbondImageRepositoryDomain string `json:"rainbondImageRepositoryHost,omitempty"`
+	RainbondImageRepository string `json:"rainbondImageRepository,omitempty"`
 	// Suffix of component default domain name
 	SuffixHTTPHost string `json:"suffixHTTPHost"`
 	// Ingress IP addresses of rbd-gateway. If not specified,
@@ -88,7 +61,7 @@ type RainbondClusterSpec struct {
 	GatewayNodes []NodeAvailPorts `json:"gatewayNodes,omitempty"`
 	// InstallMode is the mode of Rainbond cluster installation.
 	InstallMode InstallMode `json:"installMode,omitempty"`
-
+	// User-specified private image repository, replacing goodrain.me.
 	ImageHub *ImageHub `json:"imageHub,omitempty"`
 	// the storage class that rainbond component will be used.
 	// rainbond-operator will create one if StorageClassName is empty
@@ -102,13 +75,6 @@ type RainbondClusterSpec struct {
 	// the etcd connection information that rainbond component will be used.
 	// rainbond-operator will create one if EtcdConfig is empty
 	EtcdConfig *EtcdConfig `json:"etcdConfig,omitempty"`
-
-	KubeletConfig *KubeletConfig `json:"kubeletConfig,omitempty"`
-
-	Version string `json:"version,omitempty"`
-
-	// RainbondShareStorage contains information about Rainbond share storage.
-	RainbondShareStorage RainbondShareStorage `json:"rainbondShareStorage,omitempty"`
 }
 
 // RainbondClusterPhase is a label for the condition of a rainbondcluster at the current time.
@@ -116,26 +82,22 @@ type RainbondClusterPhase string
 
 // These are the valid statuses of rainbondcluster.
 const (
-	// RainbondClusterWaiting -
-	RainbondClusterWaiting RainbondClusterPhase = "Waiting"
-	// RainbondClusterPreparing -
-	RainbondClusterPreparing RainbondClusterPhase = "Preparing"
-	// RainbondClusterPackageProcessing means the installation package is being processed.
-	RainbondClusterPackageProcessing RainbondClusterPhase = "PackageProcessing"
-	// RainbondClusterRunning means all of the rainbond components has been created.
-	// And at least one component is not ready.
-	RainbondClusterPending RainbondClusterPhase = "Pending"
+	// RainbondClusterInitiating is initializing cluster information
+	RainbondClusterInitiating RainbondClusterPhase = "Initiating"
+	// RainbondClusterConfigaring is configuring cluster related configuration
+	RainbondClusterConfigaring RainbondClusterPhase = "Configuring"
+	// RainbondClusterInstalling is installing the cluster,
+	// including the processing of installation packages and the installation of Rainbond components.
+	RainbondClusterInstalling RainbondClusterPhase = "Installing"
 	// RainbondClusterRunning means all of the rainbond components has been created.
 	// For each component controller(eg. deploy, sts, ds), at least one Pod is already Ready.
 	RainbondClusterRunning RainbondClusterPhase = "Running"
+	// RainbondClusterUninstalling is uninstalling the cluster, clearing various kubernetes resources created by rainbond-operator
+	RainbondClusterUninstalling RainbondClusterPhase = "Uninstalling"
 )
 
 var RainbondClusterPhase2Range = map[RainbondClusterPhase]int{
-	RainbondClusterWaiting:           0,
-	RainbondClusterPreparing:         1,
-	RainbondClusterPackageProcessing: 2,
-	RainbondClusterPending:           3,
-	RainbondClusterRunning:           4,
+	RainbondClusterRunning: 4,
 }
 
 // RainbondClusterConditionType is a valid value for RainbondClusterConditionType.Type
@@ -143,10 +105,10 @@ type RainbondClusterConditionType string
 
 // These are valid conditions of rainbondcluster.
 const (
-	// StorageReady indicates whether the storage is ready.
-	StorageReady RainbondClusterConditionType = "StorageReady"
 	// ImageRepositoryReady indicates whether the image repository is ready.
-	ImageRepositoryInstalled RainbondClusterConditionType = "ImageRepositoryInstalled"
+	ImageRepositoryReady RainbondClusterConditionType = "ImageRepositoryReady"
+	// PackageDownloaded indicates whether the installation package has been downloaded.
+	PackageDownloaded RainbondClusterConditionType = "PackageDownloaded"
 	// PackageExtracted indicates whether the installation package has been decompressed.
 	PackageExtracted RainbondClusterConditionType = "PackageExtracted"
 	// ImagesPushed means that all images from the installation package has been pushed successfully.

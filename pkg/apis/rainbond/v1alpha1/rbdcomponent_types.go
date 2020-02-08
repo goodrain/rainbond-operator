@@ -62,21 +62,15 @@ func (c ControllerType) String() string {
 
 // RbdComponentStatus defines the observed state of RbdComponent
 type RbdComponentStatus struct {
+	//  Whether this component needs to be created first
+	PriorityComponent bool `json:"isInitComponent"`
 	// Type of Controller owned by RbdComponent
 	ControllerType ControllerType `json:"controllerType"`
 	// ControllerName represents the Controller associated with RbdComponent
 	// The controller could be Deployment, StatefulSet or DaemonSet
 	ControllerName string `json:"controllerName"`
-
-	PackageExtracted bool `json:"packageExtracted"`
-
-	ImagesLoaded bool `json:"imagesLoaded"`
-
-	ImagesPushed bool `json:"imagesPushed"`
-
-	Reason string `json:"reason"`
-
-	Message string `json:"message"`
+	Reason         string `json:"reason"`
+	Message        string `json:"message"`
 }
 
 // +genclient

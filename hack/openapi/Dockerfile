@@ -16,7 +16,7 @@ ARG GOARCH
 ARG LDFLAGS
 RUN go build -ldflags "$LDFLAGS" -o /openapi $PWD/cmd/openapi
 
-FROM abewang/rbd-op-ui-base
+FROM registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui-base:v0.0.1
 RUN apk add --update tzdata
 ENV TZ=Asia/Shanghai
 COPY --from=builder openapi /app

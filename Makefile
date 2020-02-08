@@ -45,8 +45,12 @@ build-ui:
 	docker build . -f hack/ui/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui-base:$(TAG)
 build-api:
 	docker build . -f hack/openapi/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
+build-api-dev:
+	docker build . -f hack/openapi/Dockerfile.dev -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
 build-operator:
 	docker build . -f hack/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
+build-operator-dev:
+	docker build . -f hack/operator/Dockerfile.dev -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)	
 build: build-ui build-api build-operator
 
 docker-login:
@@ -69,3 +73,7 @@ test-api:
 	GOOS=linux go build -o openapi ./cmd/openapi
 	docker build --no-cache . -f hack/openapi/Dockerfile.dev -t  $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
 	rm -rf ./openapi
+
+chart:
+	tar -cvf rainbond-operator-chart.tar ./mychart
+	

@@ -63,4 +63,4 @@ spec:
         - name: dockersock
           hostPath:
             path: /var/run
-            type: Directory
+            type: Directory 
