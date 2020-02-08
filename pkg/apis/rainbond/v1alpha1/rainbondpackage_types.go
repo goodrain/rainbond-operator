@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -13,45 +15,70 @@ type RainbondPackageSpec struct {
 // RainbondPackagePhase is a label for the condition of a rainbondcluster at the current time.
 type RainbondPackagePhase string
 
-// These are the valid statuses of rainbondcluster.
+//PackageConditionType PackageConditionType
+type PackageConditionType string
+
+// These are valid conditions of package.
 const (
-	// RainbondPackageFailed meas an unknown error occurred while processing the installation package
-	RainbondPackageFailed RainbondPackagePhase = "Failed"
-	// RainbondPackageWaiting means waiting for prerequisites to be ready
-	RainbondPackageWaiting RainbondPackagePhase = "Waiting"
-	// RainbondPackageExtracting means that the prerequisites are in place
-	// and the installation package is being extracted.
-	RainbondPackageExtracting RainbondPackagePhase = "Extracting"
-	// RainbondPackageLoading means that the installation package has been extracted
-	// and the image is being loaded to the host.
-	RainbondPackageLoading RainbondPackagePhase = "Loading"
-	// RainbondPackagePushing means that the image has been loaded,
-	// and the image is being pushed to the private image repository.
-	RainbondPackagePushing RainbondPackagePhase = "Pushing"
-	// RainbondPackageCompleted the processing of the installation package has been completed,
-	// including extracting the package, loading the images, and pushing the images.
-	RainbondPackageCompleted RainbondPackagePhase = "Completed"
+	// PackageConditionType means this package handle status
+	Init            PackageConditionType = "Init"
+	DownloadPackage PackageConditionType = "DownloadPackage"
+	UnpackPackage   PackageConditionType = "UnpackPackage"
+	PushImage       PackageConditionType = "PushImage"
+	Ready           PackageConditionType = "Ready"
 )
+
+//PackageConditionStatus condition status
+type PackageConditionStatus string
+
+const (
+	//Waiting waiting
+	Waiting PackageConditionStatus = "Waiting"
+	//Running Running
+	Running PackageConditionStatus = "Running"
+	//Completed Completed
+	Completed PackageConditionStatus = "Completed"
+	//Failed Failed
+	Failed PackageConditionStatus = "Failed"
+)
+
+// PackageCondition contains condition information for package.
+type PackageCondition struct {
+	// Type of package condition.
+	Type PackageConditionType `json:"type" `
+	// Status of the condition, one of True, False, Unknown.
+	Status PackageConditionStatus `json:"status" `
+	// Last time we got an update on a given condition.
+	// +optional
+	LastHeartbeatTime time.Time `json:"lastHeartbeatTime,omitempty" `
+	// Last time the condition transit from one status to another.
+	// +optional
+	LastTransitionTime time.Time `json:"lastTransitionTime,omitempty" `
+	// (brief) reason for the condition's last transition.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// Human readable message indicating details about last transition.
+	// +optional
+	Message string `json:"message,omitempty"`
+	// The progress of the condition
+	// +optional
+	Progress int `json:"progress,omitempty"`
+}
+
+//RainbondPackageImage image
+type RainbondPackageImage struct {
+	//Name image name
+	Name string `json:"name,omitempty"`
+}
 
 // RainbondPackageStatus defines the observed state of RainbondPackage
 type RainbondPackageStatus struct {
-	// The phase of a RainbondPackage is a simple, high-level summary of where the Pod is in its lifecycle.
-	// The conditions array, the reason and message fields, and the individual container status
-	// arrays contain more detail about the pod's status.
-	// +optional
-	Phase RainbondPackagePhase `json:"phase,omitempty"`
-	// A human readable message indicating details about why the pod is in this condition.
-	// +optional
-	Message string `json:"message,omitempty"`
-	// A brief CamelCase message indicating details about why the pod is in this state.
-	// +optional
-	Reason          string `json:"reason,omitempty"`
-	FilesNumber     int32  `json:"filesNumber,omitempty"`
-	NumberExtracted int32  `json:"numberExtracted,omitempty"`
+	//worker and master maintenance
+	Conditions []PackageCondition `json:"conditions,omitempty"`
 	// The number of images that should be load and pushed.
 	ImagesNumber int32 `json:"imagesNumber"`
 	// ImagesPushed contains the images have been pushed.
-	ImagesPushed map[string]struct{} `json:"imagesPushed,omitempty"`
+	ImagesPushed []RainbondPackageImage `json:"images,omitempty"`
 }
 
 // +genclient
