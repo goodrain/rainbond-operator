@@ -6,7 +6,7 @@ import qs from 'qs'
 
 function handleResponseCode (res) {
   Message({
-    message: res.msg_show,
+    message: res.msg,
     type: 'error',
     duration: 3 * 1000
   })
@@ -45,7 +45,7 @@ function errorLog (error) {
 // 创建一个 axios 实例
 const service = axios.create({
   baseURL: process.env.VUE_APP_API,
-  timeout: 15000 // 请求超时时间
+  timeout: 90000 // 请求超时时间
 })
 axios.defaults.withCredentials = true
 

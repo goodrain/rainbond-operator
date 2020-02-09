@@ -8,7 +8,7 @@
         download="filename"
         style="color:#3489ff"
       >安装包</a>
-、成功后将其上传。
+      、成功后将其上传。
     </div>
     <el-upload
       class="upload-demo"
@@ -38,12 +38,12 @@
 </template>
 
 <script>
-var baseDomain = process.env.VUE_APP_API
-if (baseDomain == '/') {
-  baseDomain = window.location.origin
+var baseDomain = process.env.VUE_APP_API;
+if (baseDomain == "/") {
+  baseDomain = window.location.origin;
 }
 export default {
-  name: 'clusterConfiguration',
+  name: "clusterConfiguration",
   props: {
     dialogVisible: {
       type: Boolean,
@@ -54,66 +54,64 @@ export default {
       default: false
     }
   },
-  data () {
+  data() {
     var validatePass2 = (rule, value, callback) => {
       if (this.setgatewayNodes.length === 0) {
-        callback(new Error('请至少选择一个网关安装节点'))
+        callback(new Error("请至少选择一个网关安装节点"));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
     return {
       progressLength: 0,
       showProgress: false,
       upLoading: false,
       api: `${baseDomain}/uploads`,
-      uploadObj: { file_type: 'install_file' },
+      uploadObj: { file_type: "install_file" },
       loading: true,
       setgatewayNodes: [],
       fileList: []
-    }
+    };
   },
-  created () {
-    this.fetchClusterInfo()
-  },
+  created() {},
   methods: {
-    submitForm () {
-      this.$emit('onhandleClone')
+    submitForm() {
+      this.$emit("onhandleClone");
     },
-    handleRemove (file, fileList) {
-      this.fileList = []
+    handleRemove(file, fileList) {
+      this.fileList = [];
     },
-    handlePreview (file) {
-      console.log(file)
+    handlePreview(file) {
+      console.log(file);
     },
-    handleAvatarError () {
-      this.upLoading = false
+    handleAvatarError() {
+      this.upLoading = false;
     },
-    handleExceed (files, fileList) {
+    handleExceed(files, fileList) {
       this.$message.warning(
         `当前限制选择 1 个文件，本次选择了 ${
           files.length
         } 个文件，共选择了 ${files.length + fileList.length} 个文件`
-      )
-      this.upLoading = false
+      );
+      this.upLoading = false;
     },
 
-    beforeRemove (file, fileList) {
-      return this.$confirm(`确定移除 ${file.name}？`)
+    beforeRemove(file, fileList) {
+      return this.$confirm(`确定移除 ${file.name}？`);
     },
-    handleSuccess (response, file) {
-      this.upLoading = true
-      this.$emit('onSubmitLoads')
+    handleSuccess(response, file) {
+      this.upLoading = true;
+      this.$emit("onSubmitLoads");
     },
-    handleClose (done) {
-      this.$confirm('确认关闭？')
+    handleClose(done) {
+      this.$confirm("确认关闭？")
         .then(_ => {
-          done()
+          done();
         })
-        .catch(_ => {})
+        .catch(_ => {});
     }
   }
-}
+};
 </script>
 
 <style rel="stylesheet/scss" lang="scss" scoped>

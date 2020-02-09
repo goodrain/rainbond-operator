@@ -1,18 +1,42 @@
 import {
   getClusterInfo,
+  getState,
   putClusterInfo,
   addsCluster,
   detectionCluster,
   getClusterInstallResults,
   getClusterInstallResultsState,
   getAccessAddress,
-  deleteUnloadingPlatform
+  deleteUnloadingPlatform,
+  getInit
 } from '@/api/installProcess'
 
 const installProcess = {
   state: {},
   mutations: {},
   actions: {
+    fetchInit ({ commit }, resdata) {
+      return new Promise((resolve, reject) => {
+        getInit(resdata)
+          .then(response => {
+            resolve(response)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
+    fetchState ({ commit }, resdata) {
+      return new Promise((resolve, reject) => {
+        getState(resdata)
+          .then(response => {
+            resolve(response)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
     fetchClusterInfo ({ commit }, resdata) {
       return new Promise((resolve, reject) => {
         getClusterInfo(resdata)

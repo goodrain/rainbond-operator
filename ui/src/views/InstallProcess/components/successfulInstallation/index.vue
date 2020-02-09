@@ -23,66 +23,100 @@
 </template>
 
 <script>
-import RainbondComponent from '../installResults/rainbondComponent'
+import RainbondComponent from "../installResults/rainbondComponent";
 
 export default {
-  name: 'successfulInstallation',
+  name: "successfulInstallation",
   components: {
     RainbondComponent
   },
-  data () {
+  data() {
     return {
-      activeName: 'rsultSucess',
+      activeName: "rsultSucess",
       componentList: [],
       loading: true,
-      accessAddress: ''
-    }
+      accessAddress: ""
+    };
   },
-  created () {
-    this.fetchAccessAddress()
-    this.fetchClusterInstallResultsState(true)
+  created() {
+    this.handleState();
+    this.fetchAccessAddress();
+    this.fetchClusterInstallResultsState(true);
   },
-  beforeDestroy () {
-    this.timers && clearInterval(this.timers)
+  beforeDestroy() {
+    this.timers && clearInterval(this.timers);
   },
   methods: {
-    onhandleDelete () {
-      this.$confirm('确定要卸载吗？')
+    handleState() {
+      this.$store.dispatch("fetchState").then(res => {
+        if (res && res.code === 200 && res.data.final_status) {
+          switch (res.data.final_status) {
+            case "Initing":
+              this.handleRouter("index");
+              break;
+            case "Waiting":
+              this.handleRouter("index");
+              break;
+            case "Installing":
+              this.handleRouter("InstallProcess");
+              break;
+            case "Setting":
+              this.handleRouter("InstallProcess");
+              break;
+            case "Running":
+              this.handleRouter("InstallProcess");
+              break;
+            case "UnInstalling":
+              this.handleRouter("index");
+              break;
+            default:
+              break;
+          }
+        }
+      });
+    },
+    handleRouter(name) {
+      this.$router.push({
+        name
+      });
+    },
+    onhandleDelete() {
+      this.$confirm("确定要卸载吗？")
         .then(_ => {
-          this.$store.dispatch('deleteUnloadingPlatform').then(res => {
+          this.$store.dispatch("deleteUnloadingPlatform").then(res => {
             if (res && res.code === 200) {
               this.$notify({
-                type: 'success',
-                title: '卸载',
-                message: '卸载成功'
-              })
+                type: "success",
+                title: "卸载",
+                message: "卸载成功"
+              });
             }
-          })
+          });
         })
-        .catch(_ => {})
+        .catch(_ => {});
     },
-    fetchAccessAddress () {
-      this.$store.dispatch('fetchAccessAddress').then(res => {
+    fetchAccessAddress() {
+      this.$store.dispatch("fetchAccessAddress").then(res => {
         if (res && res.code === 200) {
-          this.accessAddress = res.data
+          this.accessAddress = res.data;
         }
-      })
+      });
     },
-    fetchClusterInstallResultsState (isloading) {
-      this.$store.dispatch('fetchClusterInstallResultsState').then(res => {
+    fetchClusterInstallResultsState(isloading) {
+      this.$store.dispatch("fetchClusterInstallResultsState").then(res => {
         if (isloading) {
-          this.loading = false
+          this.loading = false;
         }
         if (res && res.code === 200) {
-          this.componentList = res.data
+          this.componentList = res.data;
         }
         this.timers = setTimeout(() => {
-          this.fetchClusterInstallResultsState()
-        }, 8000)
-      })
+          this.fetchClusterInstallResultsState();
+        }, 8000);
+      });
     }
   }
-}
+};
 </script>
 <style lang="scss" scoped>
 .d2-h-30 {

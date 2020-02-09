@@ -19,44 +19,65 @@
 </template>
 
 <script>
-import ClusterConfiguration from './components/clusterConfiguration'
-import InstallResults from './components/installResults'
+import ClusterConfiguration from "./components/clusterConfiguration";
+import InstallResults from "./components/installResults";
 
 export default {
-  name: 'InstallProcess',
+  name: "InstallProcess",
   components: {
     ClusterConfiguration,
     InstallResults
   },
-  data () {
+  data() {
     return {
-      activeName: 'cluster',
+      activeName: "cluster",
       resultShow: false
-    }
+    };
   },
-  created () {
-    document.documentElement.scrollTop = 0
-    this.fetchClusterInstallResults()
+  created() {
+    document.documentElement.scrollTop = 0;
+    this.handleState();
   },
   methods: {
-    handlePerform (name) {
-      this.activeName = name
-      this.resultShow = true
-    },
-    fetchClusterInstallResults () {
-      this.$store.dispatch('fetchClusterInstallResults').then(res => {
-        if (res) {
-          if (
-            res.data.finalStatus !== 'status_failed' &&
-            res.data.finalStatus !== 'status_waiting'
-          ) {
-            this.handlePerform('startrRsults')
+    handleState() {
+      this.$store.dispatch("fetchState").then(res => {
+        if (res && res.code === 200 && res.data.final_status) {
+          switch (res.data.final_status) {
+            case "Initing":
+              this.handleRouter("index");
+              break;
+            case "Waiting":
+              this.handleRouter("index");
+              break;
+            case "Installing":
+              this.handlePerform("cluster");
+              break;
+            case "Setting":
+              this.handlePerform("startrRsults");
+              break;
+            case "Running":
+              this.handleRouter("successfulInstallation");
+              break;
+            case "UnInstalling":
+              this.handleRouter("index");
+              break;
+            default:
+              break;
           }
         }
-      })
-    }
+      });
+    },
+    handlePerform(name) {
+      this.activeName = name;
+      this.resultShow = name === "startrRsults" ? true : false;
+    },
+    handleRouter(name) {
+      this.$router.push({
+        name
+      });
+    },
   }
-}
+};
 </script>
 <style lang="scss" scoped>
 .clbr {
