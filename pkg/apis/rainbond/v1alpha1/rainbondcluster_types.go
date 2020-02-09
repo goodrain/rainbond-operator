@@ -92,12 +92,12 @@ type RainbondClusterSpec struct {
 	// rainbond-operator will create one if EtcdConfig is empty
 	EtcdConfig *EtcdConfig `json:"etcdConfig,omitempty"`
 	// define install rainbond version, This is usually image tag
-	InstallVersion       string               `json:"install_version,omitempty"`
+	InstallVersion       string               `json:"installVersion,omitempty"`
 	RainbondShareStorage RainbondShareStorage `json:"rainbondShareStorage,omitempty"`
 	// Whether the configuration has been completed
 	ConfigCompleted bool `json:"configCompleted,omitempty"`
 	//InstallPackageConfig define install package download config
-	InstallPackageConfig InstallPackageConfig `json:"install_package_config,omitempty"`
+	InstallPackageConfig InstallPackageConfig `json:"installPackageConfig,omitempty"`
 }
 
 //InstallPackageConfig define install package download config

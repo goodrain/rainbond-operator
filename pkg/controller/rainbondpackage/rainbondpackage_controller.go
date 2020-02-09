@@ -321,6 +321,9 @@ func (p *pkg) checkClusterConfig() error {
 		}
 		if cluster.Spec.ImageHub != nil {
 			p.pushImageDomain = cluster.Spec.ImageHub.Domain
+			if cluster.Spec.ImageHub.Namespace != "" {
+				p.pushImageDomain += "/" + cluster.Spec.ImageHub.Namespace
+			}
 		}
 		if p.pushImageDomain == "" {
 			p.pushImageDomain = "goodrain.me"
