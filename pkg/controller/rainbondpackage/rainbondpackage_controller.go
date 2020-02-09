@@ -244,6 +244,9 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 	if !c.Spec.ConfigCompleted {
 		return errorClusterConfigNotReady
 	}
+	if c.Spec.ImageHub == nil || c.Spec.ImageHub.Domain == "" {
+		return fmt.Errorf("cluster spec not have local image hub info ")
+	}
 	if c.Spec.InstallVersion != "" {
 		p.version = c.Spec.InstallVersion
 	}
