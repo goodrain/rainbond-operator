@@ -12,6 +12,13 @@ type IClusterCase interface {
 	GlobalConfigs() GlobalConfigUseCase
 	Components() ComponentUseCase
 	Install() InstallUseCase
+	Cluster() ClusterUseCase
+}
+
+// ClusterUseCase cluster case
+type ClusterUseCase interface {
+	Status() (*model.ClusterStatus, error)
+	Init() error
 }
 
 // GlobalConfigUseCase global config case
@@ -40,6 +47,7 @@ type CaseImpl struct {
 	componentUseCaseImpl    *usecase.ComponentUsecaseImpl
 	globalConfigUseCaseImpl *usecase.GlobalConfigUseCaseImpl
 	installCaseImpl         *usecase.InstallUseCaseImpl
+	clusterImpl             *usecase.ClusterUsecaseImpl
 }
 
 // NewClusterCase new cluster case
@@ -48,6 +56,7 @@ func NewClusterCase(conf *option.Config) IClusterCase {
 	clusterCase.componentUseCaseImpl = usecase.NewComponentUsecase(conf)
 	clusterCase.globalConfigUseCaseImpl = usecase.NewGlobalConfigUseCase(conf)
 	clusterCase.installCaseImpl = usecase.NewInstallUseCase(conf, clusterCase.componentUseCaseImpl)
+	clusterCase.clusterImpl = usecase.NewClusterUsecaseImpl(conf, clusterCase.componentUseCaseImpl)
 	return clusterCase
 }
 
@@ -64,4 +73,8 @@ func (c *CaseImpl) GlobalConfigs() GlobalConfigUseCase {
 // Install install
 func (c *CaseImpl) Install() InstallUseCase {
 	return c.installCaseImpl
+}
+
+func (c *CaseImpl) Cluster() ClusterUseCase {
+	return c.clusterImpl
 }

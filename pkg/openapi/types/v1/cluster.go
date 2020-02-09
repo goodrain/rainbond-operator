@@ -12,6 +12,10 @@ type RbdComponentStatus struct {
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas"`
 
+	Status  string `json:"status"` //根据PodStatuses总结汇总该组件的状态
+	Message string `json:"message"`
+	Reason  string `json:"reason"`
+
 	PodStatuses []PodStatus `json:"podStatus"`
 }
 

@@ -6,10 +6,10 @@ import (
 
 	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
 
+	"github.com/gin-gonic/gin"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/customerror"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
-	"github.com/gin-gonic/gin"
 )
 
 // ClusterController k8s controller
@@ -29,6 +29,9 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 	u := &ClusterController{clusterCase: clusterCase}
 
 	clusterEngine := g.Group("/cluster")
+	clusterEngine.GET("/status", corsMidle(u.ClusterStatus))
+	clusterEngine.POST("/init", corsMidle(u.ClusterInit))
+
 	clusterEngine.GET("/configs", corsMidle(u.Configs))
 	clusterEngine.PUT("/configs", corsMidle(u.UpdateConfig))
 
@@ -44,6 +47,26 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 	// componse
 	clusterEngine.GET("/components", corsMidle(u.Components))
 	clusterEngine.GET("/components/:name", corsMidle(u.SingleComponent))
+}
+
+// ClusterStatus cluster status
+func (cc *ClusterController) ClusterStatus(c *gin.Context) {
+	status, err := cc.clusterCase.Cluster().Status()
+	if err != nil {
+		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "内部错误，请联系社区帮助"})
+		return
+	}
+	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": status})
+}
+
+// ClusterInit cluster init
+func (cc *ClusterController) ClusterInit(c *gin.Context) {
+	err := cc.clusterCase.Cluster().Init()
+	if err != nil {
+		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "内部错误，请联系社区帮助"})
+		return
+	}
+	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
 }
 
 // Configs get cluster config info

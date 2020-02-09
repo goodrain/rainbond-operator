@@ -7,7 +7,7 @@ type GlobalConfigs struct {
 	UIDatabase           Database             `json:"uiDatabase"`
 	EtcdConfig           EtcdConfig           `json:"etcdConfig"`
 	GatewayNodes         []GatewayNode        `json:"gatewayNodes"`
-	HTTPDomain           HTTPDomain           `json:"HTTPDomain"`
+	HTTPDomain           string               `json:"HTTPDomain"`
 	GatewayIngressIPs    []string             `json:"gatewayIngressIPs"`
 	Storage              Storage              `json:"storage"`
 	RainbondShareStorage RainbondShareStorage `json:"rainbondShareStorage"`
@@ -17,25 +17,17 @@ type GlobalConfigs struct {
 type RbdComponent struct {
 }
 
-// HTTPDomain http domain
-type HTTPDomain struct {
-	Default bool   `json:"default"`
-	Custom  string `json:"custom"`
-}
-
 // GatewayNode gateway
 type GatewayNode struct {
 	NodeName string `json:"nodeName"`
 	NodeIP   string `json:"nodeIP"`
 	Ports    []int  `json:"ports"`
-	Selected bool   `json:"selected"`
 }
 
 // Storage storage
 type Storage struct {
-	Default          bool          `json:"default"`
-	StorageClassName string        `json:"storageClassName"`
-	Opts             []StorageOpts `json:"opts"`
+	Name        string `json:"name"`
+	Provisioner string `json:"provisioner"`
 }
 
 // StorageOpts storage opts
@@ -56,7 +48,6 @@ type FstabLine struct {
 
 // RainbondShareStorage -
 type RainbondShareStorage struct {
-	Default          bool       `json:"default"`
 	StorageClassName string     `json:"storageClassName"`
 	FstabLine        *FstabLine `json:"fstabLine"`
 }
@@ -70,7 +61,6 @@ type NodeAvailPorts struct {
 
 // ImageHub image hub
 type ImageHub struct {
-	Default   bool   `json:"default" validate:"default|required"`
 	Domain    string `json:"domain"`
 	Namespace string `json:"namespace"`
 	Username  string `json:"username"`
@@ -79,7 +69,6 @@ type ImageHub struct {
 
 // Database defines the connection information of database.
 type Database struct {
-	Default  bool   `json:"default" validate:"default|required"`
 	Host     string `json:"host"`
 	Port     int    `json:"port"`
 	Username string `json:"username"`
@@ -88,11 +77,8 @@ type Database struct {
 
 // EtcdConfig defines the configuration of etcd client.
 type EtcdConfig struct {
-	Default bool `json:"default" validate:"default|required"`
 	// Endpoints is a list of URLs.
 	Endpoints []string `json:"endpoints"`
-	// Whether to use tls to connect to etcd
-	UseTLS bool `json:"useTLS"`
 	// Secret to mount to read certificate files for tls.
 	CertInfo EtcdCertInfo `json:"certInfo"`
 }
@@ -127,4 +113,16 @@ type InstallStatus struct {
 type StatusRes struct {
 	FinalStatus string          `json:"finalStatus"`
 	StatusList  []InstallStatus `json:"statusList"`
+}
+
+// ClusterStatus cluster global status
+type ClusterStatus struct {
+	FinalStatus GlobalStatus `json:"final_status"`
+	ClusterInfo ClusterInfo  `json:"clusterInfo"`
+}
+
+// ClusterInfo cluster info used for config
+type ClusterInfo struct {
+	NodeAvailPorts []NodeAvailPorts `json:"nodeAvailPorts"`
+	Storage        []Storage        `json:"storage"`
 }
