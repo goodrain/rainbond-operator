@@ -34,6 +34,10 @@ func (listener *DownloadWithProgress) Download() error {
 	}
 	defer func() { _ = resp.Body.Close() }()
 	var tmpPath = listener.SavedPath + ".progress"
+	_, err = os.Stat(path.Dir(tmpPath))
+	if os.IsNotExist(err) {
+		os.MkdirAll(path.Dir(tmpPath), os.ModeDir)
+	}
 	// Create the file
 	out, err := os.Create(tmpPath)
 	defer func() {

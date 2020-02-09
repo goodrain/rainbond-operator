@@ -800,18 +800,19 @@ func (p *pkg) imageLoad(file string) (string, error) {
 func (p *pkg) imagePush(image string) error {
 	p.log.Info("start push image", "image", image)
 	var opts dtypes.ImagePushOptions
-	authConfig := dtypes.AuthConfig{
-		ServerAddress: rbdutil.GetImageRepository(p.cluster),
-	}
-	if p.cluster.Spec.ImageHub != nil {
+	if p.cluster.Spec.ImageHub != nil && p.cluster.Spec.ImageHub.Username != "" {
+		authConfig := dtypes.AuthConfig{
+			ServerAddress: rbdutil.GetImageRepository(p.cluster),
+		}
 		authConfig.Username = p.cluster.Spec.ImageHub.Username
 		authConfig.Password = p.cluster.Spec.ImageHub.Password
+
+		registryAuth, err := encodeAuthToBase64(authConfig)
+		if err != nil {
+			return fmt.Errorf("failed to encode auth config: %v", err)
+		}
+		opts.RegistryAuth = registryAuth
 	}
-	registryAuth, err := encodeAuthToBase64(authConfig)
-	if err != nil {
-		return fmt.Errorf("failed to encode auth config: %v", err)
-	}
-	opts.RegistryAuth = registryAuth
 	ctx, cancel := context.WithCancel(p.ctx)
 	defer cancel()
 	res, err := p.dcli.ImagePush(ctx, image, opts)
