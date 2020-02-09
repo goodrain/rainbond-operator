@@ -25,8 +25,6 @@ type DownloadWithProgress struct {
 	Wanted       string
 }
 
-var tmpPath = "/opt/rainbond/pkg/rainbond-pkg.tar"
-
 // Download download
 func (listener *DownloadWithProgress) Download() error {
 	// Get the data
@@ -35,10 +33,14 @@ func (listener *DownloadWithProgress) Download() error {
 		return err
 	}
 	defer func() { _ = resp.Body.Close() }()
-
+	var tmpPath = listener.SavedPath + ".progress"
 	// Create the file
 	out, err := os.Create(tmpPath)
-	defer func() { _ = out.Close() }()
+	defer func() {
+		_ = out.Close()
+		//clear cache file
+		os.Remove(tmpPath)
+	}()
 	if err != nil {
 		return err
 	}
@@ -90,6 +92,7 @@ func (listener *DownloadWithProgress) ProgressChanged(event *oss.ProgressEvent) 
 	}
 }
 
+//CheckMD5 check md5
 func (listener *DownloadWithProgress) CheckMD5(target *os.File) error {
 	md5hash := sha256.New()
 	if _, err := io.Copy(md5hash, target); err != nil {

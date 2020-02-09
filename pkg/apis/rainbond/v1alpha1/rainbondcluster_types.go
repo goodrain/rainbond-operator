@@ -96,6 +96,14 @@ type RainbondClusterSpec struct {
 	RainbondShareStorage RainbondShareStorage `json:"rainbondShareStorage,omitempty"`
 	// Whether the configuration has been completed
 	ConfigCompleted bool `json:"configCompleted,omitempty"`
+	//InstallPackageConfig define install package download config
+	InstallPackageConfig InstallPackageConfig `json:"install_package_config,omitempty"`
+}
+
+//InstallPackageConfig define install package download config
+type InstallPackageConfig struct {
+	URL string `json:"url,omitempty"`
+	MD5 string `json:"md5,omitempty"`
 }
 
 // NodeAvailPorts node avail port
