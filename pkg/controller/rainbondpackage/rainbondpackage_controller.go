@@ -125,8 +125,8 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		}
 		return reconcile.Result{}, nil
 	}
-	if re {
-		return reconcile.Result{}, nil
+	if re != nil {
+		return *re, nil
 	}
 	//need handle condition
 	p, err := newpkg(ctx, r.client, pkg, reqLogger)
@@ -178,28 +178,28 @@ func initPackageStatus() *rainbondv1alpha1.RainbondPackageStatus {
 }
 
 //checkStatusCanReturn if pkg status in the working state, straight back
-func checkStatusCanReturn(pkg *rainbondv1alpha1.RainbondPackage) (updateStatus, re bool) {
+func checkStatusCanReturn(pkg *rainbondv1alpha1.RainbondPackage) (updateStatus bool, re *reconcile.Result) {
 	if pkg.Status == nil {
 		pkg.Status = initPackageStatus()
-		return true, true
+		return true, &reconcile.Result{}
 	}
 	completedCount := 0
 	for _, cond := range pkg.Status.Conditions {
 		if cond.Status == rainbondv1alpha1.Running {
-			return false, true
+			return false, &reconcile.Result{}
 		}
-		//if have Failed condition
+		//TODO: if have Failed condition, Need to try again?
 		if cond.Status == rainbondv1alpha1.Failed {
-			return false, true
+			return false, &reconcile.Result{}
 		}
 		if cond.Status == rainbondv1alpha1.Completed {
 			completedCount++
 		}
 	}
 	if completedCount == len(pkg.Status.Conditions) {
-		return false, true
+		return false, &reconcile.Result{}
 	}
-	return false, false
+	return false, nil
 }
 
 type pkg struct {
@@ -349,7 +349,9 @@ func (p *pkg) updateConditionStatus(typ3 rainbondv1alpha1.PackageConditionType, 
 			}
 			p.pkg.Status.Conditions[i].LastHeartbeatTime = metav1.Now()
 			p.pkg.Status.Conditions[i].Status = status
-			p.pkg.Status.Conditions[i].Progress = 100
+			if status == rainbondv1alpha1.Completed {
+				p.pkg.Status.Conditions[i].Progress = 100
+			}
 			break
 		}
 	}
@@ -397,6 +399,7 @@ func (p *pkg) canDownload() bool {
 	if con := p.findCondition(rainbondv1alpha1.DownloadPackage); con != nil {
 		if con.Status == rainbondv1alpha1.Waiting {
 			if !p.downloadPackage {
+				p.log.Info("not need download package")
 				if err := p.completeCondition(con); err != nil {
 					p.log.Error(err, "complete download condition because of not need download failure %s")
 				}
@@ -474,6 +477,7 @@ func (p *pkg) setInitStatus() error {
 
 //donwnloadPackage download package
 func (p *pkg) donwnloadPackage() error {
+	p.log.Info(fmt.Sprintf("start download package from %s", p.downloadPackageURL))
 	downloadListener := &downloadutil.DownloadWithProgress{
 		URL:       p.downloadPackageURL,
 		SavedPath: p.localPackagePath,
@@ -485,10 +489,11 @@ func (p *pkg) donwnloadPackage() error {
 		err := downloadListener.CheckMD5(file)
 		_ = file.Close()
 		if err == nil {
+			p.log.Info("rainbond package file is exists")
 			return nil
 		}
 	}
-	p.log.Info("rainbond archive file does not exists, downloading background ...")
+	p.log.Info("rainbond package file does not exists, downloading background ...")
 	var stop = make(chan struct{}, 1)
 	go func() {
 		ticker := time.NewTicker(time.Second * 3)
@@ -521,6 +526,7 @@ func (p *pkg) donwnloadPackage() error {
 	}
 	//stop watch progress
 	stop <- struct{}{}
+	p.log.Info(fmt.Sprintf("success download package from %s", p.downloadPackageURL))
 	return nil
 }
 
