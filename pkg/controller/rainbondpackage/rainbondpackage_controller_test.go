@@ -24,6 +24,7 @@ func init() {
 	}, log)
 	pkgHandle.setCluster(&rainbondv1alpha1.RainbondCluster{
 		Spec: rainbondv1alpha1.RainbondClusterSpec{
+			ConfigCompleted: true,
 			InstallPackageConfig: rainbondv1alpha1.InstallPackageConfig{
 				URL: "https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/offline/5.2/rainbond.images.2020-02-07-5.2-dev.tgz",
 				MD5: "f8989cabef3cff564d63a9ee445c24e26ff44af96a647b3f4c980e0e780b8032",
@@ -83,9 +84,9 @@ func TestParseImageName(t *testing.T) {
 	for idx := range tests {
 		tc := tests[idx]
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := parseImageName(tc.str)
-			if err != nil {
-				t.Error(err)
+			got := parseImageName(tc.str)
+			if got == "" {
+				t.Error("parse image name failure")
 				return
 			}
 			if tc.want != got {
@@ -97,6 +98,18 @@ func TestParseImageName(t *testing.T) {
 
 func TestDownloadPackage(t *testing.T) {
 	if err := pkgHandle.donwnloadPackage(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUnpack(t *testing.T) {
+	if err := pkgHandle.untartar(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestImagesLoadAndPush(t *testing.T) {
+	if err := pkgHandle.imagesLoadAndPush(); err != nil {
 		t.Fatal(err)
 	}
 }
