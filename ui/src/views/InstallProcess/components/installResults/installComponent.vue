@@ -32,12 +32,14 @@
       <el-col v-show="item.message" :span="2" class="description errorTitleColor">消息:</el-col>
       <el-col v-show="item.message" :span="22" class="description">{{item.message}}</el-col>
     </div>
+
+
   </el-row>
 </template>
 
 <script>
 export default {
-  name: 'installComponent',
+  name: "installComponent",
   props: {
     item: {
       type: Object,
@@ -52,32 +54,32 @@ export default {
       default: false
     }
   },
-  data () {
+  data() {
     return {
       phaseMap: {
-        step_setting: '配置环境',
-        step_download: '下载安装包',
-        step_prepare_infrastructure: '准备基础设施',
-        step_unpacke: '解压安装包',
-        step_handle_image: '处理镜像',
-        step_install_component: '安装Rainbond组件'
+        step_setting: "配置环境",
+        step_download: "下载安装包",
+        step_prepare_infrastructure: "安装本地镜像仓库",
+        step_unpacke: "解压安装包",
+        step_handle_image: "处理镜像",
+        step_install_component: "安装Rainbond组件"
       },
       phaseDesc: {
-        step_setting: '准备环境、预计 3 分钟',
-        step_download: '下载所需的安装包、预计 5 分钟',
-        step_prepare_infrastructure: '准备存储、镜像仓库、预计 5 分钟',
-        step_unpacke: '解压基础镜像、预计 5 分钟',
-        step_handle_image: '推送镜像到镜像仓库、预计 10 分钟',
-        step_install_component: '安装所需的组件、预计 10 分钟'
+        step_setting: "准备环境、预计 3 分钟",
+        step_download: "下载所需的安装包、预计 5 分钟",
+        step_prepare_infrastructure: "准备存储、镜像仓库、预计 5 分钟",
+        step_unpacke: "解压基础镜像、预计 5 分钟",
+        step_handle_image: "推送镜像到镜像仓库、预计 10 分钟",
+        step_install_component: "安装所需的组件、预计 10 分钟"
       }
-    }
+    };
   },
   methods: {
-    submit () {
-      this.$emit('onhandleDialogVisible')
+    submit() {
+      this.$emit("onhandleDialogVisible");
     }
   }
-}
+};
 </script>
 
 <style rel="stylesheet/scss" lang="scss" scoped>
