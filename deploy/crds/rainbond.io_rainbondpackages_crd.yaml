@@ -47,11 +47,13 @@ spec:
                 properties:
                   lastHeartbeatTime:
                     description: Last time we got an update on a given condition.
-                    type: object
+                    format: date-time
+                    type: string
                   lastTransitionTime:
                     description: Last time the condition transit from one status to
                       another.
-                    type: object
+                    format: date-time
+                    type: string
                   message:
                     description: Human readable message indicating details about last
                       transition.
