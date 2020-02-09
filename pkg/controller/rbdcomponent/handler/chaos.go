@@ -24,18 +24,20 @@ type chaos struct {
 	client     client.Client
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
+	pkg        *rainbondv1alpha1.RainbondPackage
 	labels     map[string]string
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
 }
 
-func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &chaos{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.GetLabels(),
+		pkg:       pkg,
 	}
 }
 
@@ -48,7 +50,7 @@ func (c *chaos) Before() error {
 	}
 	c.etcdSecret = secret
 
-	return isPhaseOK(c.cluster)
+	return checkPackageStatus(c.pkg)
 }
 
 func (c *chaos) Resources() []interface{} {

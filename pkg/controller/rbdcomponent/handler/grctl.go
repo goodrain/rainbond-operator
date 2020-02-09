@@ -23,18 +23,20 @@ type grctl struct {
 	client    client.Client
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
+	pkg       *rainbondv1alpha1.RainbondPackage
 	labels    map[string]string
 	apiSecret *corev1.Secret
 }
 
 //NewGrctl new grctl handle
-func NewGrctl(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewGrctl(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &grctl{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.GetLabels(),
+		pkg:       pkg,
 	}
 }
 
@@ -45,7 +47,7 @@ func (w *grctl) Before() error {
 	}
 	w.apiSecret = secret
 
-	return isPhaseOK(w.cluster)
+	return checkPackageStatus(w.pkg)
 }
 
 func (w *grctl) Resources() []interface{} {

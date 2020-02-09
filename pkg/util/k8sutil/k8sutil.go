@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -84,6 +85,15 @@ func HostPath(hostpath corev1.HostPathType) *corev1.HostPathType {
 	return &hostpath
 }
 
-func IsKubernetesResourceNotFoundError(err error) bool {
-	return errors.IsNotFound(err)
+func UpdateCRStatus(client client.Client, obj runtime.Object) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	err := client.Status().Update(ctx, obj)
+	if err != nil {
+		err = client.Status().Update(ctx, obj)
+		if err != nil {
+			return fmt.Errorf("update custom resource status: %v", err)
+		}
+	}
+	return nil
 }

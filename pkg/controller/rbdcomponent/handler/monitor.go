@@ -24,10 +24,11 @@ type monitor struct {
 
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
+	pkg       *rainbondv1alpha1.RainbondPackage
 	labels    map[string]string
 }
 
-func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &monitor{
 		ctx:    ctx,
 		client: client,
@@ -35,6 +36,7 @@ func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1
 		component: component,
 		cluster:   cluster,
 		labels:    component.GetLabels(),
+		pkg:       pkg,
 	}
 }
 
@@ -45,7 +47,7 @@ func (m *monitor) Before() error {
 	}
 	m.etcdSecret = secret
 
-	return isPhaseOK(m.cluster)
+	return checkPackageStatus(m.pkg)
 }
 
 func (m *monitor) Resources() []interface{} {
@@ -96,7 +98,7 @@ func (m *monitor) daemonSetForMonitor() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName: "rainbond-operator",
+					ServiceAccountName:            "rainbond-operator",
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    m.cluster.Status.MasterRoleLabel,

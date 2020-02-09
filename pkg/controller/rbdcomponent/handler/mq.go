@@ -20,17 +20,19 @@ type mq struct {
 	client     client.Client
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
+	pkg        *rainbondv1alpha1.RainbondPackage
 	labels     map[string]string
 	etcdSecret *corev1.Secret
 }
 
-func NewMQ(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewMQ(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &mq{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.GetLabels(),
+		pkg:       pkg,
 	}
 }
 
@@ -40,7 +42,7 @@ func (m *mq) Before() error {
 		return fmt.Errorf("failed to get etcd secret: %v", err)
 	}
 	m.etcdSecret = secret
-	return isPhaseOK(m.cluster)
+	return checkPackageStatus(m.pkg)
 }
 
 func (m *mq) Resources() []interface{} {

@@ -1,8 +1,6 @@
 package v1alpha1
 
 import (
-	"time"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -50,10 +48,10 @@ type PackageCondition struct {
 	Status PackageConditionStatus `json:"status" `
 	// Last time we got an update on a given condition.
 	// +optional
-	LastHeartbeatTime time.Time `json:"lastHeartbeatTime,omitempty" `
+	LastHeartbeatTime metav1.Time `json:"lastHeartbeatTime,omitempty" `
 	// Last time the condition transit from one status to another.
 	// +optional
-	LastTransitionTime time.Time `json:"lastTransitionTime,omitempty" `
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" `
 	// (brief) reason for the condition's last transition.
 	// +optional
 	Reason string `json:"reason,omitempty"`

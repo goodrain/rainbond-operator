@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"errors"
-	"fmt"
 	"path"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -54,16 +53,19 @@ func getDefaultDBInfo(in *rainbondv1alpha1.Database) *rainbondv1alpha1.Database 
 	}
 }
 
-func isPhaseOK(cluster *rainbondv1alpha1.RainbondCluster) error {
-	if cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithoutPackage {
-		return nil
+func checkPackageStatus(pkg *rainbondv1alpha1.RainbondPackage) error {
+	var packageCompleted bool
+	if pkg.Status != nil {
+		for _, cond := range pkg.Status.Conditions {
+			if cond.Type == rainbondv1alpha1.Ready && cond.Status == rainbondv1alpha1.Completed {
+				packageCompleted = true
+				break
+			}
+		}
 	}
-
-	pkgOK := rainbondv1alpha1.RainbondClusterPhase2Range[cluster.Status.Phase] > rainbondv1alpha1.RainbondClusterPhase2Range[rainbondv1alpha1.RainbondClusterPackageProcessing]
-	if cluster.Status == nil || !pkgOK {
-		return fmt.Errorf("rainbond package processing")
+	if !packageCompleted {
+		return NewIgnoreError("rainbond package is not completed in InstallationModeWithoutPackage mode")
 	}
-
 	return nil
 }
 

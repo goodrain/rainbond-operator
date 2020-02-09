@@ -18,19 +18,21 @@ var DNSName = "rbd-dns"
 type dns struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
+	pkg       *rainbondv1alpha1.RainbondPackage
 	labels    map[string]string
 }
 
-func NewDNS(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewDNS(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &dns{
 		component: component,
 		cluster:   cluster,
 		labels:    component.GetLabels(),
+		pkg:       pkg,
 	}
 }
 
 func (d *dns) Before() error {
-	return isPhaseOK(d.cluster)
+	return checkPackageStatus(d.pkg)
 }
 
 func (d *dns) Resources() []interface{} {

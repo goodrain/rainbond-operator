@@ -27,7 +27,6 @@ import (
 
 	"github.com/goodrain/rainbond-operator/pkg/apis"
 	"github.com/goodrain/rainbond-operator/pkg/controller"
-	"github.com/goodrain/rainbond-operator/pkg/prepare"
 	"github.com/goodrain/rainbond-operator/version"
 )
 
@@ -142,13 +141,6 @@ func main() {
 			log.Info("Install prometheus-operator in your cluster to create ServiceMonitor objects", "error", err.Error())
 		}
 	}
-
-	prepareManager := prepare.NewPrepareManager(cfg, mgr.GetClient())
-	if err := prepareManager.Start(); err != nil {
-		log.Error(err, "start parepare manager")
-		os.Exit(1)
-	}
-	defer func() { _ = prepareManager.Stop() }()
 
 	log.Info("Starting the Cmd.")
 	// Start the Cmd

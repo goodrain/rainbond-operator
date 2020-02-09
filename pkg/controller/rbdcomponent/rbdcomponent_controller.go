@@ -3,6 +3,7 @@ package rbdcomponent
 import (
 	"context"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -29,7 +30,7 @@ import (
 
 var log = logf.Log.WithName("controller_rbdcomponent")
 
-type handlerFunc func(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) chandler.ComponentHandler
+type handlerFunc func(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) chandler.ComponentHandler
 
 var handlerFuncs map[string]handlerFunc
 
@@ -137,11 +138,29 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	cluster := &rainbondv1alpha1.RainbondCluster{}
 	if err := r.client.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondClusterName}, cluster); err != nil {
 		reqLogger.Error(err, "failed to get rainbondcluster.")
-		// TODO: report status, events
-		return reconcile.Result{RequeueAfter: 1 * time.Second}, nil
+		cpt.Status = &rainbondv1alpha1.RbdComponentStatus{
+			Message: fmt.Sprintf("failed to get rainbondcluster: %v", err),
+			Reason:  "ErrGetRainbondCluster",
+		}
+		if err := k8sutil.UpdateCRStatus(r.client, cpt); err != nil {
+			reqLogger.Error(err, "update rbdcomponent status")
+		}
+		return reconcile.Result{RequeueAfter: 1 * time.Second}, err
+	}
+	pkg := &rainbondv1alpha1.RainbondPackage{}
+	if err := r.client.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondClusterName}, pkg); err != nil {
+		reqLogger.Error(err, "failed to get rainbondpackage.")
+		cpt.Status = &rainbondv1alpha1.RbdComponentStatus{
+			Message: fmt.Sprintf("failed to get rainbondpackage: %v", err),
+			Reason:  "ErrGetRainbondPackage",
+		}
+		if err := k8sutil.UpdateCRStatus(r.client, cpt); err != nil {
+			reqLogger.Error(err, "update rbdcomponent status")
+		}
+		return reconcile.Result{RequeueAfter: 1 * time.Second}, err
 	}
 
-	hdl := fn(ctx, r.client, cpt, cluster)
+	hdl := fn(ctx, r.client, cpt, cluster, pkg)
 
 	if err := hdl.Before(); err != nil {
 		// TODO: report events
@@ -153,15 +172,11 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
-	resourceses := hdl.Resources()
+	resources := hdl.Resources()
 
-	controllerType := rainbondv1alpha1.ControllerTypeUnknown
-	for _, res := range resourceses {
+	for _, res := range resources {
 		if res == nil {
 			continue
-		}
-		if ct := detectControllerType(res); ct != rainbondv1alpha1.ControllerTypeUnknown {
-			controllerType = ct
 		}
 
 		// Set RbdComponent cpt as the owner and controller
@@ -185,10 +200,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, nil
 	}
 
-	cpt.Status = &rainbondv1alpha1.RbdComponentStatus{
-		ControllerType: controllerType,
-		ControllerName: cpt.Name,
-	}
+	cpt.Status = generateRainbondComponentStatus(cpt, cluster, resources)
 	if err := r.client.Status().Update(ctx, cpt); err != nil {
 		reqLogger.Error(err, "Update RbdComponent status", "Name", cpt.Name)
 		return reconcile.Result{Requeue: true}, err
@@ -234,4 +246,28 @@ func detectControllerType(ctrl interface{}) rainbondv1alpha1.ControllerType {
 		return rainbondv1alpha1.ControllerTypeDaemonSet
 	}
 	return rainbondv1alpha1.ControllerTypeUnknown
+}
+
+func generateRainbondComponentStatus(cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, resources []interface{}) *rainbondv1alpha1.RbdComponentStatus {
+	controllerType := rainbondv1alpha1.ControllerTypeUnknown
+	for _, res := range resources {
+		if res == nil {
+			continue
+		}
+		if ct := detectControllerType(res); ct != rainbondv1alpha1.ControllerTypeUnknown {
+			controllerType = ct
+			break
+		}
+	}
+
+	status := &rainbondv1alpha1.RbdComponentStatus{
+		ControllerType: controllerType,
+		ControllerName: cpt.Name,
+	}
+
+	if cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithPackage {
+		status.PriorityComponent = true
+	}
+
+	return status
 }

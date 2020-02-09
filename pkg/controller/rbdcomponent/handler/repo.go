@@ -18,19 +18,21 @@ var RepoName = "rbd-repo"
 type repo struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
+	pkg       *rainbondv1alpha1.RainbondPackage
 	labels    map[string]string
 }
 
-func NewRepo(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewRepo(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &repo{
 		component: component,
 		cluster:   cluster,
 		labels:    component.GetLabels(),
+		pkg:       pkg,
 	}
 }
 
 func (r *repo) Before() error {
-	return isPhaseOK(r.cluster)
+	return checkPackageStatus(r.pkg)
 }
 
 func (r *repo) Resources() []interface{} {

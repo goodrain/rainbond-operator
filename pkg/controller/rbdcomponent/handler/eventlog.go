@@ -22,18 +22,20 @@ type eventlog struct {
 	client     client.Client
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
+	pkg        *rainbondv1alpha1.RainbondPackage
 	labels     map[string]string
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
 }
 
-func NewEventLog(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewEventLog(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &eventlog{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.GetLabels(),
+		pkg:       pkg,
 	}
 }
 
@@ -46,7 +48,7 @@ func (e *eventlog) Before() error {
 	}
 	e.etcdSecret = secret
 
-	return isPhaseOK(e.cluster)
+	return checkPackageStatus(e.pkg)
 }
 
 func (e *eventlog) Resources() []interface{} {
@@ -108,8 +110,8 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					HostNetwork: true,
-					DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
+					HostNetwork:                   true,
+					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    e.cluster.Status.MasterRoleLabel,

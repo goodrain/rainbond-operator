@@ -21,17 +21,19 @@ type webcli struct {
 	client     client.Client
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
+	pkg        *rainbondv1alpha1.RainbondPackage
 	labels     map[string]string
 	etcdSecret *corev1.Secret
 }
 
-func NewWebCli(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewWebCli(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &webcli{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.GetLabels(),
+		pkg:       pkg,
 	}
 }
 
@@ -42,7 +44,7 @@ func (w *webcli) Before() error {
 	}
 	w.etcdSecret = secret
 
-	return isPhaseOK(w.cluster)
+	return checkPackageStatus(w.pkg)
 }
 
 func (w *webcli) Resources() []interface{} {

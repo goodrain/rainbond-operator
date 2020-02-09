@@ -22,19 +22,22 @@ var NodeName = "rbd-node"
 type node struct {
 	ctx        context.Context
 	client     client.Client
-	component  *rainbondv1alpha1.RbdComponent
-	cluster    *rainbondv1alpha1.RainbondCluster
 	labels     map[string]string
 	etcdSecret *corev1.Secret
+
+	cluster   *rainbondv1alpha1.RainbondCluster
+	component *rainbondv1alpha1.RbdComponent
+	pkg       *rainbondv1alpha1.RainbondPackage
 }
 
-func NewNode(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewNode(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &node{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.GetLabels(),
+		pkg:       pkg,
 	}
 }
 
@@ -44,7 +47,14 @@ func (n *node) Before() error {
 		return fmt.Errorf("failed to get etcd secret: %v", err)
 	}
 	n.etcdSecret = secret
-	return nil
+
+	withPackage := n.cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithPackage
+	if withPackage {
+		// in InstallationModeWithPackage mode, no need to wait until rainbondpackage is completed.
+		return nil
+	}
+	// in InstallationModeWithoutPackage mode, we have to make sure rainbondpackage is completed before we create the resource.
+	return checkPackageStatus(n.pkg)
 }
 
 func (n *node) Resources() []interface{} {

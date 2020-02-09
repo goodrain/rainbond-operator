@@ -17,12 +17,14 @@ var EtcdName = "rbd-etcd"
 type etcd struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
+	pkg       *rainbondv1alpha1.RainbondPackage
 }
 
-func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &etcd{
 		component: component,
 		cluster:   cluster,
+		pkg:       pkg,
 	}
 }
 
@@ -30,7 +32,15 @@ func (e *etcd) Before() error {
 	if e.cluster.Spec.EtcdConfig != nil {
 		return NewIgnoreError(fmt.Sprintf("specified etcd configuration"))
 	}
-	return nil
+
+	withPackage := e.cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithPackage
+	if withPackage {
+		// in InstallationModeWithPackage mode, no need to wait until rainbondpackage is completed.
+		return nil
+	}
+
+	// in InstallationModeWithoutPackage mode, we have to make sure rainbondpackage is completed before we create the resource.
+	return checkPackageStatus(e.pkg)
 }
 
 func (e *etcd) Resources() []interface{} {

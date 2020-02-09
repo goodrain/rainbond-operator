@@ -22,18 +22,20 @@ type worker struct {
 	client     client.Client
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
+	pkg        *rainbondv1alpha1.RainbondPackage
 	labels     map[string]string
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
 }
 
-func NewWorker(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewWorker(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &worker{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.GetLabels(),
+		pkg:       pkg,
 	}
 }
 
@@ -46,7 +48,7 @@ func (w *worker) Before() error {
 	}
 	w.etcdSecret = secret
 
-	return isPhaseOK(w.cluster)
+	return checkPackageStatus(w.pkg)
 }
 
 func (w *worker) Resources() []interface{} {

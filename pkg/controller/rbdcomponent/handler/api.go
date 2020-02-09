@@ -28,21 +28,23 @@ var apiClientSecretName = "rbd-api-client-cert"
 type api struct {
 	ctx                      context.Context
 	client                   client.Client
-	component                *rainbondv1alpha1.RbdComponent
-	cluster                  *rainbondv1alpha1.RainbondCluster
 	db                       *rainbondv1alpha1.Database
 	labels                   map[string]string
 	etcdSecret, serverSecret *corev1.Secret
+	component                *rainbondv1alpha1.RbdComponent
+	cluster                  *rainbondv1alpha1.RainbondCluster
+	pkg                      *rainbondv1alpha1.RainbondPackage
 }
 
 //NewAPI new api handle
-func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &api{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.GetLabels(),
+		pkg:       pkg,
 	}
 }
 
@@ -55,7 +57,7 @@ func (a *api) Before() error {
 	}
 	a.etcdSecret = secret
 
-	return isPhaseOK(a.cluster)
+	return checkPackageStatus(a.pkg)
 }
 
 func (a *api) Resources() []interface{} {

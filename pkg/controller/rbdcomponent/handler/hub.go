@@ -23,24 +23,32 @@ var hubDataPvcName = "hubdata"
 var hubImageRepository = "hub-image-repository"
 
 type hub struct {
+	ctx       context.Context
+	client    client.Client
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
-	client    client.Client
-	ctx       context.Context
+	pkg       *rainbondv1alpha1.RainbondPackage
 }
 
 //NewHub nw hub
-func NewHub(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewHub(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &hub{
 		component: component,
 		cluster:   cluster,
 		client:    client,
 		ctx:       ctx,
+		pkg:       pkg,
 	}
 }
 
 func (h *hub) Before() error {
-	return nil
+	withPackage := h.cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithPackage
+	if withPackage {
+		// in InstallationModeWithPackage mode, no need to wait until rainbondpackage is completed.
+		return nil
+	}
+	// in InstallationModeWithoutPackage mode, we have to make sure rainbondpackage is completed before we create the resource.
+	return checkPackageStatus(h.pkg)
 }
 
 func (h *hub) Resources() []interface{} {

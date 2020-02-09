@@ -21,14 +21,16 @@ var DBName = "rbd-db"
 type db struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
+	pkg       *rainbondv1alpha1.RainbondPackage
 	labels    map[string]string
 }
 
 //NewDB new db
-func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &db{
 		component: component,
 		cluster:   cluster,
+		pkg:       pkg,
 		labels:    component.GetLabels(),
 	}
 }
@@ -38,7 +40,7 @@ func (d *db) Before() error {
 		return fmt.Errorf("use custom database")
 	}
 
-	return isPhaseOK(d.cluster)
+	return checkPackageStatus(d.pkg)
 }
 
 func (d *db) Resources() []interface{} {

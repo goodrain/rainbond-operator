@@ -20,16 +20,18 @@ type gateway struct {
 	client     client.Client
 	etcdSecret *corev1.Secret
 
-	component  *rainbondv1alpha1.RbdComponent
-	cluster    *rainbondv1alpha1.RainbondCluster
+	component *rainbondv1alpha1.RbdComponent
+	cluster   *rainbondv1alpha1.RainbondCluster
+	pkg       *rainbondv1alpha1.RainbondPackage
 }
 
-func NewGateway(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewGateway(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &gateway{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
+		pkg:       pkg,
 	}
 }
 
@@ -39,7 +41,14 @@ func (g *gateway) Before() error {
 		return fmt.Errorf("failed to get etcd secret: %v", err)
 	}
 	g.etcdSecret = secret
-	return nil
+
+	withPackage := g.cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithPackage
+	if withPackage {
+		// in InstallationModeWithPackage mode, no need to wait until rainbondpackage is completed.
+		return nil
+	}
+	// in InstallationModeWithoutPackage mode, we have to make sure rainbondpackage is completed before we create the resource.
+	return checkPackageStatus(g.pkg)
 }
 
 func (g *gateway) Resources() []interface{} {
@@ -86,9 +95,9 @@ func (g *gateway) daemonSetForGateway() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName: "rainbond-operator",
-					HostNetwork:        true,
-					DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
+					ServiceAccountName:            "rainbond-operator",
+					HostNetwork:                   true,
+					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    g.cluster.Status.MasterRoleLabel,

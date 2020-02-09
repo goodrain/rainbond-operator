@@ -144,26 +144,26 @@ func initPackageStatus() *rainbondv1alpha1.RainbondPackageStatus {
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.Init,
 				Status:             rainbondv1alpha1.Running,
-				LastHeartbeatTime:  time.Now(),
-				LastTransitionTime: time.Now(),
+				LastHeartbeatTime:  metav1.Now(),
+				LastTransitionTime: metav1.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.DownloadPackage,
 				Status:             rainbondv1alpha1.Waiting,
-				LastHeartbeatTime:  time.Now(),
-				LastTransitionTime: time.Now(),
+				LastHeartbeatTime:  metav1.Now(),
+				LastTransitionTime: metav1.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.UnpackPackage,
 				Status:             rainbondv1alpha1.Waiting,
-				LastHeartbeatTime:  time.Now(),
-				LastTransitionTime: time.Now(),
+				LastHeartbeatTime:  metav1.Now(),
+				LastTransitionTime: metav1.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.PushImage,
 				Status:             rainbondv1alpha1.Waiting,
-				LastHeartbeatTime:  time.Now(),
-				LastTransitionTime: time.Now(),
+				LastHeartbeatTime:  metav1.Now(),
+				LastTransitionTime: metav1.Now(),
 			},
 		},
 		ImagesPushed: []rainbondv1alpha1.RainbondPackageImage{},
@@ -327,9 +327,9 @@ func (p *pkg) updateConditionStatus(typ3 rainbondv1alpha1.PackageConditionType, 
 	for i, condition := range p.pkg.Status.Conditions {
 		if condition.Type == typ3 {
 			if p.pkg.Status.Conditions[i].Status != status {
-				p.pkg.Status.Conditions[i].LastTransitionTime = time.Now()
+				p.pkg.Status.Conditions[i].LastTransitionTime = metav1.Now()
 			}
-			p.pkg.Status.Conditions[i].LastHeartbeatTime = time.Now()
+			p.pkg.Status.Conditions[i].LastHeartbeatTime = metav1.Now()
 			p.pkg.Status.Conditions[i].Status = status
 			p.pkg.Status.Conditions[i].Progress = 100
 		}
@@ -338,7 +338,7 @@ func (p *pkg) updateConditionStatus(typ3 rainbondv1alpha1.PackageConditionType, 
 func (p *pkg) updateConditionResion(typ3 rainbondv1alpha1.PackageConditionType, resion, message string) {
 	for i, condition := range p.pkg.Status.Conditions {
 		if condition.Type == typ3 {
-			p.pkg.Status.Conditions[i].LastHeartbeatTime = time.Now()
+			p.pkg.Status.Conditions[i].LastHeartbeatTime = metav1.Now()
 			p.pkg.Status.Conditions[i].Reason = resion
 			p.pkg.Status.Conditions[i].Message = message
 		}
@@ -347,7 +347,7 @@ func (p *pkg) updateConditionResion(typ3 rainbondv1alpha1.PackageConditionType, 
 func (p *pkg) updateConditionProgress(typ3 rainbondv1alpha1.PackageConditionType, progress int32) {
 	for i, condition := range p.pkg.Status.Conditions {
 		if condition.Type == typ3 {
-			p.pkg.Status.Conditions[i].LastHeartbeatTime = time.Now()
+			p.pkg.Status.Conditions[i].LastHeartbeatTime = metav1.Now()
 			p.pkg.Status.Conditions[i].Progress = int(progress)
 		}
 	}

@@ -21,26 +21,28 @@ var AppUIName = "rbd-app-ui"
 type appui struct {
 	ctx       context.Context
 	client    client.Client
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
 	db        *rainbondv1alpha1.Database
+	component *rainbondv1alpha1.RbdComponent
+	cluster   *rainbondv1alpha1.RainbondCluster
+	pkg       *rainbondv1alpha1.RainbondPackage
 }
 
-func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &appui{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    component.GetLabels(),
+		pkg:       pkg,
 	}
 }
 
 func (a *appui) Before() error {
 	a.db = getDefaultDBInfo(a.cluster.Spec.UIDatabase)
 
-	if err := isPhaseOK(a.cluster); err != nil {
+	if err := checkPackageStatus(a.pkg); err != nil {
 		return err
 	}
 
