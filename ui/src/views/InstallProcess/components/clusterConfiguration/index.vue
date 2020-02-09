@@ -544,9 +544,6 @@ export default {
         if (res && res.data) {
           this.loading = false;
           this.ruleForm = res.data;
-          // this.ruleForm.rainbondShareStorage.fstabLine.default = true;
-          // this.ruleForm.rainbondShareStorage.fstabLine.dump = 0;
-          // this.ruleForm.rainbondShareStorage.fstabLine.pass = 0;
           if (
             !res.data.gatewayIngressIPs ||
             (res.data.gatewayIngressIPs &&

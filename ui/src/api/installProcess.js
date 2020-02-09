@@ -1,5 +1,25 @@
 import request from '@/plugin/axios'
 
+//  获取全局状态
+export function getState () {
+  return request({
+    url:
+      // 'http://doc.goodrain.org/mock/48/cluster/status',
+      '/cluster/status',
+    method: 'get'
+  })
+}
+
+//  获取全局状态
+export function putInit () {
+  return request({
+    url:
+      // 'http://doc.goodrain.org/mock/48/cluster/init',
+      '/cluster/init',
+    method: 'post'
+  })
+}
+
 //  获取集群配置信息
 export function getClusterInfo () {
   return request({
@@ -15,7 +35,7 @@ export function detectionCluster () {
   return request({
     url:
       // 'http://doc.goodrain.org/mock/48/cluster/install/precheck',
-      '/cluster/install/precheck',
+      '/cluster/install/status',
     method: 'get'
   })
 }
