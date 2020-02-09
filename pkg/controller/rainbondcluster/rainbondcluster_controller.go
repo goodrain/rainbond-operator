@@ -103,9 +103,7 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
-	if !rainbondcluster.Spec.ConfigCompleted {
-		return reconcile.Result{RequeueAfter: time.Second * 5}, nil
-	}
+
 	if rainbondcluster.Status != nil && len(rainbondcluster.Status.NodeAvailPorts) > 0 {
 		return reconcile.Result{}, nil
 	}
