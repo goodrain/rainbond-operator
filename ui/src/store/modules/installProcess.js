@@ -8,16 +8,16 @@ import {
   getClusterInstallResultsState,
   getAccessAddress,
   deleteUnloadingPlatform,
-  getInit
+  putInit
 } from '@/api/installProcess'
 
 const installProcess = {
   state: {},
   mutations: {},
   actions: {
-    fetchInit ({ commit }, resdata) {
+    putInit ({ commit }, resdata) {
       return new Promise((resolve, reject) => {
-        getInit(resdata)
+        putInit(resdata)
           .then(response => {
             resolve(response)
           })

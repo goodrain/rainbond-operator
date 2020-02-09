@@ -64,7 +64,7 @@ export default {
       });
     },
     handleInit() {
-      this.$store.dispatch("fetchInit").then(res => {
+      this.$store.dispatch("putInit").then(res => {
         if (res && res.code === 200) {
           this.handleClick();
         } else if (res && res.code == 400) {

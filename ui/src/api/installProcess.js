@@ -11,7 +11,7 @@ export function getState () {
 }
 
 //  获取全局状态
-export function getInit () {
+export function putInit () {
   return request({
     url:
       // 'http://doc.goodrain.org/mock/48/cluster/init',
