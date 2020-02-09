@@ -86,12 +86,13 @@ service.interceptors.response.use(
     const dataAxios = response.data
     // 这个状态码是和后端约定的
     const { code } = dataAxios
+
     // 根据 code 进行判断
     if (code === undefined) {
       // 如果没有 code 代表这不是项目后端开发的接口 比如可能是 D2Admin 请求最新版本
       return dataAxios
     } else {
-      if (code < 200 && code >= 400) {
+      if (code >= 300 && code <= 500) {
         return handleResponseCode(dataAxios)
       } else {
         return dataAxios

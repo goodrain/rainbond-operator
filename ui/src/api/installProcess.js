@@ -16,7 +16,7 @@ export function getInit () {
     url:
       // 'http://doc.goodrain.org/mock/48/cluster/init',
       '/cluster/init',
-    method: 'get'
+    method: 'post'
   })
 }
 
