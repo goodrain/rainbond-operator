@@ -21,6 +21,42 @@ func NewClusterUsecaseImpl(cfg *option.Config, componentUsecase ComponentUseCase
 	return &ClusterUsecaseImpl{cfg: cfg, componentUsecase: componentUsecase}
 }
 
+func (c *ClusterUsecaseImpl) UnInstall() error {
+	components, err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	var nfscomponent *rainbondv1alpha1.RbdComponent
+	for i := range components.Items {
+		if components.Items[i].Name == "rbd-nfs" {
+			nfscomponent = &components.Items[i]
+			continue
+		}
+		err = c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).Delete(components.Items[i].Name, &metav1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	if nfscomponent != nil {
+		if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).Delete(nfscomponent.Name, &metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+	}
+
+	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(c.cfg.Namespace).Delete(c.cfg.Rainbondpackage, &metav1.DeleteOptions{}); err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return err
+		}
+	}
+
+	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Delete(c.cfg.ClusterName, &metav1.DeleteOptions{}); err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
+}
+
 // Status status
 func (c *ClusterUsecaseImpl) Status() (*model.ClusterStatus, error) {
 	clusterInfo, err := c.getCluster()
@@ -147,10 +183,10 @@ func (c *ClusterUsecaseImpl) handleComponentStatus(componentList []*v1.RbdCompon
 	readyCount := 0
 	terminal := false
 	for _, component := range componentList {
-		if component.Status == "Running" { //TODO fanyangyang 定义
+		if component.Status == ComponentStatusRunning {
 			readyCount += 1
 		}
-		if component.Status == "Terminating" { //terminal卸载中
+		if component.Status == ComponentStatusTerminating { //terminal卸载中
 			terminal = true
 		}
 	}
@@ -168,6 +204,7 @@ func (c *ClusterUsecaseImpl) handleComponentStatus(componentList []*v1.RbdCompon
 // Init init
 func (c *ClusterUsecaseImpl) Init() error {
 	_, err := c.createCluster()
+	log.Error(err, "create cluster error")
 	return err
 }
 
@@ -194,6 +231,28 @@ func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster,
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: c.cfg.Namespace,
 			Name:      c.cfg.ClusterName,
+		},
+		Spec: rainbondv1alpha1.RainbondClusterSpec{
+			RainbondImageRepository: "",
+			SuffixHTTPHost:          "",
+			GatewayIngressIPs:       nil,
+			GatewayNodes:            nil,
+			InstallMode:             "",
+			ImageHub:                nil,
+			StorageClassName:        "",
+			RegionDatabase:          &rainbondv1alpha1.Database{},
+			UIDatabase:              &rainbondv1alpha1.Database{},
+			EtcdConfig:              &rainbondv1alpha1.EtcdConfig{},
+			InstallVersion:          "",
+			RainbondShareStorage: rainbondv1alpha1.RainbondShareStorage{
+				StorageClassName: "",
+				FstabLine:        &rainbondv1alpha1.FstabLine{},
+			},
+			ConfigCompleted: false,
+			InstallPackageConfig: rainbondv1alpha1.InstallPackageConfig{
+				URL: c.cfg.DownloadURL,
+				MD5: c.cfg.DownloadMD5,
+			},
 		},
 	}
 	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)

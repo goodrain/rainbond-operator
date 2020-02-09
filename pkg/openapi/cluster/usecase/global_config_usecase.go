@@ -176,12 +176,17 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 
 	clusterInfo := &v1alpha1.RainbondCluster{}
 	clusterInfo.ObjectMeta = old.ObjectMeta
+	clusterInfo.Spec.ConfigCompleted = true
 
 	clusterInfo.Spec.ImageHub = &v1alpha1.ImageHub{
 		Domain:    source.ImageHub.Domain,
 		Username:  source.ImageHub.Username,
 		Password:  source.ImageHub.Password,
 		Namespace: source.ImageHub.Namespace,
+	}
+
+	if source.ImageHub.Domain != "" {
+		clusterInfo.Spec.InstallMode = v1alpha1.InstallationModeWithoutPackage
 	}
 
 	clusterInfo.Spec.RegionDatabase = &v1alpha1.Database{
