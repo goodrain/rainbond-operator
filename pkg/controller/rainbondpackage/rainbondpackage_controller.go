@@ -143,7 +143,7 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	return reconcile.Result{Requeue: false}, nil
+	return reconcile.Result{}, nil
 }
 func initPackageStatus() *rainbondv1alpha1.RainbondPackageStatus {
 	return &rainbondv1alpha1.RainbondPackageStatus{
@@ -230,7 +230,7 @@ func newpkg(ctx context.Context, client client.Client, p *rainbondv1alpha1.Rainb
 	pkg := &pkg{
 		ctx:           ctx,
 		client:        client,
-		pkg:           p,
+		pkg:           p.DeepCopy(),
 		dcli:          dcli,
 		totalImageNum: 23,
 		images:        make(map[string]string, 23),
@@ -281,6 +281,7 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 
 func (p *pkg) updateCRStatus() error {
 	if err := updateCRStatus(p.client, p.pkg); err != nil {
+		log.Error(err, "update rainbondpackage status failure")
 		return err
 	}
 	return nil
@@ -349,6 +350,7 @@ func (p *pkg) updateConditionStatus(typ3 rainbondv1alpha1.PackageConditionType, 
 			p.pkg.Status.Conditions[i].LastHeartbeatTime = metav1.Now()
 			p.pkg.Status.Conditions[i].Status = status
 			p.pkg.Status.Conditions[i].Progress = 100
+			break
 		}
 	}
 }
@@ -358,6 +360,7 @@ func (p *pkg) updateConditionResion(typ3 rainbondv1alpha1.PackageConditionType, 
 			p.pkg.Status.Conditions[i].LastHeartbeatTime = metav1.Now()
 			p.pkg.Status.Conditions[i].Reason = resion
 			p.pkg.Status.Conditions[i].Message = message
+			break
 		}
 	}
 }
@@ -495,7 +498,7 @@ func (p *pkg) donwnloadPackage() error {
 				progress := downloadListener.Percent
 				//Make time for later in the download process
 				realProgress := int32(progress) - int32(float64(progress)*0.05)
-				if p.updateConditionProgress(rainbondv1alpha1.UnpackPackage, realProgress) {
+				if p.updateConditionProgress(rainbondv1alpha1.DownloadPackage, realProgress) {
 					if err := p.updateCRStatus(); err != nil {
 						// ignore error
 						log.Info("update number extracted: %v", err)
@@ -531,7 +534,7 @@ func (p *pkg) handle() error {
 		if err == errorClusterConfigNotReady {
 			return err
 		}
-		p.updateConditionStatus(rainbondv1alpha1.Init, rainbondv1alpha1.Failed)
+		p.updateConditionStatus(rainbondv1alpha1.Init, rainbondv1alpha1.Running)
 		p.updateConditionResion(rainbondv1alpha1.Init, err.Error(), "get rainbond cluster config failure")
 		p.updateCRStatus()
 		return err
