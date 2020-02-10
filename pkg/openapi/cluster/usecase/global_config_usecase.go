@@ -243,6 +243,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 	if source.RainbondShareStorage.StorageClassName != "" {
 		clusterInfo.Spec.RainbondShareStorage.StorageClassName = source.RainbondShareStorage.StorageClassName
 	}
+	clusterInfo.Spec.RainbondShareStorage.FstabLine = &v1alpha1.FstabLine{}
 	if source.RainbondShareStorage.FstabLine != nil {
 		clusterInfo.Spec.RainbondShareStorage.FstabLine = &v1alpha1.FstabLine{
 			Device:     source.RainbondShareStorage.FstabLine.Device,
