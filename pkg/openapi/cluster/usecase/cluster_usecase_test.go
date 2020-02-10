@@ -8,7 +8,7 @@ import (
 )
 
 func TestHandleStatus(t *testing.T) {
-	c := ClusterUsecaseImpl{}
+	c := clusterUsecaseImpl{}
 	var cluster *rainbondv1alpha1.RainbondCluster
 	var pkg *rainbondv1alpha1.RainbondPackage
 	var components []*v1.RbdComponentStatus

@@ -10,17 +10,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ComponentUsecaseImpl cluster
 type ClusterUsecaseImpl struct {
 	cfg              *option.Config
 	componentUsecase ComponentUseCase
 }
 
-// NewComponentUsecase new componse case impl
+// NewClusterUsecaseImpl new cluster case impl
 func NewClusterUsecaseImpl(cfg *option.Config, componentUsecase ComponentUseCase) *ClusterUsecaseImpl {
 	return &ClusterUsecaseImpl{cfg: cfg, componentUsecase: componentUsecase}
 }
 
+// Uninstall uninstall cluster reset cluster
 func (c *ClusterUsecaseImpl) UnInstall() error {
 	components, err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).List(metav1.ListOptions{})
 	if err != nil {
@@ -62,7 +62,7 @@ func (c *ClusterUsecaseImpl) Status() (*model.ClusterStatus, error) {
 	clusterInfo, err := c.getCluster()
 	if err != nil {
 		// cluster is not found, means status is waiting
-		log.Error(err, "get cluster error") //TODO fanyangyang 错误统一返回500，提示系统错误，请联系社区支持，待确认问题：找不到资源会不会报错
+		log.Error(err, "get cluster error")
 		if k8sErrors.IsNotFound(err) {
 			return &model.ClusterStatus{
 				FinalStatus: model.Waiting,
@@ -73,22 +73,29 @@ func (c *ClusterUsecaseImpl) Status() (*model.ClusterStatus, error) {
 	}
 
 	// package
-	rainbondPackage, _ := c.getRainbondPackage()
+	rainbondPackage, err := c.getRainbondPackage()
+	if err != nil {
+		log.Error(err, "get package error")
+		rainbondPackage = nil // if can't find package cr, client will return 404 and empty package info not nil
+	}
 
-	components, _ := c.componentUsecase.List()
+	components, err := c.componentUsecase.List()
+	if err != nil {
+		log.Error(err, "get component status list error")
+	}
 
 	status := c.handleStatus(clusterInfo, rainbondPackage, components)
 
 	return &status, nil
 }
 
-//没有rainbondcluster说明状态为等待中
-//rainbondcluster的status为空说明状态为初始化中
-//有rainbondcluster说明状态应为配置中往上
-//有rainbondpackage说明状态应为安装中往上
-//有rbdcomponent说明状态应该为安装中往上
-//component的状态都完成说明状态应为安装完成
-//component的状态有terminal说明状态因为卸载中
+// no rainbondcluster cr means cluster status is waiting
+// rainbondcluster cr without status parameter means cluster status is initing
+// rainbondcluster cr with status parameter means cluster status is setting
+// rainbondpackage cr means cluster status is installing or running
+// rbdcomponent cr means cluster stauts is installing or running
+// all rbdcomponent cr are running means cluster status is running
+// rbdcomponent cr has pod with status terminal means cluster status is uninstalling
 func (c *ClusterUsecaseImpl) handleStatus(rainbondCluster *rainbondv1alpha1.RainbondCluster, rainbondPackage *rainbondv1alpha1.RainbondPackage, componentStatusList []*v1.RbdComponentStatus) model.ClusterStatus {
 	reqLogger := log.WithValues("Namespace", c.cfg.Namespace)
 
@@ -143,7 +150,7 @@ func (c *ClusterUsecaseImpl) handleRainbondClusterStatus(rainbondCluster *rainbo
 		return status
 	}
 	status.FinalStatus = model.Setting
-	// 准备配置可用参数
+	//prepare cluster info
 	for _, sc := range rainbondCluster.Status.StorageClasses {
 		status.ClusterInfo.Storage = append(status.ClusterInfo.Storage, model.Storage{
 			Name:        sc.Name,
@@ -186,7 +193,7 @@ func (c *ClusterUsecaseImpl) handleComponentStatus(componentList []*v1.RbdCompon
 		if component.Status == v1.ComponentStatusRunning {
 			readyCount += 1
 		}
-		if component.Status == v1.ComponentStatusTerminating { //terminal卸载中
+		if component.Status == v1.ComponentStatusTerminating { //TODO terminal uninstalling
 			terminal = true
 		}
 	}
@@ -206,20 +213,6 @@ func (c *ClusterUsecaseImpl) Init() error {
 	_, err := c.createCluster()
 	log.Error(err, "create cluster error")
 	return err
-}
-
-func (c *ClusterUsecaseImpl) getOrCreate() (*rainbondv1alpha1.RainbondCluster, error) {
-	clusterInfo, err := c.createCluster()
-	if err != nil {
-		if k8sErrors.IsAlreadyExists(err) {
-			if clusterInfo.Status == nil {
-				//正在初始化中
-			}
-			return c.getCluster()
-		}
-		return nil, err
-	}
-	return clusterInfo, err
 }
 
 func (c *ClusterUsecaseImpl) getCluster() (*rainbondv1alpha1.RainbondCluster, error) {
@@ -246,10 +239,5 @@ func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster,
 }
 
 func (c *ClusterUsecaseImpl) getRainbondPackage() (*rainbondv1alpha1.RainbondPackage, error) {
-	pkg, err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(c.cfg.Namespace).Get(c.cfg.Rainbondpackage, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	return pkg, err
+	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(c.cfg.Namespace).Get(c.cfg.Rainbondpackage, metav1.GetOptions{})
 }

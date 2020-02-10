@@ -118,10 +118,9 @@ func (cc *ComponentUsecaseImpl) rbdComponentStatusFromDeployment(cpn *rainbondv1
 		ReadyReplicas:   deploy.Status.ReadyReplicas,
 		ISInitComponent: cpn.Status.PriorityComponent,
 	}
+	status.Status = v1.ComponentStatusCreating
 	if status.Replicas == status.ReadyReplicas {
 		status.Status = v1.ComponentStatusRunning
-	} else {
-		status.Status = v1.ComponentStatusCreating
 	}
 
 	labels := deploy.Spec.Template.Labels
@@ -130,12 +129,6 @@ func (cc *ComponentUsecaseImpl) rbdComponentStatusFromDeployment(cpn *rainbondv1
 		reqLogger.Error(err, "List deployment associated pods", "labels", labels)
 	}
 	status.PodStatuses = podStatuses
-
-	for _, podStatus := range podStatuses {
-		if podStatus.Phase == "" {
-
-		}
-	}
 
 	return status, nil
 }
@@ -155,10 +148,9 @@ func (cc *ComponentUsecaseImpl) rbdComponentStatusFromStatefulSet(cpn *rainbondv
 		ReadyReplicas:   sts.Status.ReadyReplicas,
 		ISInitComponent: cpn.Status.PriorityComponent,
 	}
+	status.Status = v1.ComponentStatusCreating
 	if status.Replicas == status.ReadyReplicas {
 		status.Status = v1.ComponentStatusRunning
-	} else {
-		status.Status = v1.ComponentStatusCreating
 	}
 	labels := sts.Spec.Template.Labels
 	podStatuses, err := cc.listPodStatues(sts.Namespace, labels)
@@ -185,10 +177,9 @@ func (cc *ComponentUsecaseImpl) rbdComponentStatusFromDaemonSet(cpn *rainbondv1a
 		ReadyReplicas:   ds.Status.NumberAvailable,
 		ISInitComponent: cpn.Status.PriorityComponent,
 	}
+	status.Status = v1.ComponentStatusCreating
 	if status.Replicas == status.ReadyReplicas {
 		status.Status = v1.ComponentStatusRunning
-	} else {
-		status.Status = v1.ComponentStatusCreating
 	}
 
 	labels := ds.Spec.Template.Labels
