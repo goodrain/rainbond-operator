@@ -3,7 +3,10 @@
     <div class="result" v-loading="loading">
       <el-row :gutter="12">
         <el-col :span="24" class="d2-mt" v-for="(item,index) in installList" :key="item.stepName">
-          <el-card v-if="item.stepName!=='step_install_component'" shadow="hover">
+          <el-card
+            v-if="item.stepName!=='step_install_component'&&item.stepName!=='step_prepare_hub'"
+            shadow="hover"
+          >
             <install-component
               :item="item"
               :index="index"
@@ -21,7 +24,12 @@
                 @onhandleDialogVisible="dialogVisible=true"
               ></install-component>
             </div>
-            <rainbond-component :componentList="componentList"></rainbond-component>
+
+            <rainbond-component
+              v-if="item.stepName==='step_install_component'"
+              :componentList="componentList"
+            ></rainbond-component>
+            <rainbond-component v-else :mirrorComponentList="mirrorComponentList"></rainbond-component>
           </el-card>
         </el-col>
         <el-col :span="24" class="d2-f-16 d2-text-cen d2-mt">
@@ -53,7 +61,6 @@ export default {
     return {
       nextLoading: false,
       dialogVisible: false,
-      num: 0,
       installList: [],
       loading: true,
       componentState: {
@@ -61,7 +68,8 @@ export default {
         Waiting: "等待",
         Terminated: "停止"
       },
-      componentList: []
+      componentList: [],
+      mirrorComponentList: []
     };
   },
   created() {
@@ -69,8 +77,9 @@ export default {
   },
   beforeDestroy() {
     this.timer && clearInterval(this.timer);
-    this.timerp && clearInterval(this.timerp);
+    this.timerdetection && clearInterval(this.timerdetection);
     this.timers && clearInterval(this.timers);
+    this.timermirror && clearInterval(this.timermirror);
   },
   methods: {
     onhandleDelete() {
@@ -117,11 +126,11 @@ export default {
               res.data.finalStatus === "status_waiting" ||
               res.data.finalStatus === "status_processing"
             ) {
-              this.timerp = setTimeout(() => {
+              this.timerdetection = setTimeout(() => {
                 this.detectionCluster();
               }, 5000);
             } else if (res.data.finalStatus === "status_finished") {
-              this.timerp && clearInterval(this.timerp);
+              this.timerdetection && clearInterval(this.timerdetection);
               this.addCluster();
             } else {
               this.dialogVisible = true;
@@ -140,6 +149,7 @@ export default {
           if (en && en.code == 200) {
             this.fetchClusterInstallResults();
             this.fetchClusterInstallResultsState();
+            this.fetchClusterInstallMirrorWarehouse();
           } else if (en && en.code == 1002) {
             this.$notify({
               type: "warning",
@@ -193,11 +203,20 @@ export default {
     fetchClusterInstallResultsState() {
       this.$store.dispatch("fetchClusterInstallResultsState").then(res => {
         this.componentList = res.data;
-        this.num += 1;
         this.timers = setTimeout(() => {
           this.fetchClusterInstallResultsState();
         }, 8000);
       });
+    },
+    fetchClusterInstallMirrorWarehouse() {
+      this.$store
+        .dispatch("fetchClusterInstallResultsState", { isInit: true })
+        .then(res => {
+          this.mirrorComponentList = res.data;
+          this.timermirror = setTimeout(() => {
+            this.fetchClusterInstallMirrorWarehouse();
+          }, 8000);
+        });
     }
   }
 };
