@@ -50,7 +50,7 @@ func (c *chaos) Before() error {
 	}
 	c.etcdSecret = secret
 
-	return checkPackageStatus(c.pkg)
+	return nil
 }
 
 func (c *chaos) Resources() []interface{} {

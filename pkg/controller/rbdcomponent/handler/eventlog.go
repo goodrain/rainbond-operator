@@ -48,7 +48,7 @@ func (e *eventlog) Before() error {
 	}
 	e.etcdSecret = secret
 
-	return checkPackageStatus(e.pkg)
+	return nil
 }
 
 func (e *eventlog) Resources() []interface{} {

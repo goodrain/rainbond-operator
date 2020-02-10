@@ -32,7 +32,7 @@ func NewDNS(ctx context.Context, client client.Client, component *rainbondv1alph
 }
 
 func (d *dns) Before() error {
-	return checkPackageStatus(d.pkg)
+	return nil
 }
 
 func (d *dns) Resources() []interface{} {

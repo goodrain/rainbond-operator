@@ -41,13 +41,7 @@ func NewNFSProvisioner(ctx context.Context, client client.Client, component *rai
 }
 
 func (n *nfsProvisioner) Before() error {
-	withPackage := n.cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithPackage
-	if withPackage {
-		// in InstallationModeWithPackage mode, no need to wait until rainbondpackage is completed.
-		return nil
-	}
-	// in InstallationModeWithoutPackage mode, we have to make sure rainbondpackage is completed before we create the resource.
-	return checkPackageStatus(n.pkg)
+	return nil
 }
 
 func (n *nfsProvisioner) Resources() []interface{} {

@@ -47,7 +47,7 @@ func (w *grctl) Before() error {
 	}
 	w.apiSecret = secret
 
-	return checkPackageStatus(w.pkg)
+	return nil
 }
 
 func (w *grctl) Resources() []interface{} {

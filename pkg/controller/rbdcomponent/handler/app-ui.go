@@ -42,10 +42,6 @@ func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1al
 func (a *appui) Before() error {
 	a.db = getDefaultDBInfo(a.cluster.Spec.UIDatabase)
 
-	if err := checkPackageStatus(a.pkg); err != nil {
-		return err
-	}
-
 	return isUIDBReady(a.ctx, a.client, a.cluster)
 }
 

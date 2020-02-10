@@ -42,7 +42,7 @@ func NewMetricsServer(ctx context.Context, client client.Client, component *rain
 }
 
 func (m *metricsServer) Before() error {
-	return checkPackageStatus(m.pkg)
+	return nil
 }
 
 func (m *metricsServer) Resources() []interface{} {

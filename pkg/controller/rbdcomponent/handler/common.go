@@ -53,22 +53,6 @@ func getDefaultDBInfo(in *rainbondv1alpha1.Database) *rainbondv1alpha1.Database 
 	}
 }
 
-func checkPackageStatus(pkg *rainbondv1alpha1.RainbondPackage) error {
-	var packageCompleted bool
-	if pkg.Status != nil {
-		for _, cond := range pkg.Status.Conditions {
-			if cond.Type == rainbondv1alpha1.Ready && cond.Status == rainbondv1alpha1.Completed {
-				packageCompleted = true
-				break
-			}
-		}
-	}
-	if !packageCompleted {
-		return NewIgnoreError("rainbond package is not completed in InstallationModeWithoutPackage mode")
-	}
-	return nil
-}
-
 func etcdSecret(ctx context.Context, cli client.Client, cluster *rainbondv1alpha1.RainbondCluster) (*corev1.Secret, error) {
 	if cluster.Spec.EtcdConfig == nil || cluster.Spec.EtcdConfig.SecretName == "" {
 		// SecretName is empty, not using TLS.

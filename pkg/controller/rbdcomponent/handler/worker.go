@@ -48,7 +48,7 @@ func (w *worker) Before() error {
 	}
 	w.etcdSecret = secret
 
-	return checkPackageStatus(w.pkg)
+	return nil
 }
 
 func (w *worker) Resources() []interface{} {

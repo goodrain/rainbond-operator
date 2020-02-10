@@ -2,6 +2,7 @@ package rbdcomponent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,6 +36,7 @@ type handlerFunc func(ctx context.Context, client client.Client, component *rain
 
 var handlerFuncs map[string]handlerFunc
 
+// AddHandlerFunc adds handlerFunc to handlerFuncs.
 func AddHandlerFunc(name string, fn handlerFunc) {
 	if handlerFuncs == nil {
 		handlerFuncs = map[string]handlerFunc{}
@@ -118,7 +120,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	cpt := &rainbondv1alpha1.RbdComponent{}
 	err := r.client.Get(ctx, request.NamespacedName, cpt)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -135,7 +137,6 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, nil
 	}
 
-	// check prerequisites
 	cluster := &rainbondv1alpha1.RainbondCluster{}
 	if err := r.client.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondClusterName}, cluster); err != nil {
 		reqLogger.Error(err, "failed to get rainbondcluster.")
@@ -161,8 +162,24 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, err
 	}
 
-	hdl := fn(ctx, r.client, cpt, cluster, pkg)
+	checkPrerequisites := func() bool {
+		if cluster.Spec.ImageHub == nil && cpt.Spec.PriorityComponent {
+			// If ImageHub is empty, the priority component no need to wait until rainbondpackage is completed.
+			return true
+		}
+		// Otherwise, we have to make sure rainbondpackage is completed before we create the resource.
+		if err := checkPackageStatus(pkg); err != nil {
+			reqLogger.Info(fmt.Sprintf("check package status: %v", err))
+			return false
+		}
+		return true
+	}
+	if !checkPrerequisites() {
+		reqLogger.Info("Prerequisites not passed")
+		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
+	}
 
+	hdl := fn(ctx, r.client, cpt, cluster, pkg)
 	if err := hdl.Before(); err != nil {
 		// TODO: report events
 		if chandler.IsIgnoreError(err) {
@@ -174,7 +191,6 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	resources := hdl.Resources()
-
 	for _, res := range resources {
 		if res == nil {
 			continue
@@ -212,7 +228,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 
 func (r *ReconcileRbdComponent) updateOrCreateResource(reqLogger logr.Logger, obj runtime.Object, meta metav1.Object) (reconcile.Result, error) {
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
-	if err != nil && errors.IsNotFound(err) {
+	if err != nil && k8sErrors.IsNotFound(err) {
 		reqLogger.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
 		err = r.client.Create(context.TODO(), obj)
 		if err != nil {
@@ -266,9 +282,21 @@ func generateRainbondComponentStatus(cpt *rainbondv1alpha1.RbdComponent, cluster
 		ControllerName: cpt.Name,
 	}
 
-	if cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithPackage {
-		status.PriorityComponent = true
-	}
-
 	return status
+}
+
+func checkPackageStatus(pkg *rainbondv1alpha1.RainbondPackage) error {
+	var packageCompleted bool
+	if pkg.Status != nil {
+		for _, cond := range pkg.Status.Conditions {
+			if cond.Type == rainbondv1alpha1.Ready && cond.Status == rainbondv1alpha1.Completed {
+				packageCompleted = true
+				break
+			}
+		}
+	}
+	if !packageCompleted {
+		return errors.New("rainbond package is not completed in InstallationModeWithoutPackage mode")
+	}
+	return nil
 }

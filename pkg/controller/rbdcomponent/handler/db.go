@@ -40,7 +40,7 @@ func (d *db) Before() error {
 		return fmt.Errorf("use custom database")
 	}
 
-	return checkPackageStatus(d.pkg)
+	return nil
 }
 
 func (d *db) Resources() []interface{} {

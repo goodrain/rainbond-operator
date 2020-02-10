@@ -44,7 +44,7 @@ func (w *webcli) Before() error {
 	}
 	w.etcdSecret = secret
 
-	return checkPackageStatus(w.pkg)
+	return nil
 }
 
 func (w *webcli) Resources() []interface{} {

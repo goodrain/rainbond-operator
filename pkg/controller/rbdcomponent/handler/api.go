@@ -57,7 +57,7 @@ func (a *api) Before() error {
 	}
 	a.etcdSecret = secret
 
-	return checkPackageStatus(a.pkg)
+	return nil
 }
 
 func (a *api) Resources() []interface{} {

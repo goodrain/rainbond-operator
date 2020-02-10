@@ -47,7 +47,7 @@ func (m *monitor) Before() error {
 	}
 	m.etcdSecret = secret
 
-	return checkPackageStatus(m.pkg)
+	return nil
 }
 
 func (m *monitor) Resources() []interface{} {

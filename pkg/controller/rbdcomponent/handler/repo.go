@@ -32,7 +32,7 @@ func NewRepo(ctx context.Context, client client.Client, component *rainbondv1alp
 }
 
 func (r *repo) Before() error {
-	return checkPackageStatus(r.pkg)
+	return nil
 }
 
 func (r *repo) Resources() []interface{} {
