@@ -11,7 +11,7 @@ const (
 	//ComponentStatusCreating creating
 	ComponentStatusCreating = "Creating"
 	// ComponentStatusTerminating terminal
-	ComponentStatusTerminating = "Terminating" // TODO fanyangyang暂未实现
+	ComponentStatusTerminating = "Terminating" // TODO fanyangyang have not found this case
 	// ComponentStatusFailed failed
 	ComponentStatusFailed = "Failed"
 )
@@ -28,7 +28,7 @@ type RbdComponentStatus struct {
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas"`
 
-	Status          ComponentStatus `json:"status"` //根据PodStatuses总结汇总该组件的状态
+	Status          ComponentStatus `json:"status"` //translate pod status to component status
 	Message         string          `json:"message"`
 	Reason          string          `json:"reason"`
 	ISInitComponent bool            `json:"isInitComponent"`
