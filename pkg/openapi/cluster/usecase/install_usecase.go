@@ -15,7 +15,6 @@ import (
 
 var (
 	componentClaims []componentClaim
-	initComponents  []componentClaim
 )
 
 var (
@@ -61,15 +60,12 @@ var rbdVersion = "V5.2-dev"
 var existHubDomain = "registry.cn-hangzhou.aliyuncs.com/goodrain"
 
 func init() {
-	initComponents = []componentClaim{
+	componentClaims = []componentClaim{
 		{name: "rbd-etcd", image: existHubDomain + "/etcd:v3.3.18"},
 		{name: "rbd-gateway", image: existHubDomain + "/rbd-gateway:" + rbdVersion},
 		{name: "rbd-hub", image: existHubDomain + "/registry:2.6.2"},
 		{name: "rbd-node", image: existHubDomain + "/rbd-node:" + rbdVersion},
 		{name: "rbd-nfs", image: existHubDomain + "/nfs-provisioner:v2.2.1-k8s1.12"},
-	}
-
-	componentClaims = []componentClaim{
 		{name: "rbd-api", image: "goodrain.me/rbd-api:" + rbdVersion},
 		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:" + rbdVersion},
 		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:" + rbdVersion},
@@ -83,9 +79,6 @@ func init() {
 		{name: "rbd-grctl", image: "goodrain.me/rbd-grctl:" + rbdVersion},
 		{name: "rbd-repo", image: "goodrain.me/rbd-repo:6.16.0"},
 	}
-
-	componentClaims = append(componentClaims, initComponents...)
-
 }
 
 func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
@@ -233,33 +226,33 @@ func (ic *InstallUseCaseImpl) stepHub(clusterInfo *v1alpha1.RainbondCluster, com
 		}
 	}
 
-	componentStatuses, err := ic.componentUsecase.GetInit()
-	if err != nil {
-		return model.InstallStatus{
-			StepName: StepPrepareHub,
-			Status:   InstallStatusFailed,
-			Message:  err.Error(),
-		}
-	}
 	status := model.InstallStatus{
 		StepName: StepPrepareHub,
 	}
 
+	// prepare init component list
+	initComponents := []*v1.RbdComponentStatus{}
+	for _, cs := range componentStatues {
+		if cs.ISInitComponent {
+			initComponents = append(initComponents, cs)
+		}
+	}
+
 	readyCount := 0
-	for _, cs := range componentStatuses {
-		if cs.Status == "Running" {
+	for _, cs := range initComponents {
+		if cs.Status == v1.ComponentStatusRunning {
 			readyCount += 1
 		}
 	}
 
-	if readyCount == len(componentStatues) {
+	if readyCount == len(initComponents) {
 		status.Status = InstallStatusFinished
 		status.Progress = 100
 		return status
 	}
 
 	status.Status = InstallStatusProcessing
-	status.Progress = (readyCount * 100) / len(componentStatues)
+	status.Progress = (readyCount * 100) / len(initComponents)
 
 	return status
 }
@@ -402,7 +395,7 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(componentStatues []*v1.RbdComp
 
 	readyCount := 0
 	for _, cs := range componentStatuses {
-		if cs.Status == "Running" {
+		if cs.Status == v1.ComponentStatusRunning {
 			readyCount += 1
 		}
 	}

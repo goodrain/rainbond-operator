@@ -183,10 +183,10 @@ func (c *ClusterUsecaseImpl) handleComponentStatus(componentList []*v1.RbdCompon
 	readyCount := 0
 	terminal := false
 	for _, component := range componentList {
-		if component.Status == ComponentStatusRunning {
+		if component.Status == v1.ComponentStatusRunning {
 			readyCount += 1
 		}
-		if component.Status == ComponentStatusTerminating { //terminal卸载中
+		if component.Status == v1.ComponentStatusTerminating { //terminal卸载中
 			terminal = true
 		}
 	}
@@ -233,22 +233,9 @@ func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster,
 			Name:      c.cfg.ClusterName,
 		},
 		Spec: rainbondv1alpha1.RainbondClusterSpec{
-			RainbondImageRepository: "",
-			SuffixHTTPHost:          "",
-			GatewayIngressIPs:       nil,
-			GatewayNodes:            nil,
-			InstallMode:             "",
-			ImageHub:                nil,
-			StorageClassName:        "",
-			RegionDatabase:          &rainbondv1alpha1.Database{},
-			UIDatabase:              &rainbondv1alpha1.Database{},
-			EtcdConfig:              &rainbondv1alpha1.EtcdConfig{},
-			InstallVersion:          "",
 			RainbondShareStorage: rainbondv1alpha1.RainbondShareStorage{
-				StorageClassName: "",
-				FstabLine:        &rainbondv1alpha1.FstabLine{},
+				FstabLine: &rainbondv1alpha1.FstabLine{},
 			},
-			ConfigCompleted: false,
 			InstallPackageConfig: rainbondv1alpha1.InstallPackageConfig{
 				URL: c.cfg.DownloadURL,
 				MD5: c.cfg.DownloadMD5,

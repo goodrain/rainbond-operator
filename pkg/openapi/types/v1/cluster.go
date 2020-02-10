@@ -1,5 +1,21 @@
 package v1
 
+// ComponentStatus component status
+type ComponentStatus string
+
+const (
+	//ComponentStatusRunning running
+	ComponentStatusRunning = "Running"
+	// ComponentStatusIniting initing
+	ComponentStatusIniting = "Initing"
+	//ComponentStatusCreating creating
+	ComponentStatusCreating = "Creating"
+	// ComponentStatusTerminating terminal
+	ComponentStatusTerminating = "Terminating" // TODO fanyangyang暂未实现
+	// ComponentStatusFailed failed
+	ComponentStatusFailed = "Failed"
+)
+
 // RbdComponentStatus rainbond component status
 type RbdComponentStatus struct {
 	Name string `json:"name"`
@@ -12,9 +28,10 @@ type RbdComponentStatus struct {
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas"`
 
-	Status  string `json:"status"` //根据PodStatuses总结汇总该组件的状态
-	Message string `json:"message"`
-	Reason  string `json:"reason"`
+	Status          ComponentStatus `json:"status"` //根据PodStatuses总结汇总该组件的状态
+	Message         string          `json:"message"`
+	Reason          string          `json:"reason"`
+	ISInitComponent bool            `json:"isInitComponent"`
 
 	PodStatuses []PodStatus `json:"podStatus"`
 }
