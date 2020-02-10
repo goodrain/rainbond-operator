@@ -89,6 +89,8 @@ func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 	component.Spec.Image = claim.image
 	component.Spec.LogLevel = "debug"
 	component.Spec.Type = claim.name
+	component.Labels = map[string]string{"name": claim.name}
+	log.Info(fmt.Sprintf("component %s labels:%+v", component.Name, component.Labels))
 	return component
 }
 

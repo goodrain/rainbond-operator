@@ -122,7 +122,7 @@ func (cc *ClusterController) Address(c *gin.Context) {
 func (cc *ClusterController) Uninstall(c *gin.Context) {
 	err := cc.clusterCase.Cluster().UnInstall()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "卸载出错，请联系社区帮助"})
 		return
 	}
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})

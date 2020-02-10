@@ -2,13 +2,16 @@ package usecase
 
 import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 )
 
 func TestHandleStatus(t *testing.T) {
-	c := clusterUsecaseImpl{}
+	c := ClusterUsecaseImpl{}
 	var cluster *rainbondv1alpha1.RainbondCluster
 	var pkg *rainbondv1alpha1.RainbondPackage
 	var components []*v1.RbdComponentStatus
@@ -87,4 +90,16 @@ func TestHandleStatus(t *testing.T) {
 	}}
 	status = c.handleStatus(cluster, pkg, components)
 	t.Logf(" uninstallingstatus is %+v", status) // {FinalStatus:Waiting ClusterInfo:{NodeAvailPorts:[] Storage:[]}}
+}
+
+func TestSelector(t *testing.T) {
+	restConfig := k8sutil.MustNewKubeConfig("/Users/fanyangyang/Documents/company/goodrain/local/192.168.31.131.kubeconfig")
+	client := versioned.NewForConfigOrDie(restConfig)
+	list, err := client.RainbondV1alpha1().RbdComponents("rbd-system").List(metav1.ListOptions{LabelSelector: "name!=rbd-nfs"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range list.Items {
+		t.Logf("component name is : %s", item.Name)
+	}
 }

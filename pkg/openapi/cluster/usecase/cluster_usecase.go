@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// ClusterUsecaseImpl cluster usecase impl
 type ClusterUsecaseImpl struct {
 	cfg              *option.Config
 	componentUsecase ComponentUseCase
@@ -22,25 +23,13 @@ func NewClusterUsecaseImpl(cfg *option.Config, componentUsecase ComponentUseCase
 
 // Uninstall uninstall cluster reset cluster
 func (c *ClusterUsecaseImpl) UnInstall() error {
-	components, err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).List(metav1.ListOptions{})
-	if err != nil {
+	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "name!=rbd-nfs"}); err != nil {
+		log.Error(err, "delete component error")
 		return err
 	}
-	var nfscomponent *rainbondv1alpha1.RbdComponent
-	for i := range components.Items {
-		if components.Items[i].Name == "rbd-nfs" {
-			nfscomponent = &components.Items[i]
-			continue
-		}
-		err = c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).Delete(components.Items[i].Name, &metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-	}
-	if nfscomponent != nil {
-		if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).Delete(nfscomponent.Name, &metav1.DeleteOptions{}); err != nil {
-			return err
-		}
+	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "name=rbd-nfs"}); err != nil {
+		log.Error(err, "delete storage component error")
+		return err
 	}
 
 	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(c.cfg.Namespace).Delete(c.cfg.Rainbondpackage, &metav1.DeleteOptions{}); err != nil {
