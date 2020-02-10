@@ -82,7 +82,10 @@ spec:
                 username:
                   type: string
               type: object
-            install_package_config:
+            installMode:
+              description: InstallMode is the mode of Rainbond cluster installation.
+              type: string
+            installPackageConfig:
               description: InstallPackageConfig define install package download config
               properties:
                 md5:
@@ -90,12 +93,9 @@ spec:
                 url:
                   type: string
               type: object
-            install_version:
+            installVersion:
               description: define install rainbond version, This is usually image
                 tag
-              type: string
-            installMode:
-              description: InstallMode is the mode of Rainbond cluster installation.
               type: string
             rainbondImageRepository:
               description: Repository of each Rainbond component image, eg. docker.io/rainbond.
@@ -181,6 +181,11 @@ spec:
             masterRoleLabel:
               description: Destination path of the installation package extraction.
               type: string
+            nodeNames:
+              description: Master node name list
+              items:
+                type: string
+              type: array
             storageClasses:
               description: List of existing StorageClasses in the cluster
               items:

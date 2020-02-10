@@ -49,6 +49,9 @@ spec:
               type: string
             packagePath:
               type: string
+            priorityComponent:
+              description: ' Whether this component needs to be created first'
+              type: boolean
             replicas:
               description: Number of desired pods. This is a pointer to distinguish
                 between explicit zero and not specified. Defaults to 1.
@@ -60,6 +63,8 @@ spec:
             version:
               description: version of rainbond component
               type: string
+          required:
+          - priorityComponent
           type: object
         status:
           description: RbdComponentStatus defines the observed state of RbdComponent
@@ -71,9 +76,6 @@ spec:
             controllerType:
               description: Type of Controller owned by RbdComponent
               type: string
-            isInitComponent:
-              description: ' Whether this component needs to be created first'
-              type: boolean
             message:
               type: string
             reason:
@@ -81,7 +83,6 @@ spec:
           required:
           - controllerName
           - controllerType
-          - isInitComponent
           - message
           - reason
           type: object

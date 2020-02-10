@@ -2,8 +2,8 @@ package upload
 
 import (
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
 	"github.com/gin-gonic/gin"
+	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
 	"net/http"
 	"os"
 	"path"
@@ -29,7 +29,7 @@ func NewUploadController(g *gin.Engine, archiveFilePath string) {
 
 // Upload upload file
 func (u *Controller) Upload(c *gin.Context) {
-	// 单文件
+	// single file
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.JSON(400, map[string]interface{}{"msg": err.Error})
@@ -43,7 +43,7 @@ func (u *Controller) Upload(c *gin.Context) {
 		return
 	}
 
-	// 上传文件至指定目录
+	// upload image
 	if err := c.SaveUploadedFile(file, u.archiveFilePath); err != nil {
 		c.JSON(400, map[string]interface{}{"msg": err.Error()})
 		return

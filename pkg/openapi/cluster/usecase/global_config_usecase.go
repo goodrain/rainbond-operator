@@ -99,8 +99,6 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 			Username:  source.Spec.ImageHub.Username,
 			Password:  source.Spec.ImageHub.Password,
 		}
-	} else {
-		clusterInfo.ImageHub = model.ImageHub{Default: true}
 	}
 	if source.Spec.RegionDatabase != nil {
 		clusterInfo.RegionDatabase = model.Database{
@@ -109,8 +107,6 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 			Username: source.Spec.RegionDatabase.Username,
 			Password: source.Spec.RegionDatabase.Password,
 		}
-	} else {
-		clusterInfo.RegionDatabase = model.Database{Default: true}
 	}
 	if source.Spec.UIDatabase != nil {
 		clusterInfo.UIDatabase = model.Database{
@@ -119,8 +115,6 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 			Username: source.Spec.UIDatabase.Username,
 			Password: source.Spec.UIDatabase.Password,
 		}
-	} else {
-		clusterInfo.UIDatabase = model.Database{Default: true}
 	}
 	if source.Spec.EtcdConfig != nil {
 		clusterInfo.EtcdConfig = model.EtcdConfig{
@@ -128,7 +122,6 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 			CertInfo:  model.EtcdCertInfo{},
 		}
 		if source.Spec.EtcdConfig.SecretName != "" {
-			clusterInfo.EtcdConfig.UseTLS = true
 			etcdSecret, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(source.Spec.EtcdConfig.SecretName, metav1.GetOptions{})
 			if err != nil {
 				return nil, err
@@ -139,56 +132,27 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 				KeyFile:  string(etcdSecret.Data["key-file"]),
 			}
 		}
-	} else {
-		clusterInfo.EtcdConfig = model.EtcdConfig{Default: true, CertInfo: model.EtcdCertInfo{}}
 	}
-	gatewayNodes := make(map[string]model.GatewayNode)
 	allNode := make([]model.GatewayNode, 0)
 	if source.Status != nil {
 		for _, node := range source.Status.NodeAvailPorts {
 			allNode = append(allNode, model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports})
 		}
 	}
-	for _, node := range source.Spec.GatewayNodes {
-		gatewayNodes[node.NodeIP] = model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports}
-	}
-	for i := range allNode {
-		if _, ok := gatewayNodes[allNode[i].NodeIP]; ok {
-			allNode[i].Selected = true
-		}
-	}
 
 	clusterInfo.GatewayNodes = allNode
-	if source.Spec.SuffixHTTPHost != "" && !strings.HasSuffix(source.Spec.SuffixHTTPHost, "grapps.cn") {
-		httpDomain := model.HTTPDomain{}
-		httpDomain.Custom = source.Spec.SuffixHTTPHost
-		clusterInfo.HTTPDomain = httpDomain
-	} else {
-		clusterInfo.HTTPDomain = model.HTTPDomain{Default: true}
-	}
+	clusterInfo.HTTPDomain = source.Spec.SuffixHTTPHost
 
 	clusterInfo.GatewayIngressIPs = append(clusterInfo.GatewayIngressIPs, source.Spec.GatewayIngressIPs...)
 
-	storage := model.Storage{}
-	if source.Spec.StorageClassName == "" {
-		storage.Default = true
-	} else {
-		storage.Default = false
-		storage.StorageClassName = source.Spec.StorageClassName
-	}
-	if source.Status != nil {
-		for _, sc := range source.Status.StorageClasses {
-			storage.Opts = append(storage.Opts, model.StorageOpts{Name: sc.Name, Provisioner: sc.Provisioner})
-		}
-	}
+	storage := model.Storage{Name: source.Spec.StorageClassName}
 	clusterInfo.Storage = storage
 
 	rainbondShareStorage := model.RainbondShareStorage{}
-	if source.Spec.RainbondShareStorage.StorageClassName == "" && source.Spec.RainbondShareStorage.FstabLine == nil {
-		rainbondShareStorage.Default = true
-	} else if source.Spec.RainbondShareStorage.StorageClassName != "" {
+	if source.Spec.RainbondShareStorage.StorageClassName != "" {
 		rainbondShareStorage.StorageClassName = source.Spec.RainbondShareStorage.StorageClassName
-	} else {
+	}
+	if source.Spec.RainbondShareStorage.FstabLine != nil {
 		rainbondShareStorage.FstabLine = &model.FstabLine{
 			Device:     source.Spec.RainbondShareStorage.FstabLine.Device,
 			MountPoint: source.Spec.RainbondShareStorage.FstabLine.MountPoint,
@@ -212,8 +176,10 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 
 	clusterInfo := &v1alpha1.RainbondCluster{}
 	clusterInfo.ObjectMeta = old.ObjectMeta
+	clusterInfo.Spec.ConfigCompleted = true
+	clusterInfo.Spec.InstallPackageConfig = v1alpha1.InstallPackageConfig{MD5: cc.cfg.DownloadMD5, URL: cc.cfg.DownloadURL}
 
-	if !source.ImageHub.Default {
+	if source.ImageHub.Domain != "" {
 		clusterInfo.Spec.ImageHub = &v1alpha1.ImageHub{
 			Domain:    source.ImageHub.Domain,
 			Username:  source.ImageHub.Username,
@@ -222,7 +188,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 		}
 	}
 
-	if !source.RegionDatabase.Default {
+	if source.RegionDatabase.Host != "" {
 		clusterInfo.Spec.RegionDatabase = &v1alpha1.Database{
 			Host:     source.RegionDatabase.Host,
 			Port:     source.RegionDatabase.Port,
@@ -230,7 +196,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 			Password: source.RegionDatabase.Password,
 		}
 	}
-	if !source.UIDatabase.Default {
+	if source.UIDatabase.Host != "" {
 		clusterInfo.Spec.UIDatabase = &v1alpha1.Database{
 			Host:     source.UIDatabase.Host,
 			Port:     source.UIDatabase.Port,
@@ -238,11 +204,11 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 			Password: source.UIDatabase.Password,
 		}
 	}
-	if !source.EtcdConfig.Default {
+	if len(source.EtcdConfig.Endpoints) > 0 {
 		clusterInfo.Spec.EtcdConfig = &v1alpha1.EtcdConfig{
 			Endpoints: source.EtcdConfig.Endpoints,
 		}
-		if source.EtcdConfig.UseTLS {
+		if source.EtcdConfig.CertInfo.CertFile != "" && source.EtcdConfig.CertInfo.KeyFile != "" {
 			clusterInfo.Spec.EtcdConfig.SecretName = cc.cfg.EtcdSecretName
 			if err := cc.updateOrCreateEtcdCertInfo(source.EtcdConfig.CertInfo); err != nil {
 				return nil, err
@@ -257,8 +223,8 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 		clusterInfo.Spec.GatewayNodes = append(clusterInfo.Spec.GatewayNodes, v1alpha1.NodeAvailPorts{NodeIP: node.NodeIP})
 	}
 
-	if !source.HTTPDomain.Default || source.HTTPDomain.Custom != "" {
-		clusterInfo.Spec.SuffixHTTPHost = source.HTTPDomain.Custom
+	if source.HTTPDomain != "" {
+		clusterInfo.Spec.SuffixHTTPHost = source.HTTPDomain
 	} else {
 		domain, err := cc.getSuffixHTTPHost(clusterInfo.Spec.GatewayNodes[0].NodeIP)
 		if err != nil {
@@ -272,9 +238,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 	// must provide all, can't patch
 	clusterInfo.Spec.GatewayIngressIPs = append(clusterInfo.Spec.GatewayIngressIPs, source.GatewayIngressIPs...)
 
-	if !source.Storage.Default {
-		clusterInfo.Spec.StorageClassName = source.Storage.StorageClassName
-	}
+	clusterInfo.Spec.StorageClassName = source.Storage.Name
 
 	if source.RainbondShareStorage.StorageClassName != "" {
 		clusterInfo.Spec.RainbondShareStorage.StorageClassName = source.RainbondShareStorage.StorageClassName

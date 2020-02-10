@@ -1,15 +1,15 @@
 package controller
 
 import (
+	"github.com/prometheus/common/log"
 	"net/http"
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
 
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/customerror"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	"github.com/gin-gonic/gin"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 )
 
 // ClusterController k8s controller
@@ -29,6 +29,9 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 	u := &ClusterController{clusterCase: clusterCase}
 
 	clusterEngine := g.Group("/cluster")
+	clusterEngine.GET("/status", corsMidle(u.ClusterStatus))
+	clusterEngine.POST("/init", corsMidle(u.ClusterInit))
+
 	clusterEngine.GET("/configs", corsMidle(u.Configs))
 	clusterEngine.PUT("/configs", corsMidle(u.UpdateConfig))
 
@@ -37,13 +40,32 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 	clusterEngine.DELETE("/uninstall", corsMidle(u.Uninstall))
 
 	// install
-	clusterEngine.GET("/install/precheck", corsMidle(u.InstallPreCheck))
 	clusterEngine.POST("/install", corsMidle(u.Install))
 	clusterEngine.GET("/install/status", corsMidle(u.InstallStatus))
 
 	// componse
 	clusterEngine.GET("/components", corsMidle(u.Components))
 	clusterEngine.GET("/components/:name", corsMidle(u.SingleComponent))
+}
+
+// ClusterStatus cluster status
+func (cc *ClusterController) ClusterStatus(c *gin.Context) {
+	status, err := cc.clusterCase.Cluster().Status()
+	if err != nil {
+		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "内部错误，请联系社区帮助"})
+		return
+	}
+	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": status})
+}
+
+// ClusterInit cluster init
+func (cc *ClusterController) ClusterInit(c *gin.Context) {
+	err := cc.clusterCase.Cluster().Init()
+	if err != nil {
+		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "内部错误，请联系社区帮助"})
+		return
+	}
+	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
 }
 
 // Configs get cluster config info
@@ -98,36 +120,19 @@ func (cc *ClusterController) Address(c *gin.Context) {
 
 // Uninstall reset cluster
 func (cc *ClusterController) Uninstall(c *gin.Context) {
-	err := cc.clusterCase.GlobalConfigs().Uninstall()
+	err := cc.clusterCase.Cluster().UnInstall()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "卸载出错，请联系社区帮助"})
 		return
 	}
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
 }
 
-// InstallPreCheck install precheck check can process install or not, if rainbond.tar is not ready, can't install
-func (cc *ClusterController) InstallPreCheck(c *gin.Context) {
-	data, err := cc.clusterCase.Install().InstallPreCheck()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": data})
-}
-
 // Install install
 func (cc *ClusterController) Install(c *gin.Context) {
-	if err := cc.clusterCase.Install().Install(); err != nil { // TODO fanyangyang can't download rainbond file filter and return download URL
-		if downloadError, ok := err.(*customerror.DownLoadError); ok {
-			c.JSON(http.StatusOK, map[string]interface{}{"code": downloadError.Code, "msg": downloadError.Msg})
-		} else if downloadingError, ok := err.(*customerror.DownloadingError); ok {
-			c.JSON(http.StatusOK, map[string]interface{}{"code": downloadingError.Code, "msg": downloadingError.Msg})
-		} else if notExistsError, ok := err.(*customerror.RainbondTarNotExistError); ok {
-			c.JSON(http.StatusOK, map[string]interface{}{"code": notExistsError.Code, "msg": notExistsError.Msg})
-		} else {
-			c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
-		}
+	if err := cc.clusterCase.Install().Install(); err != nil {
+		log.Error(err, "install error")
+		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "内部错误，请联系社区帮助"})
 		return
 	}
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
@@ -145,7 +150,13 @@ func (cc *ClusterController) InstallStatus(c *gin.Context) {
 
 // Components components status
 func (cc *ClusterController) Components(c *gin.Context) {
-	componseInfos, err := cc.clusterCase.Components().List()
+	data := c.DefaultQuery("isInit", "false")
+	isInit := false
+	if data == "true" {
+		isInit = true
+	}
+
+	componseInfos, err := cc.clusterCase.Components().List(isInit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return

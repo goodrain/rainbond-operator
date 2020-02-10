@@ -1,5 +1,21 @@
 package v1
 
+// ComponentStatus component status
+type ComponentStatus string
+
+const (
+	//ComponentStatusRunning running
+	ComponentStatusRunning = "Running"
+	// ComponentStatusIniting initing
+	ComponentStatusIniting = "Initing"
+	//ComponentStatusCreating creating
+	ComponentStatusCreating = "Creating"
+	// ComponentStatusTerminating terminal
+	ComponentStatusTerminating = "Terminating" // TODO fanyangyang have not found this case
+	// ComponentStatusFailed failed
+	ComponentStatusFailed = "Failed"
+)
+
 // RbdComponentStatus rainbond component status
 type RbdComponentStatus struct {
 	Name string `json:"name"`
@@ -11,6 +27,11 @@ type RbdComponentStatus struct {
 	// Total number of ready pods targeted by this deployment.
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas"`
+
+	Status          ComponentStatus `json:"status"` //translate pod status to component status
+	Message         string          `json:"message"`
+	Reason          string          `json:"reason"`
+	ISInitComponent bool            `json:"isInitComponent"`
 
 	PodStatuses []PodStatus `json:"podStatus"`
 }

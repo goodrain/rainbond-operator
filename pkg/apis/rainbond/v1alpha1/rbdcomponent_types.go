@@ -41,7 +41,7 @@ type RbdComponentSpec struct {
 	Configs     map[string]string `json:"configs,omitempty"`
 	PackagePath string            `json:"packagePath,omitempty"`
 	//  Whether this component needs to be created first
-	PriorityComponent bool `json:"isInitComponent"`
+	PriorityComponent bool `json:"priorityComponent"`
 }
 
 // ControllerType -

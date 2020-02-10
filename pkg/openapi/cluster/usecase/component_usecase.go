@@ -18,7 +18,7 @@ type rbdComponentStatusFromSubObject func(cpn *rainbondv1alpha1.RbdComponent) (*
 // ComponentUseCase cluster componse case
 type ComponentUseCase interface { // TODO: loop call
 	Get(name string) (*v1.RbdComponentStatus, error)
-	List() ([]*v1.RbdComponentStatus, error)
+	List(isInit bool) ([]*v1.RbdComponentStatus, error)
 }
 
 // ComponentUsecaseImpl cluster
@@ -42,11 +42,16 @@ func (cc *ComponentUsecaseImpl) Get(name string) (*v1.RbdComponentStatus, error)
 }
 
 // List list
-func (cc *ComponentUsecaseImpl) List() ([]*v1.RbdComponentStatus, error) {
+func (cc *ComponentUsecaseImpl) List(isInit bool) ([]*v1.RbdComponentStatus, error) {
 	reqLogger := log.WithValues("Namespace", cc.cfg.Namespace)
 	reqLogger.Info("Start listing RbdComponent associated controller")
 
-	components, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).List(metav1.ListOptions{})
+	listOption := metav1.ListOptions{}
+	if isInit {
+		log.Info("get init component status list")
+		listOption.FieldSelector = "spec.priorityComponent=true"
+	}
+	components, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).List(listOption)
 	if err != nil {
 		reqLogger.Error(err, "Listing RbdComponents")
 		return nil, err
@@ -57,13 +62,21 @@ func (cc *ComponentUsecaseImpl) List() ([]*v1.RbdComponentStatus, error) {
 		var status *v1.RbdComponentStatus
 		if component.Status == nil {
 			// Initially, status may be nil
-			status = &v1.RbdComponentStatus{Name: component.Name}
-			continue
+			status = &v1.RbdComponentStatus{
+				Name:   component.Name,
+				Status: v1.ComponentStatusIniting,
+			}
 		} else {
 			status, err = cc.typeRbdComponentStatus(&component)
 			if err != nil {
 				reqLogger.Error(err, "Get RbdComponent status", "Name", component.Name)
-				status = &v1.RbdComponentStatus{Name: component.Name}
+				status = &v1.RbdComponentStatus{
+					Name:            component.Name,
+					Status:          v1.ComponentStatusFailed,
+					Message:         "系统异常，请联系社区帮助",
+					ISInitComponent: component.Spec.PriorityComponent,
+					Reason:          fmt.Sprintf("get RbdComponent:%s status error: %s", component.Name, err.Error()),
+				}
 			}
 		}
 		statues = append(statues, status)
@@ -105,9 +118,14 @@ func (cc *ComponentUsecaseImpl) rbdComponentStatusFromDeployment(cpn *rainbondv1
 	}
 
 	status := &v1.RbdComponentStatus{
-		Name:          cpn.Name,
-		Replicas:      deploy.Status.Replicas,
-		ReadyReplicas: deploy.Status.ReadyReplicas,
+		Name:            cpn.Name,
+		Replicas:        deploy.Status.Replicas,
+		ReadyReplicas:   deploy.Status.ReadyReplicas,
+		ISInitComponent: cpn.Spec.PriorityComponent,
+	}
+	status.Status = v1.ComponentStatusCreating
+	if status.Replicas == status.ReadyReplicas {
+		status.Status = v1.ComponentStatusRunning
 	}
 
 	labels := deploy.Spec.Template.Labels
@@ -130,11 +148,15 @@ func (cc *ComponentUsecaseImpl) rbdComponentStatusFromStatefulSet(cpn *rainbondv
 	}
 
 	status := &v1.RbdComponentStatus{
-		Name:          cpn.Name,
-		Replicas:      sts.Status.Replicas,
-		ReadyReplicas: sts.Status.ReadyReplicas,
+		Name:            cpn.Name,
+		Replicas:        sts.Status.Replicas,
+		ReadyReplicas:   sts.Status.ReadyReplicas,
+		ISInitComponent: cpn.Spec.PriorityComponent,
 	}
-
+	status.Status = v1.ComponentStatusCreating
+	if status.Replicas == status.ReadyReplicas {
+		status.Status = v1.ComponentStatusRunning
+	}
 	labels := sts.Spec.Template.Labels
 	podStatuses, err := cc.listPodStatues(sts.Namespace, labels)
 	if err != nil {
@@ -155,9 +177,14 @@ func (cc *ComponentUsecaseImpl) rbdComponentStatusFromDaemonSet(cpn *rainbondv1a
 	}
 
 	status := &v1.RbdComponentStatus{
-		Name:          cpn.Name,
-		Replicas:      ds.Status.DesiredNumberScheduled,
-		ReadyReplicas: ds.Status.NumberAvailable,
+		Name:            cpn.Name,
+		Replicas:        ds.Status.DesiredNumberScheduled,
+		ReadyReplicas:   ds.Status.NumberAvailable,
+		ISInitComponent: cpn.Spec.PriorityComponent,
+	}
+	status.Status = v1.ComponentStatusCreating
+	if status.Replicas == status.ReadyReplicas {
+		status.Status = v1.ComponentStatusRunning
 	}
 
 	labels := ds.Spec.Template.Labels
