@@ -111,5 +111,5 @@ func Untartar(tarName, xpath string) (err error) {
 	cmd := exec.Command("tar", "-zxvf", tarName, "-C", xpath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Start()
+	return cmd.Run()
 }

@@ -82,6 +82,14 @@ spec:
                 username:
                   type: string
               type: object
+            install_package_config:
+              description: InstallPackageConfig define install package download config
+              properties:
+                md5:
+                  type: string
+                url:
+                  type: string
+              type: object
             install_version:
               description: define install rainbond version, This is usually image
                 tag

@@ -17,9 +17,7 @@ spec:
       serviceAccountName: rainbond-operator
       containers:
         - name: operator
-          image: abewang/rainbond-operator:v0.0.1
-          command:
-            - rainbond-operator
+          image: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator:v0.0.1
           imagePullPolicy: IfNotPresent
           env:
             - name: WATCH_NAMESPACE
@@ -42,11 +40,11 @@ spec:
             - mountPath: /var/run
               name: dockersock
         - name: openapi
-          image: a985850124/rainbond-operator-openapi
+          image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui:v0.0.1
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - mountPath: /opt/rainbond/pkg
-              name: rbd-pkg
+              name: rbd-pkg      
       volumes:
         - name: rbd-pkg
           hostPath:

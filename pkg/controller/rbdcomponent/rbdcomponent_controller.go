@@ -3,8 +3,9 @@ package rbdcomponent
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"time"
+
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 
 	"github.com/go-logr/logr"
 	appv1 "k8s.io/api/apps/v1"
@@ -145,10 +146,10 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		if err := k8sutil.UpdateCRStatus(r.client, cpt); err != nil {
 			reqLogger.Error(err, "update rbdcomponent status")
 		}
-		return reconcile.Result{RequeueAfter: 1 * time.Second}, err
+		return reconcile.Result{RequeueAfter: 3 * time.Second}, err
 	}
 	pkg := &rainbondv1alpha1.RainbondPackage{}
-	if err := r.client.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondClusterName}, pkg); err != nil {
+	if err := r.client.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondPackageName}, pkg); err != nil {
 		reqLogger.Error(err, "failed to get rainbondpackage.")
 		cpt.Status = &rainbondv1alpha1.RbdComponentStatus{
 			Message: fmt.Sprintf("failed to get rainbondpackage: %v", err),
@@ -157,7 +158,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		if err := k8sutil.UpdateCRStatus(r.client, cpt); err != nil {
 			reqLogger.Error(err, "update rbdcomponent status")
 		}
-		return reconcile.Result{RequeueAfter: 1 * time.Second}, err
+		return reconcile.Result{RequeueAfter: 3 * time.Second}, err
 	}
 
 	hdl := fn(ctx, r.client, cpt, cluster, pkg)

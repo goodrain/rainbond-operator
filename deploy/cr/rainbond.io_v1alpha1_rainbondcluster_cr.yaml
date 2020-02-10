@@ -1,0 +1,15 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RainbondCluster
+metadata:
+  name: rainbondcluster
+  namespace: rbd-system
+spec:
+  installPackageConfig:
+    url: https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/offline/5.2/rainbond.images.2020-02-07-5.2-dev.tgz
+    md5: b768a2459040acb751ab24c800944a1764c5044be11acecfd00885d305fa48ea
+  configCompleted: true
+  imageHub:
+    domain: goodrain.me
+  installMode: WithPackage
+  installVersion: V5.2-dev
+  suffixHTTPHost: test.grapps.cn

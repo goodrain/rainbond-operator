@@ -3,13 +3,14 @@ package rainbondcluster
 import (
 	"context"
 	"fmt"
+	"net"
+	"time"
+
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"net"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"time"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/format"
@@ -103,8 +104,8 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	if rainbondcluster.Status == nil {
-		return reconcile.Result{RequeueAfter: 1 * time.Second}, nil
+	if rainbondcluster.Status != nil && len(rainbondcluster.Status.NodeAvailPorts) > 0 {
+		return reconcile.Result{}, nil
 	}
 
 	claims := r.claims(rainbondcluster)
@@ -113,26 +114,26 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		// Set RbdComponent cpt as the owner and controller
 		if err := controllerutil.SetControllerReference(rainbondcluster, claim, r.scheme); err != nil {
 			reqLogger.Error(err, "set controller reference")
-			return reconcile.Result{Requeue: true}, err
+			return reconcile.Result{RequeueAfter: time.Second * 2}, err
 		}
 		if err = k8sutil.UpdateOrCreateResource(ctx, r.client, reqLogger, claim, claim); err != nil {
 			reqLogger.Error(err, "update or create pvc")
-			return reconcile.Result{Requeue: true}, err
+			return reconcile.Result{RequeueAfter: time.Second * 2}, err
 		}
 	}
 
 	status, err := r.generateRainbondClusterStatus(ctx, rainbondcluster)
 	if err != nil {
 		reqLogger.Error(err, "failed to generate rainbondcluster status")
-		return reconcile.Result{Requeue: true}, err
+		return reconcile.Result{RequeueAfter: time.Second * 2}, err
 	}
 	rainbondcluster.Status = status
-	if err := r.client.Status().Update(context.TODO(), rainbondcluster); err != nil {
+	if err := r.client.Status().Update(ctx, rainbondcluster); err != nil {
 		reqLogger.Error(err, "failed to update rainbondcluster status")
-		return reconcile.Result{Requeue: true}, err
+		return reconcile.Result{RequeueAfter: time.Second * 2}, err
 	}
 
-	return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+	return reconcile.Result{Requeue: false}, nil
 }
 
 func (r *ReconcileRainbondCluster) availableStorageClasses() []*rainbondv1alpha1.StorageClass {
