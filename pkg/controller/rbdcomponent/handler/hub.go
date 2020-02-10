@@ -42,13 +42,7 @@ func NewHub(ctx context.Context, client client.Client, component *rainbondv1alph
 }
 
 func (h *hub) Before() error {
-	withPackage := h.cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithPackage
-	if withPackage {
-		// in InstallationModeWithPackage mode, no need to wait until rainbondpackage is completed.
-		return nil
-	}
-	// in InstallationModeWithoutPackage mode, we have to make sure rainbondpackage is completed before we create the resource.
-	return checkPackageStatus(h.pkg)
+	return nil
 }
 
 func (h *hub) Resources() []interface{} {
@@ -90,7 +84,7 @@ func (h *hub) daemonSetForHub() interface{} {
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: h.cluster.Status.MasterNodeLabel(),
+					NodeSelector: h.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            "rbd-hub",

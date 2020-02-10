@@ -48,7 +48,7 @@ func (w *worker) Before() error {
 	}
 	w.etcdSecret = secret
 
-	return checkPackageStatus(w.pkg)
+	return nil
 }
 
 func (w *worker) Resources() []interface{} {
@@ -116,7 +116,7 @@ func (w *worker) daemonSetForWorker() interface{} {
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: w.cluster.Status.MasterNodeLabel(),
+					NodeSelector: w.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            WorkerName,

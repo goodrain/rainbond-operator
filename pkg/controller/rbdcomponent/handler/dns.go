@@ -32,7 +32,7 @@ func NewDNS(ctx context.Context, client client.Client, component *rainbondv1alph
 }
 
 func (d *dns) Before() error {
-	return checkPackageStatus(d.pkg)
+	return nil
 }
 
 func (d *dns) Resources() []interface{} {
@@ -67,13 +67,13 @@ func (d *dns) daemonSetForDNS() interface{} {
 					ServiceAccountName:            "rainbond-operator",
 					HostNetwork:                   true,
 					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
+					NodeSelector:                  d.cluster.Status.FirstMasterNodeLabel(),
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    d.cluster.Status.MasterRoleLabel,
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: d.cluster.Status.MasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            DNSName,

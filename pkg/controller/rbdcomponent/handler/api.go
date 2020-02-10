@@ -57,7 +57,7 @@ func (a *api) Before() error {
 	}
 	a.etcdSecret = secret
 
-	return checkPackageStatus(a.pkg)
+	return nil
 }
 
 func (a *api) Resources() []interface{} {
@@ -132,13 +132,13 @@ func (a *api) daemonSetForAPI() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					NodeSelector:                  a.cluster.Status.FirstMasterNodeLabel(),
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    a.cluster.Status.MasterRoleLabel,
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: a.cluster.Status.MasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            APIName,

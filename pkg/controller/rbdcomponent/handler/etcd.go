@@ -33,14 +33,7 @@ func (e *etcd) Before() error {
 		return NewIgnoreError(fmt.Sprintf("specified etcd configuration"))
 	}
 
-	withPackage := e.cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithPackage
-	if withPackage {
-		// in InstallationModeWithPackage mode, no need to wait until rainbondpackage is completed.
-		return nil
-	}
-
-	// in InstallationModeWithoutPackage mode, we have to make sure rainbondpackage is completed before we create the resource.
-	return checkPackageStatus(e.pkg)
+	return nil
 }
 
 func (e *etcd) Resources() []interface{} {
@@ -66,6 +59,13 @@ func (e *etcd) podForEtcd0() interface{} {
 		},
 		Spec: corev1.PodSpec{
 			TerminationGracePeriodSeconds: commonutil.Int64(0),
+			NodeSelector:                  e.cluster.Status.FirstMasterNodeLabel(),
+			Tolerations: []corev1.Toleration{
+				{
+					Key:    e.cluster.Status.MasterRoleLabel,
+					Effect: corev1.TaintEffectNoSchedule,
+				},
+			},
 			Containers: []corev1.Container{
 				{
 					Name:            "etcd0",

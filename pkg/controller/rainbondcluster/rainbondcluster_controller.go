@@ -2,8 +2,11 @@ package rainbondcluster
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
+	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
@@ -103,13 +106,12 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
-	if !rainbondcluster.Spec.ConfigCompleted {
-		return reconcile.Result{RequeueAfter: time.Second * 5}, nil
-	}
+
 	if rainbondcluster.Status != nil && len(rainbondcluster.Status.NodeAvailPorts) > 0 {
 		return reconcile.Result{}, nil
 	}
 
+	// TODO: do not create claims here
 	claims := r.claims(rainbondcluster)
 	for i := range claims {
 		claim := claims[i]
@@ -135,6 +137,17 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{RequeueAfter: time.Second * 2}, err
 	}
 
+	if rainbondcluster.Spec.ImageHub == nil {
+		if err := r.setImageHub(rainbondcluster); err != nil {
+			reqLogger.Error(err, "set image hub info")
+			return reconcile.Result{RequeueAfter: time.Second * 2}, err
+		}
+		if err = r.client.Update(ctx, rainbondcluster); err != nil {
+			reqLogger.Error(err, "update rainbondcluster")
+			return reconcile.Result{RequeueAfter: time.Second * 2}, err
+		}
+	}
+
 	return reconcile.Result{Requeue: false}, nil
 }
 
@@ -158,6 +171,24 @@ func (r *ReconcileRainbondCluster) availableStorageClasses() []*rainbondv1alpha1
 	}
 
 	return storageClasses
+}
+
+func (r *ReconcileRainbondCluster) listMasterNodeNames(masterRoleLabel map[string]string) []string {
+	klog.V(3).Info("Start listing node names")
+	nodeList := &corev1.NodeList{}
+	listOpts := []client.ListOption{
+		client.MatchingLabels(masterRoleLabel),
+	}
+	if err := r.client.List(context.TODO(), nodeList, listOpts...); err != nil {
+		klog.Error(err, "list nodes")
+		return nil
+	}
+
+	var nodeNames []string
+	for _, node := range nodeList.Items {
+		nodeNames = append(nodeNames, node.Name)
+	}
+	return nodeNames
 }
 
 func (r *ReconcileRainbondCluster) listNodeAvailablePorts(masterRoleLabel map[string]string) []*rainbondv1alpha1.NodeAvailPorts {
@@ -237,6 +268,7 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(ctx context.Con
 		StorageClasses:  r.availableStorageClasses(),
 	}
 	s.NodeAvailPorts = r.listNodeAvailablePorts(s.MasterNodeLabel())
+	s.MasterNodeNames = r.listMasterNodeNames(s.MasterNodeLabel())
 
 	return s, nil
 }
@@ -301,4 +333,41 @@ func (r *ReconcileRainbondCluster) getMasterRoleLabel(ctx context.Context) (stri
 		}
 	}
 	return label, nil
+}
+
+func (r *ReconcileRainbondCluster) setImageHub(cluster *rainbondv1alpha1.RainbondCluster) error {
+	imageHubReady := func() error {
+		httpClient := &http.Client{
+			Timeout: 1 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true, // TODO: can't ignore TLS
+				},
+			},
+		}
+
+		domain := rbdutil.GetImageRepository(cluster)
+		u, err := url.Parse(fmt.Sprintf("https://%s/v2/", cluster.GatewayIngressIP()))
+		if err != nil {
+			return fmt.Errorf("failed to parse url %s: %v", fmt.Sprintf("https://%s/v2/", domain), err)
+		}
+
+		request := &http.Request{URL: u, Host: domain}
+		res, err := httpClient.Do(request)
+		if err != nil {
+			return fmt.Errorf("image repository unavailable: %v", err)
+		}
+		if res.StatusCode != http.StatusOK {
+			return fmt.Errorf("image repository unavailable. http status code: %d", res.StatusCode)
+		}
+		return nil
+	}
+	if err := imageHubReady(); err != nil {
+		return fmt.Errorf("image repository not ready: %v", err)
+	}
+
+	cluster.Spec.ImageHub = &rainbondv1alpha1.ImageHub{
+		Domain: "goodrain.me",
+	}
+	return nil
 }

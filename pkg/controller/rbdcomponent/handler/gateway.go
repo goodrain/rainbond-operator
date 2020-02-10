@@ -42,13 +42,7 @@ func (g *gateway) Before() error {
 	}
 	g.etcdSecret = secret
 
-	withPackage := g.cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeWithPackage
-	if withPackage {
-		// in InstallationModeWithPackage mode, no need to wait until rainbondpackage is completed.
-		return nil
-	}
-	// in InstallationModeWithoutPackage mode, we have to make sure rainbondpackage is completed before we create the resource.
-	return checkPackageStatus(g.pkg)
+	return nil
 }
 
 func (g *gateway) Resources() []interface{} {

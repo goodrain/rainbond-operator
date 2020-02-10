@@ -44,7 +44,7 @@ func (w *webcli) Before() error {
 	}
 	w.etcdSecret = secret
 
-	return checkPackageStatus(w.pkg)
+	return nil
 }
 
 func (w *webcli) Resources() []interface{} {
@@ -123,7 +123,7 @@ func (w *webcli) daemonSetForAPI() interface{} {
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: w.cluster.Status.MasterNodeLabel(),
+					NodeSelector: w.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            WebCliName,

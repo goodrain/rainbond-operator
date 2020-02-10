@@ -40,6 +40,8 @@ type RbdComponentSpec struct {
 	// component config map
 	Configs     map[string]string `json:"configs,omitempty"`
 	PackagePath string            `json:"packagePath,omitempty"`
+	//  Whether this component needs to be created first
+	PriorityComponent bool `json:"isInitComponent"`
 }
 
 // ControllerType -
@@ -62,8 +64,6 @@ func (c ControllerType) String() string {
 
 // RbdComponentStatus defines the observed state of RbdComponent
 type RbdComponentStatus struct {
-	//  Whether this component needs to be created first
-	PriorityComponent bool `json:"isInitComponent"`
 	// Type of Controller owned by RbdComponent
 	ControllerType ControllerType `json:"controllerType"`
 	// ControllerName represents the Controller associated with RbdComponent

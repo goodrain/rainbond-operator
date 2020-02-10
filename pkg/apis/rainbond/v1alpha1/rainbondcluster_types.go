@@ -121,7 +121,9 @@ type StorageClass struct {
 
 // RainbondClusterStatus defines the observed state of RainbondCluster
 type RainbondClusterStatus struct {
-	NodeAvailPorts []*NodeAvailPorts `json:"NodeAvailPorts,omitempty"`
+	// Master node name list
+	MasterNodeNames []string          `json:"nodeNames,omitempty"`
+	NodeAvailPorts  []*NodeAvailPorts `json:"NodeAvailPorts,omitempty"`
 	// List of existing StorageClasses in the cluster
 	// +optional
 	StorageClasses []*StorageClass `json:"storageClasses,omitempty"`
@@ -209,4 +211,13 @@ func (in *RainbondClusterStatus) MasterNodeLabel() map[string]string {
 	}
 
 	return nil
+}
+
+func (in *RainbondClusterStatus) FirstMasterNodeLabel() map[string]string {
+	if len(in.MasterNodeNames) == 0 {
+		return nil
+	}
+	return map[string]string{
+		"kubernetes.io/hostname": in.MasterNodeNames[0],
+	}
 }

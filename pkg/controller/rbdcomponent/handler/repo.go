@@ -32,7 +32,7 @@ func NewRepo(ctx context.Context, client client.Client, component *rainbondv1alp
 }
 
 func (r *repo) Before() error {
-	return checkPackageStatus(r.pkg)
+	return nil
 }
 
 func (r *repo) Resources() []interface{} {
@@ -70,7 +70,7 @@ func (r *repo) daemonSetForRepo() interface{} {
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: r.cluster.Status.MasterNodeLabel(),
+					NodeSelector: r.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            RepoName,

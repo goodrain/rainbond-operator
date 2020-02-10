@@ -12,5 +12,4 @@ spec:
     domain: goodrain.me
   installMode: WithPackage
   installVersion: V5.2-dev
-
-
+  suffixHTTPHost: test.grapps.cn

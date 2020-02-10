@@ -47,7 +47,7 @@ func (m *monitor) Before() error {
 	}
 	m.etcdSecret = secret
 
-	return checkPackageStatus(m.pkg)
+	return nil
 }
 
 func (m *monitor) Resources() []interface{} {
@@ -105,7 +105,7 @@ func (m *monitor) daemonSetForMonitor() interface{} {
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: m.cluster.Status.MasterNodeLabel(),
+					NodeSelector: m.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            MonitorName,
