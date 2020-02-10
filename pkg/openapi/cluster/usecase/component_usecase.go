@@ -18,7 +18,7 @@ type rbdComponentStatusFromSubObject func(cpn *rainbondv1alpha1.RbdComponent) (*
 // ComponentUseCase cluster componse case
 type ComponentUseCase interface { // TODO: loop call
 	Get(name string) (*v1.RbdComponentStatus, error)
-	List() ([]*v1.RbdComponentStatus, error)
+	List(isInit bool) ([]*v1.RbdComponentStatus, error)
 }
 
 // ComponentUsecaseImpl cluster
@@ -42,11 +42,11 @@ func (cc *ComponentUsecaseImpl) Get(name string) (*v1.RbdComponentStatus, error)
 }
 
 // List list
-func (cc *ComponentUsecaseImpl) List() ([]*v1.RbdComponentStatus, error) {
+func (cc *ComponentUsecaseImpl) List(isInit bool) ([]*v1.RbdComponentStatus, error) {
 	reqLogger := log.WithValues("Namespace", cc.cfg.Namespace)
 	reqLogger.Info("Start listing RbdComponent associated controller")
 
-	components, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).List(metav1.ListOptions{})
+	components, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).List(metav1.ListOptions{FieldSelector: "spec.isInitComponent=true"})
 	if err != nil {
 		reqLogger.Error(err, "Listing RbdComponents")
 		return nil, err
@@ -69,7 +69,7 @@ func (cc *ComponentUsecaseImpl) List() ([]*v1.RbdComponentStatus, error) {
 					Name:            component.Name,
 					Status:          v1.ComponentStatusFailed,
 					Message:         "系统异常，请联系社区帮助",
-					ISInitComponent: component.Status.PriorityComponent,
+					ISInitComponent: component.Spec.PriorityComponent,
 					Reason:          fmt.Sprintf("get RbdComponent:%s status error: %s", component.Name, err.Error()),
 				}
 			}
@@ -116,7 +116,7 @@ func (cc *ComponentUsecaseImpl) rbdComponentStatusFromDeployment(cpn *rainbondv1
 		Name:            cpn.Name,
 		Replicas:        deploy.Status.Replicas,
 		ReadyReplicas:   deploy.Status.ReadyReplicas,
-		ISInitComponent: cpn.Status.PriorityComponent,
+		ISInitComponent: cpn.Spec.PriorityComponent,
 	}
 	status.Status = v1.ComponentStatusCreating
 	if status.Replicas == status.ReadyReplicas {
@@ -146,7 +146,7 @@ func (cc *ComponentUsecaseImpl) rbdComponentStatusFromStatefulSet(cpn *rainbondv
 		Name:            cpn.Name,
 		Replicas:        sts.Status.Replicas,
 		ReadyReplicas:   sts.Status.ReadyReplicas,
-		ISInitComponent: cpn.Status.PriorityComponent,
+		ISInitComponent: cpn.Spec.PriorityComponent,
 	}
 	status.Status = v1.ComponentStatusCreating
 	if status.Replicas == status.ReadyReplicas {
@@ -175,7 +175,7 @@ func (cc *ComponentUsecaseImpl) rbdComponentStatusFromDaemonSet(cpn *rainbondv1a
 		Name:            cpn.Name,
 		Replicas:        ds.Status.DesiredNumberScheduled,
 		ReadyReplicas:   ds.Status.NumberAvailable,
-		ISInitComponent: cpn.Status.PriorityComponent,
+		ISInitComponent: cpn.Spec.PriorityComponent,
 	}
 	status.Status = v1.ComponentStatusCreating
 	if status.Replicas == status.ReadyReplicas {

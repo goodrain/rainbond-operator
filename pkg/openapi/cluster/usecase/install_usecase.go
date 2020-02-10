@@ -52,6 +52,7 @@ type componentClaim struct {
 	name      string
 	version   string
 	image     string
+	isInit    bool
 }
 
 var rbdVersion = "V5.2-dev"
@@ -61,11 +62,11 @@ var existHubDomain = "registry.cn-hangzhou.aliyuncs.com/goodrain"
 
 func init() {
 	componentClaims = []componentClaim{
-		{name: "rbd-etcd", image: existHubDomain + "/etcd:v3.3.18"},
-		{name: "rbd-gateway", image: existHubDomain + "/rbd-gateway:" + rbdVersion},
-		{name: "rbd-hub", image: existHubDomain + "/registry:2.6.2"},
-		{name: "rbd-node", image: existHubDomain + "/rbd-node:" + rbdVersion},
-		{name: "rbd-nfs", image: existHubDomain + "/nfs-provisioner:v2.2.1-k8s1.12"},
+		{name: "rbd-etcd", image: existHubDomain + "/etcd:v3.3.18", isInit: true},
+		{name: "rbd-gateway", image: existHubDomain + "/rbd-gateway:" + rbdVersion, isInit: true},
+		{name: "rbd-hub", image: existHubDomain + "/registry:2.6.2", isInit: true},
+		{name: "rbd-node", image: existHubDomain + "/rbd-node:" + rbdVersion, isInit: true},
+		{name: "rbd-nfs", image: existHubDomain + "/nfs-provisioner:v2.2.1-k8s1.12", isInit: true},
 		{name: "rbd-api", image: "goodrain.me/rbd-api:" + rbdVersion},
 		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:" + rbdVersion},
 		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:" + rbdVersion},
@@ -91,6 +92,9 @@ func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 	component.Spec.Type = claim.name
 	component.Labels = map[string]string{"name": claim.name}
 	log.Info(fmt.Sprintf("component %s labels:%+v", component.Name, component.Labels))
+	if claim.isInit {
+		component.Spec.PriorityComponent = true
+	}
 	return component
 }
 
@@ -182,7 +186,7 @@ func (ic *InstallUseCaseImpl) InstallStatus() (model.StatusRes, error) {
 		log.Error(err, "get rainbondpackage error")
 		return model.StatusRes{FinalStatus: InstallStatusWaiting}, nil
 	}
-	componentStatuses, err := ic.componentUsecase.List()
+	componentStatuses, err := ic.componentUsecase.List(false)
 	if err != nil {
 		log.Error(err, "get rbdcomponent error")
 		return model.StatusRes{FinalStatus: InstallStatusWaiting}, nil
@@ -220,7 +224,7 @@ func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
 }
 
 func (ic *InstallUseCaseImpl) stepHub(clusterInfo *v1alpha1.RainbondCluster, componentStatues []*v1.RbdComponentStatus) model.InstallStatus {
-	if clusterInfo.Spec.InstallMode == v1alpha1.InstallationModeWithoutPackage {
+	if clusterInfo.Spec.ImageHub != nil { // custom image hub, do not prepare it by rainbond operator, progress set 100 directly
 		return model.InstallStatus{
 			StepName: StepPrepareHub,
 			Status:   InstallStatusFinished,
@@ -383,20 +387,12 @@ func (ic *InstallUseCaseImpl) stepHandleImage(clusterInfo *v1alpha1.RainbondClus
 func (ic *InstallUseCaseImpl) stepCreateComponent(componentStatues []*v1.RbdComponentStatus) model.InstallStatus {
 	defer commonutil.TimeConsume(time.Now())
 
-	componentStatuses, err := ic.componentUsecase.List()
-	if err != nil {
-		return model.InstallStatus{
-			StepName: StepPrepareHub,
-			Status:   InstallStatusFailed,
-			Message:  err.Error(),
-		}
-	}
 	status := model.InstallStatus{
 		StepName: StepPrepareHub,
 	}
 
 	readyCount := 0
-	for _, cs := range componentStatuses {
+	for _, cs := range componentStatues {
 		if cs.Status == v1.ComponentStatusRunning {
 			readyCount += 1
 		}

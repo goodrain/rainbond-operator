@@ -179,41 +179,44 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 	clusterInfo.Spec.ConfigCompleted = true
 	clusterInfo.Spec.InstallPackageConfig = v1alpha1.InstallPackageConfig{MD5: cc.cfg.DownloadMD5, URL: cc.cfg.DownloadURL}
 
-	clusterInfo.Spec.ImageHub = &v1alpha1.ImageHub{
-		Domain:    source.ImageHub.Domain,
-		Username:  source.ImageHub.Username,
-		Password:  source.ImageHub.Password,
-		Namespace: source.ImageHub.Namespace,
-	}
-
-	if source.ImageHub.Domain == "" {
-		log.Info("use offline mode, installation mode with package")
-		clusterInfo.Spec.InstallMode = v1alpha1.InstallationModeWithPackage
-	}
-
-	clusterInfo.Spec.RegionDatabase = &v1alpha1.Database{
-		Host:     source.RegionDatabase.Host,
-		Port:     source.RegionDatabase.Port,
-		Username: source.RegionDatabase.Username,
-		Password: source.RegionDatabase.Password,
-	}
-	clusterInfo.Spec.UIDatabase = &v1alpha1.Database{
-		Host:     source.UIDatabase.Host,
-		Port:     source.UIDatabase.Port,
-		Username: source.UIDatabase.Username,
-		Password: source.UIDatabase.Password,
-	}
-	clusterInfo.Spec.EtcdConfig = &v1alpha1.EtcdConfig{
-		Endpoints: source.EtcdConfig.Endpoints,
-	}
-	if source.EtcdConfig.CertInfo.CertFile != "" && source.EtcdConfig.CertInfo.KeyFile != "" {
-		clusterInfo.Spec.EtcdConfig.SecretName = cc.cfg.EtcdSecretName
-		if err := cc.updateOrCreateEtcdCertInfo(source.EtcdConfig.CertInfo); err != nil {
-			return nil, err
+	if source.ImageHub.Domain != "" {
+		clusterInfo.Spec.ImageHub = &v1alpha1.ImageHub{
+			Domain:    source.ImageHub.Domain,
+			Username:  source.ImageHub.Username,
+			Password:  source.ImageHub.Password,
+			Namespace: source.ImageHub.Namespace,
 		}
-	} else {
-		// if update config set etcd that do not use tls, update config, remove etcd cert secret selector
-		clusterInfo.Spec.EtcdConfig.SecretName = ""
+	}
+
+	if source.RegionDatabase.Host != "" {
+		clusterInfo.Spec.RegionDatabase = &v1alpha1.Database{
+			Host:     source.RegionDatabase.Host,
+			Port:     source.RegionDatabase.Port,
+			Username: source.RegionDatabase.Username,
+			Password: source.RegionDatabase.Password,
+		}
+	}
+	if source.UIDatabase.Host != "" {
+		clusterInfo.Spec.UIDatabase = &v1alpha1.Database{
+			Host:     source.UIDatabase.Host,
+			Port:     source.UIDatabase.Port,
+			Username: source.UIDatabase.Username,
+			Password: source.UIDatabase.Password,
+		}
+	}
+	if len(source.EtcdConfig.Endpoints) > 0 {
+		clusterInfo.Spec.EtcdConfig = &v1alpha1.EtcdConfig{
+			Endpoints: source.EtcdConfig.Endpoints,
+		}
+		if source.EtcdConfig.CertInfo.CertFile != "" && source.EtcdConfig.CertInfo.KeyFile != "" {
+			clusterInfo.Spec.EtcdConfig.SecretName = cc.cfg.EtcdSecretName
+			if err := cc.updateOrCreateEtcdCertInfo(source.EtcdConfig.CertInfo); err != nil {
+				return nil, err
+			}
+		} else {
+			// if update config set etcd that do not use tls, update config, remove etcd cert secret selector
+			clusterInfo.Spec.EtcdConfig.SecretName = ""
+		}
 	}
 
 	for _, node := range source.GatewayNodes {

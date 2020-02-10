@@ -32,7 +32,7 @@ type GlobalConfigUseCase interface {
 // ComponentUseCase cluster componse case
 type ComponentUseCase interface { // TODO: loop call
 	Get(name string) (*v1.RbdComponentStatus, error)
-	List() ([]*v1.RbdComponentStatus, error)
+	List(isInit bool) ([]*v1.RbdComponentStatus, error)
 }
 
 // InstallUseCase cluster install case

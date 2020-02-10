@@ -44,6 +44,9 @@ spec:
                 Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
                 Cannot be updated.
               type: string
+            isInitComponent:
+              description: ' Whether this component needs to be created first'
+              type: boolean
             logLevel:
               description: LogLevel -
               type: string
@@ -60,6 +63,8 @@ spec:
             version:
               description: version of rainbond component
               type: string
+          required:
+          - isInitComponent
           type: object
         status:
           description: RbdComponentStatus defines the observed state of RbdComponent
@@ -71,9 +76,6 @@ spec:
             controllerType:
               description: Type of Controller owned by RbdComponent
               type: string
-            isInitComponent:
-              description: ' Whether this component needs to be created first'
-              type: boolean
             message:
               type: string
             reason:
@@ -81,7 +83,6 @@ spec:
           required:
           - controllerName
           - controllerType
-          - isInitComponent
           - message
           - reason
           type: object

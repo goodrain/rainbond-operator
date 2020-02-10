@@ -150,7 +150,13 @@ func (cc *ClusterController) InstallStatus(c *gin.Context) {
 
 // Components components status
 func (cc *ClusterController) Components(c *gin.Context) {
-	componseInfos, err := cc.clusterCase.Components().List()
+	data := c.DefaultQuery("isInit", "false")
+	isInit := false
+	if data == "true" {
+		isInit = true
+	}
+
+	componseInfos, err := cc.clusterCase.Components().List(isInit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return

@@ -68,7 +68,7 @@ func (c *ClusterUsecaseImpl) Status() (*model.ClusterStatus, error) {
 		rainbondPackage = nil // if can't find package cr, client will return 404 and empty package info not nil
 	}
 
-	components, err := c.componentUsecase.List()
+	components, err := c.componentUsecase.List(false)
 	if err != nil {
 		log.Error(err, "get component status list error")
 	}
