@@ -50,10 +50,10 @@ export default {
               this.handleRouter("index");
               break;
             case "Installing":
-              this.handlePerform("cluster");
+              this.handlePerform("startrRsults");
               break;
             case "Setting":
-              this.handlePerform("startrRsults");
+              this.handlePerform("cluster");
               break;
             case "Running":
               this.handleRouter("successfulInstallation");
