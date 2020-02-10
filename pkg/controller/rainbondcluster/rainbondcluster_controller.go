@@ -158,6 +158,24 @@ func (r *ReconcileRainbondCluster) availableStorageClasses() []*rainbondv1alpha1
 	return storageClasses
 }
 
+func (r *ReconcileRainbondCluster) listMasterNodeNames(masterRoleLabel map[string]string) []string {
+	klog.V(3).Info("Start listing node names")
+	nodeList := &corev1.NodeList{}
+	listOpts := []client.ListOption{
+		client.MatchingLabels(masterRoleLabel),
+	}
+	if err := r.client.List(context.TODO(), nodeList, listOpts...); err != nil {
+		klog.Error(err, "list nodes")
+		return nil
+	}
+
+	var nodeNames []string
+	for _, node := range nodeList.Items {
+		nodeNames = append(nodeNames, node.Name)
+	}
+	return nodeNames
+}
+
 func (r *ReconcileRainbondCluster) listNodeAvailablePorts(masterRoleLabel map[string]string) []*rainbondv1alpha1.NodeAvailPorts {
 	klog.V(3).Info("Start checking rbd-gateway ports")
 	// list all node
@@ -235,6 +253,7 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(ctx context.Con
 		StorageClasses:  r.availableStorageClasses(),
 	}
 	s.NodeAvailPorts = r.listNodeAvailablePorts(s.MasterNodeLabel())
+	s.MasterNodeNames = r.listMasterNodeNames(s.MasterNodeLabel())
 
 	return s, nil
 }

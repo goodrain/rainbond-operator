@@ -87,13 +87,13 @@ func (m *mq) daemonSetForMQ() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					NodeSelector:                  m.cluster.Status.FirstMasterNodeLabel(),
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    m.cluster.Status.MasterRoleLabel,
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: m.cluster.Status.MasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            MQName,

@@ -70,7 +70,7 @@ func (r *repo) daemonSetForRepo() interface{} {
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: r.cluster.Status.MasterNodeLabel(),
+					NodeSelector: r.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            RepoName,

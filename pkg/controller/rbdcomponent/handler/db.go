@@ -76,6 +76,13 @@ func (d *db) statefulsetForDB() interface{} {
 					Labels: d.labels,
 				},
 				Spec: corev1.PodSpec{
+					NodeSelector: d.cluster.Status.FirstMasterNodeLabel(),
+					Tolerations: []corev1.Toleration{
+						{
+							Key:    d.cluster.Status.MasterRoleLabel,
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					},
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{

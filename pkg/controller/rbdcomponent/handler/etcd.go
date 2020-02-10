@@ -66,6 +66,13 @@ func (e *etcd) podForEtcd0() interface{} {
 		},
 		Spec: corev1.PodSpec{
 			TerminationGracePeriodSeconds: commonutil.Int64(0),
+			NodeSelector:                  e.cluster.Status.FirstMasterNodeLabel(),
+			Tolerations: []corev1.Toleration{
+				{
+					Key:    e.cluster.Status.MasterRoleLabel,
+					Effect: corev1.TaintEffectNoSchedule,
+				},
+			},
 			Containers: []corev1.Container{
 				{
 					Name:            "etcd0",

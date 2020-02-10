@@ -93,6 +93,13 @@ func (n *nfsProvisioner) statefulsetForNFSProvisioner() interface{} {
 				Spec: corev1.PodSpec{
 					DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
 					ServiceAccountName: "rainbond-operator", // TODO: do not hard code, get sa from configuration.
+					NodeSelector:       n.cluster.Status.FirstMasterNodeLabel(),
+					Tolerations: []corev1.Toleration{
+						{
+							Key:    n.cluster.Status.MasterRoleLabel,
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            NFSName,

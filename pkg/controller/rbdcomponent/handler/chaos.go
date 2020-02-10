@@ -136,20 +136,20 @@ func (c *chaos) daemonSetForChaos() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
-					HostAliases: []corev1.HostAlias{
-						{
-							IP:        c.cluster.GatewayIngressIP(),
-							Hostnames: []string{rbdutil.GetImageRepository(c.cluster)},
-						},
-					},
+					NodeSelector:                  c.cluster.Status.FirstMasterNodeLabel(),
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    c.cluster.Status.MasterRoleLabel,
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: c.cluster.Status.MasterNodeLabel(),
+					ServiceAccountName: "rainbond-operator",
+					HostAliases: []corev1.HostAlias{
+						{
+							IP:        c.cluster.GatewayIngressIP(),
+							Hostnames: []string{rbdutil.GetImageRepository(c.cluster)},
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            ChaosName,

@@ -112,13 +112,13 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					HostNetwork:                   true,
 					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
+					NodeSelector:                  e.cluster.Status.FirstMasterNodeLabel(),
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    e.cluster.Status.MasterRoleLabel,
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: e.cluster.Status.MasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            EventLogName,

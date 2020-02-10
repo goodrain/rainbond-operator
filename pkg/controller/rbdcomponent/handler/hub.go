@@ -90,7 +90,7 @@ func (h *hub) daemonSetForHub() interface{} {
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: h.cluster.Status.MasterNodeLabel(),
+					NodeSelector: h.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            "rbd-hub",
