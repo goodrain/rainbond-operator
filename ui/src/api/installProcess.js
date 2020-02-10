@@ -34,7 +34,7 @@ export function getClusterInfo () {
 export function detectionCluster () {
   return request({
     url:
-      // 'http://doc.goodrain.org/mock/48/cluster/install/precheck',
+      // 'http://doc.goodrain.org/mock/48/cluster/install/status',
       '/cluster/install/status',
     method: 'get'
   })
@@ -69,12 +69,15 @@ export function getClusterInstallResults () {
   })
 }
 //  安装集群配置结果
-export function getClusterInstallResultsState () {
+export function getClusterInstallResultsState (data) {
   return request({
     url:
       //  'http://doc.goodrain.org/mock/48/cluster/components',
       '/cluster/components',
-    method: 'get'
+    method: 'get',
+    data:{
+      isInit:data.isInit?data.isInit:false
+    }
   })
 }
 //  访问地址
