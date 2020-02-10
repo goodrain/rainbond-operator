@@ -2,8 +2,11 @@ package rainbondcluster
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
+	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
@@ -108,6 +111,7 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, nil
 	}
 
+	// TODO: do not create claims here
 	claims := r.claims(rainbondcluster)
 	for i := range claims {
 		claim := claims[i]
@@ -131,6 +135,17 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 	if err := r.client.Status().Update(ctx, rainbondcluster); err != nil {
 		reqLogger.Error(err, "failed to update rainbondcluster status")
 		return reconcile.Result{RequeueAfter: time.Second * 2}, err
+	}
+
+	if rainbondcluster.Spec.ImageHub == nil {
+		if err := r.setImageHub(rainbondcluster); err != nil {
+			reqLogger.Error(err, "set image hub info")
+			return reconcile.Result{RequeueAfter: time.Second * 2}, err
+		}
+		if err = r.client.Update(ctx, rainbondcluster); err != nil {
+			reqLogger.Error(err, "update rainbondcluster")
+			return reconcile.Result{RequeueAfter: time.Second * 2}, err
+		}
 	}
 
 	return reconcile.Result{Requeue: false}, nil
@@ -318,4 +333,41 @@ func (r *ReconcileRainbondCluster) getMasterRoleLabel(ctx context.Context) (stri
 		}
 	}
 	return label, nil
+}
+
+func (r *ReconcileRainbondCluster) setImageHub(cluster *rainbondv1alpha1.RainbondCluster) error {
+	imageHubReady := func() error {
+		httpClient := &http.Client{
+			Timeout: 1 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true, // TODO: can't ignore TLS
+				},
+			},
+		}
+
+		domain := rbdutil.GetImageRepository(cluster)
+		u, err := url.Parse(fmt.Sprintf("https://%s/v2/", cluster.GatewayIngressIP()))
+		if err != nil {
+			return fmt.Errorf("failed to parse url %s: %v", fmt.Sprintf("https://%s/v2/", domain), err)
+		}
+
+		request := &http.Request{URL: u, Host: domain}
+		res, err := httpClient.Do(request)
+		if err != nil {
+			return fmt.Errorf("image repository unavailable: %v", err)
+		}
+		if res.StatusCode != http.StatusOK {
+			return fmt.Errorf("image repository unavailable. http status code: %d", res.StatusCode)
+		}
+		return nil
+	}
+	if err := imageHubReady(); err != nil {
+		return fmt.Errorf("image repository not ready: %v", err)
+	}
+
+	cluster.Spec.ImageHub = &rainbondv1alpha1.ImageHub{
+		Domain: "goodrain.me",
+	}
+	return nil
 }
