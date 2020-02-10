@@ -60,6 +60,14 @@ func MustNewKubeConfig(kubeconfigPath string) *rest.Config {
 	return cfg
 }
 
+func NewKubeConfig() (*rest.Config, error) {
+	cfg, err := InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+	return cfg, nil
+}
+
 func InClusterConfig() (*rest.Config, error) {
 	// Work around https://github.com/kubernetes/kubernetes/issues/40973
 	// See https://github.com/coreos/etcd-operator/issues/731#issuecomment-283804819
