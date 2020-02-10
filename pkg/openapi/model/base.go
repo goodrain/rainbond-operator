@@ -3,16 +3,16 @@ package model
 type GlobalStatus string
 
 const (
-	// 等待中
+	// waiting waiting status
 	Waiting GlobalStatus = "Waiting"
-	// 初始化中
+	// Initing initing status
 	Initing GlobalStatus = "Initing"
-	//配置中
+	//Setting setting status
 	Setting GlobalStatus = "Setting"
-	//安装中
+	//Installing installing status
 	Installing GlobalStatus = "Installing"
-	//运行中
+	//Running running status
 	Running GlobalStatus = "Running"
-	//卸载中
+	//UnInstalling uninstalling status
 	UnInstalling GlobalStatus = "UnInstalling"
 )

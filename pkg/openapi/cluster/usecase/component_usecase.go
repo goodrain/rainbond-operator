@@ -46,7 +46,12 @@ func (cc *ComponentUsecaseImpl) List(isInit bool) ([]*v1.RbdComponentStatus, err
 	reqLogger := log.WithValues("Namespace", cc.cfg.Namespace)
 	reqLogger.Info("Start listing RbdComponent associated controller")
 
-	components, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).List(metav1.ListOptions{FieldSelector: "spec.isInitComponent=true"})
+	listOption := metav1.ListOptions{}
+	if isInit {
+		log.Info("get init component status list")
+		listOption.FieldSelector = "spec.isInitComponent=true"
+	}
+	components, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).List(listOption)
 	if err != nil {
 		reqLogger.Error(err, "Listing RbdComponents")
 		return nil, err
