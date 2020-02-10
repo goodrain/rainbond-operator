@@ -44,14 +44,14 @@ spec:
                 Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
                 Cannot be updated.
               type: string
-            isInitComponent:
-              description: ' Whether this component needs to be created first'
-              type: boolean
             logLevel:
               description: LogLevel -
               type: string
             packagePath:
               type: string
+            priorityComponent:
+              description: ' Whether this component needs to be created first'
+              type: boolean
             replicas:
               description: Number of desired pods. This is a pointer to distinguish
                 between explicit zero and not specified. Defaults to 1.
@@ -64,7 +64,7 @@ spec:
               description: version of rainbond component
               type: string
           required:
-          - isInitComponent
+          - priorityComponent
           type: object
         status:
           description: RbdComponentStatus defines the observed state of RbdComponent
