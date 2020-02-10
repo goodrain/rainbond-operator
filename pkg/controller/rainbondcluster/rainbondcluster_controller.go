@@ -107,7 +107,7 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	if rainbondcluster.Status != nil && len(rainbondcluster.Status.NodeAvailPorts) > 0 {
+	if rainbondcluster.Status != nil && len(rainbondcluster.Status.NodeAvailPorts) > 0 && rainbondcluster.Spec.ImageHub != nil {
 		return reconcile.Result{}, nil
 	}
 
@@ -138,10 +138,13 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 	}
 
 	if rainbondcluster.Spec.ImageHub == nil {
-		if err := r.setImageHub(rainbondcluster); err != nil {
+		reqLogger.Info("image hub is empty, do sth.")
+		imageHub, err := r.getImageHub(rainbondcluster)
+		if err != nil {
 			reqLogger.Error(err, "set image hub info")
 			return reconcile.Result{RequeueAfter: time.Second * 2}, err
 		}
+		rainbondcluster.Spec.ImageHub = imageHub
 		if err = r.client.Update(ctx, rainbondcluster); err != nil {
 			reqLogger.Error(err, "update rainbondcluster")
 			return reconcile.Result{RequeueAfter: time.Second * 2}, err
@@ -335,7 +338,7 @@ func (r *ReconcileRainbondCluster) getMasterRoleLabel(ctx context.Context) (stri
 	return label, nil
 }
 
-func (r *ReconcileRainbondCluster) setImageHub(cluster *rainbondv1alpha1.RainbondCluster) error {
+func (r *ReconcileRainbondCluster) getImageHub(cluster *rainbondv1alpha1.RainbondCluster) (*rainbondv1alpha1.ImageHub, error) {
 	imageHubReady := func() error {
 		httpClient := &http.Client{
 			Timeout: 1 * time.Second,
@@ -363,11 +366,10 @@ func (r *ReconcileRainbondCluster) setImageHub(cluster *rainbondv1alpha1.Rainbon
 		return nil
 	}
 	if err := imageHubReady(); err != nil {
-		return fmt.Errorf("image repository not ready: %v", err)
+		return nil, fmt.Errorf("image repository not ready: %v", err)
 	}
 
-	cluster.Spec.ImageHub = &rainbondv1alpha1.ImageHub{
+	return &rainbondv1alpha1.ImageHub{
 		Domain: "goodrain.me",
-	}
-	return nil
+	}, nil
 }
