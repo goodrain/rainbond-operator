@@ -19,6 +19,22 @@ const (
 	LogLevelError LogLevel = "error"
 )
 
+//ParseLogLevel parse log level
+func ParseLogLevel(l string) LogLevel {
+	switch l {
+	case "debug":
+		return LogLevelDebug
+	case "info":
+		return LogLevelInfo
+	case "warning":
+		return LogLevelWarning
+	case "error":
+		return LogLevelError
+	default:
+		return LogLevelInfo
+	}
+}
+
 // RbdComponentSpec defines the desired state of RbdComponent
 type RbdComponentSpec struct {
 	// Number of desired pods. This is a pointer to distinguish between explicit

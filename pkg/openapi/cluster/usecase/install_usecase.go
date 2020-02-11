@@ -53,6 +53,8 @@ type componentClaim struct {
 	name      string
 	version   string
 	image     string
+	logLevel  string
+	Configs   map[string]string
 	isInit    bool
 }
 
@@ -89,7 +91,8 @@ func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 	component.Name = claim.name
 	component.Spec.Version = claim.version
 	component.Spec.Image = claim.image
-	component.Spec.LogLevel = "debug"
+	component.Spec.Configs = claim.Configs
+	component.Spec.LogLevel = v1alpha1.ParseLogLevel(claim.logLevel)
 	component.Spec.Type = claim.name
 	labels := map[string]string{"name": claim.name}
 	log.Info(fmt.Sprintf("component %s labels:%+v", component.Name, component.Labels))

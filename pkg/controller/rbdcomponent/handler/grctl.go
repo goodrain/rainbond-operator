@@ -16,7 +16,7 @@ import (
 )
 
 //GrctlName install grctl
-var GrctlName = "grctl"
+var GrctlName = "rbd-grctl"
 
 type grctl struct {
 	ctx       context.Context

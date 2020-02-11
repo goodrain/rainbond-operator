@@ -283,7 +283,7 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 		"/runner":                           "/runner",
 		"/kube-state-metrics":               "/kube-state-metrics",
 		"/mysqld-exporter":                  "/mysqld-exporter",
-		"/rbd-repo:6.5.9":                   "/rbd-repo:6.5.9",
+		"/rbd-repo:6.16.0":                  "/rbd-repo:6.16.0",
 		"/rbd-registry:2.6.2":               "/rbd-registry:2.6.2",
 		"/rbd-db:v5.1.9":                    "/rbd-db:v5.1.9",
 		"/metrics-server:v0.3.6":            "/metrics-server:v0.3.6",
