@@ -141,10 +141,12 @@ func (c *ClusterUsecaseImpl) handleRainbondClusterStatus(rainbondCluster *rainbo
 	status.FinalStatus = model.Setting
 	//prepare cluster info
 	for _, sc := range rainbondCluster.Status.StorageClasses {
-		status.ClusterInfo.Storage = append(status.ClusterInfo.Storage, model.Storage{
-			Name:        sc.Name,
-			Provisioner: sc.Provisioner,
-		})
+		if sc.Name != "rainbondslsc" && sc.Name != "rainbondsssc" {
+			status.ClusterInfo.Storage = append(status.ClusterInfo.Storage, model.Storage{
+				Name:        sc.Name,
+				Provisioner: sc.Provisioner,
+			})
+		}
 	}
 	for _, node := range rainbondCluster.Status.NodeAvailPorts {
 		status.ClusterInfo.NodeAvailPorts = append(status.ClusterInfo.NodeAvailPorts, model.NodeAvailPorts{

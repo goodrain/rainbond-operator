@@ -90,11 +90,13 @@ func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 	component.Spec.Image = claim.image
 	component.Spec.LogLevel = "debug"
 	component.Spec.Type = claim.name
-	component.Labels = map[string]string{"name": claim.name}
+	labels := map[string]string{"name": claim.name}
 	log.Info(fmt.Sprintf("component %s labels:%+v", component.Name, component.Labels))
 	if claim.isInit {
 		component.Spec.PriorityComponent = true
+		labels["priorityComponent"] = "true"
 	}
+	component.Labels = labels
 	return component
 }
 
@@ -388,7 +390,7 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(componentStatues []*v1.RbdComp
 	defer commonutil.TimeConsume(time.Now())
 
 	status := model.InstallStatus{
-		StepName: StepPrepareHub,
+		StepName: StepInstallComponent,
 	}
 
 	readyCount := 0
