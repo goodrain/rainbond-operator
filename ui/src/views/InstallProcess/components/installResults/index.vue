@@ -15,7 +15,7 @@
             ></install-component>
           </el-card>
 
-          <el-card v-else class="box-card">
+          <el-card v-else class="box-card" shadow="hover">
             <div slot="header" class="clearfix">
               <install-component
                 :item="item"
@@ -29,7 +29,7 @@
               v-if="item.stepName==='step_install_component'"
               :componentList="componentList"
             ></rainbond-component>
-            <rainbond-component v-else :mirrorComponentList="mirrorComponentList"></rainbond-component>
+            <rainbond-component v-else :componentList="mirrorComponentList"></rainbond-component>
           </el-card>
         </el-col>
         <el-col :span="24" class="d2-f-16 d2-text-cen d2-mt">
@@ -73,7 +73,7 @@ export default {
     };
   },
   created() {
-    this.detectionCluster();
+    this.loadData();
   },
   beforeDestroy() {
     this.timer && clearInterval(this.timer);
@@ -100,71 +100,12 @@ export default {
         })
         .catch(_ => {});
     },
-    detectionCluster() {
-      this.$store
-        .dispatch("detectionCluster")
-        .then(res => {
-          this.loading = false;
 
-          if (res && res.code == 200) {
-            this.installList = res.data.statusList;
-            let arrs = res.data.statusList;
-            if (arrs && arrs.length > 0) {
-              arrs.map(item => {
-                const { stepName, status } = item;
-                if (
-                  stepName === "step_download" &&
-                  status === "status_failed"
-                ) {
-                  this.dialogVisible = true;
-                  this.timer && clearInterval(this.timer);
-                }
-              });
-            }
-
-            if (
-              res.data.finalStatus === "status_waiting" ||
-              res.data.finalStatus === "status_processing"
-            ) {
-              this.timerdetection = setTimeout(() => {
-                this.detectionCluster();
-              }, 5000);
-            } else if (res.data.finalStatus === "status_finished") {
-              this.timerdetection && clearInterval(this.timerdetection);
-              this.addCluster();
-            } else {
-              this.dialogVisible = true;
-            }
-          }
-        })
-        .catch(err => {
-          console.log(err);
-        });
+    loadData() {
+      this.fetchClusterInstallResults();
+      this.fetchClusterInstallResultsState();
+      this.fetchClusterInstallMirrorWarehouse();
     },
-
-    addCluster() {
-      this.$store
-        .dispatch("addCluster")
-        .then(en => {
-          if (en && en.code == 200) {
-            this.fetchClusterInstallResults();
-            this.fetchClusterInstallResultsState();
-            this.fetchClusterInstallMirrorWarehouse();
-          } else if (en && en.code == 1002) {
-            this.$notify({
-              type: "warning",
-              title: "下载流程正在进行中",
-              message: "请稍后再试"
-            });
-          } else {
-            this.dialogVisible = true;
-          }
-        })
-        .catch(err => {
-          console.log(err);
-        });
-    },
-
     format(percentage) {
       return "";
     },
@@ -172,8 +113,12 @@ export default {
       this.addCluster();
     },
     fetchClusterInstallResults() {
+      this.timer = setTimeout(() => {
+        this.fetchClusterInstallResults();
+      }, 10000);
       this.$store.dispatch("fetchClusterInstallResults").then(res => {
         if (res) {
+          this.loading = false;
           this.installList = res.data.statusList;
           let arrs = res.data.statusList;
           if (arrs && arrs.length > 0) {
@@ -184,38 +129,30 @@ export default {
                 this.timer && clearInterval(this.timer);
               }
             });
-            if (
-              res.data.finalStatus === "status_finished" ||
-              res.data.finalStatus === "status_failed"
-            ) {
-              this.$router.push({
-                name: "successfulInstallation"
-              });
-            } else {
-              this.timer = setTimeout(() => {
-                this.fetchClusterInstallResults();
-              }, 8000);
-            }
           }
+        } else {
+          this.loading = false;
         }
       });
     },
     fetchClusterInstallResultsState() {
+      this.timers = setTimeout(() => {
+        this.fetchClusterInstallResultsState();
+      }, 10000);
       this.$store.dispatch("fetchClusterInstallResultsState").then(res => {
         this.componentList = res.data;
-        this.timers = setTimeout(() => {
-          this.fetchClusterInstallResultsState();
-        }, 8000);
       });
     },
     fetchClusterInstallMirrorWarehouse() {
+      this.timermirror = setTimeout(() => {
+        this.fetchClusterInstallMirrorWarehouse();
+      }, 10000);
       this.$store
         .dispatch("fetchClusterInstallResultsState", { isInit: true })
         .then(res => {
-          this.mirrorComponentList = res.data;
-          this.timermirror = setTimeout(() => {
-            this.fetchClusterInstallMirrorWarehouse();
-          }, 8000);
+          if (res) {
+            this.mirrorComponentList = res.data;
+          }
         });
     }
   }

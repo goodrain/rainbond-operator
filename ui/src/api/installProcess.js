@@ -69,14 +69,14 @@ export function getClusterInstallResults () {
   })
 }
 //  安装集群配置结果
-export function getClusterInstallResultsState (data) {
+export function getClusterInstallResultsState (params) {
   return request({
     url:
       //  'http://doc.goodrain.org/mock/48/cluster/components',
       '/cluster/components',
     method: 'get',
-    data:{
-      isInit:data.isInit?data.isInit:false
+    params:{
+      isInit:params?params.isInit:false
     }
   })
 }

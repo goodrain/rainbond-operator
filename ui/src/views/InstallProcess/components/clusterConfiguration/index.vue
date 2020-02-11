@@ -12,18 +12,18 @@
     >
       <el-form-item label="镜像仓库">
         <el-collapse class="setbr d2-w-640" v-model="activeImageHubNames">
-          <el-collapse-item class="clcolor" name="false">
+          <el-collapse-item class="clcolor" name="2">
             <template slot="title">
               <el-radio-group
                 class="d2-ml-35"
-                v-model="ruleForm.imageHub.default"
+                v-model="activeImageHubNames"
                 @change="changeImageHubRadio"
               >
-                <el-radio class="d2-w-150" :label="true">新安装默认镜像仓库</el-radio>
-                <el-radio :label="false">提供已有的镜像仓库</el-radio>
+                <el-radio class="d2-w-150" :label="'1'">新安装默认镜像仓库</el-radio>
+                <el-radio :label="'2'">提供已有的镜像仓库</el-radio>
               </el-radio-group>
             </template>
-            <div v-show="!ruleForm.imageHub.default">
+            <div v-show="activeImageHubNames!='1'">
               <el-form-item label="域名" label-width="85px" class="d2-mt d2-form-item">
                 <el-input v-model="ruleForm.imageHub.domain" class="d2-input_inner"></el-input>
               </el-form-item>
@@ -43,18 +43,18 @@
       </el-form-item>
       <el-form-item label="数据中心数据库">
         <el-collapse class="setbr d2-w-640" v-model="activeregionDatabaseNames">
-          <el-collapse-item class="clcolor" name="false">
+          <el-collapse-item class="clcolor" name="2">
             <template slot="title">
               <el-radio-group
                 class="d2-ml-35"
-                v-model="ruleForm.regionDatabase.default"
+                v-model="activeregionDatabaseNames"
                 @change="changeregionDatabaseRadio"
               >
-                <el-radio class="d2-w-150" :label="true">新安装数据库</el-radio>
-                <el-radio :label="false">提供已有的数据仓库</el-radio>
+                <el-radio class="d2-w-150" :label="'1'">新安装数据库</el-radio>
+                <el-radio :label="'2'">提供已有的数据仓库</el-radio>
               </el-radio-group>
             </template>
-            <div v-show="!ruleForm.regionDatabase.default">
+            <div v-show="activeregionDatabaseNames!='1'">
               <el-form-item label="地址" label-width="85px" class="d2-mt d2-form-item" prop="address">
                 <el-input
                   v-model="ruleForm.regionDatabase.host"
@@ -77,18 +77,18 @@
       </el-form-item>
       <el-form-item label="UI数据库">
         <el-collapse class="setbr d2-w-640" v-model="activeUiDatabaseNames">
-          <el-collapse-item class="clcolor" name="false">
+          <el-collapse-item class="clcolor" name="2">
             <template slot="title">
               <el-radio-group
                 class="d2-ml-35"
-                v-model="ruleForm.uiDatabase.default"
+                v-model="activeUiDatabaseNames"
                 @change="changeUiDatabaseRadio"
               >
-                <el-radio class="d2-w-150" :label="true">新安装UI数据库</el-radio>
-                <el-radio :label="false">提供已有的UI数据库</el-radio>
+                <el-radio class="d2-w-150" :label="'1'">新安装UI数据库</el-radio>
+                <el-radio :label="'2'">提供已有的UI数据库</el-radio>
               </el-radio-group>
             </template>
-            <div v-show="!ruleForm.uiDatabase.default">
+            <div v-show="activeUiDatabaseNames!='1'">
               <el-form-item
                 label="地址"
                 label-width="85px"
@@ -112,18 +112,14 @@
       </el-form-item>
       <el-form-item label="ETCD">
         <el-collapse class="setbr d2-w-640" v-model="activeETCDNames">
-          <el-collapse-item class="clcolor" name="false">
+          <el-collapse-item class="clcolor" name="2">
             <template slot="title">
-              <el-radio-group
-                class="d2-ml-35"
-                v-model="ruleForm.etcdConfig.default"
-                @change="changeETCDRadio"
-              >
-                <el-radio class="d2-w-150" :label="true">新安装ETCD</el-radio>
-                <el-radio :label="false">提供已有的ETCD</el-radio>
+              <el-radio-group class="d2-ml-35" v-model="activeETCDNames" @change="changeETCDRadio">
+                <el-radio class="d2-w-150" :label="'1'">新安装ETCD</el-radio>
+                <el-radio :label="'2'">提供已有的ETCD</el-radio>
               </el-radio-group>
             </template>
-            <div v-show="!ruleForm.etcdConfig.default" v-if="ruleForm.etcdConfig">
+            <div v-show="activeETCDNames!='1'" v-if="ruleForm.etcdConfig">
               <el-form-item label="节点列表" label-width="85px" class="d2-mt d2-form-item">
                 <div
                   v-for="(item, index) in ruleForm.etcdConfig.endpoints"
@@ -178,10 +174,14 @@
         </el-collapse>
         <div class="clues">Rainbon各组件依赖ETCD服务，若不提供则默认安装</div>
       </el-form-item>
-      <el-form-item label="网关安装节点" prop="nodes">
+      <el-form-item
+        label="网关安装节点"
+        prop="nodes"
+        v-if="clusterInfo&&clusterInfo.nodeAvailPorts&&clusterInfo.nodeAvailPorts.length>0"
+      >
         <el-checkbox-group v-model="setgatewayNodes">
           <el-checkbox
-            v-for="(item, index) in ruleForm.gatewayNodes"
+            v-for="(item, index) in clusterInfo.nodeAvailPorts"
             :key="index"
             class="cr_checkbox"
             :label="item.nodeIP"
@@ -192,11 +192,11 @@
         <div class="clues">Rainbond网关服务默认安装到集群所有合适的管理节点，你可以选择配置，网关服务将占用宿主机80/443等端口</div>
       </el-form-item>
       <el-form-item label="分配默认域名">
-        <el-switch v-model="ruleForm.HTTPDomain.default"></el-switch>
+        <el-switch v-model="HTTPDomainSwitch"></el-switch>
         <el-input
           style="margin-left:10px"
-          v-if="!ruleForm.HTTPDomain.default"
-          v-model="ruleForm.HTTPDomain.custom"
+          v-if="!HTTPDomainSwitch"
+          v-model="ruleForm.HTTPDomain"
           placeholder="请输入自定义域名"
           class="d2-input_inner"
         ></el-input>
@@ -218,22 +218,25 @@
       </el-form-item>
       <el-form-item label="共享存储驱动">
         <el-collapse class="setbr d2-w-640" v-model="activeStorageNames">
-          <el-collapse-item class="clcolor" name="false">
+          <el-collapse-item class="clcolor" name="2">
             <template slot="title">
               <el-radio-group
-                v-model="ruleForm.storage.default"
+                v-model="activeStorageNames"
                 class="d2-ml-35"
                 @change="changeStorageRadio"
               >
-                <el-radio class="d2-w-150" :label="true">新部署NFS-Server</el-radio>
-                <el-radio :label="false">选择已有的共享存储驱动</el-radio>
+                <el-radio class="d2-w-150" :label="'1'">新部署NFS-Server</el-radio>
+                <el-radio :label="'2'">选择已有的共享存储驱动</el-radio>
               </el-radio-group>
             </template>
-            <div v-show="!ruleForm.storage.default">
+            <div
+              v-show="activeStorageNames!='1'"
+              v-if="clusterInfo&&clusterInfo.storage&&clusterInfo.storage.length>0"
+            >
               <el-form-item label="存储名称" label-width="85px" class="d2-mt d2-form-item">
-                <el-radio-group v-model="ruleForm.storage.storageClassName">
+                <el-radio-group v-model="ruleForm.storage.name">
                   <el-radio
-                    v-for="(item) in ruleForm.storage.opts"
+                    v-for="(item) in clusterInfo.storage"
                     :key="item.name"
                     :label="item.name"
                   ></el-radio>
@@ -246,7 +249,7 @@
 
       <!-- <el-form-item label="fsTab信息">
         <el-collapse class="setbr d2-w-640" v-model="activeFstabLineNames">
-          <el-collapse-item class="clcolor" name="false">
+          <el-collapse-item class="clcolor" name="2">
             <template slot="title">
               <el-radio-group
                 v-model="ruleForm.rainbondShareStorage.fstabLine.default"
@@ -348,6 +351,12 @@
 <script>
 export default {
   name: "clusterConfiguration",
+  props: {
+    clusterInfo: {
+      type: Object,
+      default: null
+    }
+  },
   data() {
     let validateNodes = (rule, value, callback) => {
       if (this.setgatewayNodes.length === 0) {
@@ -369,6 +378,8 @@ export default {
           callback();
         } else if (arr.length >= 1) {
           callback(new Error("格式不对，请重新输入"));
+        } else {
+          callback();
         }
       } else {
         callback();
@@ -400,13 +411,31 @@ export default {
     return {
       upLoading: false,
       loading: true,
-      ruleForm: false,
-      activeImageHubNames: "true",
-      activeregionDatabaseNames: "true",
-      activeUiDatabaseNames: "true",
-      activeETCDNames: "true",
-      activeStorageNames: "true",
-      activeFstabLineNames: "true",
+      HTTPDomainSwitch: true,
+      ruleForm: {
+        imageHub: {
+          domain: "",
+          namespace: "",
+          username: "",
+          password: ""
+        },
+        regionDatabase: { host: "", port: "", username: "", password: "" },
+        uiDatabase: { host: "", port: "", username: "", password: "" },
+        etcdConfig: {
+          endpoints: [""],
+          certInfo: { caFile: "", certFile: "", keyFile: "" }
+        },
+        HTTPDomain: "",
+        gatewayIngressIPs: [""],
+        storage: { name: "" },
+        rainbondShareStorage: { storageClassName: "", fstabLine: {} }
+      },
+      activeImageHubNames: "1",
+      activeregionDatabaseNames: "1",
+      activeUiDatabaseNames: "1",
+      activeETCDNames: "1",
+      activeStorageNames: "1",
+      activeFstabLineNames: "1",
       setgatewayNodes: [],
       fileList: [],
       rules: {
@@ -474,51 +503,50 @@ export default {
   },
   methods: {
     changeImageHubRadio(value) {
-      this.activeImageHubNames = value + "";
-      if (!value) {
-        this.ruleForm.imageHub.domain = "";
-        this.ruleForm.imageHub.namespace = "";
-        this.ruleForm.imageHub.username = "";
-        this.ruleForm.imageHub.password = "";
-      }
+      this.activeImageHubNames = value;
+      // if (value == "1") {
+      //   this.ruleForm.imageHub.domain = "";
+      //   this.ruleForm.imageHub.namespace = "";
+      //   this.ruleForm.imageHub.username = "";
+      //   this.ruleForm.imageHub.password = "";
+      // }
     },
     changeregionDatabaseRadio(value) {
-      this.activeregionDatabaseNames = value + "";
-      if (!value) {
-        this.ruleForm.regionDatabase.host = "";
-        this.ruleForm.regionDatabase.port = "";
-        this.ruleForm.regionDatabase.username = "";
-        this.ruleForm.regionDatabase.password = "";
-      }
+      this.activeregionDatabaseNames = value;
+      // if (value == "1") {
+      //   this.ruleForm.regionDatabase.host = "";
+      //   this.ruleForm.regionDatabase.port = "";
+      //   this.ruleForm.regionDatabase.username = "";
+      //   this.ruleForm.regionDatabase.password = "";
+      // }
     },
     changeUiDatabaseRadio(value) {
-      this.activeUiDatabaseNames = value + "";
-      if (!value) {
-        this.ruleForm.uiDatabase.host = "";
-        this.ruleForm.uiDatabase.port = "";
-        this.ruleForm.uiDatabase.username = "";
-        this.ruleForm.uiDatabase.password = "";
-      }
+      this.activeUiDatabaseNames = value;
+      // if (value == "1") {
+      //   this.ruleForm.uiDatabase.host = "";
+      //   this.ruleForm.uiDatabase.port = "";
+      //   this.ruleForm.uiDatabase.username = "";
+      //   this.ruleForm.uiDatabase.password = "";
+      // }
     },
     changeETCDRadio(value) {
-      this.activeETCDNames = value + "";
-      if (!value) {
-        this.ruleForm.etcdConfig.endpoints = [""];
-        this.ruleForm.etcdConfig.default = false;
-        this.ruleForm.etcdConfig.certInfo.ca_file = "";
-        this.ruleForm.etcdConfig.certInfo.cert_file = "";
-        this.ruleForm.etcdConfig.certInfo.key_file = "";
-      }
+      this.activeETCDNames = value;
+      // if (value == "1") {
+      //   this.ruleForm.etcdConfig.endpoints = [""];
+      //   this.ruleForm.etcdConfig.certInfo.ca_file = "";
+      //   this.ruleForm.etcdConfig.certInfo.cert_file = "";
+      //   this.ruleForm.etcdConfig.certInfo.key_file = "";
+      // }
     },
     changeStorageRadio(value) {
-      this.activeStorageNames = value + "";
-      if (!value) {
-        this.ruleForm.storage.storageClassName = "";
+      this.activeStorageNames = value;
+      if (value == "1") {
+        this.ruleForm.storage.name = "";
       }
     },
     changeFstabLineRadio(value) {
-      this.activeFstabLineNames = value + "";
-      if (!value) {
+      this.activeFstabLineNames = value;
+      if (value == "1") {
         this.ruleForm.rainbondShareStorage.fstabLine.fileSystem = "";
         this.ruleForm.rainbondShareStorage.fstabLine.mountPoint = "/grdata";
         this.ruleForm.rainbondShareStorage.fstabLine.type = "";
@@ -543,42 +571,33 @@ export default {
       this.$store.dispatch("fetchClusterInfo").then(res => {
         if (res && res.data) {
           this.loading = false;
-          this.ruleForm = res.data;
+          // this.ruleForm = res.data;
+          if (res.data.HTTPDomain && res.data.HTTPDomain != "") {
+            this.HTTPDomainSwitch = false;
+            this.ruleForm.HTTPDomain = res.data.HTTPDomain;
+          }
           if (
-            !res.data.gatewayIngressIPs ||
-            (res.data.gatewayIngressIPs &&
-              res.data.gatewayIngressIPs.length === 0)
+            res.data.gatewayIngressIPs &&
+            res.data.gatewayIngressIPs.length > 0
           ) {
-            this.ruleForm.gatewayIngressIPs = [""];
+            this.ruleForm.gatewayIngressIPs = res.data.gatewayIngressIPs;
           }
           let arr = [];
-          res.data.gatewayNodes &&
-            res.data.gatewayNodes.length > 0 &&
-            res.data.gatewayNodes.map(item => {
-              const { selected, nodeIP } = item;
-              if (selected) {
-                arr.push(nodeIP);
-              }
+          this.clusterInfo &&
+            this.clusterInfo.nodeAvailPorts.length > 0 &&
+            this.clusterInfo.nodeAvailPorts.map(item => {
+              const { nodeIP } = item;
+              arr.push(nodeIP);
             });
+
           this.setgatewayNodes = arr;
         }
       });
     },
-    submitForm(formName, next) {
+    submitForm(formName) {
       this.$refs[formName].validate(valid => {
         if (valid) {
-          let arr = [];
-          this.setgatewayNodes.length > 0 &&
-            this.setgatewayNodes.map(item => {
-              arr.push({ nodeIP: item });
-            });
-          this.ruleForm.gatewayNodes = arr;
           this.loading = true;
-          this.ruleForm.regionDatabase.port = Number(
-            this.ruleForm.regionDatabase.port
-          );
-
-          this.ruleForm.uiDatabase.port = Number(this.ruleForm.uiDatabase.port);
           // this.ruleForm.rainbondShareStorage.fstabLine.dump = Number(
           //   this.ruleForm.fstabLine.dump
           // );
@@ -586,12 +605,50 @@ export default {
           //   this.ruleForm.fstabLine.pass
           // );
 
+          let obj = {};
+          if (this.setgatewayNodes.length > 0) {
+            let arr = [];
+            this.setgatewayNodes.map(item => {
+              arr.push({ nodeIP: item });
+            });
+            this.ruleForm.gatewayNodes = arr;
+            obj.gatewayNodes = arr;
+          }
+          if (this.activeImageHubNames === "2") {
+            obj.imageHub = this.ruleForm.imageHub;
+          }
+          if (this.activeregionDatabaseNames === "2") {
+            obj.regionDatabase = this.ruleForm.regionDatabase;
+            obj.regionDatabase.port = Number(obj.regionDatabase.port);
+          }
+          if (this.activeUiDatabaseNames === "2") {
+            obj.uiDatabase = this.ruleForm.uiDatabase;
+            obj.uiDatabase.port = Number(obj.uiDatabase.port);
+          }
+
+          if (this.activeETCDNames === "2") {
+            obj.etcdConfig = this.ruleForm.etcdConfig;
+          }
+          if (this.activeStorageNames === "2") {
+            obj.storage = this.ruleForm.storage;
+          }
+          if (
+            this.ruleForm.gatewayIngressIPs &&
+            this.ruleForm.gatewayIngressIPs.length > 0 &&
+            this.ruleForm.gatewayIngressIPs[0] != ""
+          ) {
+            obj.gatewayIngressIPs = this.ruleForm.gatewayIngressIPs;
+          }
+
+          if (!this.HTTPDomainSwitch) {
+            obj.HTTPDomain = this.ruleForm.HTTPDomain;
+          }
           this.$store
-            .dispatch("fixClusterInfo", this.ruleForm)
+            .dispatch("fixClusterInfo", obj)
             .then(res => {
               this.handleCancelLoading();
               if (res && res.code == 200) {
-                this.$emit("onResults");
+                this.addCluster();
               }
             })
             .catch(err => {
@@ -603,7 +660,21 @@ export default {
         }
       });
     },
-
+    addCluster() {
+      this.$store
+        .dispatch("addCluster")
+        .then(en => {
+          if (en && en.code == 200) {
+            this.$emit("onResults");
+          } else {
+            this.loading = false;
+          }
+        })
+        .catch(err => {
+          this.loading = false;
+          console.log(err);
+        });
+    },
     handleCancelLoading() {
       this.loading = false;
     }

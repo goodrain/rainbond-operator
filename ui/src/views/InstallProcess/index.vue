@@ -3,7 +3,11 @@
     <div class="d2-ml-115 d2-w-1100">
       <el-collapse class="clbr" v-model="activeName" accordion>
         <el-collapse-item name="cluster" class="installationStepTitle" title="集群安装配置">
-          <cluster-configuration @onResults="handlePerform('startrRsults')" class="d2-mt"></cluster-configuration>
+          <cluster-configuration
+            :clusterInfo="clusterInfo"
+            @onResults="handlePerform('startrRsults')"
+            class="d2-mt"
+          ></cluster-configuration>
         </el-collapse-item>
         <el-collapse-item
           v-if="resultShow"
@@ -31,17 +35,22 @@ export default {
   data() {
     return {
       activeName: "cluster",
-      resultShow: false
+      resultShow: false,
+      clusterInfo: null
     };
   },
   created() {
     document.documentElement.scrollTop = 0;
     this.handleState();
   },
+  beforeDestroy() {
+    this.timer && clearInterval(this.timer);
+  },
   methods: {
     handleState() {
       this.$store.dispatch("fetchState").then(res => {
         if (res && res.code === 200 && res.data.final_status) {
+          this.clusterInfo = res.data.clusterInfo;
           switch (res.data.final_status) {
             case "Initing":
               this.handleRouter("index");
@@ -50,10 +59,10 @@ export default {
               this.handleRouter("index");
               break;
             case "Installing":
-              this.handlePerform("cluster");
+              this.handlePerform("startrRsults");
               break;
             case "Setting":
-              this.handlePerform("startrRsults");
+              this.handlePerform("cluster");
               break;
             case "Running":
               this.handleRouter("successfulInstallation");
@@ -64,6 +73,11 @@ export default {
             default:
               break;
           }
+          this.timer = setTimeout(() => {
+            this.handleState();
+          }, 10000);
+        } else {
+          this.handleRouter("index");
         }
       });
     },
@@ -75,7 +89,7 @@ export default {
       this.$router.push({
         name
       });
-    },
+    }
   }
 };
 </script>
