@@ -354,6 +354,8 @@ func (p *pkg) updateConditionStatus(typ3 rainbondv1alpha1.PackageConditionType, 
 			p.pkg.Status.Conditions[i].Status = status
 			if status == rainbondv1alpha1.Completed {
 				p.pkg.Status.Conditions[i].Progress = 100
+				p.pkg.Status.Conditions[i].Reason = ""
+				p.pkg.Status.Conditions[i].Message = ""
 			}
 			break
 		}
