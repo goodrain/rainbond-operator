@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -20,23 +21,26 @@ var mysqlUserKey = "mysql-user"
 var mysqlPasswordKey = "mysql-password"
 
 type db struct {
-	ctx       context.Context
-	client    client.Client
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
-	pkg       *rainbondv1alpha1.RainbondPackage
-	labels    map[string]string
+	ctx                      context.Context
+	client                   client.Client
+	component                *rainbondv1alpha1.RbdComponent
+	cluster                  *rainbondv1alpha1.RainbondCluster
+	pkg                      *rainbondv1alpha1.RainbondPackage
+	labels                   map[string]string
+	mysqlUser, mysqlPassword string
 }
 
 //NewDB new db
 func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &db{
-		ctx:       ctx,
-		client:    client,
-		component: component,
-		cluster:   cluster,
-		pkg:       pkg,
-		labels:    component.GetLabels(),
+		ctx:           ctx,
+		client:        client,
+		component:     component,
+		cluster:       cluster,
+		pkg:           pkg,
+		labels:        component.GetLabels(),
+		mysqlUser:     "write",
+		mysqlPassword: string(uuid.NewUUID())[0:8],
 	}
 }
 
@@ -44,13 +48,12 @@ func (d *db) Before() error {
 	if d.cluster.Spec.RegionDatabase != nil && d.cluster.Spec.UIDatabase != nil {
 		return NewIgnoreError("use custom database")
 	}
-
-	secret := d.secretForDB()
-	return k8sutil.UpdateOrCreateResource(d.ctx, d.client, log, secret, secret)
+	return nil
 }
 
 func (d *db) Resources() []interface{} {
 	return []interface{}{
+		d.secretForDB(),
 		d.statefulsetForDB(),
 		d.serviceForDB(),
 		d.serviceForExporter(),
@@ -97,7 +100,7 @@ func (d *db) statefulsetForDB() interface{} {
 							Env: []corev1.EnvVar{
 								{
 									Name:  "MYSQL_ALLOW_EMPTY_PASSWORD",
-									Value: "true",
+									Value: "yes",
 								},
 								{
 									Name: "MYSQL_USER",
@@ -112,7 +115,7 @@ func (d *db) statefulsetForDB() interface{} {
 									},
 								},
 								{
-									Name: "MYSQL_ROOT_PASSWORD",
+									Name: "MYSQL_PASSWORD",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
@@ -132,11 +135,6 @@ func (d *db) statefulsetForDB() interface{} {
 								{
 									Name:      "rbd-db-data",
 									MountPath: "/data",
-								},
-								{
-									Name:      "mysqlcnf",
-									MountPath: "/etc/mysql/conf.d/mysql.cnf",
-									SubPath:   "mysql.cnf",
 								},
 								{
 									Name:      "initdb",
@@ -167,7 +165,7 @@ func (d *db) statefulsetForDB() interface{} {
 							Env: []corev1.EnvVar{
 								{
 									Name:  "DATA_SOURCE_NAME",
-									Value: "root:@tcp(127.0.0.1:3306)/",
+									Value: fmt.Sprintf("%s:%s@tcp(127.0.0.1:3306)/", d.mysqlUser, d.mysqlPassword),
 								},
 							},
 						},
@@ -179,22 +177,6 @@ func (d *db) statefulsetForDB() interface{} {
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: "/opt/rainbond/data/db",
 									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-								},
-							},
-						},
-						{
-							Name: "mysqlcnf",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "rbd-db-conf",
-									},
-									Items: []corev1.KeyToPath{
-										{
-											Key:  "mysql.cnf",
-											Path: "mysql.cnf",
-										},
-									},
 								},
 							},
 						},
@@ -300,15 +282,15 @@ func (d *db) initdbCMForDB() interface{} {
 	return cm
 }
 
-func (d *db) secretForDB() *corev1.Secret {
+func (d *db) secretForDB() interface{} {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
 			Namespace: d.component.Namespace,
 		},
 		StringData: map[string]string{
-			mysqlPasswordKey: string(uuid.NewUUID()),
-			mysqlUserKey:     "write",
+			mysqlPasswordKey: d.mysqlPassword,
+			mysqlUserKey:     d.mysqlUser,
 		},
 	}
 }

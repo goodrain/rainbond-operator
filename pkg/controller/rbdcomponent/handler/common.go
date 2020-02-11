@@ -3,10 +3,12 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"path"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -41,16 +43,28 @@ func isUIDBReady(ctx context.Context, cli client.Client, cluster *rainbondv1alph
 	return ErrNoDBEndpoints
 }
 
-func getDefaultDBInfo(in *rainbondv1alpha1.Database) *rainbondv1alpha1.Database {
+func getDefaultDBInfo(ctx context.Context, cli client.Client, in *rainbondv1alpha1.Database, namespace, name string) (*rainbondv1alpha1.Database, error) {
 	if in != nil {
-		return in
+		// use custom db
+		return in, nil
 	}
+
+	secret := &corev1.Secret{}
+	if err := cli.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, secret); err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return nil, fmt.Errorf("get secret %s/%s: %v", name, namespace, err)
+		}
+		return nil, NewIgnoreError(fmt.Sprintf("secret %s/%s not fount: %v", name, namespace, err))
+	}
+	user := string(secret.Data[mysqlUserKey])
+	pass := string(secret.Data[mysqlPasswordKey])
+
 	return &rainbondv1alpha1.Database{
 		Host:     DBName,
 		Port:     3306,
-		Username: "root",
-		Password: "rainbond",
-	}
+		Username: user,
+		Password: pass,
+	}, nil
 }
 
 func etcdSecret(ctx context.Context, cli client.Client, cluster *rainbondv1alpha1.RainbondCluster) (*corev1.Secret, error) {

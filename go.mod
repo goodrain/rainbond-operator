@@ -26,6 +26,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/sparrc/go-ping v0.0.0-20190613174326-4e5b6552494c // indirect
 	github.com/spf13/pflag v1.0.5
+	github.com/stretchr/testify v1.4.0
 	gopkg.in/VividCortex/ewma.v1 v1.1.1 // indirect
 	gopkg.in/cheggaaa/pb.v2 v2.0.7 // indirect
 	gopkg.in/fatih/color.v1 v1.7.0 // indirect

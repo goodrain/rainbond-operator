@@ -40,7 +40,11 @@ func NewEventLog(ctx context.Context, client client.Client, component *rainbondv
 }
 
 func (e *eventlog) Before() error {
-	e.db = getDefaultDBInfo(e.cluster.Spec.RegionDatabase)
+	db, err := getDefaultDBInfo(e.ctx, e.client, e.cluster.Spec.RegionDatabase, e.component.Namespace, DBName)
+	if err != nil {
+		return fmt.Errorf("get db info: %v", err)
+	}
+	e.db = db
 
 	secret, err := etcdSecret(e.ctx, e.client, e.cluster)
 	if err != nil {

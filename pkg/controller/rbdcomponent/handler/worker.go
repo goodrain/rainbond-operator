@@ -40,7 +40,11 @@ func NewWorker(ctx context.Context, client client.Client, component *rainbondv1a
 }
 
 func (w *worker) Before() error {
-	w.db = getDefaultDBInfo(w.cluster.Spec.RegionDatabase)
+	db, err := getDefaultDBInfo(w.ctx, w.client, w.cluster.Spec.RegionDatabase, w.component.Namespace, DBName)
+	if err != nil {
+		return fmt.Errorf("get db info: %v", err)
+	}
+	w.db = db
 
 	secret, err := etcdSecret(w.ctx, w.client, w.cluster)
 	if err != nil {
