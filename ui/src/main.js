@@ -10,7 +10,7 @@ import store from '@/store/index'
 // 菜单和路由设置
 import router from './router'
 import menuHeader from '@/menu/header'
-import menuAside from '@/menu/aside'
+// import menuAside from '@/menu/aside'
 import { frameInRoutes } from '@/router/routes'
 
 // 核心插件

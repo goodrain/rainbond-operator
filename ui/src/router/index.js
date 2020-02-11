@@ -45,7 +45,7 @@ router.beforeEach(async (to, from, next) => {
   // if (to.matched.some(r => r.meta.auth)) {
   // 这里暂时将cookie里是否存有token作为验证是否登录的条件
   // 请根据自身业务需要修改
-  const token = util.cookies.get('token')
+  // const token = util.cookies.get('token')
   // if (token && token !== 'undefined') {
   //   next()
   // } else {

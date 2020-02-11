@@ -26,14 +26,14 @@
             </div>
 
             <rainbond-component
-              v-if="item.stepName==='step_install_component'"
+              v-if="item.stepName==='step_install_component'&&item.status!=='status_waiting'"
               :componentList="componentList"
             ></rainbond-component>
             <rainbond-component v-else :componentList="mirrorComponentList"></rainbond-component>
           </el-card>
         </el-col>
         <el-col :span="24" class="d2-f-16 d2-text-cen d2-mt">
-          <el-button size="small" type="primary" @click="onhandleDelete">卸载</el-button>
+          <el-button type="primary" @click="onhandleDelete">卸载</el-button>
         </el-col>
       </el-row>
     </div>
@@ -46,117 +46,117 @@
   </div>
 </template>
 <script>
-import Uploads from "../upload";
-import InstallComponent from "./installComponent";
-import RainbondComponent from "./rainbondComponent";
+import Uploads from '../upload'
+import InstallComponent from './installComponent'
+import RainbondComponent from './rainbondComponent'
 
 export default {
-  name: "installResults",
+  name: 'installResults',
   components: {
     Uploads,
     InstallComponent,
     RainbondComponent
   },
-  data() {
+  data () {
     return {
       nextLoading: false,
       dialogVisible: false,
       installList: [],
       loading: true,
       componentState: {
-        Running: "成功",
-        Waiting: "等待",
-        Terminated: "停止"
+        Running: '成功',
+        Waiting: '等待',
+        Terminated: '停止'
       },
       componentList: [],
       mirrorComponentList: []
-    };
+    }
   },
-  created() {
-    this.loadData();
+  created () {
+    this.loadData()
   },
-  beforeDestroy() {
-    this.timer && clearInterval(this.timer);
-    this.timerdetection && clearInterval(this.timerdetection);
-    this.timers && clearInterval(this.timers);
-    this.timermirror && clearInterval(this.timermirror);
+  beforeDestroy () {
+    this.timer && clearInterval(this.timer)
+    this.timerdetection && clearInterval(this.timerdetection)
+    this.timers && clearInterval(this.timers)
+    this.timermirror && clearInterval(this.timermirror)
   },
   methods: {
-    onhandleDelete() {
-      this.$confirm("确定要卸载吗？")
+    onhandleDelete () {
+      this.$confirm('确定要卸载吗？')
         .then(_ => {
-          this.$store.dispatch("deleteUnloadingPlatform").then(res => {
+          this.$store.dispatch('deleteUnloadingPlatform').then(res => {
             if (res && res.code === 200) {
               this.$notify({
-                type: "success",
-                title: "卸载",
-                message: "卸载成功"
-              });
+                type: 'success',
+                title: '卸载',
+                message: '卸载成功'
+              })
               this.$router.push({
-                name: "index"
-              });
+                name: 'index'
+              })
             }
-          });
+          })
         })
-        .catch(_ => {});
+        .catch(_ => {})
     },
 
-    loadData() {
-      this.fetchClusterInstallResults();
-      this.fetchClusterInstallResultsState();
-      this.fetchClusterInstallMirrorWarehouse();
+    loadData () {
+      this.fetchClusterInstallResults()
+      this.fetchClusterInstallResultsState()
+      this.fetchClusterInstallMirrorWarehouse()
     },
-    format(percentage) {
-      return "";
+    format (percentage) {
+      return ''
     },
-    onSubmitLoads() {
-      this.addCluster();
+    onSubmitLoads () {
+      this.addCluster()
     },
-    fetchClusterInstallResults() {
+    fetchClusterInstallResults () {
       this.timer = setTimeout(() => {
-        this.fetchClusterInstallResults();
-      }, 10000);
-      this.$store.dispatch("fetchClusterInstallResults").then(res => {
+        this.fetchClusterInstallResults()
+      }, 10000)
+      this.$store.dispatch('fetchClusterInstallResults').then(res => {
         if (res) {
-          this.loading = false;
-          this.installList = res.data.statusList;
-          let arrs = res.data.statusList;
+          this.loading = false
+          this.installList = res.data.statusList
+          let arrs = res.data.statusList
           if (arrs && arrs.length > 0) {
             arrs.map(item => {
-              const { stepName, status } = item;
-              if (stepName === "step_download" && status === "status_failed") {
-                this.dialogVisible = true;
-                this.timer && clearInterval(this.timer);
+              const { stepName, status } = item
+              if (stepName === 'step_download' && status === 'status_failed') {
+                this.dialogVisible = true
+                this.timer && clearInterval(this.timer)
               }
-            });
+            })
           }
         } else {
-          this.loading = false;
+          this.loading = false
         }
-      });
+      })
     },
-    fetchClusterInstallResultsState() {
+    fetchClusterInstallResultsState () {
       this.timers = setTimeout(() => {
-        this.fetchClusterInstallResultsState();
-      }, 10000);
-      this.$store.dispatch("fetchClusterInstallResultsState").then(res => {
-        this.componentList = res.data;
-      });
+        this.fetchClusterInstallResultsState()
+      }, 10000)
+      this.$store.dispatch('fetchClusterInstallResultsState').then(res => {
+        this.componentList = res.data
+      })
     },
-    fetchClusterInstallMirrorWarehouse() {
+    fetchClusterInstallMirrorWarehouse () {
       this.timermirror = setTimeout(() => {
-        this.fetchClusterInstallMirrorWarehouse();
-      }, 10000);
+        this.fetchClusterInstallMirrorWarehouse()
+      }, 10000)
       this.$store
-        .dispatch("fetchClusterInstallResultsState", { isInit: true })
+        .dispatch('fetchClusterInstallResultsState', { isInit: true })
         .then(res => {
           if (res) {
-            this.mirrorComponentList = res.data;
+            this.mirrorComponentList = res.data
           }
-        });
+        })
     }
   }
-};
+}
 </script>
 <style rel="stylesheet/scss" lang="scss" scoped>
 .d2-h-50 {
