@@ -43,10 +43,12 @@ func NewGrctl(ctx context.Context, client client.Client, component *rainbondv1al
 func (w *grctl) Before() error {
 	secret, err := getSecret(w.ctx, w.client, w.component.Namespace, apiClientSecretName)
 	if err != nil {
-		return fmt.Errorf("failed to get etcd secret: %v", err)
+		return fmt.Errorf("failed to get api tls secret: %v", err)
+	}
+	if len(secret.Data) == 0 {
+		return fmt.Errorf("failed to get api tls secret, waiting secret ready")
 	}
 	w.apiSecret = secret
-
 	return nil
 }
 
