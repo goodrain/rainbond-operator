@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,8 +16,12 @@ import (
 
 // DBName name
 var DBName = "rbd-db"
+var mysqlUserKey = "mysql-user"
+var mysqlPasswordKey = "mysql-password"
 
 type db struct {
+	ctx       context.Context
+	client    client.Client
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	pkg       *rainbondv1alpha1.RainbondPackage
@@ -28,6 +31,8 @@ type db struct {
 //NewDB new db
 func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &db{
+		ctx:       ctx,
+		client:    client,
 		component: component,
 		cluster:   cluster,
 		pkg:       pkg,
@@ -37,10 +42,11 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 
 func (d *db) Before() error {
 	if d.cluster.Spec.RegionDatabase != nil && d.cluster.Spec.UIDatabase != nil {
-		return fmt.Errorf("use custom database")
+		return NewIgnoreError("use custom database")
 	}
 
-	return nil
+	secret := d.secretForDB()
+	return k8sutil.UpdateOrCreateResource(d.ctx, d.client, log, secret, secret)
 }
 
 func (d *db) Resources() []interface{} {
@@ -58,7 +64,6 @@ func (d *db) After() error {
 }
 
 func (d *db) statefulsetForDB() interface{} {
-	var rootPassword = string(uuid.NewUUID())
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
@@ -91,8 +96,32 @@ func (d *db) statefulsetForDB() interface{} {
 							ImagePullPolicy: d.component.ImagePullPolicy(),
 							Env: []corev1.EnvVar{
 								{
-									Name:  "MYSQL_ROOT_PASSWORD",
-									Value: rootPassword,
+									Name:  "MYSQL_ALLOW_EMPTY_PASSWORD",
+									Value: "true",
+								},
+								{
+									Name: "MYSQL_USER",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: DBName,
+											},
+											Key:      mysqlUserKey,
+											Optional: commonutil.Bool(true),
+										},
+									},
+								},
+								{
+									Name: "MYSQL_ROOT_PASSWORD",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: DBName,
+											},
+											Key:      mysqlPasswordKey,
+											Optional: commonutil.Bool(true),
+										},
+									},
 								},
 								{
 									Name:  "MYSQL_DATABASE",
@@ -116,7 +145,7 @@ func (d *db) statefulsetForDB() interface{} {
 							},
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
-									Exec: &corev1.ExecAction{Command: []string{"mysqladmin", "-u" + "root", "-p" + rootPassword, "ping"}},
+									Exec: &corev1.ExecAction{Command: []string{"mysqladmin", "ping"}},
 								},
 								InitialDelaySeconds: 30,
 								PeriodSeconds:       10,
@@ -124,7 +153,7 @@ func (d *db) statefulsetForDB() interface{} {
 							},
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
-									Exec: &corev1.ExecAction{Command: []string{"mysql", "-u" + "root", "-p" + rootPassword, "-e", "SELECT 1"}},
+									Exec: &corev1.ExecAction{Command: []string{"mysql", "-e", "SELECT 1"}},
 								},
 								InitialDelaySeconds: 5,
 								PeriodSeconds:       2,
@@ -136,9 +165,9 @@ func (d *db) statefulsetForDB() interface{} {
 							Image:           "goodrain.me/mysqld-exporter",
 							ImagePullPolicy: d.component.ImagePullPolicy(),
 							Env: []corev1.EnvVar{
-								corev1.EnvVar{
+								{
 									Name:  "DATA_SOURCE_NAME",
-									Value: "root:" + rootPassword + "@tcp(127.0.0.1:3306)/",
+									Value: "root:@tcp(127.0.0.1:3306)/",
 								},
 							},
 						},
@@ -269,4 +298,17 @@ func (d *db) initdbCMForDB() interface{} {
 	}
 
 	return cm
+}
+
+func (d *db) secretForDB() *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      DBName,
+			Namespace: d.component.Namespace,
+		},
+		StringData: map[string]string{
+			mysqlPasswordKey: string(uuid.NewUUID()),
+			mysqlUserKey:     "write",
+		},
+	}
 }
