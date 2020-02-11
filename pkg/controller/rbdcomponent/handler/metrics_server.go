@@ -5,19 +5,19 @@ import (
 	"fmt"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kubeaggregatorv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
-	kubeaggregatorclientset "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 //APIName name
 var MetricsServerName = "metrics-server"
+var metricsGroupAPI = "v1beta1.metrics.k8s.io"
 
 type metricsServer struct {
 	ctx       context.Context
@@ -42,6 +42,17 @@ func NewMetricsServer(ctx context.Context, client client.Client, component *rain
 }
 
 func (m *metricsServer) Before() error {
+	apiservce := &kubeaggregatorv1beta1.APIService{}
+	if err := m.client.Get(m.ctx, types.NamespacedName{Name: metricsGroupAPI}, apiservce); err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return fmt.Errorf("get apiservice(%s/%s): %v", MetricsServerName, m.cluster.Namespace, err)
+		}
+		return nil
+	}
+	createdByRainbond := apiservce.Spec.Service.Namespace == m.component.Namespace && apiservce.Spec.Service.Name == MetricsServerName
+	if !createdByRainbond {
+		return NewIgnoreError(fmt.Sprintf("%s already exists", metricsGroupAPI))
+	}
 	return nil
 }
 
@@ -53,53 +64,23 @@ func (m *metricsServer) Resources() []interface{} {
 }
 
 func (m *metricsServer) After() error {
-	restConfig, err := k8sutil.NewKubeConfig()
-	if err != nil {
-		log.Error(err, "create new kube config")
-		return err
-	}
-	apiregistrationClientset, err := kubeaggregatorclientset.NewForConfig(restConfig)
-	if err != nil {
-		log.Error(err, "create new apiregistration clientset")
-		return err
-	}
-
-	apiService := &kubeaggregatorv1beta1.APIService{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "v1beta1.metrics.k8s.io",
-		},
-		Spec: kubeaggregatorv1beta1.APIServiceSpec{
-			Service: &kubeaggregatorv1beta1.ServiceReference{
-				Name:      MetricsServerName,
-				Namespace: m.cluster.Namespace,
-			},
-			Group:                 "metrics.k8s.io",
-			Version:               "v1beta1",
-			InsecureSkipTLSVerify: true,
-			GroupPriorityMinimum:  100,
-			VersionPriority:       30,
-		},
-	}
-
-	old, err := apiregistrationClientset.ApiregistrationV1beta1().APIServices().Get(apiService.GetName(), metav1.GetOptions{})
-	if err != nil {
+	newApiService := m.apiserviceForMetricsServer()
+	apiservce := &kubeaggregatorv1beta1.APIService{}
+	if err := m.client.Get(m.ctx, types.NamespacedName{Name: metricsGroupAPI}, apiservce); err != nil {
 		if !k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("retrieve api service: %v", err)
+			return fmt.Errorf("get apiservice(%s/%s): %v", MetricsServerName, m.cluster.Namespace, err)
 		}
-		log.Error(err, "apiservice not found, create one", "Name", apiService.GetName())
-		_, err = apiregistrationClientset.ApiregistrationV1beta1().APIServices().Create(apiService)
-		if err != nil {
+		if err := m.client.Create(m.ctx, newApiService); err != nil {
 			return fmt.Errorf("create new api service: %v", err)
 		}
 		return nil
 	}
 
-	log.Info(fmt.Sprintf("an old api service(%s) has been found, update it.", apiService.GetName()))
-	apiService.ResourceVersion = old.ResourceVersion
-	if _, err := apiregistrationClientset.ApiregistrationV1beta1().APIServices().Update(apiService); err != nil {
+	log.Info(fmt.Sprintf("an old api service(%s) has been found, update it.", newApiService.GetName()))
+	newApiService.ResourceVersion = apiservce.ResourceVersion
+	if err := m.client.Update(m.ctx, newApiService); err != nil {
 		return fmt.Errorf("update api service: %v", err)
 	}
-
 	return nil
 }
 
@@ -187,7 +168,7 @@ func (m *metricsServer) serviceForMetricsServer() interface{} {
 				{
 					Port: 443,
 					TargetPort: intstr.IntOrString{
-						StrVal: "main-port",
+						IntVal: 4443,
 					},
 				},
 			},
@@ -196,4 +177,23 @@ func (m *metricsServer) serviceForMetricsServer() interface{} {
 	}
 
 	return svc
+}
+
+func (m *metricsServer) apiserviceForMetricsServer() *kubeaggregatorv1beta1.APIService {
+	return &kubeaggregatorv1beta1.APIService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "metricsGroupAPI",
+		},
+		Spec: kubeaggregatorv1beta1.APIServiceSpec{
+			Service: &kubeaggregatorv1beta1.ServiceReference{
+				Name:      MetricsServerName,
+				Namespace: m.cluster.Namespace,
+			},
+			Group:                 "metrics.k8s.io",
+			Version:               "v1beta1",
+			InsecureSkipTLSVerify: true,
+			GroupPriorityMinimum:  100,
+			VersionPriority:       30,
+		},
+	}
 }
