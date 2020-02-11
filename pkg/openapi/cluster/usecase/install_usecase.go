@@ -210,9 +210,8 @@ func (ic *InstallUseCaseImpl) parseInstallStatus(clusterInfo *v1alpha1.RainbondC
 	statusres.StatusList = append(statusres.StatusList, ic.stepHub(clusterInfo, componentStatues))
 	statusres.StatusList = append(statusres.StatusList, ic.stepDownload(clusterInfo, pkgInfo))
 	statusres.StatusList = append(statusres.StatusList, ic.stepUnpack(clusterInfo, pkgInfo))
-	handleImageStatus := ic.stepHandleImage(clusterInfo, pkgInfo)
-	statusres.StatusList = append(statusres.StatusList, handleImageStatus)
-	statusres.StatusList = append(statusres.StatusList, ic.stepCreateComponent(componentStatues, handleImageStatus.Status != InstallStatusFinished))
+	statusres.StatusList = append(statusres.StatusList, ic.stepHandleImage(clusterInfo, pkgInfo))
+	statusres.StatusList = append(statusres.StatusList, ic.stepCreateComponent(componentStatues, pkgInfo))
 
 	return
 }
@@ -388,14 +387,15 @@ func (ic *InstallUseCaseImpl) stepHandleImage(clusterInfo *v1alpha1.RainbondClus
 }
 
 // step 6 create component
-func (ic *InstallUseCaseImpl) stepCreateComponent(componentStatues []*v1.RbdComponentStatus, wait bool) model.InstallStatus {
+func (ic *InstallUseCaseImpl) stepCreateComponent(componentStatues []*v1.RbdComponentStatus, pkgInfo *v1alpha1.RainbondPackage) model.InstallStatus {
 	defer commonutil.TimeConsume(time.Now())
 
 	status := model.InstallStatus{
 		StepName: StepInstallComponent,
 	}
 
-	if wait {
+	condition := ic.handleRainbondPackageConditions(pkgInfo.Status.Conditions, v1alpha1.Ready)
+	if condition == nil || condition.Status != v1alpha1.Completed {
 		status.Status = InstallStatusWaiting
 		return status
 	}
