@@ -16,3 +16,29 @@ const (
 	//UnInstalling uninstalling status
 	UnInstalling GlobalStatus = "UnInstalling"
 )
+
+const (
+	// SuccessMessage success message
+	SuccessMessage = "success"
+	// HelpMessage help message
+	HelpMessage = "internal error, please contact rainbond for help"
+	// CantUpdateConfig can't update config
+	CantUpdateConfig = "current cluster status can't update config"
+	//IllegalConfigData illegal config data
+	IllegalConfigData = "illegal config parameter, can't parse normally"
+	// IllegalConfigDataFormat custom illegal config data
+	IllegalConfigDataFormat = "%s parameter illegal, please modify it and retry"
+)
+
+// ReturnStruct return struct
+type ReturnStruct struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+}
+
+// ReturnStructWithData return struct with data
+type ReturnStructWithData struct {
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data"`
+}

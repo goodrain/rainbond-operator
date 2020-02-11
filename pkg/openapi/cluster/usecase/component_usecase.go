@@ -2,13 +2,15 @@ package usecase
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	plabels "k8s.io/apimachinery/pkg/labels"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"strings"
 )
 
 var log = logf.Log.WithName("usecase_cluster")
@@ -73,7 +75,7 @@ func (cc *ComponentUsecaseImpl) List(isInit bool) ([]*v1.RbdComponentStatus, err
 				status = &v1.RbdComponentStatus{
 					Name:            component.Name,
 					Status:          v1.ComponentStatusFailed,
-					Message:         "系统异常，请联系社区帮助",
+					Message:         model.HelpMessage,
 					ISInitComponent: component.Spec.PriorityComponent,
 					Reason:          fmt.Sprintf("get RbdComponent:%s status error: %s", component.Name, err.Error()),
 				}
