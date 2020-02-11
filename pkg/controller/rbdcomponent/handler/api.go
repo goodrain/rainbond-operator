@@ -278,11 +278,8 @@ func (a *api) secretForAPI() []interface{} {
 		},
 		Data: map[string][]byte{
 			"client.pem":     clientPem,
-			"cert_file":      clientPem,
 			"client.key.pem": clientKey,
-			"key_file":       clientKey,
 			"ca.pem":         caPem,
-			"ssl_ca_cert":    caPem,
 		},
 	})
 	return re
