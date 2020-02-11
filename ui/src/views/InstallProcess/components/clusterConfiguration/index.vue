@@ -7,11 +7,16 @@
       @submit.native.prevent
       hide-required-asterisk
       ref="ruleForm"
-      label-width="125px"
+      label-width="170px"
       class="demo-ruleForm"
     >
       <el-form-item label="镜像仓库">
-        <el-collapse class="setbr d2-w-640" v-model="activeImageHubNames">
+        <el-collapse
+          class="setbr d2-w-868"
+          v-model="activeImageHubNamesCollapse"
+          accordion
+          @change="handleChangeImageHubNames"
+        >
           <el-collapse-item class="clcolor" name="2">
             <template slot="title">
               <el-radio-group
@@ -42,7 +47,12 @@
         <div class="clues">镜像仓库用于应用运行镜像存储和集群公共镜像存储，若你的Kubernetes集群雨安装本地镜像仓库，请提供</div>
       </el-form-item>
       <el-form-item label="数据中心数据库">
-        <el-collapse class="setbr d2-w-640" v-model="activeregionDatabaseNames">
+        <el-collapse
+          class="setbr d2-w-868"
+          v-model="activeregionDatabaseNamesCollapse"
+          accordion
+          @change="handleChangeRegionDatabaseNames"
+        >
           <el-collapse-item class="clcolor" name="2">
             <template slot="title">
               <el-radio-group
@@ -76,7 +86,12 @@
         <div class="clues">数据中心数据库记录数据中心原数据，若使用其他数据库（比如RDS）请提供可访问信息</div>
       </el-form-item>
       <el-form-item label="UI数据库">
-        <el-collapse class="setbr d2-w-640" v-model="activeUiDatabaseNames">
+        <el-collapse
+          class="setbr d2-w-868"
+          v-model="activeUiDatabaseNamesCollapse"
+          accordion
+          @change="handleChangeUiDatabaseNames"
+        >
           <el-collapse-item class="clcolor" name="2">
             <template slot="title">
               <el-radio-group
@@ -111,7 +126,12 @@
         <div class="clues">UI数据库记录数据中心原数据，若使用其他数据库（比如RDS请提供可访问信息）</div>
       </el-form-item>
       <el-form-item label="ETCD">
-        <el-collapse class="setbr d2-w-640" v-model="activeETCDNames">
+        <el-collapse
+          class="setbr d2-w-868"
+          v-model="activeETCDNamesCollapse"
+          accordion
+          @change="handleChangeETCDNames"
+        >
           <el-collapse-item class="clcolor" name="2">
             <template slot="title">
               <el-radio-group class="d2-ml-35" v-model="activeETCDNames" @change="changeETCDRadio">
@@ -179,45 +199,56 @@
         prop="nodes"
         v-if="clusterInfo&&clusterInfo.nodeAvailPorts&&clusterInfo.nodeAvailPorts.length>0"
       >
-        <el-checkbox-group v-model="setgatewayNodes">
-          <el-checkbox
-            v-for="(item, index) in clusterInfo.nodeAvailPorts"
-            :key="index"
-            class="cr_checkbox"
-            :label="item.nodeIP"
-            border
-          ></el-checkbox>
-        </el-checkbox-group>
+        <div class="boxs">
+          <el-checkbox-group v-model="setgatewayNodes" class="cr_maxcheckbox">
+            <el-checkbox
+              v-for="(item, index) in clusterInfo.nodeAvailPorts"
+              :key="index"
+              class="cr_checkbox"
+              :label="item.nodeIP"
+              border
+            ></el-checkbox>
+          </el-checkbox-group>
+        </div>
 
         <div class="clues">Rainbond网关服务默认安装到集群所有合适的管理节点，你可以选择配置，网关服务将占用宿主机80/443等端口</div>
       </el-form-item>
       <el-form-item label="分配默认域名">
-        <el-switch v-model="HTTPDomainSwitch"></el-switch>
-        <el-input
-          style="margin-left:10px"
-          v-if="!HTTPDomainSwitch"
-          v-model="ruleForm.HTTPDomain"
-          placeholder="请输入自定义域名"
-          class="d2-input_inner"
-        ></el-input>
+        <div class="boxs">
+          <el-switch v-model="HTTPDomainSwitch"></el-switch>
+          <el-input
+            style="margin-left:10px"
+            v-if="!HTTPDomainSwitch"
+            v-model="ruleForm.HTTPDomain"
+            placeholder="请输入自定义域名"
+            class="d2-input_inner"
+          ></el-input>
+        </div>
         <div class="clues">默认域名是指Rainbond 为HTTP类应用动态分配的多级域名，默认域名在非离线安装模式下将动态创建公网DNS泛解析记录</div>
       </el-form-item>
 
       <el-form-item :label="'网关外网IP'" prop="ips">
-        <div v-for="(item, indexs) in ruleForm.gatewayIngressIPs" :key="indexs" class="cen">
-          <el-input v-model="ruleForm.gatewayIngressIPs[indexs]" class="d2-input_inner"></el-input>
-          <i class="el-icon-circle-plus-outline icon-f-22 d2-ml-16" @click="addIP"></i>
-          <i
-            v-show="ruleForm.gatewayIngressIPs.length!=1"
-            class="el-icon-remove-outline icon-f-22 d2-ml-16"
-            @click.prevent="removeIP(indexs)"
-          ></i>
+        <div class="boxs">
+          <div v-for="(item, indexs) in ruleForm.gatewayIngressIPs" :key="indexs" class="cen">
+            <el-input v-model="ruleForm.gatewayIngressIPs[indexs]" class="d2-input_inner"></el-input>
+            <i class="el-icon-circle-plus-outline icon-f-22 d2-ml-16" @click="addIP"></i>
+            <i
+              v-show="ruleForm.gatewayIngressIPs.length!=1"
+              class="el-icon-remove-outline icon-f-22 d2-ml-16"
+              @click.prevent="removeIP(indexs)"
+            ></i>
+          </div>
         </div>
 
         <div class="clues">默认域名默认解析到所有网关节点的IP地址上，若指定则仅解析到指定</div>
       </el-form-item>
       <el-form-item label="共享存储驱动">
-        <el-collapse class="setbr d2-w-640" v-model="activeStorageNames">
+        <el-collapse
+          class="setbr d2-w-868"
+          v-model="activeStorageNamesCollapse"
+          accordion
+          @change="handleChangeStorageNames"
+        >
           <el-collapse-item class="clcolor" name="2">
             <template slot="title">
               <el-radio-group
@@ -248,7 +279,7 @@
       </el-form-item>
 
       <!-- <el-form-item label="fsTab信息">
-        <el-collapse class="setbr d2-w-640" v-model="activeFstabLineNames">
+        <el-collapse class="setbr d2-w-868" v-model="activeFstabLineNames">
           <el-collapse-item class="clcolor" name="2">
             <template slot="title">
               <el-radio-group
@@ -341,7 +372,7 @@
           </el-collapse-item>
         </el-collapse>
       </el-form-item>-->
-      <div style="width:640px;text-align:center;">
+      <div style="width:1100px;text-align:center;">
         <el-button type="primary" @click="submitForm('ruleForm')">配置就绪,开发安装</el-button>
       </div>
     </el-form>
@@ -350,63 +381,63 @@
 
 <script>
 export default {
-  name: "clusterConfiguration",
+  name: 'clusterConfiguration',
   props: {
     clusterInfo: {
       type: Object,
-      default: null
+      default: () => {}
     }
   },
-  data() {
+  data () {
     let validateNodes = (rule, value, callback) => {
       if (this.setgatewayNodes.length === 0) {
-        callback(new Error("请至少选择一个网关安装节点"));
+        callback(new Error('请至少选择一个网关安装节点'))
       } else {
-        callback();
+        callback()
       }
-    };
+    }
 
     let validateIPs = (rule, value, callback) => {
-      let regIp = /^(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])$/;
-      let gatewayIngressIPs = this.ruleForm.gatewayIngressIPs;
+      let regIp = /^(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])$/
+      let gatewayIngressIPs = this.ruleForm.gatewayIngressIPs
       let arr = gatewayIngressIPs.filter(item => {
-        return !regIp.test(item);
-      });
+        return !regIp.test(item)
+      })
 
       if (gatewayIngressIPs.length > 0) {
-        if (gatewayIngressIPs.length === 1 && gatewayIngressIPs[0] === "") {
-          callback();
+        if (gatewayIngressIPs.length === 1 && gatewayIngressIPs[0] === '') {
+          callback()
         } else if (arr.length >= 1) {
-          callback(new Error("格式不对，请重新输入"));
+          callback(new Error('格式不对，请重新输入'))
         } else {
-          callback();
+          callback()
         }
       } else {
-        callback();
+        callback()
       }
-    };
-    let reg = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/;
+    }
+    let reg = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/
 
     let validateAddress = (rule, value, callback) => {
-      let str = this.ruleForm.regionDatabase.port;
-      let ress = reg.test(str);
+      let str = this.ruleForm.regionDatabase.port
+      let ress = reg.test(str)
 
-      if (!ress && str !== "") {
-        callback(new Error("格式不对，请重新输入"));
+      if (!ress && str !== '') {
+        callback(new Error('格式不对，请重新输入'))
       } else {
-        callback();
+        callback()
       }
-    };
+    }
     let validUiDateBase = (rule, value, callback) => {
-      let str = this.ruleForm.uiDatabase.port;
-      let ress = reg.test(str);
+      let str = this.ruleForm.uiDatabase.port
+      let ress = reg.test(str)
 
-      if (!ress && str !== "") {
-        callback(new Error("格式不对，请重新输入"));
+      if (!ress && str !== '') {
+        callback(new Error('格式不对，请重新输入'))
       } else {
-        callback();
+        callback()
       }
-    };
+    }
 
     return {
       upLoading: false,
@@ -414,190 +445,201 @@ export default {
       HTTPDomainSwitch: true,
       ruleForm: {
         imageHub: {
-          domain: "",
-          namespace: "",
-          username: "",
-          password: ""
+          domain: '',
+          namespace: '',
+          username: '',
+          password: ''
         },
-        regionDatabase: { host: "", port: "", username: "", password: "" },
-        uiDatabase: { host: "", port: "", username: "", password: "" },
+        regionDatabase: { host: '', port: '', username: '', password: '' },
+        uiDatabase: { host: '', port: '', username: '', password: '' },
         etcdConfig: {
-          endpoints: [""],
-          certInfo: { caFile: "", certFile: "", keyFile: "" }
+          endpoints: [''],
+          certInfo: { caFile: '', certFile: '', keyFile: '' }
         },
-        HTTPDomain: "",
-        gatewayIngressIPs: [""],
-        storage: { name: "" },
-        rainbondShareStorage: { storageClassName: "", fstabLine: {} }
+        HTTPDomain: '',
+        gatewayIngressIPs: [''],
+        storage: { name: '' },
+        rainbondShareStorage: { storageClassName: '', fstabLine: {} }
       },
-      activeImageHubNames: "1",
-      activeregionDatabaseNames: "1",
-      activeUiDatabaseNames: "1",
-      activeETCDNames: "1",
-      activeStorageNames: "1",
-      activeFstabLineNames: "1",
+      activeImageHubNames: '1',
+      activeImageHubNamesCollapse: '1',
+      activeregionDatabaseNames: '1',
+      activeregionDatabaseNamesCollapse: '1',
+      activeUiDatabaseNames: '1',
+      activeUiDatabaseNamesCollapse: '1',
+
+      activeETCDNames: '1',
+      activeETCDNamesCollapse: '1',
+
+      activeStorageNames: '1',
+      activeStorageNamesCollapse: '1',
+
+      activeFstabLineNames: '1',
+      activeFstabLineNamesCollapse: '1',
+
       setgatewayNodes: [],
       fileList: [],
       rules: {
         nodes: [
           {
             validator: validateNodes,
-            type: "array",
+            type: 'array',
             required: true,
-            trigger: "change"
+            trigger: 'change'
           }
         ],
         address: [
           {
             validator: validateAddress,
-            type: "string",
+            type: 'string',
             required: true,
-            trigger: "change"
+            trigger: 'change'
           }
         ],
         uiDatabase: [
           {
             validator: validUiDateBase,
-            type: "string",
+            type: 'string',
             required: true,
-            trigger: "change"
+            trigger: 'change'
           }
         ],
         ips: [
           {
             validator: validateIPs,
-            type: "array",
+            type: 'array',
             required: true,
-            trigger: "change"
+            trigger: 'change'
           }
         ]
       },
       fstabLineType: [
         {
-          value: "nfs",
-          label: "nfs"
+          value: 'nfs',
+          label: 'nfs'
         },
         {
-          value: "gfs",
-          label: "gfs"
+          value: 'gfs',
+          label: 'gfs'
         },
         {
-          value: "xfs",
-          label: "xfs"
+          value: 'xfs',
+          label: 'xfs'
         }
       ],
       fstabLineOptions: [
         {
-          value: "defaults",
-          label: "defaults"
+          value: 'defaults',
+          label: 'defaults'
         },
         {
-          value: "auto",
-          label: "auto"
+          value: 'auto',
+          label: 'auto'
         }
       ]
-    };
+    }
   },
-  created() {
-    this.fetchClusterInfo();
+  created () {
+    this.fetchClusterInfo()
   },
   methods: {
-    changeImageHubRadio(value) {
-      this.activeImageHubNames = value;
-      // if (value == "1") {
-      //   this.ruleForm.imageHub.domain = "";
-      //   this.ruleForm.imageHub.namespace = "";
-      //   this.ruleForm.imageHub.username = "";
-      //   this.ruleForm.imageHub.password = "";
-      // }
+    handleChangeImageHubNames () {
+      this.activeImageHubNamesCollapse = this.activeImageHubNames
     },
-    changeregionDatabaseRadio(value) {
-      this.activeregionDatabaseNames = value;
-      // if (value == "1") {
-      //   this.ruleForm.regionDatabase.host = "";
-      //   this.ruleForm.regionDatabase.port = "";
-      //   this.ruleForm.regionDatabase.username = "";
-      //   this.ruleForm.regionDatabase.password = "";
-      // }
+    handleChangeRegionDatabaseNames () {
+      this.activeregionDatabaseNamesCollapse = this.activeregionDatabaseNames
     },
-    changeUiDatabaseRadio(value) {
-      this.activeUiDatabaseNames = value;
-      // if (value == "1") {
-      //   this.ruleForm.uiDatabase.host = "";
-      //   this.ruleForm.uiDatabase.port = "";
-      //   this.ruleForm.uiDatabase.username = "";
-      //   this.ruleForm.uiDatabase.password = "";
-      // }
+    handleChangeUiDatabaseNames () {
+      this.activeUiDatabaseNamesCollapse = this.activeUiDatabaseNames
     },
-    changeETCDRadio(value) {
-      this.activeETCDNames = value;
-      // if (value == "1") {
-      //   this.ruleForm.etcdConfig.endpoints = [""];
-      //   this.ruleForm.etcdConfig.certInfo.ca_file = "";
-      //   this.ruleForm.etcdConfig.certInfo.cert_file = "";
-      //   this.ruleForm.etcdConfig.certInfo.key_file = "";
-      // }
+    handleChangeETCDNames () {
+      this.activeETCDNamesCollapse = this.activeETCDNames
     },
-    changeStorageRadio(value) {
-      this.activeStorageNames = value;
-      if (value == "1") {
-        this.ruleForm.storage.name = "";
-      }
+    handleChangeStorageNames () {
+      this.activeStorageNamesCollapse = this.activeStorageNames
     },
-    changeFstabLineRadio(value) {
-      this.activeFstabLineNames = value;
-      if (value == "1") {
-        this.ruleForm.rainbondShareStorage.fstabLine.fileSystem = "";
-        this.ruleForm.rainbondShareStorage.fstabLine.mountPoint = "/grdata";
-        this.ruleForm.rainbondShareStorage.fstabLine.type = "";
-        this.ruleForm.rainbondShareStorage.fstabLine.options = "";
-        this.ruleForm.rainbondShareStorage.fstabLine.dump = 0;
-        this.ruleForm.rainbondShareStorage.fstabLine.pass = 0;
-      }
+
+    changeImageHubRadio (value) {
+      this.activeImageHubNamesCollapse = value
+      this.activeImageHubNames = value
     },
-    removeIP(index) {
-      this.ruleForm.gatewayIngressIPs.splice(index, 1);
+    changeregionDatabaseRadio (value) {
+      this.activeregionDatabaseNames = value
+      this.activeregionDatabaseNamesCollapse = value
     },
-    addIP() {
-      this.ruleForm.gatewayIngressIPs.push("");
+    changeUiDatabaseRadio (value) {
+      this.activeUiDatabaseNames = value
+      this.activeUiDatabaseNamesCollapse = value
     },
-    addEndpoints() {
-      this.ruleForm.etcdConfig.endpoints.push("");
+    changeETCDRadio (value) {
+      this.activeETCDNames = value
+      this.activeETCDNamesCollapse = value
     },
-    removeEndpoints(index) {
-      this.ruleForm.etcdConfig.endpoints.splice(index, 1);
+    changeStorageRadio (value) {
+      this.activeStorageNames = value
+      this.activeStorageNamesCollapse = value
     },
-    fetchClusterInfo() {
-      this.$store.dispatch("fetchClusterInfo").then(res => {
+    // changeFstabLineRadio (value) {
+    //   this.activeFstabLineNames = value
+    //   if (value === '1') {
+    //     this.ruleForm.rainbondShareStorage.fstabLine.fileSystem = ''
+    //     this.ruleForm.rainbondShareStorage.fstabLine.mountPoint = '/grdata'
+    //     this.ruleForm.rainbondShareStorage.fstabLine.type = ''
+    //     this.ruleForm.rainbondShareStorage.fstabLine.options = ''
+    //     this.ruleForm.rainbondShareStorage.fstabLine.dump = 0
+    //     this.ruleForm.rainbondShareStorage.fstabLine.pass = 0
+    //   }
+    // },
+    removeIP (index) {
+      this.ruleForm.gatewayIngressIPs.splice(index, 1)
+    },
+    addIP () {
+      this.ruleForm.gatewayIngressIPs.push('')
+    },
+    addEndpoints () {
+      this.ruleForm.etcdConfig.endpoints.push('')
+    },
+    removeEndpoints (index) {
+      this.ruleForm.etcdConfig.endpoints.splice(index, 1)
+    },
+    fetchClusterInfo () {
+      this.$store.dispatch('fetchClusterInfo').then(res => {
         if (res && res.data) {
-          this.loading = false;
+          this.loading = false
           // this.ruleForm = res.data;
-          if (res.data.HTTPDomain && res.data.HTTPDomain != "") {
-            this.HTTPDomainSwitch = false;
-            this.ruleForm.HTTPDomain = res.data.HTTPDomain;
+          if (res.data.HTTPDomain && res.data.HTTPDomain !== '') {
+            this.HTTPDomainSwitch = false
+            this.ruleForm.HTTPDomain = res.data.HTTPDomain
           }
           if (
             res.data.gatewayIngressIPs &&
             res.data.gatewayIngressIPs.length > 0
           ) {
-            this.ruleForm.gatewayIngressIPs = res.data.gatewayIngressIPs;
+            this.ruleForm.gatewayIngressIPs = res.data.gatewayIngressIPs
           }
-          let arr = [];
-          this.clusterInfo &&
-            this.clusterInfo.nodeAvailPorts.length > 0 &&
+          let arr = []
+          if (this.clusterInfo && this.clusterInfo.nodeAvailPorts.length > 0) {
             this.clusterInfo.nodeAvailPorts.map(item => {
-              const { nodeIP } = item;
-              arr.push(nodeIP);
-            });
-
-          this.setgatewayNodes = arr;
+              const { nodeIP } = item
+              arr.push(nodeIP)
+            })
+          } else if (
+            res.data.gatewayNodes &&
+            res.data.gatewayNodes.length > 0
+          ) {
+            res.data.gatewayNodes.map(item => {
+              const { nodeIP } = item
+              arr.push(nodeIP)
+            })
+          }
+          this.setgatewayNodes = arr
         }
-      });
+      })
     },
-    submitForm(formName) {
+    submitForm (formName) {
       this.$refs[formName].validate(valid => {
         if (valid) {
-          this.loading = true;
+          this.loading = true
           // this.ruleForm.rainbondShareStorage.fstabLine.dump = Number(
           //   this.ruleForm.fstabLine.dump
           // );
@@ -605,84 +647,98 @@ export default {
           //   this.ruleForm.fstabLine.pass
           // );
 
-          let obj = {};
+          let obj = {}
           if (this.setgatewayNodes.length > 0) {
-            let arr = [];
+            let arr = []
             this.setgatewayNodes.map(item => {
-              arr.push({ nodeIP: item });
-            });
-            this.ruleForm.gatewayNodes = arr;
-            obj.gatewayNodes = arr;
+              arr.push({ nodeIP: item })
+            })
+            obj.gatewayNodes = arr
           }
-          if (this.activeImageHubNames === "2") {
-            obj.imageHub = this.ruleForm.imageHub;
+          if (this.activeImageHubNames === '2') {
+            obj.imageHub = this.ruleForm.imageHub
           }
-          if (this.activeregionDatabaseNames === "2") {
-            obj.regionDatabase = this.ruleForm.regionDatabase;
-            obj.regionDatabase.port = Number(obj.regionDatabase.port);
+          if (this.activeregionDatabaseNames === '2') {
+            obj.regionDatabase = this.ruleForm.regionDatabase
+            obj.regionDatabase.port = Number(obj.regionDatabase.port)
           }
-          if (this.activeUiDatabaseNames === "2") {
-            obj.uiDatabase = this.ruleForm.uiDatabase;
-            obj.uiDatabase.port = Number(obj.uiDatabase.port);
+          if (this.activeUiDatabaseNames === '2') {
+            obj.uiDatabase = this.ruleForm.uiDatabase
+            obj.uiDatabase.port = Number(obj.uiDatabase.port)
           }
 
-          if (this.activeETCDNames === "2") {
-            obj.etcdConfig = this.ruleForm.etcdConfig;
+          if (this.activeETCDNames === '2') {
+            obj.etcdConfig = this.ruleForm.etcdConfig
           }
-          if (this.activeStorageNames === "2") {
-            obj.storage = this.ruleForm.storage;
+          if (this.activeStorageNames === '2') {
+            obj.storage = this.ruleForm.storage
           }
           if (
             this.ruleForm.gatewayIngressIPs &&
             this.ruleForm.gatewayIngressIPs.length > 0 &&
-            this.ruleForm.gatewayIngressIPs[0] != ""
+            this.ruleForm.gatewayIngressIPs[0] !== ''
           ) {
-            obj.gatewayIngressIPs = this.ruleForm.gatewayIngressIPs;
+            obj.gatewayIngressIPs = this.ruleForm.gatewayIngressIPs
           }
 
           if (!this.HTTPDomainSwitch) {
-            obj.HTTPDomain = this.ruleForm.HTTPDomain;
+            obj.HTTPDomain = this.ruleForm.HTTPDomain
           }
+
           this.$store
-            .dispatch("fixClusterInfo", obj)
+            .dispatch('fixClusterInfo', obj)
             .then(res => {
-              this.handleCancelLoading();
-              if (res && res.code == 200) {
-                this.addCluster();
+              if (res && res.code === 200) {
+                this.addCluster()
+              } else {
+                this.handleCancelLoading()
               }
             })
             .catch(err => {
-              console.log(err);
-            });
+              this.handleCancelLoading()
+              console.log(err)
+            })
         } else {
-          console.log("error submit!!");
-          return false;
+          this.handleCancelLoading()
+
+          console.log('error submit!!')
+          return false
         }
-      });
+      })
     },
-    addCluster() {
+    addCluster () {
       this.$store
-        .dispatch("addCluster")
+        .dispatch('addCluster')
         .then(en => {
-          if (en && en.code == 200) {
-            this.$emit("onResults");
+          if (en && en.code === 200) {
+            this.$emit('onResults')
           } else {
-            this.loading = false;
+            this.handleCancelLoading()
           }
         })
         .catch(err => {
-          this.loading = false;
-          console.log(err);
-        });
+          this.handleCancelLoading()
+
+          console.log(err)
+        })
     },
-    handleCancelLoading() {
-      this.loading = false;
+    handleCancelLoading () {
+      this.loading = false
     }
   }
-};
+}
 </script>
 
 <style rel="stylesheet/scss" lang="scss" scoped>
+.boxs {
+  border: 1px solid #dcdfe6 !important;
+  line-height: 40px;
+  min-height: 40px;
+  padding-left: 35px;
+  width: 870px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
 .d2-w-150 {
   width: 150px;
 }
@@ -700,8 +756,8 @@ export default {
 .setbr {
   border: 1px solid #dcdfe6;
 }
-.d2-w-640 {
-  width: 640px !important;
+.d2-w-868 {
+  width: 868px !important;
 }
 .cen {
   display: flex;
@@ -768,7 +824,7 @@ export default {
     border-color: #dcdfe6 !important;
     height: 39px;
     line-height: 39px;
-    width: 640px !important;
+    width: 868px !important;
   }
   .el-collapse-item__wrap {
     border-bottom: 1px solid #dcdfe6 !important;
@@ -776,15 +832,24 @@ export default {
 }
 .clcolors {
   .el-collapse-item__header {
-    width: 800px !important;
+    width: 868px !important;
   }
 }
 .cr_checkbox {
+  margin-left: 10px;
+  margin-bottom: 0 !important;
+  margin-right: 10px !important;
   padding: 2px 20px 2px 10px !important;
   height: 25px !important;
-  margin-top: 8px !important;
   .el-checkbox__input {
     display: none !important;
   }
+}
+.cr_maxcheckbox {
+  margin-left: -10px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-height: 40px;
 }
 </style>

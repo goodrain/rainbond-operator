@@ -53,7 +53,7 @@ export default {
   props: {
     componentList: {
       type: Array,
-      default: []
+      default: () => []
     }
   },
   data () {

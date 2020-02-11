@@ -16,7 +16,7 @@ let publicPath = process.env.VUE_APP_PUBLIC_PATH || '/'
 
 // 设置不参与构建的库
 let externals = {}
-cdnDependencies.forEach(package => { externals[package.name] = package.library })
+cdnDependencies.forEach(packages => { externals[packages.name] = packages.library })
 
 // 引入文件的 cdn 链接
 const cdn = {
@@ -139,7 +139,7 @@ module.exports = {
     config.resolve.alias
       .set('@api', resolve('src/api'))
     // 判断环境加入模拟数据
-    const entry = config.entry('app')
+    // const entry = config.entry('app')
     // if (process.env.VUE_APP_BUILD_MODE !== 'NOMOCK') {
     //   entry
     //     .add('@/mock')
