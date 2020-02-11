@@ -177,6 +177,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 	clusterInfo := &v1alpha1.RainbondCluster{}
 	clusterInfo.ObjectMeta = old.ObjectMeta
 	clusterInfo.Spec.ConfigCompleted = true
+	clusterInfo.Spec.InstallMode = v1alpha1.InstallationModeWithPackage
 	clusterInfo.Spec.InstallPackageConfig = v1alpha1.InstallPackageConfig{MD5: cc.cfg.DownloadMD5, URL: cc.cfg.DownloadURL}
 
 	if source.ImageHub.Domain != "" {
