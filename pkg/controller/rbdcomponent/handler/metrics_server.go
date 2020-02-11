@@ -70,8 +70,8 @@ func (m *metricsServer) After() error {
 		},
 		Spec: kubeaggregatorv1beta1.APIServiceSpec{
 			Service: &kubeaggregatorv1beta1.ServiceReference{
-				Name:      "metrics-server",
-				Namespace: "kube-system",
+				Name:      MetricsServerName,
+				Namespace: m.cluster.Namespace,
 			},
 			Group:                 "metrics.k8s.io",
 			Version:               "v1beta1",
@@ -91,6 +91,7 @@ func (m *metricsServer) After() error {
 		if err != nil {
 			return fmt.Errorf("create new api service: %v", err)
 		}
+		return nil
 	}
 
 	log.Info(fmt.Sprintf("an old api service(%s) has been found, update it.", apiService.GetName()))
@@ -190,9 +191,7 @@ func (m *metricsServer) serviceForMetricsServer() interface{} {
 					},
 				},
 			},
-			Selector: map[string]string{
-				"k8s-app": "metrics-server",
-			},
+			Selector: m.labels,
 		},
 	}
 

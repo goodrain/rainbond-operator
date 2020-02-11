@@ -80,6 +80,7 @@ func init() {
 		{name: "rbd-webcli", image: "goodrain.me/rbd-webcli:" + rbdVersion},
 		{name: "rbd-grctl", image: "goodrain.me/rbd-grctl:" + rbdVersion},
 		{name: "rbd-repo", image: "goodrain.me/rbd-repo:6.16.0"},
+		{name: "metrics-server", image: "goodrain.me/metrics-server:v0.3.6"},
 	}
 }
 
