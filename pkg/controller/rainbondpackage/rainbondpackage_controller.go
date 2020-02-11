@@ -45,7 +45,7 @@ import (
 
 var log = logf.Log.WithName("controller_rainbondpackage")
 var errorClusterConfigNotReady = fmt.Errorf("cluster config can not be ready")
-
+var errorClusterConfigNoLocalHub = fmt.Errorf("cluster spec not have local image hub info ")
 var pkgDst = "/opt/rainbond/pkg/files"
 
 // Add creates a new RainbondPackage Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -139,7 +139,13 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 	}
 	// handle package
 	if err = p.handle(); err != nil {
-		reqLogger.Error(err, "failed to handle rainbond package.")
+		if err == errorClusterConfigNoLocalHub {
+			reqLogger.Info("waiting local image hub ready")
+		} else if err == errorClusterConfigNotReady {
+			reqLogger.Info("waiting cluster config ready")
+		} else {
+			reqLogger.Error(err, "failed to handle rainbond package.")
+		}
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
@@ -168,6 +174,12 @@ func initPackageStatus() *rainbondv1alpha1.RainbondPackageStatus {
 			},
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.PushImage,
+				Status:             rainbondv1alpha1.Waiting,
+				LastHeartbeatTime:  metav1.Now(),
+				LastTransitionTime: metav1.Now(),
+			},
+			rainbondv1alpha1.PackageCondition{
+				Type:               rainbondv1alpha1.Ready,
 				Status:             rainbondv1alpha1.Waiting,
 				LastHeartbeatTime:  metav1.Now(),
 				LastTransitionTime: metav1.Now(),
@@ -245,7 +257,7 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 		return errorClusterConfigNotReady
 	}
 	if c.Spec.ImageHub == nil || c.Spec.ImageHub.Domain == "" {
-		return fmt.Errorf("cluster spec not have local image hub info ")
+		return errorClusterConfigNoLocalHub
 	}
 	if c.Spec.InstallVersion != "" {
 		p.version = c.Spec.InstallVersion
@@ -271,7 +283,7 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 		"/runner":                           "/runner",
 		"/kube-state-metrics":               "/kube-state-metrics",
 		"/mysqld-exporter":                  "/mysqld-exporter",
-		"/rbd-repo:6.5.9":                   "/rbd-repo:6.5.9",
+		"/rbd-repo:6.16.0":                  "/rbd-repo:6.16.0",
 		"/rbd-registry:2.6.2":               "/rbd-registry:2.6.2",
 		"/rbd-db:v5.1.9":                    "/rbd-db:v5.1.9",
 		"/metrics-server:v0.3.6":            "/metrics-server:v0.3.6",
@@ -542,7 +554,7 @@ func (p *pkg) handle() error {
 	if err := p.checkClusterConfig(); err != nil {
 		p.log.Error(err, "check cluster config")
 		//To continue waiting
-		if err == errorClusterConfigNotReady {
+		if err == errorClusterConfigNotReady || err == errorClusterConfigNoLocalHub {
 			return err
 		}
 		p.updateConditionStatus(rainbondv1alpha1.Init, rainbondv1alpha1.Waiting)
