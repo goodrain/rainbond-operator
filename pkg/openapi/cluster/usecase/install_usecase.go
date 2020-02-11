@@ -2,8 +2,9 @@ package usecase
 
 import (
 	"fmt"
-	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	"time"
+
+	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -209,8 +210,9 @@ func (ic *InstallUseCaseImpl) parseInstallStatus(clusterInfo *v1alpha1.RainbondC
 	statusres.StatusList = append(statusres.StatusList, ic.stepHub(clusterInfo, componentStatues))
 	statusres.StatusList = append(statusres.StatusList, ic.stepDownload(clusterInfo, pkgInfo))
 	statusres.StatusList = append(statusres.StatusList, ic.stepUnpack(clusterInfo, pkgInfo))
-	statusres.StatusList = append(statusres.StatusList, ic.stepHandleImage(clusterInfo, pkgInfo))
-	statusres.StatusList = append(statusres.StatusList, ic.stepCreateComponent(componentStatues))
+	handleImageStatus := ic.stepHandleImage(clusterInfo, pkgInfo)
+	statusres.StatusList = append(statusres.StatusList, handleImageStatus)
+	statusres.StatusList = append(statusres.StatusList, ic.stepCreateComponent(componentStatues, handleImageStatus.Status != InstallStatusFinished))
 
 	return
 }
@@ -386,11 +388,16 @@ func (ic *InstallUseCaseImpl) stepHandleImage(clusterInfo *v1alpha1.RainbondClus
 }
 
 // step 6 create component
-func (ic *InstallUseCaseImpl) stepCreateComponent(componentStatues []*v1.RbdComponentStatus) model.InstallStatus {
+func (ic *InstallUseCaseImpl) stepCreateComponent(componentStatues []*v1.RbdComponentStatus, wait bool) model.InstallStatus {
 	defer commonutil.TimeConsume(time.Now())
 
 	status := model.InstallStatus{
 		StepName: StepInstallComponent,
+	}
+
+	if wait {
+		status.Status = InstallStatusWaiting
+		return status
 	}
 
 	readyCount := 0
