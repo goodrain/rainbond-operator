@@ -543,7 +543,7 @@ func (p *pkg) handle() error {
 		if err == errorClusterConfigNotReady {
 			return err
 		}
-		p.updateConditionStatus(rainbondv1alpha1.Init, rainbondv1alpha1.Running)
+		p.updateConditionStatus(rainbondv1alpha1.Init, rainbondv1alpha1.Waiting)
 		p.updateConditionResion(rainbondv1alpha1.Init, err.Error(), "get rainbond cluster config failure")
 		p.updateCRStatus()
 		return err
