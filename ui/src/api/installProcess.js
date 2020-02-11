@@ -75,8 +75,8 @@ export function getClusterInstallResultsState (params) {
       //  'http://doc.goodrain.org/mock/48/cluster/components',
       '/cluster/components',
     method: 'get',
-    params:{
-      isInit:params?params.isInit:false
+    params: {
+      isInit: params ? params.isInit : false
     }
   })
 }

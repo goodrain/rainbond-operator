@@ -16,71 +16,71 @@
 
 <script>
 export default {
-  data() {
+  data () {
     return {
-      text: "开始安装",
+      text: '开始安装',
       loading: false
-    };
+    }
   },
-  created() {
-    this.handleState();
+  created () {
+    this.handleState()
   },
-  beforeDestroy() {
-    this.timers && clearInterval(this.timers);
+  beforeDestroy () {
+    this.timers && clearInterval(this.timers)
   },
   methods: {
-    handleState() {
-      this.$store.dispatch("fetchState").then(res => {
+    handleState () {
+      this.$store.dispatch('fetchState').then(res => {
         if (res && res.code === 200 && res.data.final_status) {
           switch (res.data.final_status) {
-            case "Initing":
-              this.text = "集群初始化中";
-              this.loading = true;
-              this.handleInit();
+            case 'Initing':
+              this.text = '集群初始化中'
+              this.loading = true
+              this.handleInit()
               this.timers = setTimeout(() => {
-                this.handleState();
-              }, 5000);
-              break;
-            case "Setting":
-              this.handleClick();
-              break;
-            case "Installing":
-              this.handleClick();
-              break;
-            case "UnInstalling":
+                this.handleState()
+              }, 5000)
+              break
+            case 'Setting':
+              this.handleClick()
+              break
+            case 'Installing':
+              this.handleClick()
+              break
+            case 'UnInstalling':
               this.timers = setTimeout(() => {
-                this.handleState();
-              }, 5000);
-              this.loading = true;
-              this.text = "卸载中";
-              break;
+                this.handleState()
+              }, 5000)
+              this.loading = true
+              this.text = '卸载中'
+              break
             default:
-              this.text = "开始安装";
-              this.loading = false;
-              this.timers && clearInterval(this.timers);
-              break;
+              this.text = '开始安装'
+              this.loading = false
+              this.timers && clearInterval(this.timers)
+              break
           }
         }
-      });
+      })
     },
-    handleInit() {
-      this.$store.dispatch("putInit").then(res => {
+    handleInit () {
+      this.$store.dispatch('putInit').then(res => {
         if (res && res.code === 200) {
-          this.handleClick();
-        } else if (res && res.code == 400) {
-          this.loading = true;
-          this.text = "卸载中";
-          this.handleState();
+          this.handleClick()
+        } else if (res && res.code === 400) {
+          this.loading = true
+          this.text = '卸载中'
+          this.handleState()
         }
-      });
+      })
     },
-    handleClick() {
+    handleClick () {
       this.$router.push({
-        name: "InstallProcess"
-      });
+        name: 'InstallProcess'
+      })
     }
   }
-};
+}
 </script>
 
 <style lang="scss" scoped>

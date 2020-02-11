@@ -94,34 +94,34 @@
 </template>
 
 <script>
-import d2MenuSide from './components/menu-side'
+// import d2MenuSide from './components/menu-side'
 import d2MenuHeader from './components/menu-header'
-import d2Tabs from './components/tabs'
-import d2HeaderFullscreen from './components/header-fullscreen'
-import d2HeaderLocales from './components/header-locales'
-import d2HeaderSearch from './components/header-search'
-import d2HeaderSize from './components/header-size'
-import d2HeaderTheme from './components/header-theme'
-import d2HeaderUser from './components/header-user'
-import d2HeaderLog from './components/header-log'
-import d2HeaderColor from './components/header-color'
+// import d2Tabs from './components/tabs'
+// import d2HeaderFullscreen from './components/header-fullscreen'
+// import d2HeaderLocales from './components/header-locales'
+// import d2HeaderSearch from './components/header-search'
+// import d2HeaderSize from './components/header-size'
+// import d2HeaderTheme from './components/header-theme'
+// import d2HeaderUser from './components/header-user'
+// import d2HeaderLog from './components/header-log'
+// import d2HeaderColor from './components/header-color'
 import { mapState, mapGetters, mapActions } from 'vuex'
 import mixinSearch from './mixins/search'
 export default {
   name: 'd2-layout-header-aside',
   mixins: [mixinSearch],
   components: {
-    d2MenuSide,
-    d2MenuHeader,
-    d2Tabs,
-    d2HeaderFullscreen,
-    d2HeaderLocales,
-    d2HeaderSearch,
-    d2HeaderSize,
-    d2HeaderTheme,
-    d2HeaderUser,
-    d2HeaderLog,
-    d2HeaderColor
+    // d2MenuSide,
+    d2MenuHeader
+    // d2Tabs,
+    // d2HeaderFullscreen,
+    // d2HeaderLocales,
+    // d2HeaderSearch,
+    // d2HeaderSize,
+    // d2HeaderTheme,
+    // d2HeaderUser,
+    // d2HeaderLog,
+    // d2HeaderColor
   },
   data () {
     return {
