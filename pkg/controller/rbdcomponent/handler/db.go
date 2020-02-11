@@ -116,7 +116,7 @@ func (d *db) statefulsetForDB() interface{} {
 							},
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
-									Exec: &corev1.ExecAction{Command: []string{"mysqladmin", "-u" + "root", "-p" + "rainbond", "ping"}},
+									Exec: &corev1.ExecAction{Command: []string{"mysqladmin", "-u" + "root", "-p" + rootPassword, "ping"}},
 								},
 								InitialDelaySeconds: 30,
 								PeriodSeconds:       10,
@@ -124,7 +124,7 @@ func (d *db) statefulsetForDB() interface{} {
 							},
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
-									Exec: &corev1.ExecAction{Command: []string{"mysql", "-u" + "root", "-p" + "rainbond", "-e", "SELECT 1"}},
+									Exec: &corev1.ExecAction{Command: []string{"mysql", "-u" + "root", "-p" + rootPassword, "-e", "SELECT 1"}},
 								},
 								InitialDelaySeconds: 5,
 								PeriodSeconds:       2,
