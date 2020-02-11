@@ -3,13 +3,13 @@ package handler
 import (
 	"context"
 	"fmt"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 )
 
 var EtcdName = "rbd-etcd"
@@ -18,13 +18,17 @@ type etcd struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	pkg       *rainbondv1alpha1.RainbondPackage
+	labels    map[string]string
 }
 
 func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+	labels := component.GetLabels()
+	labels["etcd_node"] = EtcdName
 	return &etcd{
 		component: component,
 		cluster:   cluster,
 		pkg:       pkg,
+		labels:    labels,
 	}
 }
 
@@ -38,8 +42,8 @@ func (e *etcd) Before() error {
 
 func (e *etcd) Resources() []interface{} {
 	return []interface{}{
-		e.podForEtcd0(),
-		e.serviceForEtcd0(),
+		e.statefulsetForEtcd(),
+		e.serviceForEtcd(),
 	}
 }
 
@@ -47,92 +51,101 @@ func (e *etcd) After() error {
 	return nil
 }
 
-func (e *etcd) podForEtcd0() interface{} {
-	po := &corev1.Pod{
+func (e *etcd) statefulsetForEtcd() interface{} {
+	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "etcd0",
+			Name:      EtcdName,
 			Namespace: e.component.Namespace,
-			Labels: map[string]string{
-				"app":       "etcd",
-				"etcd_node": "etcd0",
-			},
+			Labels:    e.labels,
 		},
-		Spec: corev1.PodSpec{
-			TerminationGracePeriodSeconds: commonutil.Int64(0),
-			NodeSelector:                  e.cluster.Status.FirstMasterNodeLabel(),
-			Tolerations: []corev1.Toleration{
-				{
-					Key:    e.cluster.Status.MasterRoleLabel,
-					Effect: corev1.TaintEffectNoSchedule,
-				},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas:    commonutil.Int32(1),
+			ServiceName: EtcdName,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: e.labels,
 			},
-			Containers: []corev1.Container{
-				{
-					Name:            "etcd0",
-					Image:           e.component.Spec.Image,
-					ImagePullPolicy: e.component.ImagePullPolicy(),
-					Command: []string{
-						"/usr/local/bin/etcd",
-						"--name",
-						"etcd0",
-						"--initial-advertise-peer-urls",
-						"http://etcd0:2380",
-						"--listen-peer-urls",
-						"http://0.0.0.0:2380",
-						"--listen-client-urls",
-						"http://0.0.0.0:2379",
-						"--advertise-client-urls",
-						"http://etcd0:2379",
-						"--initial-cluster",
-						"etcd0=http://etcd0:2380",
-						"--initial-cluster-state",
-						"new",
-					},
-					Ports: []corev1.ContainerPort{
-						{
-							Name:          "client",
-							ContainerPort: 2379,
-						},
-						{
-							Name:          "server",
-							ContainerPort: 2380,
-						},
-					},
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      "etcd-data",
-							MountPath: "/var/lib/etcd",
-						},
-					},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      EtcdName,
+					Namespace: e.component.Namespace,
+					Labels:    e.labels,
 				},
-			},
-			Volumes: []corev1.Volume{
-				{
-					Name: "etcd-data",
-					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: "/opt/rainbond/data/etcd",
-							Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					NodeSelector:                  e.cluster.Status.FirstMasterNodeLabel(),
+					Tolerations: []corev1.Toleration{
+						{
+							Key:    e.cluster.Status.MasterRoleLabel,
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					},
+					Containers: []corev1.Container{
+						{
+							Name:            EtcdName,
+							Image:           e.component.Spec.Image,
+							ImagePullPolicy: e.component.ImagePullPolicy(),
+							Command: []string{
+								"/usr/local/bin/etcd",
+								"--name",
+								EtcdName,
+								"--initial-advertise-peer-urls",
+								fmt.Sprintf("http://%s:2380", EtcdName),
+								"--listen-peer-urls",
+								"http://0.0.0.0:2380",
+								"--listen-client-urls",
+								"http://0.0.0.0:2379",
+								"--advertise-client-urls",
+								fmt.Sprintf("http://%s:2379", EtcdName),
+								"--initial-cluster",
+								fmt.Sprintf("%s=http://%s:2380", EtcdName, EtcdName),
+								"--initial-cluster-state",
+								"new",
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          "client",
+									ContainerPort: 2379,
+								},
+								{
+									Name:          "server",
+									ContainerPort: 2380,
+								},
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "etcd-data",
+									MountPath: "/var/lib/etcd",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "etcd-data",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/opt/rainbond/data/etcd",
+									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+								},
+							},
 						},
 					},
 				},
 			},
 		},
 	}
-
-	return po
+	return sts
 }
 
-func (e *etcd) serviceForEtcd0() interface{} {
+func (e *etcd) serviceForEtcd() interface{} {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "etcd0",
+			Name:      EtcdName,
 			Namespace: e.component.Namespace,
-			Labels: map[string]string{
-				"etcd_node": "etcd0",
-			},
+			Labels:    e.labels,
 		},
 		Spec: corev1.ServiceSpec{
+			ClusterIP: "None",
 			Ports: []corev1.ServicePort{
 				{
 					Name: "client",
@@ -143,9 +156,7 @@ func (e *etcd) serviceForEtcd0() interface{} {
 					Port: 2380,
 				},
 			},
-			Selector: map[string]string{
-				"etcd_node": "etcd0",
-			},
+			Selector: e.labels,
 		},
 	}
 

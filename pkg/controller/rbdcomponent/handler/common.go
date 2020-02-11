@@ -88,7 +88,7 @@ func getSecret(ctx context.Context, client client.Client, namespace, name string
 
 func etcdEndpoints(cluster *rainbondv1alpha1.RainbondCluster) []string {
 	if cluster.Spec.EtcdConfig == nil {
-		return []string{"http://etcd0:2379"}
+		return []string{"http://rbd-etcd:2379"}
 	}
 	return cluster.Spec.EtcdConfig.Endpoints
 }

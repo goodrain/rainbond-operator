@@ -213,10 +213,6 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	if cpt.Name == "rbd-etcd" { // TODO:
-		return reconcile.Result{}, nil
-	}
-
 	cpt.Status = generateRainbondComponentStatus(cpt, cluster, resources)
 	if err := r.client.Status().Update(ctx, cpt); err != nil {
 		reqLogger.Error(err, "Update RbdComponent status", "Name", cpt.Name)
