@@ -182,7 +182,7 @@ func (m *metricsServer) serviceForMetricsServer() interface{} {
 func (m *metricsServer) apiserviceForMetricsServer() *kubeaggregatorv1beta1.APIService {
 	return &kubeaggregatorv1beta1.APIService{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "metricsGroupAPI",
+			Name: metricsGroupAPI,
 		},
 		Spec: kubeaggregatorv1beta1.APIServiceSpec{
 			Service: &kubeaggregatorv1beta1.ServiceReference{
