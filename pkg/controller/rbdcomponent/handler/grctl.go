@@ -101,7 +101,7 @@ func (w *grctl) daemonSetForAPI() interface{} {
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/opt/rainbond/etc/rbd-api/region.goodrain.me/ssl/",
-					Type: k8sutil.HostPath(corev1.HostPathDirectory),
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 				},
 			},
 		},
