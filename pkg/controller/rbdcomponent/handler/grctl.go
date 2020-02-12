@@ -147,7 +147,7 @@ func (w *grctl) daemonSetForAPI() interface{} {
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceMemory: *resource.NewQuantity(64*1024*1024, resource.BinarySI),
-									corev1.ResourceCPU:    *resource.NewQuantity(200, resource.DecimalSI),
+									corev1.ResourceCPU:    *resource.NewMilliQuantity(200, resource.DecimalSI),
 								},
 							},
 						},
