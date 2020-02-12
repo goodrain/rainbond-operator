@@ -19,6 +19,7 @@ import (
 
 // DBName name
 var DBName = "rbd-db"
+var mysqlUser = "write"
 var mysqlUserKey = "mysql-user"
 var mysqlPasswordKey = "mysql-password"
 
@@ -42,7 +43,7 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 		cluster:       cluster,
 		pkg:           pkg,
 		labels:        component.GetLabels(),
-		mysqlUser:     "write",
+		mysqlUser:     mysqlUser,
 		mysqlPassword: string(uuid.NewUUID())[0:8],
 	}
 }
@@ -288,7 +289,11 @@ func (d *db) initdbCMForDB() interface{} {
 			Namespace: d.component.Namespace,
 		},
 		Data: map[string]string{
-			"initdb.sql": "CREATE DATABASE console;",
+			"initdb.sql": `
+CREATE DATABASE console;
+GRANT ALL ON *.* TO '` + d.mysqlUser + `'@'%';
+FLUSH PRIVILEGES;
+`,
 		},
 	}
 
