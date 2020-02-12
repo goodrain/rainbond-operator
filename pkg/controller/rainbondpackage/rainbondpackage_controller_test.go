@@ -113,3 +113,9 @@ func TestImagesLoadAndPush(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestPullImage(t *testing.T) {
+	if err := pkgHandle.imagePull("rainbond/rbd-app-ui:V5.2-dev"); err != nil {
+		t.Fatal(err)
+	}
+}

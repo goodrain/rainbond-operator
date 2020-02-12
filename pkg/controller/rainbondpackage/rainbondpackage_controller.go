@@ -867,7 +867,12 @@ func (p *pkg) imagePull(image string) error {
 	p.log.Info("start pull image", "image", image)
 	ctx, cancel := context.WithCancel(p.ctx)
 	defer cancel()
-	res, err := p.dcli.ImagePull(ctx, image, dtype.ImagePullOptions{})
+	rf, err := reference.ParseAnyReference(image)
+	if err != nil {
+		logrus.Errorf("reference image error: %s", err.Error())
+		return err
+	}
+	res, err := p.dcli.ImagePull(ctx, rf.String(), dtype.ImagePullOptions{})
 	if err != nil {
 		return fmt.Errorf("pull image %s failure %s", image, err.Error())
 	}
