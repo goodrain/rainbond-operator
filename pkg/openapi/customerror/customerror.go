@@ -45,3 +45,22 @@ func (err *RainbondTarNotExistError) Error() string {
 func NewRainbondTarNotExistError(msg string) *RainbondTarNotExistError {
 	return &RainbondTarNotExistError{Code: 1003, Msg: msg}
 }
+
+//CRAlreadyExistsError cr already exists error
+type CRAlreadyExistsError struct {
+	Msg  string
+	Code int
+}
+
+// Error error
+func (err *CRAlreadyExistsError) Error() string {
+	return err.Msg
+}
+
+// NewCRAlreadyExistsError new cr already exists error
+func NewCRAlreadyExistsError(msg string) *CRAlreadyExistsError {
+	return &CRAlreadyExistsError{
+		Msg:  msg,
+		Code: 1004,
+	}
+}

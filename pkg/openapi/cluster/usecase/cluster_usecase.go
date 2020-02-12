@@ -3,6 +3,8 @@ package usecase
 import (
 	"fmt"
 
+	"github.com/goodrain/rainbond-operator/pkg/openapi/customerror"
+
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
@@ -105,9 +107,14 @@ func (c *ClusterUsecaseImpl) handleStatus(rainbondCluster *rainbondv1alpha1.Rain
 		return rainbondClusterStatus
 	}
 
-	if rainbondPackageStatus.FinalStatus == model.Setting && componentStatus.FinalStatus == model.Setting {
+	if rainbondClusterStatus.FinalStatus == model.Setting {
 		reqLogger.Info("setting status")
-		rainbondClusterStatus.FinalStatus = model.Setting
+		return rainbondClusterStatus
+	}
+
+	// then cluster config completed and rainbondClusterStatus is settingCompleted
+	if rainbondPackageStatus.FinalStatus == model.SettingCompleted && componentStatus.FinalStatus == model.SettingCompleted {
+		reqLogger.Info("setting completed status and now can install cluster")
 		return rainbondClusterStatus
 	}
 
@@ -140,6 +147,9 @@ func (c *ClusterUsecaseImpl) handleRainbondClusterStatus(rainbondCluster *rainbo
 		return status
 	}
 	status.FinalStatus = model.Setting
+	if rainbondCluster.Spec.ConfigCompleted {
+		status.FinalStatus = model.SettingCompleted
+	}
 	//prepare cluster info
 	for _, sc := range rainbondCluster.Status.StorageClasses {
 		if sc.Name != "rainbondslsc" && sc.Name != "rainbondsssc" {
@@ -161,7 +171,7 @@ func (c *ClusterUsecaseImpl) handleRainbondClusterStatus(rainbondCluster *rainbo
 
 func (c *ClusterUsecaseImpl) handlePackageStatus(rainbondPackage *rainbondv1alpha1.RainbondPackage) model.ClusterStatus {
 	status := model.ClusterStatus{
-		FinalStatus: model.Setting,
+		FinalStatus: model.SettingCompleted,
 	}
 	if rainbondPackage == nil {
 		return status
@@ -172,7 +182,7 @@ func (c *ClusterUsecaseImpl) handlePackageStatus(rainbondPackage *rainbondv1alph
 
 func (c *ClusterUsecaseImpl) handleComponentStatus(componentList []*v1.RbdComponentStatus) model.ClusterStatus {
 	status := model.ClusterStatus{
-		FinalStatus: model.Setting,
+		FinalStatus: model.SettingCompleted,
 	}
 	if len(componentList) == 0 {
 		return status
@@ -203,7 +213,14 @@ func (c *ClusterUsecaseImpl) handleComponentStatus(componentList []*v1.RbdCompon
 // Init init
 func (c *ClusterUsecaseImpl) Init() error {
 	_, err := c.createCluster()
-	log.Error(err, "create cluster error")
+	if err != nil {
+		log.Error(err, "create cluster error: ", err.Error())
+		if k8sErrors.IsAlreadyExists(err) {
+			return customerror.NewCRAlreadyExistsError(err.Error())
+		}
+		return err
+	}
+
 	return err
 }
 

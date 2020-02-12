@@ -9,6 +9,8 @@ const (
 	Initing GlobalStatus = "Initing"
 	//Setting setting status
 	Setting GlobalStatus = "Setting"
+	// SettingCompleted setting complete
+	SettingCompleted GlobalStatus = "SettingCompleted"
 	//Installing installing status
 	Installing GlobalStatus = "Installing"
 	//Running running status

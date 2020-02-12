@@ -29,7 +29,8 @@ func NewGlobalConfigUseCase(cfg *option.Config) *GlobalConfigUseCaseImpl {
 func (cc *GlobalConfigUseCaseImpl) GlobalConfigs() (*model.GlobalConfigs, error) {
 	clusterInfo, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(cc.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		log.Error(err, "get rainbondcluster error: ", err.Error())
+		return &model.GlobalConfigs{}, nil
 	}
 
 	return cc.parseRainbondClusterConfig(clusterInfo)
