@@ -186,6 +186,12 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 			reqLogger.Info("checking the prerequisites", "msg", err.Error())
 			return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 		}
+		isSetV1beta1MetricsFlag := cpt.Annotations != nil && cpt.Annotations["v1beta1.metrics.k8s.io.exists"] == "true"
+		if err == chandler.V1beta1MetricsExists && !isSetV1beta1MetricsFlag {
+			if err := r.setV1beta1MetricsFlag(ctx, cpt); err == nil {
+				return reconcile.Result{}, nil
+			}
+		}
 		reqLogger.Info("error checking the prerequisites", "err", err)
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
@@ -293,6 +299,17 @@ func checkPackageStatus(pkg *rainbondv1alpha1.RainbondPackage) error {
 	}
 	if !packageCompleted {
 		return errors.New("rainbond package is not completed in InstallationModeWithoutPackage mode")
+	}
+	return nil
+}
+
+func (r *ReconcileRbdComponent) setV1beta1MetricsFlag(ctx context.Context, cpt *rainbondv1alpha1.RbdComponent) error {
+	if cpt.Annotations == nil {
+		cpt.Annotations = make(map[string]string)
+	}
+	cpt.Annotations["v1beta1.metrics.k8s.io.exists"] = "true"
+	if err := r.client.Update(ctx, cpt); err != nil {
+		return fmt.Errorf("update rbdcomponent: %v", err)
 	}
 	return nil
 }

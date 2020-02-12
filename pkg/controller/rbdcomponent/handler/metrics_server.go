@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
@@ -14,6 +15,8 @@ import (
 	kubeaggregatorv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var V1beta1MetricsExists = errors.New("v1beta1.metrics.k8s.io already exists")
 
 //APIName name
 var MetricsServerName = "metrics-server"
@@ -51,7 +54,7 @@ func (m *metricsServer) Before() error {
 	}
 	createdByRainbond := apiservce.Spec.Service.Namespace == m.component.Namespace && apiservce.Spec.Service.Name == MetricsServerName
 	if !createdByRainbond {
-		return NewIgnoreError(fmt.Sprintf("%s already exists", metricsGroupAPI))
+		return V1beta1MetricsExists
 	}
 	return nil
 }
