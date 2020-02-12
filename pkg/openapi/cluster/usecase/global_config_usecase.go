@@ -30,7 +30,10 @@ func (cc *GlobalConfigUseCaseImpl) GlobalConfigs() (*model.GlobalConfigs, error)
 	clusterInfo, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(cc.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
 		log.Error(err, "get rainbondcluster error: ", err.Error())
-		return &model.GlobalConfigs{}, nil
+		if k8sErrors.IsNotFound(err) {
+			return &model.GlobalConfigs{}, nil
+		}
+		return nil, err
 	}
 
 	return cc.parseRainbondClusterConfig(clusterInfo)

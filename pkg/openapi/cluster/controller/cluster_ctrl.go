@@ -78,7 +78,11 @@ func (cc *ClusterController) ClusterInit(c *gin.Context) {
 
 // Configs get cluster config info
 func (cc *ClusterController) Configs(c *gin.Context) {
-	configs, _ := cc.clusterCase.GlobalConfigs().GlobalConfigs() // if can't get cluster config, return empty config and ignore error
+	configs, err := cc.clusterCase.GlobalConfigs().GlobalConfigs() // if can't get cluster config, return empty config and ignore error
+	if err != nil {
+		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "internal error, please contact rainbond for help"})
+		return
+	}
 
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": configs})
 }
