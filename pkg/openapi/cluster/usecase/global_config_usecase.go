@@ -173,7 +173,10 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 	if err != nil {
 		return nil, err
 	}
+
 	clusterInfo := old.DeepCopy()
+	clusterInfo.Spec.ConfigCompleted = true
+
 	if source.ImageHub.Domain != "" {
 		clusterInfo.Spec.ImageHub = &v1alpha1.ImageHub{
 			Domain:    source.ImageHub.Domain,
