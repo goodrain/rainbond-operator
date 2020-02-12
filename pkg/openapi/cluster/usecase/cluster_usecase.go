@@ -218,6 +218,7 @@ func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster,
 			Name:      c.cfg.ClusterName,
 		},
 		Spec: rainbondv1alpha1.RainbondClusterSpec{
+			RainbondImageRepository: "registry.cn-hangzhou.aliyuncs.com/goodrain",
 			RainbondShareStorage: rainbondv1alpha1.RainbondShareStorage{
 				FstabLine: &rainbondv1alpha1.FstabLine{},
 			},
