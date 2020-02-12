@@ -6,7 +6,9 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -27,6 +29,7 @@ type db struct {
 	cluster                  *rainbondv1alpha1.RainbondCluster
 	pkg                      *rainbondv1alpha1.RainbondPackage
 	labels                   map[string]string
+	secret                   *corev1.Secret
 	mysqlUser, mysqlPassword string
 }
 
@@ -48,6 +51,16 @@ func (d *db) Before() error {
 	if d.cluster.Spec.RegionDatabase != nil && d.cluster.Spec.UIDatabase != nil {
 		return NewIgnoreError("use custom database")
 	}
+
+	secret := &corev1.Secret{}
+	if err := d.client.Get(d.ctx, types.NamespacedName{Namespace: d.component.Namespace, Name: DBName}, secret); err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return fmt.Errorf("get secret %s/%s: %v", DBName, d.component.Namespace, err)
+		}
+		secret = nil
+	}
+	d.secret = secret
+
 	return nil
 }
 
@@ -283,6 +296,9 @@ func (d *db) initdbCMForDB() interface{} {
 }
 
 func (d *db) secretForDB() interface{} {
+	if d.secret != nil {
+		return nil
+	}
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
