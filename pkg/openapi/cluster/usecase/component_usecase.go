@@ -2,13 +2,17 @@ package usecase
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	plabels "k8s.io/apimachinery/pkg/labels"
+
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"strings"
 )
 
 var log = logf.Log.WithName("usecase_cluster")
@@ -60,6 +64,12 @@ func (cc *ComponentUsecaseImpl) List(isInit bool) ([]*v1.RbdComponentStatus, err
 	var statues []*v1.RbdComponentStatus
 	for _, component := range components.Items {
 		var status *v1.RbdComponentStatus
+		if component.Name == "metrics-server" {
+			// handle metrics-server service already case, rainbond cluster won't create metrics-server now
+			if component.Annotations["v1beta1.metrics.k8s.io.exists"] == "true" {
+				continue
+			}
+		}
 		if component.Status == nil {
 			// Initially, status may be nil
 			status = &v1.RbdComponentStatus{
