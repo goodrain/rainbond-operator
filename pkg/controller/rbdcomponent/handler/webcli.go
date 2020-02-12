@@ -60,24 +60,11 @@ func (w *webcli) After() error {
 func (w *webcli) daemonSetForAPI() interface{} {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      "kubectl",
-			MountPath: "/usr/bin/kubectl",
-		},
-		{
 			Name:      "kubecfg",
 			MountPath: "/root/.kube",
 		},
 	}
 	volumes := []corev1.Volume{
-		{
-			Name: "kubectl",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/usr/bin/kubectl",
-					Type: k8sutil.HostPath(corev1.HostPathFile),
-				},
-			},
-		},
 		{
 			Name: "kubecfg",
 			VolumeSource: corev1.VolumeSource{
