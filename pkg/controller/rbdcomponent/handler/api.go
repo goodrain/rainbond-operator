@@ -67,7 +67,7 @@ func (a *api) Before() error {
 func (a *api) Resources() []interface{} {
 	resources := a.secretForAPI()
 	resources = append(resources, a.daemonSetForAPI())
-	resources = append(resources, a.serviceForAPI())
+	resources = append(resources, a.createService()...)
 	resources = append(resources, a.ingressForAPI())
 	resources = append(resources, a.ingressForWebsocket())
 	return resources
@@ -95,8 +95,7 @@ func (a *api) daemonSetForAPI() interface{} {
 		},
 	}
 	args := []string{
-		"--api-addr=$(POD_IP):8888",
-		"--api-ssl-enable=false",
+		"--api-addr=127.0.0.1:8888",
 		"--enable-feature=privileged",
 		fmt.Sprintf("--log-level=%s", a.component.LogLevel()),
 		a.db.RegionDataSource(),
@@ -113,6 +112,7 @@ func (a *api) daemonSetForAPI() interface{} {
 		volumeMounts = append(volumeMounts, mount)
 		volumes = append(volumes, volume)
 		args = append(args, "--api-ssl-enable=true",
+			"--api-addr-ssl=0.0.0.0:8443",
 			"--api-ssl-certfile=/etc/goodrain/region.goodrain.me/ssl/server.pem",
 			"--api-ssl-keyfile=/etc/goodrain/region.goodrain.me/ssl/server.key.pem",
 			"--client-ca-file=/etc/goodrain/region.goodrain.me/ssl/ca.pem",
@@ -175,22 +175,15 @@ func (a *api) daemonSetForAPI() interface{} {
 	return ds
 }
 
-func (a *api) serviceForAPI() interface{} {
-	svc := &corev1.Service{
+func (a *api) createService() []interface{} {
+	svcAPI := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      APIName,
+			Name:      APIName + "-api",
 			Namespace: a.component.Namespace,
 			Labels:    a.labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
-				{
-					Name: "http",
-					Port: 8888,
-					TargetPort: intstr.IntOrString{
-						IntVal: 8888,
-					},
-				},
 				{
 					Name: "https",
 					Port: 8443,
@@ -198,6 +191,19 @@ func (a *api) serviceForAPI() interface{} {
 						IntVal: 8443,
 					},
 				},
+			},
+			Selector: a.labels,
+		},
+	}
+
+	svcWebsocket := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      APIName + "-websocket",
+			Namespace: a.component.Namespace,
+			Labels:    a.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
 				{
 					Name: "ws",
 					Port: 6060,
@@ -210,7 +216,7 @@ func (a *api) serviceForAPI() interface{} {
 		},
 	}
 
-	return svc
+	return []interface{}{svcAPI, svcWebsocket}
 }
 
 func (a *api) getSecret(name string) (*corev1.Secret, error) {
@@ -303,7 +309,7 @@ func (a *api) ingressForAPI() interface{} {
 		},
 		Spec: extensions.IngressSpec{
 			Backend: &extensions.IngressBackend{
-				ServiceName: APIName,
+				ServiceName: APIName + "-api",
 				ServicePort: intstr.FromString("https"),
 			},
 		},
@@ -315,7 +321,7 @@ func (a *api) ingressForAPI() interface{} {
 func (a *api) ingressForWebsocket() interface{} {
 	ing := &extensions.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      APIName + "-webcli",
+			Name:      APIName + "-websocket",
 			Namespace: a.component.Namespace,
 			Annotations: map[string]string{
 				"nginx.ingress.kubernetes.io/l4-enable": "true",
@@ -326,7 +332,7 @@ func (a *api) ingressForWebsocket() interface{} {
 		},
 		Spec: extensions.IngressSpec{
 			Backend: &extensions.IngressBackend{
-				ServiceName: APIName,
+				ServiceName: APIName + "-websocket",
 				ServicePort: intstr.FromString("ws"),
 			},
 		},

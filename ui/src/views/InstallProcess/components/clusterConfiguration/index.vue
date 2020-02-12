@@ -373,7 +373,7 @@
         </el-collapse>
       </el-form-item>-->
       <div style="width:1100px;text-align:center;">
-        <el-button type="primary" @click="submitForm('ruleForm')">配置就绪,开发安装</el-button>
+        <el-button type="primary" @click="submitForm('ruleForm')">配置就绪,开始安装</el-button>
       </div>
     </el-form>
   </div>
