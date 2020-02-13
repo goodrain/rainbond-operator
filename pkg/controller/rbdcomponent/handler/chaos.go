@@ -3,9 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
-	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -102,9 +103,8 @@ func (c *chaos) daemonSetForChaos() interface{} {
 		{
 			Name: "cache",
 			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/cache",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: constants.CachePVC,
 				},
 			},
 		},
