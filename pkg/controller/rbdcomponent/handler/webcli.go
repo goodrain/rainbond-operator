@@ -3,9 +3,9 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"strings"
+
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -58,23 +58,8 @@ func (w *webcli) After() error {
 }
 
 func (w *webcli) daemonSetForAPI() interface{} {
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      "kubecfg",
-			MountPath: "/root/.kube",
-		},
-	}
-	volumes := []corev1.Volume{
-		{
-			Name: "kubecfg",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/root/.kube",
-					Type: k8sutil.HostPath(corev1.HostPathDirectory),
-				},
-			},
-		},
-	}
+	volumeMounts := []corev1.VolumeMount{}
+	volumes := []corev1.Volume{}
 	args := []string{
 		"--hostIP=$(POD_IP)",
 		fmt.Sprintf("--log-level=%s", w.component.LogLevel()),
