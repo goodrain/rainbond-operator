@@ -226,7 +226,7 @@ func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster,
 				URL: c.cfg.DownloadURL,
 				MD5: c.cfg.DownloadMD5,
 			},
-			InstallMode: rainbondv1alpha1.InstallationModeWithPackage,
+			InstallMode: rainbondv1alpha1.InstallationModeWithoutPackage,
 		},
 	}
 	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)
