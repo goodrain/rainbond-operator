@@ -66,7 +66,7 @@ func (cc *ComponentUsecaseImpl) List(isInit bool) ([]*v1.RbdComponentStatus, err
 		var status *v1.RbdComponentStatus
 		if component.Name == "metrics-server" {
 			// handle metrics-server service already case, rainbond cluster won't create metrics-server now
-			if component.Annotations["v1beta1.metrics.k8s.io.exists"] == "true" {
+			if component.Annotations != nil && component.Annotations["v1beta1.metrics.k8s.io.exists"] == "true" {
 				continue
 			}
 		}
