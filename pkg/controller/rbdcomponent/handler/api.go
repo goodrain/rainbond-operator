@@ -228,6 +228,7 @@ func (a *api) secretForAPI() []interface{} {
 	var ca *commonutil.CA
 	var err error
 	if serverSecret != nil {
+		a.serverSecret = serverSecret
 		//no change,do nothing
 		if availableips, ok := serverSecret.Labels["availableips"]; ok && availableips == ips {
 			return nil
