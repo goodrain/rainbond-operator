@@ -111,7 +111,6 @@ type ReconcileRbdComponent struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Namespace", request.Namespace, "Name", request.Name)
-	reqLogger.Info("Reconciling RbdComponent")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -169,13 +168,11 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		}
 		// Otherwise, we have to make sure rainbondpackage is completed before we create the resource.
 		if err := checkPackageStatus(pkg); err != nil {
-			reqLogger.Info(fmt.Sprintf("check package status: %v", err))
 			return false
 		}
 		return true
 	}
 	if !checkPrerequisites() {
-		reqLogger.Info("Prerequisites not passed")
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 

@@ -390,6 +390,10 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(componentStatues []*v1.RbdComp
 
 	status := model.InstallStatus{
 		StepName: StepInstallComponent,
+		Status:   InstallStatusWaiting,
+	}
+	if pkgInfo.Status == nil {
+		return status
 	}
 
 	condition := ic.handleRainbondPackageConditions(pkgInfo.Status.Conditions, v1alpha1.Ready)

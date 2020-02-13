@@ -109,7 +109,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 								},
 								{
 									Name:  "REGION_URL",
-									Value: "http://rbd-api:8888",
+									Value: fmt.Sprintf("https://%s:8443", a.cluster.GatewayIngressIP()),
 								},
 								{
 									Name:  "REGION_WS_URL",

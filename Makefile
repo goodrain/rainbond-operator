@@ -1,7 +1,7 @@
 GROUP=rainbond
 VERSION=v1alpha1
 IMAGE_DOMAIN=registry.cn-hangzhou.aliyuncs.com
-IMAGE_NAMESPACE=goodrain
+IMAGE_NAMESPACE=abewang
 TAG=v0.0.1
 
 .PHONY: gen
