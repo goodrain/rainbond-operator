@@ -249,12 +249,13 @@ func (a *api) secretForAPI() []interface{} {
 			return nil
 		}
 	}
-	serverPem, serverKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "region.goodrain.com")
+	//rbd-api-api domain support in cluster
+	serverPem, serverKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "rbd-api-api")
 	if err != nil {
 		log.Error(err, "create serverSecret cert for api")
 		return nil
 	}
-	clientPem, clientKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "region.goodrain.com")
+	clientPem, clientKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "rbd-api-api")
 	if err != nil {
 		log.Error(err, "create client cert for api")
 		return nil
