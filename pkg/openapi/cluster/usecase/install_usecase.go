@@ -272,6 +272,13 @@ func (ic *InstallUseCaseImpl) stepHub(clusterInfo *v1alpha1.RainbondCluster, com
 // step 2 download rainbond
 func (ic *InstallUseCaseImpl) stepDownload(clusterInfo *v1alpha1.RainbondCluster, pkgInfo *v1alpha1.RainbondPackage) model.InstallStatus {
 	defer commonutil.TimeConsume(time.Now())
+	if pkgInfo.Status == nil {
+		return model.InstallStatus{
+			StepName: StepDownload,
+			Status:   InstallStatusWaiting,
+		}
+	}
+
 	condition := ic.handleRainbondPackageConditions(pkgInfo.Status.Conditions, v1alpha1.DownloadPackage)
 	if condition == nil {
 		return model.InstallStatus{
@@ -304,6 +311,12 @@ func (ic *InstallUseCaseImpl) stepDownload(clusterInfo *v1alpha1.RainbondCluster
 // step 4 unpack rainbond
 func (ic *InstallUseCaseImpl) stepUnpack(clusterInfo *v1alpha1.RainbondCluster, pkgInfo *v1alpha1.RainbondPackage) model.InstallStatus {
 	defer commonutil.TimeConsume(time.Now())
+	if pkgInfo.Status == nil {
+		return model.InstallStatus{
+			StepName: StepUnpack,
+			Status:   InstallStatusWaiting,
+		}
+	}
 	condition := ic.handleRainbondPackageConditions(pkgInfo.Status.Conditions, v1alpha1.UnpackPackage)
 	if condition == nil {
 		return model.InstallStatus{
@@ -336,6 +349,12 @@ func (ic *InstallUseCaseImpl) stepUnpack(clusterInfo *v1alpha1.RainbondCluster, 
 // step 5 handle image, load and push image to image hub
 func (ic *InstallUseCaseImpl) stepHandleImage(clusterInfo *v1alpha1.RainbondCluster, pkgInfo *v1alpha1.RainbondPackage) model.InstallStatus {
 	defer commonutil.TimeConsume(time.Now())
+	if pkgInfo.Status == nil {
+		return model.InstallStatus{
+			StepName: StepHandleImage,
+			Status:   InstallStatusWaiting,
+		}
+	}
 	condition := ic.handleRainbondPackageConditions(pkgInfo.Status.Conditions, v1alpha1.PushImage)
 	if condition == nil {
 		return model.InstallStatus{
