@@ -1,7 +1,7 @@
 FROM node:lts-alpine as builder
 WORKDIR /app
 COPY ./ui/ .
-RUN yarn && npm run build
+RUN yarn && yarn run build
 
 # production stage
 FROM alpine:3.11.2
