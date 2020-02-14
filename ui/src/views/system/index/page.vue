@@ -1,7 +1,13 @@
 <template>
   <d2-container class="page">
     <d2-page-cover>
-      <img class="logo d2-mb" slot="logo" name="d2-admin" :src="`${$baseUrl}image/rainbondLogo.png`" alt="loading" />
+      <img
+        class="logo d2-mb"
+        slot="logo"
+        name="d2-admin"
+        :src="`${$baseUrl}image/rainbondLogo.png`"
+        alt="loading"
+      />
       <template slot="footer">
         <d2-help />
       </template>
@@ -21,6 +27,9 @@ export default {
     return {
       filename: __filename
     }
+  },
+  created () {
+    console.log('代码版本:2-14:14:48')
   }
 }
 </script>
