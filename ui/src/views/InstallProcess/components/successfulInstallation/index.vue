@@ -63,9 +63,6 @@ export default {
             case 'Setting':
               this.handleRouter('InstallProcess')
               break
-            case 'Running':
-              this.handleRouter('InstallProcess')
-              break
             case 'UnInstalling':
               this.handleRouter('index')
               break
