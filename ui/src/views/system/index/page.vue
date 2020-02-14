@@ -1,7 +1,13 @@
 <template>
   <d2-container class="page">
     <d2-page-cover>
-      <img class="logo d2-mb" slot="logo" name="d2-admin" :src="`${$baseUrl}image/rainbondLogo.png`" alt="loading" />
+      <img
+        class="logo d2-mb"
+        slot="logo"
+        name="d2-admin"
+        :src="`${$baseUrl}image/rainbondLogo.png`"
+        alt="loading"
+      />
       <template slot="footer">
         <d2-help />
       </template>
@@ -10,19 +16,22 @@
 </template>
 
 <script>
-import D2Help from './components/d2-help'
-import D2PageCover from './components/d2-page-cover'
+import D2Help from "./components/d2-help";
+import D2PageCover from "./components/d2-page-cover";
 export default {
   components: {
     D2Help,
     D2PageCover
   },
-  data () {
+  data() {
     return {
       filename: __filename
-    }
+    };
+  },
+  created() {
+    console.log("代码版本:2-14:14:30");
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>
