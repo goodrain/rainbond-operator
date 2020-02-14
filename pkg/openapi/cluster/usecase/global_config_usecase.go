@@ -224,7 +224,11 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 	if source.HTTPDomain != "" {
 		clusterInfo.Spec.SuffixHTTPHost = source.HTTPDomain
 	} else {
-		domain, err := cc.getSuffixHTTPHost(clusterInfo.Spec.GatewayNodes[0].NodeIP)
+		httpDomain := source.GatewayNodes[0].NodeIP // gatewayNodes must selected , so it can't be nil
+		if len(source.GatewayIngressIPs) > 0 {
+			httpDomain = source.GatewayIngressIPs[0]
+		}
+		domain, err := cc.getSuffixHTTPHost(httpDomain)
 		if err != nil {
 			logrus.Warn("get suffix http host error: ", err.Error())
 			clusterInfo.Spec.SuffixHTTPHost = "pass.grapps.cn"
