@@ -24,10 +24,12 @@ rainbondOperator:
 openapi:
   name: openapi
   image:
-    repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui
+    repository: registry.cn-hangzhou.aliyuncs.com/abewang/rbd-op-ui
     tag: v0.0.1
     pullPolicy: IfNotPresent
   port: 8080
   nodePort: 30008
   downloadURL: https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/offline/5.2/rainbond.images.2020-02-07-5.2-dev.tgz
   downloadMD5: e41bfde4902b78aef9a8c5c7725def6005ab9ddf2462b17fcbf16b0536b3b6a2
+  installMode: WithPackage
+  imageRepository: registry.cn-hangzhou.aliyuncs.com/goodrain

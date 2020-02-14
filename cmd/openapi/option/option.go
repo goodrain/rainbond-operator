@@ -12,20 +12,22 @@ import (
 
 // Config config for openapi
 type Config struct {
-	KubeconfigPath     string
-	Namespace          string
-	ClusterName        string
-	EtcdSecretName     string
-	DownloadURL        string
-	DownloadMD5        string
-	ArchiveFilePath    string
-	KubeClient         kubernetes.Interface // TODO
-	RainbondKubeClient versioned.Interface
-	RestConfig         *rest.Config
-	SuffixHTTPHost     string // suffix http host configmap name
-	KubeCfgSecretName  string
-	Rainbondpackage    string
-	LogLevel           string
+	KubeconfigPath          string
+	Namespace               string
+	ClusterName             string
+	EtcdSecretName          string
+	DownloadURL             string
+	DownloadMD5             string
+	ArchiveFilePath         string
+	KubeClient              kubernetes.Interface // TODO
+	RainbondKubeClient      versioned.Interface
+	RestConfig              *rest.Config
+	SuffixHTTPHost          string // suffix http host configmap name
+	KubeCfgSecretName       string
+	Rainbondpackage         string
+	LogLevel                string
+	InstallMode             string
+	RainbondImageRepository string
 }
 
 // AddFlags add flag
@@ -41,6 +43,8 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.SuffixHTTPHost, "suffix-configmap", "rbd-suffix-host", "rbd suffix http host configmap name")
 	fs.StringVar(&c.KubeCfgSecretName, "kube-secret", "kube-cfg-secret", "kubernetes account info used for cadvisor through kubelet")
 	fs.StringVar(&c.Rainbondpackage, "rainbond-package-name", "rainbondpackage", "kubernetes rainbondpackage resource name")
+	fs.StringVar(&c.InstallMode, "install-mode", "WithPackage", "Rainbond installation mode, install with package, or not.")
+	fs.StringVar(&c.RainbondImageRepository, "image-repository", "registry.cn-hangzhou.aliyuncs.com/goodrain", "Image repository for Rainbond components.")
 }
 
 // SetLog set log

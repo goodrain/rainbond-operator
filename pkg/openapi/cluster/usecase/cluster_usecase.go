@@ -212,13 +212,18 @@ func (c *ClusterUsecaseImpl) getCluster() (*rainbondv1alpha1.RainbondCluster, er
 }
 
 func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster, error) {
+	installMode := rainbondv1alpha1.InstallationModeWithoutPackage
+	if c.cfg.InstallMode == string(rainbondv1alpha1.InstallationModeWithPackage) {
+		installMode = rainbondv1alpha1.InstallationModeWithPackage
+	}
+
 	cluster := &rainbondv1alpha1.RainbondCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: c.cfg.Namespace,
 			Name:      c.cfg.ClusterName,
 		},
 		Spec: rainbondv1alpha1.RainbondClusterSpec{
-			RainbondImageRepository: "registry.cn-hangzhou.aliyuncs.com/goodrain",
+			RainbondImageRepository: c.cfg.RainbondImageRepository,
 			RainbondShareStorage: rainbondv1alpha1.RainbondShareStorage{
 				FstabLine: &rainbondv1alpha1.FstabLine{},
 			},
@@ -226,7 +231,7 @@ func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster,
 				URL: c.cfg.DownloadURL,
 				MD5: c.cfg.DownloadMD5,
 			},
-			InstallMode: rainbondv1alpha1.InstallationModeWithoutPackage,
+			InstallMode: installMode,
 		},
 	}
 	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)

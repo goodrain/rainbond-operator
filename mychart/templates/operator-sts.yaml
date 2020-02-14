@@ -52,6 +52,8 @@ spec:
           args:
             - --rbd-download-url={{ .Values.openapi.downloadURL }}
             - --rbd-download-md5={{ .Values.openapi.downloadMD5 }}
+            - --image-repository={{ .Values.openapi.imageRepository }}
+            - --install-mode={{ .Values.openapi.installMode }}
           volumeMounts:
             - mountPath: /opt/rainbond/pkg
               name: rbd-pkg
