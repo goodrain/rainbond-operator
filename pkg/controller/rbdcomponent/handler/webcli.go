@@ -88,6 +88,7 @@ func (w *webcli) daemonSetForAPI() interface{} {
 					Labels: w.labels,
 				},
 				Spec: corev1.PodSpec{
+					ServiceAccountName:            "rainbond-operator",
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Tolerations: []corev1.Toleration{
 						{
