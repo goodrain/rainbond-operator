@@ -42,10 +42,13 @@ export default {
               }, 5000)
               break
             case 'Setting':
-              this.handleClick()
+              this.handleRouter('InstallProcess')
               break
             case 'Installing':
-              this.handleClick()
+              this.handleRouter('InstallProcess')
+              break
+            case 'Running':
+              this.handleRouter('successfulInstallation')
               break
             case 'UnInstalling':
               this.timers = setTimeout(() => {
@@ -66,7 +69,7 @@ export default {
     handleInit () {
       this.$store.dispatch('putInit').then(res => {
         if (res && res.code === 200) {
-          this.handleClick()
+          this.handleState()
         } else if (res && res.code === 400) {
           this.loading = true
           this.text = '卸载中'
@@ -74,9 +77,9 @@ export default {
         }
       })
     },
-    handleClick () {
+    handleRouter (name) {
       this.$router.push({
-        name: 'InstallProcess'
+        name
       })
     }
   }

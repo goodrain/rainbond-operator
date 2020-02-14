@@ -16,22 +16,22 @@
 </template>
 
 <script>
-import D2Help from "./components/d2-help";
-import D2PageCover from "./components/d2-page-cover";
+import D2Help from './components/d2-help'
+import D2PageCover from './components/d2-page-cover'
 export default {
   components: {
     D2Help,
     D2PageCover
   },
-  data() {
+  data () {
     return {
       filename: __filename
-    };
+    }
   },
-  created() {
-    console.log("代码版本:2-14:14:30");
+  created () {
+    console.log('代码版本:2-14:14:48')
   }
-};
+}
 </script>
 
 <style lang="scss" scoped>
