@@ -17,4 +17,6 @@ const (
 	DefImageRepository = "goodrain.me"
 	//GrDataPVC -
 	GrDataPVC = "grdata"
+	// CachePVC
+	CachePVC = "cache"
 )
