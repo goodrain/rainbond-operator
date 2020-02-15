@@ -290,6 +290,7 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 		"/rbd-init-probe:" + p.version:      "/rbd-init-probe",
 		"/rbd-mesh-data-panel:" + p.version: "/rbd-mesh-data-panel",
 		"/plugins-tcm:5.1.7":                "/tcm",
+		"nfs-provisioner:v2.2.1-k8s1.12":    "/nfs-provisioner:v2.2.1-k8s1.12",
 	}
 	return nil
 }

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,19 +14,15 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
-	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	clusterCtrl "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/controller"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/upload"
 	uctrl "github.com/goodrain/rainbond-operator/pkg/openapi/user/controller"
 	uucase "github.com/goodrain/rainbond-operator/pkg/openapi/user/usecase"
 	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 )
 
 var (
@@ -38,16 +37,6 @@ func init() {
 	cfg.AddFlags(pflag.CommandLine)
 	pflag.Parse()
 	cfg.SetLog()
-
-	restConfig := k8sutil.MustNewKubeConfig(cfg.KubeconfigPath)
-	cfg.RestConfig = restConfig
-	if err := rest.LoadTLSFiles(cfg.RestConfig); err != nil {
-		panic("can't load kubernetes tls file")
-	}
-	logrus.Info("start rainbond-operator-openapi")
-
-	cfg.KubeClient = kubernetes.NewForConfigOrDie(restConfig)
-	cfg.RainbondKubeClient = versioned.NewForConfigOrDie(restConfig)
 }
 
 func main() {
@@ -61,6 +50,12 @@ func main() {
 	// uniform and structured logs.
 	logf.SetLogger(zap.Logger())
 
+	restConfig := k8sutil.MustNewKubeConfig(cfg.KubeconfigPath)
+	cfg.RestConfig = restConfig
+	cfg.KubeClient = kubernetes.NewForConfigOrDie(restConfig)
+	rainbondKubeClient := versioned.NewForConfigOrDie(restConfig)
+	cfg.RainbondKubeClient = rainbondKubeClient
+
 	r := gin.Default()
 	r.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
 	r.Use(static.Serve("/", static.LocalFile("/app/ui", true)))
@@ -68,10 +63,11 @@ func main() {
 	userUcase := uucase.NewUserUsecase(nil, "my-secret-key")
 	uctrl.NewUserController(r, userUcase)
 
-	clusterUcase := cluster.NewClusterCase(cfg)
+	clusterUcase := cluster.NewClusterCase(cfg, rainbondKubeClient)
 	clusterCtrl.NewClusterController(r, clusterUcase)
 
 	upload.NewUploadController(r, archiveFilePath)
+
 	logrus.Infof("api server listen %s", func() string {
 		if port := os.Getenv("PORT"); port != "" {
 			return ":" + port

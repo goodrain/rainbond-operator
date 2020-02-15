@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"time"
 
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
@@ -63,28 +65,6 @@ var rbdVersion = "V5.2-dev"
 // TODO: custom domain
 var existHubDomain = "registry.cn-hangzhou.aliyuncs.com/goodrain"
 
-func init() {
-	componentClaims = []componentClaim{
-		{name: "rbd-etcd", image: existHubDomain + "/etcd:v3.3.18", isInit: true},
-		{name: "rbd-gateway", image: existHubDomain + "/rbd-gateway:" + rbdVersion, isInit: true},
-		{name: "rbd-hub", image: existHubDomain + "/registry:2.6.2", isInit: true},
-		{name: "rbd-node", image: existHubDomain + "/rbd-node:" + rbdVersion, isInit: true},
-		{name: "rbd-nfs", image: existHubDomain + "/nfs-provisioner:v2.2.1-k8s1.12", isInit: true},
-		{name: "rbd-api", image: "goodrain.me/rbd-api:" + rbdVersion},
-		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:" + rbdVersion},
-		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:" + rbdVersion},
-		{name: "rbd-db", image: "goodrain.me/rbd-db:v5.1.9"},
-		{name: "rbd-dns", image: "goodrain.me/rbd-dns"},
-		{name: "rbd-eventlog", image: "goodrain.me/rbd-eventlog:" + rbdVersion},
-		{name: "rbd-monitor", image: "goodrain.me/rbd-monitor:" + rbdVersion},
-		{name: "rbd-mq", image: "goodrain.me/rbd-mq:" + rbdVersion},
-		{name: "rbd-worker", image: "goodrain.me/rbd-worker:" + rbdVersion},
-		{name: "rbd-webcli", image: "goodrain.me/rbd-webcli:" + rbdVersion},
-		{name: "rbd-repo", image: "goodrain.me/rbd-repo:6.16.0"},
-		{name: "metrics-server", image: "goodrain.me/metrics-server:v0.3.6"},
-	}
-}
-
 func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 	component := &v1alpha1.RbdComponent{}
 	component.Namespace = claim.namespace
@@ -104,26 +84,20 @@ func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 	return component
 }
 
-const (
-	md5CheckStatusWait int32 = iota
-	md5CheckStatusProcess
-	md5CheckStatusPass
-	md5CheckStatusFailed
-)
-
-type md5Check struct {
-	checked int32
-}
-
 // InstallUseCaseImpl install case
 type InstallUseCaseImpl struct {
-	cfg              *option.Config
-	componentUsecase ComponentUseCase
+	cfg                *option.Config
+	rainbondKubeClient versioned.Interface
+	componentUsecase   ComponentUseCase
 }
 
 // NewInstallUseCase new install case
-func NewInstallUseCase(cfg *option.Config, componentUsecase ComponentUseCase) *InstallUseCaseImpl {
-	return &InstallUseCaseImpl{cfg: cfg, componentUsecase: componentUsecase}
+func NewInstallUseCase(cfg *option.Config, rainbondKubeClient versioned.Interface, componentUsecase ComponentUseCase) *InstallUseCaseImpl {
+	return &InstallUseCaseImpl{
+		cfg:                cfg,
+		rainbondKubeClient: rainbondKubeClient,
+		componentUsecase:   componentUsecase,
+	}
 }
 
 // Install install
@@ -167,7 +141,46 @@ func (ic *InstallUseCaseImpl) initResourceDep() error {
 
 func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) error {
 	defer commonutil.TimeConsume(time.Now())
-	for _, rbdComponent := range components {
+
+	cluster, err := ic.rainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.cfg.Namespace).Get("rainbondcluster", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	componentClaims = []componentClaim{
+		{name: "rbd-api", image: "goodrain.me/rbd-api:" + rbdVersion},
+		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:" + rbdVersion},
+		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:" + rbdVersion},
+		{name: "rbd-db", image: "goodrain.me/rbd-db:v5.1.9"},
+		{name: "rbd-dns", image: "goodrain.me/rbd-dns"},
+		{name: "rbd-eventlog", image: "goodrain.me/rbd-eventlog:" + rbdVersion},
+		{name: "rbd-monitor", image: "goodrain.me/rbd-monitor:" + rbdVersion},
+		{name: "rbd-mq", image: "goodrain.me/rbd-mq:" + rbdVersion},
+		{name: "rbd-worker", image: "goodrain.me/rbd-worker:" + rbdVersion},
+		{name: "rbd-webcli", image: "goodrain.me/rbd-webcli:" + rbdVersion},
+		{name: "rbd-repo", image: "goodrain.me/rbd-repo:6.16.0"},
+		{name: "metrics-server", image: "goodrain.me/metrics-server:v0.3.6"},
+	}
+	if cluster.Spec.RegionDatabase != nil && cluster.Spec.UIDatabase != nil {
+		componentClaims = append(componentClaims, componentClaim{name: "rbd-db", image: "goodrain.me/rbd-db:v5.1.9"})
+	}
+
+	var isInit bool
+	imageRepository := existHubDomain
+	if cluster.Spec.ImageHub == nil {
+		isInit = true
+		imageRepository = constants.DefImageRepository
+		componentClaims = append(componentClaims, componentClaim{name: "rbd-hub", image: imageRepository + "/registry:2.6.2", isInit: isInit})
+	}
+	componentClaims = append(componentClaims, componentClaim{name: "rbd-etcd", image: imageRepository + "/etcd:v3.3.18", isInit: isInit})
+	componentClaims = append(componentClaims, componentClaim{name: "rbd-gateway", image: imageRepository + "/rbd-gateway:" + rbdVersion, isInit: isInit})
+	componentClaims = append(componentClaims, componentClaim{name: "rbd-node", image: imageRepository + "/rbd-node:" + rbdVersion, isInit: isInit})
+
+	if cluster.Spec.StorageClassName == "" {
+		componentClaims = append(componentClaims, componentClaim{name: "rbd-nfs", image: imageRepository + "/nfs-provisioner:v2.2.1-k8s1.12", isInit: isInit})
+	}
+
+	for _, rbdComponent := range componentClaims {
 		data := parseComponentClaim(rbdComponent)
 		// init component
 		data.Namespace = ic.cfg.Namespace
