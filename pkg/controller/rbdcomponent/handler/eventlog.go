@@ -3,8 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"path"
 	"strings"
+
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -94,7 +96,7 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 		volume, mount := volumeByEtcd(e.etcdSecret)
 		volumeMounts = append(volumeMounts, mount)
 		volumes = append(volumes, volume)
-		args = append(args, etcdSSLArgs()...)
+		args = append(args, eventLogEtcdArgs()...)
 	}
 
 	ds := &appsv1.DaemonSet{
@@ -157,4 +159,12 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 	}
 
 	return ds
+}
+
+func eventLogEtcdArgs() []string {
+	return []string{
+		"--discover.etcd.ca=" + path.Join(EtcdSSLPath, "ca-file"),
+		"--discover.etcd.cert=" + path.Join(EtcdSSLPath, "cert-file"),
+		"--discover.etcd.key=" + path.Join(EtcdSSLPath, "key-file"),
+	}
 }
