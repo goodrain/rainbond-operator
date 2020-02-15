@@ -4,6 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net"
 	"net/http"
 	"net/url"
@@ -19,11 +22,8 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/format"
 	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
 
-	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -277,7 +277,7 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(ctx context.Con
 }
 
 func (r *ReconcileRainbondCluster) claims(cluster *rainbondv1alpha1.RainbondCluster) []*corev1.PersistentVolumeClaim {
-	storageRequest := resource.NewQuantity(10, resource.BinarySI) // TODO: size
+	storageRequest := resource.NewQuantity(20*1024*1024*1024, resource.BinarySI) // TODO: customer specified
 
 	grdata := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -300,7 +300,7 @@ func (r *ReconcileRainbondCluster) claims(cluster *rainbondv1alpha1.RainbondClus
 	cache := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.Namespace,
-			Name:      "cache",
+			Name:      constants.CachePVC,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{
