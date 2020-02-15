@@ -42,6 +42,9 @@ func NewHub(ctx context.Context, client client.Client, component *rainbondv1alph
 }
 
 func (h *hub) Before() error {
+	if h.cluster.Spec.ImageHub != nil {
+		return NewIgnoreError("use custom image repository")
+	}
 	return nil
 }
 
