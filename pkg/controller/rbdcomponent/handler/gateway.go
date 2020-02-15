@@ -71,6 +71,11 @@ func (g *gateway) daemonSetForGateway() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
+	var selectNodeNames []string
+	for _, node := range g.cluster.Spec.GatewayNodes {
+		selectNodeNames = append(selectNodeNames, node.NodeName)
+	}
+
 	labels := g.component.GetLabels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -98,7 +103,23 @@ func (g *gateway) daemonSetForGateway() interface{} {
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					NodeSelector: g.cluster.Status.MasterNodeLabel(),
+					Affinity: &corev1.Affinity{
+						NodeAffinity: &corev1.NodeAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+								NodeSelectorTerms: []corev1.NodeSelectorTerm{
+									{
+										MatchFields: []corev1.NodeSelectorRequirement{
+											{
+												Key:      "metadata.name",
+												Operator: corev1.NodeSelectorOpIn,
+												Values:   selectNodeNames,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            GatewayName,
