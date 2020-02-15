@@ -172,10 +172,12 @@ func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) err
 		imageRepository = constants.DefImageRepository
 		componentClaims = append(componentClaims, componentClaim{name: "rbd-hub", image: imageRepository + "/registry:2.6.2", isInit: isInit})
 	}
-	componentClaims = append(componentClaims, componentClaim{name: "rbd-etcd", image: imageRepository + "/etcd:v3.3.18", isInit: isInit})
 	componentClaims = append(componentClaims, componentClaim{name: "rbd-gateway", image: imageRepository + "/rbd-gateway:" + rbdVersion, isInit: isInit})
 	componentClaims = append(componentClaims, componentClaim{name: "rbd-node", image: imageRepository + "/rbd-node:" + rbdVersion, isInit: isInit})
 
+	if cluster.Spec.EtcdConfig == nil {
+		componentClaims = append(componentClaims, componentClaim{name: "rbd-etcd", image: imageRepository + "/etcd:v3.3.18", isInit: isInit})
+	}
 	if cluster.Spec.StorageClassName == "" {
 		componentClaims = append(componentClaims, componentClaim{name: "rbd-nfs", image: imageRepository + "/nfs-provisioner:v2.2.1-k8s1.12", isInit: isInit})
 	}
