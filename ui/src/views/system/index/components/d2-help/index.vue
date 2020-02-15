@@ -36,7 +36,6 @@ export default {
             case 'Initing':
               this.text = '集群初始化中'
               this.loading = true
-              this.handleInit()
               this.timers = setTimeout(() => {
                 this.handleState()
               }, 5000)
