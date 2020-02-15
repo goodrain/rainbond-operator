@@ -68,6 +68,8 @@ export default {
     handleInit () {
       this.$store.dispatch('putInit').then(res => {
         if (res && res.code === 200) {
+          this.text = '集群初始化中'
+          this.loading = true
           this.handleState()
         } else if (res && res.code === 400) {
           this.loading = true
