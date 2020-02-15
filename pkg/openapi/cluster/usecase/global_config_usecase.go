@@ -217,8 +217,16 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 		}
 	}
 
+	existsGatewayNodes := make(map[string]struct{})
+	for _, node := range old.Spec.GatewayNodes {
+		existsGatewayNodes[node.NodeIP] = struct{}{}
+	}
+
 	for _, node := range source.GatewayNodes {
-		clusterInfo.Spec.GatewayNodes = append(clusterInfo.Spec.GatewayNodes, v1alpha1.NodeAvailPorts{NodeIP: node.NodeIP})
+		// ignore exists node
+		if _, ok := existsGatewayNodes[node.NodeIP]; !ok {
+			clusterInfo.Spec.GatewayNodes = append(clusterInfo.Spec.GatewayNodes, v1alpha1.NodeAvailPorts{NodeIP: node.NodeIP})
+		}
 	}
 
 	if source.HTTPDomain != "" {
