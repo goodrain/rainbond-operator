@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"strconv"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -81,6 +82,13 @@ func (a *appui) deploymentForAppUI() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					NodeSelector:                  a.cluster.Status.FirstMasterNodeLabel(),
+					Tolerations: []corev1.Toleration{
+						{
+							Key:    a.cluster.Status.MasterRoleLabel,
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            AppUIName,
@@ -129,6 +137,14 @@ func (a *appui) deploymentForAppUI() interface{} {
 									Name:      "ssl",
 									MountPath: "/app/region/ssl",
 								},
+								{
+									Name:      "logs",
+									MountPath: "/app/logs/",
+								},
+								{
+									Name:      "media",
+									MountPath: "/data/media",
+								},
 							},
 						},
 					},
@@ -138,6 +154,24 @@ func (a *appui) deploymentForAppUI() interface{} {
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
 									SecretName: apiClientSecretName,
+								},
+							},
+						},
+						{
+							Name: "logs",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/opt/rainbond/logs/rbd-app-ui/",
+									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+								},
+							},
+						},
+						{
+							Name: "media",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/opt/rainbond/data/rbd-app-ui/media",
+									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 								},
 							},
 						},
