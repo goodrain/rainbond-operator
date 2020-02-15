@@ -63,11 +63,11 @@ export default {
         step_install_component: '安装Rainbond组件'
       },
       phaseDesc: {
-        step_setting: '准备环境、预计 3 分钟',
-        step_download: '下载所需的安装包、预计 5 分钟',
-        step_prepare_hub: '准备存储、镜像仓库、预计 5 分钟',
-        step_unpacke: '解压基础镜像、预计 5 分钟',
-        step_handle_image: '推送镜像到镜像仓库、预计 10 分钟',
+        step_setting: '准备环境、预计 30秒',
+        step_prepare_hub: '准备存储、镜像仓库、预计 8 分钟',
+        step_download: '下载所需的安装包、预计 3 分钟',
+        step_unpacke: '解压基础镜像、预计 2 分钟',
+        step_handle_image: '推送镜像到镜像仓库、预计 7 分钟',
         step_install_component: '安装所需的组件、预计 10 分钟'
       }
     }
