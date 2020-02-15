@@ -111,18 +111,19 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, nil
 	}
 
-	// TODO: do not create claims here
-	claims := r.claims(rainbondcluster)
-	for i := range claims {
-		claim := claims[i]
-		// Set RbdComponent cpt as the owner and controller
-		if err := controllerutil.SetControllerReference(rainbondcluster, claim, r.scheme); err != nil {
-			reqLogger.Error(err, "set controller reference")
-			return reconcile.Result{RequeueAfter: time.Second * 2}, err
-		}
-		if err = k8sutil.UpdateOrCreateResource(ctx, r.client, reqLogger, claim, claim); err != nil {
-			reqLogger.Error(err, "update or create pvc")
-			return reconcile.Result{RequeueAfter: time.Second * 2}, err
+	if rainbondcluster.Spec.ConfigCompleted {
+		claims := r.claims(rainbondcluster)
+		for i := range claims {
+			claim := claims[i]
+			// Set RbdComponent cpt as the owner and controller
+			if err := controllerutil.SetControllerReference(rainbondcluster, claim, r.scheme); err != nil {
+				reqLogger.Error(err, "set controller reference")
+				return reconcile.Result{RequeueAfter: time.Second * 2}, err
+			}
+			if err = k8sutil.UpdateOrCreateResource(ctx, r.client, reqLogger, claim, claim); err != nil {
+				reqLogger.Error(err, "update or create pvc")
+				return reconcile.Result{RequeueAfter: time.Second * 2}, err
+			}
 		}
 	}
 
@@ -277,7 +278,7 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(ctx context.Con
 }
 
 func (r *ReconcileRainbondCluster) claims(cluster *rainbondv1alpha1.RainbondCluster) []*corev1.PersistentVolumeClaim {
-	storageRequest := resource.NewQuantity(20*1024*1024*1024, resource.BinarySI) // TODO: customer specified
+	storageRequest := resource.NewQuantity(21*1024*1024*1024, resource.BinarySI) // TODO: customer specified
 
 	grdata := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{

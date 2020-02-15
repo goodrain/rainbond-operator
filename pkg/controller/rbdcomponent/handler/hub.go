@@ -145,7 +145,7 @@ func (h *hub) serviceForHub() interface{} {
 }
 
 func (h *hub) persistentVolumeClaimForHub() interface{} {
-	storageRequest := resource.NewQuantity(10, resource.DecimalSI) // TODO: DO NOT HARD CODE.
+	storageRequest := resource.NewQuantity(21*1024*1024*1024, resource.BinarySI)
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      hubDataPvcName,
