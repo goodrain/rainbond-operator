@@ -1,5 +1,5 @@
 <template>
-  <div class="text item" v-show="componentList">
+  <div class="text item d2-p-20" v-show="componentList">
     <el-row :gutter="12" class="d2-mb">
       <el-col :span="14" class="d2-f-16">组件名称</el-col>
       <el-col :span="5" class="d2-f-16 d2-text-cen">组件副本数</el-col>
@@ -76,6 +76,9 @@ export default {
 </script>
 
 <style rel="stylesheet/scss" lang="scss" scoped>
+.d2-p-20{
+  padding: 20px;
+}
 .descColor {
   color: #606266;
 }
