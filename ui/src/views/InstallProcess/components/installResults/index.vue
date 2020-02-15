@@ -15,8 +15,8 @@
             ></install-component>
           </el-card>
 
-          <el-card v-else class="box-card" shadow="hover">
-            <div slot="header" class="clearfix">
+          <el-card v-else class="clearpadding" shadow="hover">
+            <div slot="header">
               <install-component
                 :item="item"
                 :index="index"
@@ -24,12 +24,14 @@
                 @onhandleDialogVisible="dialogVisible=true"
               ></install-component>
             </div>
-
             <rainbond-component
-              v-if="item.stepName==='step_install_component'&&item.status!=='status_waiting'"
+              v-if="item.stepName==='step_install_component'&&item.status!=='status_waiting'&&componentList&&componentList.length>0"
               :componentList="componentList"
             ></rainbond-component>
-            <rainbond-component v-else :componentList="mirrorComponentList"></rainbond-component>
+            <rainbond-component
+              v-if="item.stepName==='step_prepare_hub'&&item.status!=='status_waiting'&&mirrorComponentList&&mirrorComponentList.length>0"
+              :componentList="mirrorComponentList"
+            ></rainbond-component>
           </el-card>
         </el-col>
       </el-row>
@@ -46,18 +48,18 @@
   </div>
 </template>
 <script>
-import Uploads from '../upload'
-import InstallComponent from './installComponent'
-import RainbondComponent from './rainbondComponent'
+import Uploads from "../upload";
+import InstallComponent from "./installComponent";
+import RainbondComponent from "./rainbondComponent";
 
 export default {
-  name: 'installResults',
+  name: "installResults",
   components: {
     Uploads,
     InstallComponent,
     RainbondComponent
   },
-  data () {
+  data() {
     return {
       nextLoading: false,
       dialogVisible: false,
@@ -65,103 +67,110 @@ export default {
       installList: [],
       loading: true,
       componentState: {
-        Running: '成功',
-        Waiting: '等待',
-        Terminated: '停止'
+        Running: "成功",
+        Waiting: "等待",
+        Terminated: "停止"
       },
       componentList: [],
       mirrorComponentList: []
-    }
+    };
   },
-  created () {
-    this.loadData()
+  created() {
+    this.loadData();
   },
-  beforeDestroy () {
-    this.timer && clearInterval(this.timer)
-    this.timerdetection && clearInterval(this.timerdetection)
-    this.timers && clearInterval(this.timers)
-    this.timermirror && clearInterval(this.timermirror)
+  beforeDestroy() {
+    this.timer && clearInterval(this.timer);
+    this.timerdetection && clearInterval(this.timerdetection);
+    this.timers && clearInterval(this.timers);
+    this.timermirror && clearInterval(this.timermirror);
   },
   methods: {
-    onhandleDelete () {
-      this.$confirm('确定要卸载吗？')
+    onhandleDelete() {
+      this.$confirm("确定要卸载吗？")
         .then(_ => {
-          this.$store.dispatch('deleteUnloadingPlatform').then(res => {
+          this.$store.dispatch("deleteUnloadingPlatform").then(res => {
             if (res && res.code === 200) {
               this.$notify({
-                type: 'success',
-                title: '卸载',
-                message: '卸载成功'
-              })
+                type: "success",
+                title: "卸载",
+                message: "卸载成功"
+              });
               this.$router.push({
-                name: 'index'
-              })
+                name: "index"
+              });
             }
-          })
+          });
         })
-        .catch(_ => {})
+        .catch(_ => {});
     },
 
-    loadData () {
-      this.fetchClusterInstallResults()
-      this.fetchClusterInstallResultsState()
-      this.fetchClusterInstallMirrorWarehouse()
+    loadData() {
+      this.fetchClusterInstallResults();
+      this.fetchClusterInstallResultsState();
+      this.fetchClusterInstallMirrorWarehouse();
     },
-    format (percentage) {
-      return ''
+    format(percentage) {
+      return "";
     },
-    onSubmitLoads () {
-      this.addCluster()
+    onSubmitLoads() {
+      this.addCluster();
     },
-    fetchClusterInstallResults () {
+    fetchClusterInstallResults() {
       this.timer = setTimeout(() => {
-        this.fetchClusterInstallResults()
-      }, 10000)
-      this.$store.dispatch('fetchClusterInstallResults').then(res => {
+        this.fetchClusterInstallResults();
+      }, 10000);
+      this.$store.dispatch("fetchClusterInstallResults").then(res => {
         if (res) {
-          this.loading = false
-          this.installList = res.data.statusList
-          let arrs = res.data.statusList
+          this.loading = false;
+          this.installList = res.data.statusList;
+          let arrs = res.data.statusList;
           if (arrs && arrs.length > 0) {
             arrs.map(item => {
-              const { stepName, status } = item
-              if (stepName === 'step_download' && status === 'status_failed') {
+              const { stepName, status } = item;
+              if (stepName === "step_download" && status === "status_failed") {
                 if (this.dialogVisibleNum < 1) {
-                  this.dialogVisible = true
+                  this.dialogVisible = true;
                 }
-                this.dialogVisibleNum = 1
-                this.timer && clearInterval(this.timer)
+                this.dialogVisibleNum = 1;
+                this.timer && clearInterval(this.timer);
               }
-            })
+            });
           }
         } else {
-          this.loading = false
+          this.loading = false;
         }
-      })
+      });
     },
-    fetchClusterInstallResultsState () {
+    fetchClusterInstallResultsState() {
       this.timers = setTimeout(() => {
-        this.fetchClusterInstallResultsState()
-      }, 10000)
-      this.$store.dispatch('fetchClusterInstallResultsState').then(res => {
-        this.componentList = res.data
-      })
+        this.fetchClusterInstallResultsState();
+      }, 10000);
+      this.$store.dispatch("fetchClusterInstallResultsState").then(res => {
+        this.componentList = res.data;
+      });
     },
-    fetchClusterInstallMirrorWarehouse () {
+    fetchClusterInstallMirrorWarehouse() {
       this.timermirror = setTimeout(() => {
-        this.fetchClusterInstallMirrorWarehouse()
-      }, 10000)
+        this.fetchClusterInstallMirrorWarehouse();
+      }, 10000);
       this.$store
-        .dispatch('fetchClusterInstallResultsState', { isInit: true })
+        .dispatch("fetchClusterInstallResultsState", { isInit: true })
         .then(res => {
           if (res) {
-            this.mirrorComponentList = res.data
+            this.mirrorComponentList = res.data;
           }
-        })
+        });
     }
   }
-}
+};
 </script>
+<style rel="stylesheet/scss" lang="scss" >
+.clearpadding {
+  .el-card__body {
+    padding: 0 !important;
+  }
+}
+</style>
 <style rel="stylesheet/scss" lang="scss" scoped>
 .d2-h-50 {
   height: 50px;
@@ -178,6 +187,7 @@ export default {
 .d2-f-14 {
   font-size: 14px;
 }
+
 .result {
   width: 1000px;
   min-height: 300px;
