@@ -2,8 +2,9 @@ package usecase
 
 import (
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"time"
+
+	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 
@@ -264,6 +265,12 @@ func (ic *InstallUseCaseImpl) stepHub(clusterInfo *v1alpha1.RainbondCluster, com
 		if cs.ISInitComponent {
 			initComponents = append(initComponents, cs)
 		}
+	}
+
+	if len(initComponents) == 0 {
+		// component not ready
+		status.Status = InstallStatusWaiting
+		return status
 	}
 
 	readyCount := 0
