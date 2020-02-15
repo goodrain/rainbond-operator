@@ -278,7 +278,11 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(ctx context.Con
 }
 
 func (r *ReconcileRainbondCluster) claims(cluster *rainbondv1alpha1.RainbondCluster) []*corev1.PersistentVolumeClaim {
+	storageClassName := rbdutil.GetStorageClass(cluster)
 	storageRequest := resource.NewQuantity(21*1024*1024*1024, resource.BinarySI) // TODO: customer specified
+	if storageClassName == constants.DefStorageClass {
+		storageRequest = resource.NewQuantity(1*1024*1024, resource.BinarySI)
+	}
 
 	grdata := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -294,7 +298,7 @@ func (r *ReconcileRainbondCluster) claims(cluster *rainbondv1alpha1.RainbondClus
 					corev1.ResourceStorage: *storageRequest,
 				},
 			},
-			StorageClassName: commonutil.String(rbdutil.GetStorageClass(cluster)),
+			StorageClassName: &storageClassName,
 		},
 	}
 

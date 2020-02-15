@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 
 	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
 
@@ -145,7 +146,11 @@ func (h *hub) serviceForHub() interface{} {
 }
 
 func (h *hub) persistentVolumeClaimForHub() interface{} {
-	storageRequest := resource.NewQuantity(21*1024*1024*1024, resource.BinarySI)
+	storageClassName := rbdutil.GetStorageClass(h.cluster)
+	storageRequest := resource.NewQuantity(21*1024*1024*1024, resource.BinarySI) // TODO: customer specified
+	if storageClassName == constants.DefStorageClass {
+		storageRequest = resource.NewQuantity(1*1024*1024, resource.BinarySI)
+	}
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      hubDataPvcName,
@@ -160,7 +165,7 @@ func (h *hub) persistentVolumeClaimForHub() interface{} {
 					corev1.ResourceStorage: *storageRequest,
 				},
 			},
-			StorageClassName: commonutil.String(rbdutil.GetStorageClass(h.cluster)),
+			StorageClassName: commonutil.String(storageClassName),
 		},
 	}
 
