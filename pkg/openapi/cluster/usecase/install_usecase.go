@@ -151,7 +151,6 @@ func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) err
 		{name: "rbd-api", image: "goodrain.me/rbd-api:" + rbdVersion},
 		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:" + rbdVersion},
 		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:" + rbdVersion},
-		{name: "rbd-db", image: "goodrain.me/rbd-db:v5.1.9"},
 		{name: "rbd-dns", image: "goodrain.me/rbd-dns"},
 		{name: "rbd-eventlog", image: "goodrain.me/rbd-eventlog:" + rbdVersion},
 		{name: "rbd-monitor", image: "goodrain.me/rbd-monitor:" + rbdVersion},
@@ -161,7 +160,7 @@ func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) err
 		{name: "rbd-repo", image: "goodrain.me/rbd-repo:6.16.0"},
 		{name: "metrics-server", image: "goodrain.me/metrics-server:v0.3.6"},
 	}
-	if cluster.Spec.RegionDatabase != nil && cluster.Spec.UIDatabase != nil {
+	if cluster.Spec.RegionDatabase == nil || cluster.Spec.UIDatabase == nil {
 		componentClaims = append(componentClaims, componentClaim{name: "rbd-db", image: "goodrain.me/rbd-db:v5.1.9"})
 	}
 
