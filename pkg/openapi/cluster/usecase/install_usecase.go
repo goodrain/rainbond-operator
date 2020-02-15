@@ -3,7 +3,6 @@ package usecase
 import (
 	"fmt"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
-	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"time"
 
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
@@ -166,11 +165,13 @@ func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) err
 	}
 
 	var isInit bool
-	imageRepository := existHubDomain
+	var imageRepository string
 	if cluster.Spec.ImageHub == nil {
 		isInit = true
-		imageRepository = constants.DefImageRepository
+		imageRepository = existHubDomain
 		componentClaims = append(componentClaims, componentClaim{name: "rbd-hub", image: imageRepository + "/registry:2.6.2", isInit: isInit})
+	} else {
+		imageRepository = cluster.Spec.ImageHub.Domain
 	}
 	componentClaims = append(componentClaims, componentClaim{name: "rbd-gateway", image: imageRepository + "/rbd-gateway:" + rbdVersion, isInit: isInit})
 	componentClaims = append(componentClaims, componentClaim{name: "rbd-node", image: imageRepository + "/rbd-node:" + rbdVersion, isInit: isInit})
