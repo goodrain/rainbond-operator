@@ -246,6 +246,10 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 									Name:  "RBD_DOCKER_SECRET",
 									Value: hubImageRepository,
 								},
+								{
+									Name:  "RBD_NAMESPACE",
+									Value: n.component.Namespace,
+								},
 							},
 							Args:         args,
 							VolumeMounts: volumeMounts,
