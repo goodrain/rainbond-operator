@@ -12,6 +12,7 @@ import (
 
 // Config config for openapi
 type Config struct {
+	RainbondVersion         string
 	KubeconfigPath          string
 	Namespace               string
 	ClusterName             string
@@ -32,6 +33,7 @@ type Config struct {
 
 // AddFlags add flag
 func (c *Config) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&c.RainbondVersion, "rainbond-version", "V5.2.0-beta1", "The version of Rainbond.")
 	fs.StringVar(&c.LogLevel, "log-level", "info", "the api log level")
 	fs.StringVar(&c.KubeconfigPath, "kube-config", "", "kubernets admin config path, default /root/.kube/config")
 	fs.StringVar(&c.Namespace, "rbd-namespace", "rbd-system", "rbd component namespace")

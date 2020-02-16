@@ -247,7 +247,7 @@ func newpkg(ctx context.Context, client client.Client, p *rainbondv1alpha1.Rainb
 		totalImageNum: 23,
 		images:        make(map[string]string, 23),
 		log:           reqLogger,
-		version:       "V5.2-dev",
+		version:       "V5.2.0-beta1",
 	}
 	return pkg, nil
 }
