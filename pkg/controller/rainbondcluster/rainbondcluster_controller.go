@@ -4,13 +4,13 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
+	"net/http"
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"net"
-	"net/http"
-	"net/url"
-	"time"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -139,6 +139,7 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 	}
 
 	if rainbondcluster.Spec.ImageHub == nil {
+		//TODO: Wait for the rbd-hub component installed to begin health detection.
 		reqLogger.Info("image hub is empty, do sth.")
 		imageHub, err := r.getImageHub(rainbondcluster)
 		if err != nil {
@@ -346,21 +347,20 @@ func (r *ReconcileRainbondCluster) getMasterRoleLabel(ctx context.Context) (stri
 func (r *ReconcileRainbondCluster) getImageHub(cluster *rainbondv1alpha1.RainbondCluster) (*rainbondv1alpha1.ImageHub, error) {
 	imageHubReady := func() error {
 		httpClient := &http.Client{
-			Timeout: 1 * time.Second,
+			Timeout: 3 * time.Second,
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: true, // TODO: can't ignore TLS
 				},
 			},
 		}
-
-		domain := rbdutil.GetImageRepository(cluster)
-		u, err := url.Parse(fmt.Sprintf("https://%s/v2/", cluster.GatewayIngressIP()))
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+		defer cancel()
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s/v2/", cluster.GatewayIngressIP()), nil)
 		if err != nil {
-			return fmt.Errorf("failed to parse url %s: %v", fmt.Sprintf("https://%s/v2/", domain), err)
+			return fmt.Errorf("new request failure %s", err.Error())
 		}
-
-		request := &http.Request{URL: u, Host: domain}
+		request.Host = constants.DefImageRepository
 		res, err := httpClient.Do(request)
 		if err != nil {
 			return fmt.Errorf("image repository unavailable: %v", err)
