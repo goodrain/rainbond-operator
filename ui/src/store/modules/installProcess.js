@@ -8,7 +8,8 @@ import {
   getClusterInstallResultsState,
   getAccessAddress,
   deleteUnloadingPlatform,
-  putInit
+  putInit,
+  putRecord,
 } from '@/api/installProcess'
 
 const installProcess = {
@@ -26,6 +27,18 @@ const installProcess = {
           })
       })
     },
+    putRecord ({ commit }, resdata) {
+      return new Promise((resolve, reject) => {
+        putRecord(resdata)
+          .then(response => {
+            resolve(response)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
+
     fetchState ({ commit }, resdata) {
       return new Promise((resolve, reject) => {
         getState(resdata)

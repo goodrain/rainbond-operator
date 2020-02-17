@@ -20,6 +20,19 @@ export function putInit () {
   })
 }
 
+//  保存安装记录
+export function putRecord (data) {
+  return request({
+    url:
+      // 'https://log.rainbond.com/log/install',
+      '/log/install',
+    method: 'post',
+    data
+  })
+}
+
+
+
 //  获取集群配置信息
 export function getClusterInfo () {
   return request({
