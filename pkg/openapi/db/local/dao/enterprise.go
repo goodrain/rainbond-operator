@@ -32,8 +32,14 @@ func (impl *EnterpriseDaoImpl) EnterpriseID() (string, error) {
 			enterpriseLog.Error(err, "decode enterprise id[%s] failed: %s", enterpriseID, err.Error())
 			return "", err
 		}
+		if _, err := os.Stat(impl.InitPath); os.IsNotExist(err) {
+			if err := os.MkdirAll(impl.InitPath, os.ModePerm); err != nil {
+				enterpriseLog.Error(err, fmt.Sprintf("mkdir path [%s] failed: %s", enterpriseID, err.Error()))
+				return "", err
+			}
+		}
 		if err := ioutil.WriteFile(enterprise, enterpriseIDBytes, os.ModePerm); err != nil {
-			enterpriseLog.Error(err, "write enterprise id[%s] failed: %s", enterpriseID, err.Error())
+			enterpriseLog.Error(err, fmt.Sprintf("write enterprise id[%s] failed: %s", enterpriseID, err.Error()))
 			return "", err
 		}
 		return enterpriseID, nil
