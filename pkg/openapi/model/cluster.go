@@ -127,4 +127,5 @@ type ClusterInfo struct {
 	Storage        []Storage        `json:"storage"`
 	EnterpriseID   string           `json:"enterpriseID"` // enterprise's uuid
 	InstallID      string           `json:"installID"`    // install uuid
+	InstallVersion string           `json:"installVersion"`
 }

@@ -128,6 +128,7 @@ func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.R
 			}
 		}
 	}
+	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
 	return nil
 }
 
