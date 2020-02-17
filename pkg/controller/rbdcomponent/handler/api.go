@@ -85,7 +85,7 @@ func (a *api) daemonSetForAPI() interface{} {
 			MountPath: "/grdata",
 		},
 		{
-			Name:      "accessLog",
+			Name:      "accesslog",
 			MountPath: "/logs",
 		},
 	}
@@ -99,7 +99,7 @@ func (a *api) daemonSetForAPI() interface{} {
 			},
 		},
 		{
-			Name: "accessLog",
+			Name: "accesslog",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/opt/rainbond/logs/rbd-api/",

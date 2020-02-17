@@ -29,6 +29,7 @@ openapi:
     pullPolicy: IfNotPresent
   port: 8080
   nodePort: 30008
+  rainbondVersion: V5.2.0-beta1
   downloadURL: https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/offline/5.2/rainbond.images.2020-02-16-V5.2.0-beta1.tgz
   downloadMD5: 8ec6bbc761693b514770e83e1f7616c5124b97a09e85b5883ec19d5442092205
   installMode: WithPackage

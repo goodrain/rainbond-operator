@@ -60,8 +60,6 @@ type componentClaim struct {
 	isInit    bool
 }
 
-var rbdVersion = "V5.2-dev"
-
 // TODO: custom domain
 var existHubDomain = "registry.cn-hangzhou.aliyuncs.com/goodrain"
 
@@ -148,15 +146,15 @@ func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) err
 	}
 
 	componentClaims = []componentClaim{
-		{name: "rbd-api", image: "goodrain.me/rbd-api:" + rbdVersion},
-		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:" + rbdVersion},
-		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:" + rbdVersion},
+		{name: "rbd-api", image: "goodrain.me/rbd-api:" + ic.cfg.RainbondVersion},
+		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:" + ic.cfg.RainbondVersion},
+		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:" + ic.cfg.RainbondVersion},
 		{name: "rbd-dns", image: "goodrain.me/rbd-dns"},
-		{name: "rbd-eventlog", image: "goodrain.me/rbd-eventlog:" + rbdVersion},
-		{name: "rbd-monitor", image: "goodrain.me/rbd-monitor:" + rbdVersion},
-		{name: "rbd-mq", image: "goodrain.me/rbd-mq:" + rbdVersion},
-		{name: "rbd-worker", image: "goodrain.me/rbd-worker:" + rbdVersion},
-		{name: "rbd-webcli", image: "goodrain.me/rbd-webcli:" + rbdVersion},
+		{name: "rbd-eventlog", image: "goodrain.me/rbd-eventlog:" + ic.cfg.RainbondVersion},
+		{name: "rbd-monitor", image: "goodrain.me/rbd-monitor:" + ic.cfg.RainbondVersion},
+		{name: "rbd-mq", image: "goodrain.me/rbd-mq:" + ic.cfg.RainbondVersion},
+		{name: "rbd-worker", image: "goodrain.me/rbd-worker:" + ic.cfg.RainbondVersion},
+		{name: "rbd-webcli", image: "goodrain.me/rbd-webcli:" + ic.cfg.RainbondVersion},
 		{name: "rbd-repo", image: "goodrain.me/rbd-repo:6.16.0"},
 		{name: "metrics-server", image: "goodrain.me/metrics-server:v0.3.6"},
 	}
@@ -173,8 +171,8 @@ func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) err
 	} else {
 		imageRepository = cluster.Spec.ImageHub.Domain
 	}
-	componentClaims = append(componentClaims, componentClaim{name: "rbd-gateway", image: imageRepository + "/rbd-gateway:" + rbdVersion, isInit: isInit})
-	componentClaims = append(componentClaims, componentClaim{name: "rbd-node", image: imageRepository + "/rbd-node:" + rbdVersion, isInit: isInit})
+	componentClaims = append(componentClaims, componentClaim{name: "rbd-gateway", image: imageRepository + "/rbd-gateway:" + ic.cfg.RainbondVersion, isInit: isInit})
+	componentClaims = append(componentClaims, componentClaim{name: "rbd-node", image: imageRepository + "/rbd-node:" + ic.cfg.RainbondVersion, isInit: isInit})
 
 	if cluster.Spec.EtcdConfig == nil {
 		componentClaims = append(componentClaims, componentClaim{name: "rbd-etcd", image: imageRepository + "/etcd:v3.3.18", isInit: isInit})
