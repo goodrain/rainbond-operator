@@ -3,8 +3,9 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"strconv"
+
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
@@ -179,6 +180,12 @@ func (a *appui) deploymentForAppUI() interface{} {
 				},
 			},
 		},
+	}
+
+	if a.cluster.Annotations != nil {
+		if enterpriseID, ok := a.cluster.Annotations["enterprise_id"]; ok {
+			deploy.Spec.Template.Spec.Containers[0].Env = append(deploy.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{Name: "ENTERPRISE_ID", Value: enterpriseID})
+		}
 	}
 
 	return deploy
