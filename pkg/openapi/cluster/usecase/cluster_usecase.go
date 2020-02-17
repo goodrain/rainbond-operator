@@ -4,9 +4,12 @@ import (
 	"fmt"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/db"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
+
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -75,8 +78,57 @@ func (c *ClusterUsecaseImpl) Status() (*model.ClusterStatus, error) {
 	}
 
 	status := c.handleStatus(clusterInfo, rainbondPackage, components)
-
+	if err := c.hackClusterInfo(clusterInfo, &status); err != nil {
+		return nil, err
+	}
 	return &status, nil
+}
+
+func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.RainbondCluster, status *model.ClusterStatus) (err error) {
+	if status.FinalStatus == model.Waiting || status.FinalStatus == model.Initing {
+		return nil
+	}
+	// init not finished
+	if rainbondCluster.Status == nil {
+		return nil
+	}
+	//now cluster has init successfully, prepare cluster info
+	for _, sc := range rainbondCluster.Status.StorageClasses {
+		if sc.Name != "rainbondslsc" && sc.Name != "rainbondsssc" {
+			status.ClusterInfo.Storage = append(status.ClusterInfo.Storage, model.Storage{
+				Name:        sc.Name,
+				Provisioner: sc.Provisioner,
+			})
+		}
+	}
+	for _, node := range rainbondCluster.Status.NodeAvailPorts {
+		status.ClusterInfo.NodeAvailPorts = append(status.ClusterInfo.NodeAvailPorts, model.NodeAvailPorts{
+			Ports:    node.Ports,
+			NodeIP:   node.NodeIP,
+			NodeName: node.NodeName,
+		})
+	}
+	status.ClusterInfo.EnterpriseID, _ = db.GetManager().EnterpriseDao().EnterpriseID()
+	status.ClusterInfo.InstallID, _ = db.GetManager().InstallDao().InstallID()
+	if rainbondCluster.Annotations != nil {
+		status.ClusterInfo.EnterpriseID = rainbondCluster.Annotations["enterprise_id"]
+		if status.ClusterInfo.EnterpriseID == "" {
+			status.ClusterInfo.EnterpriseID, err = db.GetManager().EnterpriseDao().EnterpriseID()
+			if err != nil {
+				log.Error(err, "get enterpriseID failed: %s", err.Error())
+				return err
+			}
+		}
+		status.ClusterInfo.InstallID = rainbondCluster.Annotations["install_id"]
+		if status.ClusterInfo.InstallID == "" {
+			status.ClusterInfo.InstallID, err = db.GetManager().InstallDao().InstallID()
+			if err != nil {
+				log.Error(err, "get installID failed: %s", err.Error())
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // no rainbondcluster cr means cluster status is waiting
@@ -140,22 +192,7 @@ func (c *ClusterUsecaseImpl) handleRainbondClusterStatus(rainbondCluster *rainbo
 		return status
 	}
 	status.FinalStatus = model.Setting
-	//prepare cluster info
-	for _, sc := range rainbondCluster.Status.StorageClasses {
-		if sc.Name != "rainbondslsc" && sc.Name != "rainbondsssc" {
-			status.ClusterInfo.Storage = append(status.ClusterInfo.Storage, model.Storage{
-				Name:        sc.Name,
-				Provisioner: sc.Provisioner,
-			})
-		}
-	}
-	for _, node := range rainbondCluster.Status.NodeAvailPorts {
-		status.ClusterInfo.NodeAvailPorts = append(status.ClusterInfo.NodeAvailPorts, model.NodeAvailPorts{
-			Ports:    node.Ports,
-			NodeIP:   node.NodeIP,
-			NodeName: node.NodeName,
-		})
-	}
+
 	return status
 }
 
@@ -234,6 +271,21 @@ func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster,
 			InstallMode: installMode,
 		},
 	}
+
+	// TODO get enterpriseID and installID
+	enterpriseID, err := db.GetManager().EnterpriseDao().EnterpriseID()
+	if err != nil {
+		return nil, err
+	}
+	installID, err := db.GetManager().InstallDao().InstallID()
+	if err != nil {
+		return nil, err
+	}
+	annotations := make(map[string]string)
+	annotations["enterprise_id"] = enterpriseID
+	annotations["install_id"] = installID
+	cluster.Annotations = annotations
+
 	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)
 }
 

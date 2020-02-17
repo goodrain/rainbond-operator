@@ -1,28 +1,34 @@
 package main
 
 import (
-	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
-	"k8s.io/client-go/kubernetes"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"k8s.io/client-go/kubernetes"
+
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
+
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
-	clusterCtrl "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/controller"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/db"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/upload"
+	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+
+	clusterCtrl "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/controller"
+	dbconfig "github.com/goodrain/rainbond-operator/pkg/openapi/db/config"
 	uctrl "github.com/goodrain/rainbond-operator/pkg/openapi/user/controller"
 	uucase "github.com/goodrain/rainbond-operator/pkg/openapi/user/usecase"
-	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
 )
 
 var (
@@ -55,6 +61,10 @@ func main() {
 	cfg.KubeClient = kubernetes.NewForConfigOrDie(restConfig)
 	rainbondKubeClient := versioned.NewForConfigOrDie(restConfig)
 	cfg.RainbondKubeClient = rainbondKubeClient
+
+	if err := db.CreateManager(dbconfig.Config{InitPath: cfg.InitPath}); err != nil {
+		panic(err)
+	}
 
 	r := gin.Default()
 	r.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))

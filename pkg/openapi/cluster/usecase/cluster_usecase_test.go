@@ -1,13 +1,17 @@
 package usecase
 
 import (
+	"testing"
+
+	dbconfig "github.com/goodrain/rainbond-operator/pkg/openapi/db/config"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/db"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func TestHandleStatus(t *testing.T) {
@@ -101,5 +105,48 @@ func TestSelector(t *testing.T) {
 	}
 	for _, item := range list.Items {
 		t.Logf("component name is : %s", item.Name)
+	}
+}
+
+func TestInitCluster(t *testing.T) {
+
+	if err := db.CreateManager(dbconfig.Config{InitPath: "/opt/rainbond/.init"}); err != nil {
+		panic(err)
+	}
+	installMode := rainbondv1alpha1.InstallationModeWithoutPackage
+
+	cluster := &rainbondv1alpha1.RainbondCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "rbd-system",
+			Name:      "mycluster",
+		},
+		Spec: rainbondv1alpha1.RainbondClusterSpec{
+			RainbondShareStorage: rainbondv1alpha1.RainbondShareStorage{
+				FstabLine: &rainbondv1alpha1.FstabLine{},
+			},
+			InstallPackageConfig: rainbondv1alpha1.InstallPackageConfig{},
+			InstallMode:          installMode,
+		},
+	}
+
+	// TODO get enterpriseID and installID
+	enterpriseID, err := db.GetManager().EnterpriseDao().EnterpriseID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	installID, err := db.GetManager().InstallDao().InstallID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	annotations := make(map[string]string)
+	annotations["enterprise_id"] = enterpriseID
+	annotations["install_id"] = installID
+	cluster.Annotations = annotations
+
+	restConfig := k8sutil.MustNewKubeConfig("/Users/fanyangyang/Documents/company/goodrain/local/192.168.31.7.kubeconfig")
+	client := versioned.NewForConfigOrDie(restConfig)
+	_, err = client.RainbondV1alpha1().RainbondClusters("rbd-system").Create(cluster)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

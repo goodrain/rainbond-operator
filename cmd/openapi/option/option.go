@@ -29,6 +29,7 @@ type Config struct {
 	LogLevel                string
 	InstallMode             string
 	RainbondImageRepository string
+	InitPath                string
 }
 
 // AddFlags add flag
@@ -47,6 +48,7 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.Rainbondpackage, "rainbond-package-name", "rainbondpackage", "kubernetes rainbondpackage resource name")
 	fs.StringVar(&c.InstallMode, "install-mode", "WithPackage", "Rainbond installation mode, install with package, or not.")
 	fs.StringVar(&c.RainbondImageRepository, "image-repository", "registry.cn-hangzhou.aliyuncs.com/goodrain", "Image repository for Rainbond components.")
+	fs.StringVar(&c.InitPath, "init-path", "/opt/rainbond/.init", "rainbond init file path")
 }
 
 // SetLog set log
