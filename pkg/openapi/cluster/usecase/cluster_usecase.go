@@ -3,7 +3,7 @@ package usecase
 import (
 	"fmt"
 
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/repository"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
@@ -19,11 +19,11 @@ import (
 type ClusterUsecaseImpl struct {
 	cfg              *option.Config
 	componentUsecase ComponentUseCase
-	repo             repository.Repository
+	repo             cluster.Repository
 }
 
 // NewClusterUsecaseImpl new cluster case impl
-func NewClusterUsecaseImpl(cfg *option.Config, repo repository.Repository, componentUsecase ComponentUseCase) *ClusterUsecaseImpl {
+func NewClusterUsecaseImpl(cfg *option.Config, repo cluster.Repository, componentUsecase ComponentUseCase) *ClusterUsecaseImpl {
 	return &ClusterUsecaseImpl{cfg: cfg, repo: repo, componentUsecase: componentUsecase}
 }
 

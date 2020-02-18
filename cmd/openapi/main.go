@@ -21,12 +21,12 @@ import (
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/upload"
 	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 
 	clusterCtrl "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/controller"
+	cucase "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/usecase"
 	uctrl "github.com/goodrain/rainbond-operator/pkg/openapi/user/controller"
 	uucase "github.com/goodrain/rainbond-operator/pkg/openapi/user/usecase"
 )
@@ -71,7 +71,7 @@ func main() {
 	userUcase := uucase.NewUserUsecase(nil, "my-secret-key")
 	uctrl.NewUserController(r, userUcase)
 
-	clusterUcase := cluster.NewClusterCase(cfg, repo, rainbondKubeClient)
+	clusterUcase := cucase.NewClusterCase(cfg, repo, rainbondKubeClient)
 	clusterCtrl.NewClusterController(r, clusterUcase)
 
 	upload.NewUploadController(r, archiveFilePath)

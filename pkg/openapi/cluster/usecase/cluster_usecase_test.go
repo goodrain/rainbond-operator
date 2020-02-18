@@ -127,10 +127,7 @@ func TestInitCluster(t *testing.T) {
 	}
 
 	repo := repository.NewClusterRepo("/opt/rainbond/.init")
-	enterpriseID, err := repo.EnterpriseID()
-	if err != nil {
-		t.Fatal(err)
-	}
+	enterpriseID := repo.EnterpriseID()
 	installID := repo.InstallID()
 
 	annotations := make(map[string]string)
@@ -140,7 +137,7 @@ func TestInitCluster(t *testing.T) {
 
 	restConfig := k8sutil.MustNewKubeConfig("/Users/fanyangyang/Documents/company/goodrain/local/192.168.31.7.kubeconfig")
 	client := versioned.NewForConfigOrDie(restConfig)
-	_, err = client.RainbondV1alpha1().RainbondClusters("rbd-system").Create(cluster)
+	_, err := client.RainbondV1alpha1().RainbondClusters("rbd-system").Create(cluster)
 	if err != nil {
 		t.Fatal(err)
 	}

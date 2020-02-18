@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
+
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -32,7 +34,7 @@ type ComponentUsecaseImpl struct {
 }
 
 // NewComponentUsecase new componse case impl
-func NewComponentUsecase(cfg *option.Config) *ComponentUsecaseImpl {
+func NewComponentUsecase(cfg *option.Config) cluster.ComponentUseCase {
 	return &ComponentUsecaseImpl{cfg: cfg}
 }
 

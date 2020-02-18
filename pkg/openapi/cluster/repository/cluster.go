@@ -7,6 +7,8 @@ import (
 	"os"
 	"path"
 
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
+
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/uuidutil"
@@ -19,7 +21,7 @@ type ClusterInit struct {
 }
 
 // NewClusterRepo new cluster repository
-func NewClusterRepo(initPath string) Repository {
+func NewClusterRepo(initPath string) cluster.Repository {
 	return &ClusterInit{InitPath: initPath}
 }
 
