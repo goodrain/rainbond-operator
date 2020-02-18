@@ -58,6 +58,8 @@ spec:
           volumeMounts:
             - mountPath: /opt/rainbond/pkg
               name: rbd-pkg
+            - mountPath: /opt/rainbond/.init
+              name: rbd-init
       volumes:
         - name: rbd-pkg
           hostPath:
@@ -66,4 +68,8 @@ spec:
         - name: dockersock
           hostPath:
             path: /var/run
-            type: Directory 
+            type: Directory
+        - name: rbd-init
+          hostPath:
+            path: /opt/rainbond/.init
+            type: DirectoryOrCreate

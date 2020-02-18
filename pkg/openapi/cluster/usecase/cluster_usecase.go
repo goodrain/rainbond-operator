@@ -3,10 +3,14 @@ package usecase
 import (
 	"fmt"
 
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
+
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
+
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -15,11 +19,12 @@ import (
 type ClusterUsecaseImpl struct {
 	cfg              *option.Config
 	componentUsecase ComponentUseCase
+	repo             cluster.Repository
 }
 
 // NewClusterUsecaseImpl new cluster case impl
-func NewClusterUsecaseImpl(cfg *option.Config, componentUsecase ComponentUseCase) *ClusterUsecaseImpl {
-	return &ClusterUsecaseImpl{cfg: cfg, componentUsecase: componentUsecase}
+func NewClusterUsecaseImpl(cfg *option.Config, repo cluster.Repository, componentUsecase ComponentUseCase) *ClusterUsecaseImpl {
+	return &ClusterUsecaseImpl{cfg: cfg, repo: repo, componentUsecase: componentUsecase}
 }
 
 // Uninstall uninstall cluster reset cluster
@@ -75,8 +80,41 @@ func (c *ClusterUsecaseImpl) Status() (*model.ClusterStatus, error) {
 	}
 
 	status := c.handleStatus(clusterInfo, rainbondPackage, components)
-
+	c.hackClusterInfo(clusterInfo, &status)
 	return &status, nil
+}
+
+func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.RainbondCluster, status *model.ClusterStatus) {
+	if status.FinalStatus == model.Waiting || status.FinalStatus == model.Initing {
+		log.Info("cluster is not ready")
+		return
+	}
+	// init not finished
+	if rainbondCluster.Status == nil {
+		log.Info("cluster's status is not ready")
+		return
+	}
+	//now cluster has init successfully, prepare cluster info
+	for _, sc := range rainbondCluster.Status.StorageClasses {
+		if sc.Name != "rainbondslsc" && sc.Name != "rainbondsssc" {
+			status.ClusterInfo.Storage = append(status.ClusterInfo.Storage, model.Storage{
+				Name:        sc.Name,
+				Provisioner: sc.Provisioner,
+			})
+		}
+	}
+	for _, node := range rainbondCluster.Status.NodeAvailPorts {
+		status.ClusterInfo.NodeAvailPorts = append(status.ClusterInfo.NodeAvailPorts, model.NodeAvailPorts{
+			Ports:    node.Ports,
+			NodeIP:   node.NodeIP,
+			NodeName: node.NodeName,
+		})
+	}
+
+	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
+
+	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID()
+	status.ClusterInfo.InstallID = c.repo.InstallID()
 }
 
 // no rainbondcluster cr means cluster status is waiting
@@ -140,22 +178,7 @@ func (c *ClusterUsecaseImpl) handleRainbondClusterStatus(rainbondCluster *rainbo
 		return status
 	}
 	status.FinalStatus = model.Setting
-	//prepare cluster info
-	for _, sc := range rainbondCluster.Status.StorageClasses {
-		if sc.Name != "rainbondslsc" && sc.Name != "rainbondsssc" {
-			status.ClusterInfo.Storage = append(status.ClusterInfo.Storage, model.Storage{
-				Name:        sc.Name,
-				Provisioner: sc.Provisioner,
-			})
-		}
-	}
-	for _, node := range rainbondCluster.Status.NodeAvailPorts {
-		status.ClusterInfo.NodeAvailPorts = append(status.ClusterInfo.NodeAvailPorts, model.NodeAvailPorts{
-			Ports:    node.Ports,
-			NodeIP:   node.NodeIP,
-			NodeName: node.NodeName,
-		})
-	}
+
 	return status
 }
 
@@ -234,6 +257,7 @@ func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster,
 			InstallMode: installMode,
 		},
 	}
+
 	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)
 }
 

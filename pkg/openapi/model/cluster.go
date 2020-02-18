@@ -125,4 +125,7 @@ type ClusterStatus struct {
 type ClusterInfo struct {
 	NodeAvailPorts []NodeAvailPorts `json:"nodeAvailPorts"`
 	Storage        []Storage        `json:"storage"`
+	EnterpriseID   string           `json:"enterpriseID"` // enterprise's uuid
+	InstallID      string           `json:"installID"`    // install uuid
+	InstallVersion string           `json:"installVersion"`
 }
