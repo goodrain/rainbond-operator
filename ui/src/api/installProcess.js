@@ -31,8 +31,6 @@ export function putRecord (data) {
   })
 }
 
-
-
 //  获取集群配置信息
 export function getClusterInfo () {
   return request({

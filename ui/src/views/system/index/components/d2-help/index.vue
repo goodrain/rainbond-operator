@@ -16,96 +16,96 @@
 
 <script>
 export default {
-  data() {
+  data () {
     return {
-      text: "开始安装",
+      text: '开始安装',
       loading: false,
       recordInfo: {
-        install_id: "",
-        version: "",
-        status: "start",
-        eid: ""
+        install_id: '',
+        version: '',
+        status: 'start',
+        eid: ''
       }
-    };
+    }
   },
-  created() {
-    this.handleState();
+  created () {
+    this.handleState()
   },
-  beforeDestroy() {
-    this.timers && clearInterval(this.timers);
+  beforeDestroy () {
+    this.timers && clearInterval(this.timers)
   },
   methods: {
-    handleState() {
-      this.$store.dispatch("fetchState").then(res => {
+    handleState () {
+      this.$store.dispatch('fetchState').then(res => {
         if (res && res.code === 200 && res.data.final_status) {
           if (res.data.clusterInfo) {
-            this.recordInfo.install_id = res.data.clusterInfo.installID;
-            this.recordInfo.version = res.data.clusterInfo.installVersion;
-            this.recordInfo.eid = res.data.clusterInfo.enterpriseID;
+            this.recordInfo.install_id = res.data.clusterInfo.installID
+            this.recordInfo.version = res.data.clusterInfo.installVersion
+            this.recordInfo.eid = res.data.clusterInfo.enterpriseID
           }
 
           switch (res.data.final_status) {
-            case "Initing":
-              this.text = "集群初始化中";
-              this.loading = true;
+            case 'Initing':
+              this.text = '集群初始化中'
+              this.loading = true
               this.timers = setTimeout(() => {
-                this.handleState();
-              }, 5000);
-              break;
-            case "Setting":
-              this.handleRouter("InstallProcess");
-              break;
-            case "Installing":
-              this.handleRouter("InstallProcess");
-              break;
-            case "Running":
-              this.handleRouter("successfulInstallation");
-              break;
-            case "UnInstalling":
+                this.handleState()
+              }, 5000)
+              break
+            case 'Setting':
+              this.handleRouter('InstallProcess')
+              break
+            case 'Installing':
+              this.handleRouter('InstallProcess')
+              break
+            case 'Running':
+              this.handleRouter('successfulInstallation')
+              break
+            case 'UnInstalling':
               this.timers = setTimeout(() => {
-                this.handleState();
-              }, 5000);
-              this.recordInfo.status = "uninstall";
-              this.loading = true;
-              this.text = "卸载中";
-              this.handleRecord();
-              break;
+                this.handleState()
+              }, 5000)
+              this.recordInfo.status = 'uninstall'
+              this.loading = true
+              this.text = '卸载中'
+              this.handleRecord()
+              break
             default:
-              this.text = "开始安装";
-              this.loading = false;
-              this.timers && clearInterval(this.timers);
-              break;
+              this.text = '开始安装'
+              this.loading = false
+              this.timers && clearInterval(this.timers)
+              break
           }
         }
-      });
+      })
     },
-    handleInit() {
-      this.$store.dispatch("putInit").then(res => {
+    handleInit () {
+      this.$store.dispatch('putInit').then(res => {
         if (res && res.code === 200) {
-          this.text = "集群初始化中";
-          this.loading = true;
-          this.recordInfo.status = "start";
-          this.handleRecord();
-          this.handleState();
+          this.text = '集群初始化中'
+          this.loading = true
+          this.recordInfo.status = 'start'
+          this.handleRecord()
+          this.handleState()
         } else if (res && res.code === 400) {
-          this.loading = true;
-          this.text = "卸载中";
-          this.handleState();
+          this.loading = true
+          this.text = '卸载中'
+          this.handleState()
         }
-      });
+      })
     },
-    handleRecord() {
-      this.$store.dispatch("putRecord", this.recordInfo).then(res => {
-        console.log("res", res);
-      });
+    handleRecord () {
+      this.$store.dispatch('putRecord', this.recordInfo).then(res => {
+        console.log('res', res)
+      })
     },
-    handleRouter(name) {
+    handleRouter (name) {
       this.$router.push({
         name
-      });
+      })
     }
   }
-};
+}
 </script>
 
 <style lang="scss" scoped>

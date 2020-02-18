@@ -9,7 +9,7 @@ import {
   getAccessAddress,
   deleteUnloadingPlatform,
   putInit,
-  putRecord,
+  putRecord
 } from '@/api/installProcess'
 
 const installProcess = {

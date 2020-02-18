@@ -27,93 +27,93 @@
 </template>
 
 <script>
-import ClusterConfiguration from "./components/clusterConfiguration";
-import InstallResults from "./components/installResults";
+import ClusterConfiguration from './components/clusterConfiguration'
+import InstallResults from './components/installResults'
 
 export default {
-  name: "InstallProcess",
+  name: 'InstallProcess',
   components: {
     ClusterConfiguration,
     InstallResults
   },
-  data() {
+  data () {
     return {
-      activeName: "cluster",
+      activeName: 'cluster',
       resultShow: false,
       clusterInfo: null,
       recordInfo: {
-        install_id: "",
-        version: "",
-        status: "uninstall",
-        eid: ""
+        install_id: '',
+        version: '',
+        status: 'uninstall',
+        eid: ''
       }
-    };
+    }
   },
-  created() {
-    document.documentElement.scrollTop = 0;
-    this.handleState();
+  created () {
+    document.documentElement.scrollTop = 0
+    this.handleState()
   },
-  beforeDestroy() {
-    this.timer && clearInterval(this.timer);
+  beforeDestroy () {
+    this.timer && clearInterval(this.timer)
   },
   methods: {
-    handleState() {
-      this.$store.dispatch("fetchState").then(res => {
+    handleState () {
+      this.$store.dispatch('fetchState').then(res => {
         if (res && res.code === 200 && res.data.final_status) {
           if (res.data.clusterInfo) {
-            this.recordInfo.install_id = res.data.clusterInfo.installID;
-            this.recordInfo.version = res.data.clusterInfo.installVersion;
-            this.recordInfo.eid = res.data.clusterInfo.enterpriseID;
+            this.recordInfo.install_id = res.data.clusterInfo.installID
+            this.recordInfo.version = res.data.clusterInfo.installVersion
+            this.recordInfo.eid = res.data.clusterInfo.enterpriseID
           }
 
-          this.clusterInfo = res.data.clusterInfo;
+          this.clusterInfo = res.data.clusterInfo
           switch (res.data.final_status) {
-            case "Initing":
-              this.handleRouter("index");
-              break;
-            case "Waiting":
-              this.handleRouter("index");
-              break;
-            case "Installing":
-              this.handlePerform("startrRsults");
-              break;
-            case "Setting":
-              this.handlePerform("cluster");
-              break;
-            case "Running":
-              this.handleRouter("successfulInstallation");
-              break;
-            case "UnInstalling":
-              this.handleRouter("index");
-              break;
+            case 'Initing':
+              this.handleRouter('index')
+              break
+            case 'Waiting':
+              this.handleRouter('index')
+              break
+            case 'Installing':
+              this.handlePerform('startrRsults')
+              break
+            case 'Setting':
+              this.handlePerform('cluster')
+              break
+            case 'Running':
+              this.handleRouter('successfulInstallation')
+              break
+            case 'UnInstalling':
+              this.handleRouter('index')
+              break
             default:
-              break;
+              break
           }
           this.timer = setTimeout(() => {
-            this.handleState();
-          }, 10000);
+            this.handleState()
+          }, 10000)
         } else {
-          this.handleRouter("index");
+          this.handleRouter('index')
         }
-      });
+      })
     },
-    handleRecord(states) {
-      this.recordInfo.status = states;
-      this.$store.dispatch("putRecord", this.recordInfo).then(res => {
-        console.log("res", res);
-      });
+    handleRecord (states) {
+      this.recordInfo.status = states
+      this.$store.dispatch('putRecord', this.recordInfo).then(res => {
+        console.log('res', res)
+      })
     },
-    handlePerform(name) {
-      this.activeName = name;
-      this.resultShow = name === "startrRsults";
+    handlePerform (name) {
+      this.activeName = name
+      this.resultShow = name === 'startrRsults'
     },
-    handleRouter(name) {
+    handleRouter (name) {
       this.$router.push({
         name
-      });
+      })
     }
   }
-};
+}
 </script>
 <style lang="scss" scoped>
 .clbr {

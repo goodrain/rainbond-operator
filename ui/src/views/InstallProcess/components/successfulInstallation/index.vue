@@ -23,124 +23,124 @@
 </template>
 
 <script>
-import RainbondComponent from "../installResults/rainbondComponent";
+import RainbondComponent from '../installResults/rainbondComponent'
 
 export default {
-  name: "successfulInstallation",
+  name: 'successfulInstallation',
   components: {
     RainbondComponent
   },
-  data() {
+  data () {
     return {
-      activeName: "rsultSucess",
+      activeName: 'rsultSucess',
       componentList: [],
       loading: true,
-      accessAddress: "",
+      accessAddress: '',
       recordInfo: {
-        install_id: "",
-        version: "",
-        status: "complete",
-        eid: ""
+        install_id: '',
+        version: '',
+        status: 'complete',
+        eid: ''
       }
-    };
+    }
   },
-  created() {
-    this.handleState();
-    this.fetchAccessAddress();
-    this.fetchClusterInstallResultsState(true);
+  created () {
+    this.handleState()
+    this.fetchAccessAddress()
+    this.fetchClusterInstallResultsState(true)
   },
-  beforeDestroy() {
-    this.timers && clearInterval(this.timers);
+  beforeDestroy () {
+    this.timers && clearInterval(this.timers)
   },
   methods: {
-    handleState() {
-      this.$store.dispatch("fetchState").then(res => {
+    handleState () {
+      this.$store.dispatch('fetchState').then(res => {
         if (res && res.code === 200 && res.data.final_status) {
           if (res.data.clusterInfo) {
-            this.recordInfo.install_id = res.data.clusterInfo.installID;
-            this.recordInfo.version = res.data.clusterInfo.installVersion;
-            this.recordInfo.eid = res.data.clusterInfo.enterpriseID;
+            this.recordInfo.install_id = res.data.clusterInfo.installID
+            this.recordInfo.version = res.data.clusterInfo.installVersion
+            this.recordInfo.eid = res.data.clusterInfo.enterpriseID
           }
 
           switch (res.data.final_status) {
-            case "Initing":
-              this.handleRouter("index");
-              break;
-            case "Waiting":
-              this.handleRouter("index");
-              break;
-            case "Installing":
-              this.handleRouter("InstallProcess");
-              break;
-            case "Setting":
-              this.handleRouter("InstallProcess");
-              break;
-            case "UnInstalling":
-              this.handleRouter("index");
-              break;
-            case "Running":
-              this.recordInfo.status = "complete";
-              this.handleRecord();
-              break;
+            case 'Initing':
+              this.handleRouter('index')
+              break
+            case 'Waiting':
+              this.handleRouter('index')
+              break
+            case 'Installing':
+              this.handleRouter('InstallProcess')
+              break
+            case 'Setting':
+              this.handleRouter('InstallProcess')
+              break
+            case 'UnInstalling':
+              this.handleRouter('index')
+              break
+            case 'Running':
+              this.recordInfo.status = 'complete'
+              this.handleRecord()
+              break
             default:
-              break;
+              break
           }
         }
-      });
+      })
     },
-    handleRouter(name) {
+    handleRouter (name) {
       this.$router.push({
         name
-      });
+      })
     },
-    handleRecord() {
-      this.$store.dispatch("putRecord", this.recordInfo).then(res => {
-        console.log("res", res);
-      });
+    handleRecord () {
+      this.$store.dispatch('putRecord', this.recordInfo).then(res => {
+        console.log('res', res)
+      })
     },
-    onhandleDelete() {
-      this.$confirm("确定要卸载吗？")
+    onhandleDelete () {
+      this.$confirm('确定要卸载吗？')
         .then(_ => {
-          this.$store.dispatch("deleteUnloadingPlatform").then(res => {
+          this.$store.dispatch('deleteUnloadingPlatform').then(res => {
             if (res && res.code === 200) {
-              this.recordInfo.status = "uninstall";
-              this.handleRecord();
+              this.recordInfo.status = 'uninstall'
+              this.handleRecord()
               this.$notify({
-                type: "success",
-                title: "卸载",
-                message: "卸载成功"
-              });
-              this.handleRouter("index");
+                type: 'success',
+                title: '卸载',
+                message: '卸载成功'
+              })
+              this.handleRouter('index')
             }
-          });
+          })
         })
         .catch(_ => {
-          this.recordInfo.status = "failure";
-          this.handleRecord();
-        });
+          this.recordInfo.status = 'failure'
+          this.handleRecord()
+        })
     },
-    fetchAccessAddress() {
-      this.$store.dispatch("fetchAccessAddress").then(res => {
+    fetchAccessAddress () {
+      this.$store.dispatch('fetchAccessAddress').then(res => {
         if (res && res.code === 200) {
-          this.accessAddress = res.data;
+          this.accessAddress = res.data
         }
-      });
+      })
     },
-    fetchClusterInstallResultsState(isloading) {
-      this.$store.dispatch("fetchClusterInstallResultsState").then(res => {
+    fetchClusterInstallResultsState (isloading) {
+      this.$store.dispatch('fetchClusterInstallResultsState').then(res => {
         if (isloading) {
-          this.loading = false;
+          this.loading = false
         }
         if (res && res.code === 200) {
-          this.componentList = res.data;
+          this.componentList = res.data
         }
         this.timers = setTimeout(() => {
-          this.fetchClusterInstallResultsState();
-        }, 8000);
-      });
+          this.fetchClusterInstallResultsState()
+        }, 8000)
+      })
     }
   }
-};
+}
 </script>
 <style lang="scss" scoped>
 .d2-h-30 {
