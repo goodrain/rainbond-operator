@@ -3,8 +3,9 @@ package usecase
 import (
 	"fmt"
 
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/repository"
+
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/db"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -18,11 +19,12 @@ import (
 type ClusterUsecaseImpl struct {
 	cfg              *option.Config
 	componentUsecase ComponentUseCase
+	repo             repository.Repository
 }
 
 // NewClusterUsecaseImpl new cluster case impl
-func NewClusterUsecaseImpl(cfg *option.Config, componentUsecase ComponentUseCase) *ClusterUsecaseImpl {
-	return &ClusterUsecaseImpl{cfg: cfg, componentUsecase: componentUsecase}
+func NewClusterUsecaseImpl(cfg *option.Config, repo repository.Repository, componentUsecase ComponentUseCase) *ClusterUsecaseImpl {
+	return &ClusterUsecaseImpl{cfg: cfg, repo: repo, componentUsecase: componentUsecase}
 }
 
 // Uninstall uninstall cluster reset cluster
@@ -108,12 +110,12 @@ func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.R
 			NodeName: node.NodeName,
 		})
 	}
-	status.ClusterInfo.EnterpriseID, _ = db.GetManager().EnterpriseDao().EnterpriseID()
-	status.ClusterInfo.InstallID, _ = db.GetManager().InstallDao().InstallID()
+	status.ClusterInfo.EnterpriseID, _ = c.repo.EnterpriseID()
+	status.ClusterInfo.InstallID = c.repo.InstallID()
 	if rainbondCluster.Annotations != nil {
 		status.ClusterInfo.EnterpriseID = rainbondCluster.Annotations["enterprise_id"]
 		if status.ClusterInfo.EnterpriseID == "" {
-			status.ClusterInfo.EnterpriseID, err = db.GetManager().EnterpriseDao().EnterpriseID()
+			status.ClusterInfo.EnterpriseID, err = c.repo.EnterpriseID()
 			if err != nil {
 				log.Error(err, "get enterpriseID failed: %s", err.Error())
 				return err
@@ -121,11 +123,7 @@ func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.R
 		}
 		status.ClusterInfo.InstallID = rainbondCluster.Annotations["install_id"]
 		if status.ClusterInfo.InstallID == "" {
-			status.ClusterInfo.InstallID, err = db.GetManager().InstallDao().InstallID()
-			if err != nil {
-				log.Error(err, "get installID failed: %s", err.Error())
-				return err
-			}
+			status.ClusterInfo.InstallID = c.repo.InstallID()
 		}
 	}
 	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
@@ -273,15 +271,11 @@ func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster,
 		},
 	}
 
-	// TODO get enterpriseID and installID
-	enterpriseID, err := db.GetManager().EnterpriseDao().EnterpriseID()
+	enterpriseID, err := c.repo.EnterpriseID()
 	if err != nil {
 		return nil, err
 	}
-	installID, err := db.GetManager().InstallDao().InstallID()
-	if err != nil {
-		return nil, err
-	}
+	installID := c.repo.InstallID()
 	annotations := make(map[string]string)
 	annotations["enterprise_id"] = enterpriseID
 	annotations["install_id"] = installID

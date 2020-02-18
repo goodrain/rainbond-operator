@@ -3,14 +3,14 @@ package usecase
 import (
 	"testing"
 
-	dbconfig "github.com/goodrain/rainbond-operator/pkg/openapi/db/config"
+	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/repository"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/db"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -110,9 +110,6 @@ func TestSelector(t *testing.T) {
 
 func TestInitCluster(t *testing.T) {
 
-	if err := db.CreateManager(dbconfig.Config{InitPath: "/opt/rainbond/.init"}); err != nil {
-		panic(err)
-	}
 	installMode := rainbondv1alpha1.InstallationModeWithoutPackage
 
 	cluster := &rainbondv1alpha1.RainbondCluster{
@@ -129,15 +126,13 @@ func TestInitCluster(t *testing.T) {
 		},
 	}
 
-	// TODO get enterpriseID and installID
-	enterpriseID, err := db.GetManager().EnterpriseDao().EnterpriseID()
+	repo := repository.NewClusterRepo("/opt/rainbond/.init")
+	enterpriseID, err := repo.EnterpriseID()
 	if err != nil {
 		t.Fatal(err)
 	}
-	installID, err := db.GetManager().InstallDao().InstallID()
-	if err != nil {
-		t.Fatal(err)
-	}
+	installID := repo.InstallID()
+
 	annotations := make(map[string]string)
 	annotations["enterprise_id"] = enterpriseID
 	annotations["install_id"] = installID

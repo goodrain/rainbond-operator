@@ -3,6 +3,7 @@ package cluster
 import (
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/repository"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/usecase"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
@@ -51,12 +52,12 @@ type CaseImpl struct {
 }
 
 // NewClusterCase new cluster case
-func NewClusterCase(conf *option.Config, rainbondKubeClient versioned.Interface) IClusterCase {
+func NewClusterCase(conf *option.Config, repo repository.Repository, rainbondKubeClient versioned.Interface) IClusterCase {
 	clusterCase := &CaseImpl{}
 	clusterCase.componentUseCaseImpl = usecase.NewComponentUsecase(conf)
 	clusterCase.globalConfigUseCaseImpl = usecase.NewGlobalConfigUseCase(conf)
 	clusterCase.installCaseImpl = usecase.NewInstallUseCase(conf, rainbondKubeClient, clusterCase.componentUseCaseImpl)
-	clusterCase.clusterImpl = usecase.NewClusterUsecaseImpl(conf, clusterCase.componentUseCaseImpl)
+	clusterCase.clusterImpl = usecase.NewClusterUsecaseImpl(conf, repo, clusterCase.componentUseCaseImpl)
 	return clusterCase
 }
 
