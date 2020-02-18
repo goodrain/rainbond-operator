@@ -65,7 +65,7 @@ export default {
               this.timers = setTimeout(() => {
                 this.handleState();
               }, 5000);
-              this.recordInfo.status = "failure";
+              this.recordInfo.status = "uninstall";
               this.loading = true;
               this.text = "卸载中";
               this.handleRecord();

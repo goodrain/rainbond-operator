@@ -6,6 +6,7 @@
           <cluster-configuration
             :clusterInfo="clusterInfo"
             @onResults="handlePerform('startrRsults')"
+            @onhandleErrorRecord="handleRecord('failure')"
             class="d2-mt"
           ></cluster-configuration>
         </el-collapse-item>
@@ -15,7 +16,10 @@
           title="安装"
           name="startrRsults"
         >
-          <install-results @onhandleRecord="handleRecord()"></install-results>
+          <install-results
+            @onhandleErrorRecord="handleRecord('failure')"
+            @onhandleUninstallRecord="handleRecord('uninstall')"
+          ></install-results>
         </el-collapse-item>
       </el-collapse>
     </div>
@@ -40,7 +44,7 @@ export default {
       recordInfo: {
         install_id: "",
         version: "",
-        status: "failure",
+        status: "uninstall",
         eid: ""
       }
     };
@@ -93,7 +97,8 @@ export default {
         }
       });
     },
-    handleRecord() {
+    handleRecord(states) {
+      this.recordInfo.status = states;
       this.$store.dispatch("putRecord", this.recordInfo).then(res => {
         console.log("res", res);
       });

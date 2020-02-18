@@ -103,7 +103,7 @@ export default {
         .then(_ => {
           this.$store.dispatch("deleteUnloadingPlatform").then(res => {
             if (res && res.code === 200) {
-              this.recordInfo.status = "failure";
+              this.recordInfo.status = "uninstall";
               this.handleRecord();
               this.$notify({
                 type: "success",
@@ -114,7 +114,10 @@ export default {
             }
           });
         })
-        .catch(_ => {});
+        .catch(_ => {
+          this.recordInfo.status = "failure";
+          this.handleRecord();
+        });
     },
     fetchAccessAddress() {
       this.$store.dispatch("fetchAccessAddress").then(res => {
