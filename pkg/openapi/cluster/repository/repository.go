@@ -2,6 +2,6 @@ package repository
 
 // Repository represent the cluster's repository contract
 type Repository interface {
-	EnterpriseID() (string, error)
+	EnterpriseID() string
 	InstallID() string
 }

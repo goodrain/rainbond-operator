@@ -80,19 +80,19 @@ func (c *ClusterUsecaseImpl) Status() (*model.ClusterStatus, error) {
 	}
 
 	status := c.handleStatus(clusterInfo, rainbondPackage, components)
-	if err := c.hackClusterInfo(clusterInfo, &status); err != nil {
-		return nil, err
-	}
+	c.hackClusterInfo(clusterInfo, &status)
 	return &status, nil
 }
 
-func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.RainbondCluster, status *model.ClusterStatus) (err error) {
+func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.RainbondCluster, status *model.ClusterStatus) {
 	if status.FinalStatus == model.Waiting || status.FinalStatus == model.Initing {
-		return nil
+		log.Info("cluster is not ready")
+		return
 	}
 	// init not finished
 	if rainbondCluster.Status == nil {
-		return nil
+		log.Info("cluster's status is not ready")
+		return
 	}
 	//now cluster has init successfully, prepare cluster info
 	for _, sc := range rainbondCluster.Status.StorageClasses {
@@ -110,24 +110,23 @@ func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.R
 			NodeName: node.NodeName,
 		})
 	}
-	status.ClusterInfo.EnterpriseID, _ = c.repo.EnterpriseID()
-	status.ClusterInfo.InstallID = c.repo.InstallID()
-	if rainbondCluster.Annotations != nil {
-		status.ClusterInfo.EnterpriseID = rainbondCluster.Annotations["enterprise_id"]
-		if status.ClusterInfo.EnterpriseID == "" {
-			status.ClusterInfo.EnterpriseID, err = c.repo.EnterpriseID()
-			if err != nil {
-				log.Error(err, "get enterpriseID failed: %s", err.Error())
-				return err
-			}
-		}
-		status.ClusterInfo.InstallID = rainbondCluster.Annotations["install_id"]
-		if status.ClusterInfo.InstallID == "" {
-			status.ClusterInfo.InstallID = c.repo.InstallID()
-		}
-	}
+
 	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
-	return nil
+
+	if rainbondCluster.Annotations == nil {
+		log.Info("rainbondCluster's annotation is nil, get enterpriseID and installID from repo")
+		status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID()
+		status.ClusterInfo.InstallID = c.repo.InstallID()
+		return
+	}
+	status.ClusterInfo.EnterpriseID = rainbondCluster.Annotations["enterprise_id"]
+	if status.ClusterInfo.EnterpriseID == "" {
+		status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID()
+	}
+	status.ClusterInfo.InstallID = rainbondCluster.Annotations["install_id"]
+	if status.ClusterInfo.InstallID == "" {
+		status.ClusterInfo.InstallID = c.repo.InstallID()
+	}
 }
 
 // no rainbondcluster cr means cluster status is waiting
@@ -271,10 +270,7 @@ func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster,
 		},
 	}
 
-	enterpriseID, err := c.repo.EnterpriseID()
-	if err != nil {
-		return nil, err
-	}
+	enterpriseID := c.repo.EnterpriseID()
 	installID := c.repo.InstallID()
 	annotations := make(map[string]string)
 	annotations["enterprise_id"] = enterpriseID

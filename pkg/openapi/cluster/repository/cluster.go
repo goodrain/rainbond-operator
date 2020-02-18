@@ -23,7 +23,7 @@ func NewClusterRepo(initPath string) Repository {
 	return &ClusterInit{InitPath: initPath}
 }
 
-func (ci *ClusterInit) EnterpriseID() (string, error) {
+func (ci *ClusterInit) EnterpriseID() string {
 	enterprise := path.Join(ci.InitPath, "enterprise")
 	bs, err := ioutil.ReadFile(enterprise)
 
@@ -33,22 +33,22 @@ func (ci *ClusterInit) EnterpriseID() (string, error) {
 		enterpriseIDBytes, err := hex.DecodeString(enterpriseID)
 		if err != nil {
 			clusterRepoLog.Error(err, "decode enterprise id[%s] failed: %s", enterpriseID, err.Error())
-			return "", err
+			return ""
 		}
 		if _, err := os.Stat(ci.InitPath); os.IsNotExist(err) {
 			if err := os.MkdirAll(ci.InitPath, os.ModePerm); err != nil {
 				clusterRepoLog.Error(err, fmt.Sprintf("mkdir path [%s] failed: %s", enterpriseID, err.Error()))
-				return "", err
+				return ""
 			}
 		}
 		if err := ioutil.WriteFile(enterprise, enterpriseIDBytes, os.ModePerm); err != nil {
 			clusterRepoLog.Error(err, fmt.Sprintf("write enterprise id[%s] failed: %s", enterpriseID, err.Error()))
-			return "", err
+			return ""
 		}
-		return enterpriseID, nil
+		return enterpriseID
 	}
 
-	return hex.EncodeToString(bs), nil
+	return hex.EncodeToString(bs)
 }
 
 func (ci *ClusterInit) InstallID() string {
