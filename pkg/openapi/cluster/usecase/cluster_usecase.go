@@ -96,7 +96,15 @@ func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.R
 	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
 
 	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID()
-	status.ClusterInfo.InstallID = c.repo.InstallID()
+
+	// get installID from annotation first, otherwise, from repo
+	installID := c.repo.InstallID()
+	if rainbondCluster.Annotations != nil {
+		if value, ok := rainbondCluster.Annotations["install_id"]; ok && value != "" {
+			installID = value
+		}
+	}
+	status.ClusterInfo.InstallID = installID
 
 	if status.FinalStatus == model.Waiting || status.FinalStatus == model.Initing {
 		log.Info("cluster is not ready")
@@ -265,6 +273,10 @@ func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster,
 			InstallMode: installMode,
 		},
 	}
+
+	annotations := make(map[string]string)
+	annotations["install_id"] = c.repo.InstallID()
+	cluster.Annotations = annotations
 
 	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)
 }

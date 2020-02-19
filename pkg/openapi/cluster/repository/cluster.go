@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"sync"
 
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 
@@ -20,6 +21,7 @@ var clusterRepoLog = logf.Log.WithName("cluster repo ")
 type ClusterInit struct {
 	InitPath  string
 	installID string
+	lock      sync.Mutex
 }
 
 // NewClusterRepo new cluster repository
@@ -58,7 +60,9 @@ func (ci *ClusterInit) EnterpriseID() string {
 
 // InstallID get install id
 func (ci *ClusterInit) InstallID() string {
-	if ci.installID == "" { // TODO fanyangyang atomic
+	ci.lock.Lock()
+	defer ci.lock.Unlock()
+	if ci.installID == "" {
 		ci.installID = uuidutil.NewUUID()
 	}
 	return ci.installID
