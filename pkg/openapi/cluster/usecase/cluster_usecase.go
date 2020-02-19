@@ -3,10 +3,10 @@ package usecase
 import (
 	"fmt"
 
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
-
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+	"github.com/goodrain/rainbond-operator/pkg/util/uuidutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
@@ -50,9 +50,6 @@ func (c *ClusterUsecaseImpl) UnInstall() error {
 		}
 	}
 
-	// reset cluster info such as install id
-	c.repo.ResetClusterInfo()
-
 	return nil
 }
 
@@ -65,11 +62,7 @@ func (c *ClusterUsecaseImpl) Status() (*model.ClusterStatus, error) {
 		if k8sErrors.IsNotFound(err) {
 			return &model.ClusterStatus{
 				FinalStatus: model.Waiting,
-				ClusterInfo: model.ClusterInfo{
-					InstallVersion: c.cfg.RainbondVersion,
-					InstallID:      c.repo.InstallID(),
-					EnterpriseID:   c.repo.EnterpriseID(),
-				},
+				ClusterInfo: model.ClusterInfo{},
 			}, nil
 		}
 		return nil, err
@@ -93,19 +86,6 @@ func (c *ClusterUsecaseImpl) Status() (*model.ClusterStatus, error) {
 }
 
 func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.RainbondCluster, status *model.ClusterStatus) {
-	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
-
-	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID()
-
-	// get installID from annotation first, otherwise, from repo
-	installID := c.repo.InstallID()
-	if rainbondCluster.Annotations != nil {
-		if value, ok := rainbondCluster.Annotations["install_id"]; ok && value != "" {
-			installID = value
-		}
-	}
-	status.ClusterInfo.InstallID = installID
-
 	if status.FinalStatus == model.Waiting || status.FinalStatus == model.Initing {
 		log.Info("cluster is not ready")
 		return
@@ -130,6 +110,19 @@ func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.R
 			NodeIP:   node.NodeIP,
 			NodeName: node.NodeName,
 		})
+	}
+
+	// get install version from config
+	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
+
+	// get enterprise from repo
+	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID()
+
+	// get installID from cluster's annotations
+	if rainbondCluster.Annotations != nil {
+		if value, ok := rainbondCluster.Annotations["install_id"]; ok && value != "" {
+			status.ClusterInfo.InstallID = value
+		}
 	}
 }
 
@@ -275,7 +268,7 @@ func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster,
 	}
 
 	annotations := make(map[string]string)
-	annotations["install_id"] = c.repo.InstallID()
+	annotations["install_id"] = uuidutil.NewUUID()
 	cluster.Annotations = annotations
 
 	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)
