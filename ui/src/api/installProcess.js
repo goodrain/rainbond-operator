@@ -25,7 +25,7 @@ export function putRecord (data) {
   return request({
     url:
       'https://log.rainbond.com/log/install',
-      // '/log/install',
+    // '/log/install',
     method: 'post',
     data
   })

@@ -698,6 +698,7 @@ export default {
             .dispatch('fixClusterInfo', obj)
             .then(res => {
               if (res && res.code === 200) {
+                this.$emit('onhandleStartRecord')
                 this.addCluster()
               } else {
                 this.handleCancelLoading()

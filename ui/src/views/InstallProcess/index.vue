@@ -7,6 +7,8 @@
             :clusterInfo="clusterInfo"
             @onResults="handlePerform('startrRsults')"
             @onhandleErrorRecord="handleRecord('failure')"
+            @onhandleStartRecord="handleRecord('start')"
+
             class="d2-mt"
           ></cluster-configuration>
         </el-collapse-item>
@@ -40,7 +42,6 @@ export default {
     return {
       activeName: 'cluster',
       resultShow: false,
-      clusterInfo: null,
       recordInfo: {
         install_id: '',
         version: '',
@@ -66,7 +67,6 @@ export default {
             this.recordInfo.eid = res.data.clusterInfo.enterpriseID
           }
 
-          this.clusterInfo = res.data.clusterInfo
           switch (res.data.final_status) {
             case 'Initing':
               this.handleRouter('index')
