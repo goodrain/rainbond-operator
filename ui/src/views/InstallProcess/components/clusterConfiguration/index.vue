@@ -381,63 +381,63 @@
 
 <script>
 export default {
-  name: 'clusterConfiguration',
+  name: "clusterConfiguration",
   props: {
     clusterInfo: {
       type: Object,
       default: () => {}
     }
   },
-  data () {
+  data() {
     let validateNodes = (rule, value, callback) => {
       if (this.setgatewayNodes.length === 0) {
-        callback(new Error('请至少选择一个网关安装节点'))
+        callback(new Error("请至少选择一个网关安装节点"));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
 
     let validateIPs = (rule, value, callback) => {
-      let regIp = /^(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])$/
-      let gatewayIngressIPs = this.ruleForm.gatewayIngressIPs
+      let regIp = /^(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])$/;
+      let gatewayIngressIPs = this.ruleForm.gatewayIngressIPs;
       let arr = gatewayIngressIPs.filter(item => {
-        return !regIp.test(item)
-      })
+        return !regIp.test(item);
+      });
 
       if (gatewayIngressIPs.length > 0) {
-        if (gatewayIngressIPs.length === 1 && gatewayIngressIPs[0] === '') {
-          callback()
+        if (gatewayIngressIPs.length === 1 && gatewayIngressIPs[0] === "") {
+          callback();
         } else if (arr.length >= 1) {
-          callback(new Error('格式不对，请重新输入'))
+          callback(new Error("格式不对，请重新输入"));
         } else {
-          callback()
+          callback();
         }
       } else {
-        callback()
+        callback();
       }
-    }
-    let reg = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/
+    };
+    let reg = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/;
 
     let validateAddress = (rule, value, callback) => {
-      let str = this.ruleForm.regionDatabase.port
-      let ress = reg.test(str)
+      let str = this.ruleForm.regionDatabase.port;
+      let ress = reg.test(str);
 
-      if (!ress && str !== '') {
-        callback(new Error('格式不对，请重新输入'))
+      if (!ress && str !== "") {
+        callback(new Error("格式不对，请重新输入"));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
     let validUiDateBase = (rule, value, callback) => {
-      let str = this.ruleForm.uiDatabase.port
-      let ress = reg.test(str)
+      let str = this.ruleForm.uiDatabase.port;
+      let ress = reg.test(str);
 
-      if (!ress && str !== '') {
-        callback(new Error('格式不对，请重新输入'))
+      if (!ress && str !== "") {
+        callback(new Error("格式不对，请重新输入"));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
 
     return {
       upLoading: false,
@@ -445,37 +445,37 @@ export default {
       HTTPDomainSwitch: true,
       ruleForm: {
         imageHub: {
-          domain: '',
-          namespace: '',
-          username: '',
-          password: ''
+          domain: "",
+          namespace: "",
+          username: "",
+          password: ""
         },
-        regionDatabase: { host: '', port: '', username: '', password: '' },
-        uiDatabase: { host: '', port: '', username: '', password: '' },
+        regionDatabase: { host: "", port: "", username: "", password: "" },
+        uiDatabase: { host: "", port: "", username: "", password: "" },
         etcdConfig: {
-          endpoints: [''],
-          certInfo: { caFile: '', certFile: '', keyFile: '' }
+          endpoints: [""],
+          certInfo: { caFile: "", certFile: "", keyFile: "" }
         },
-        HTTPDomain: '',
-        gatewayIngressIPs: [''],
-        storage: { name: '' },
-        rainbondShareStorage: { storageClassName: '', fstabLine: {} }
+        HTTPDomain: "",
+        gatewayIngressIPs: [""],
+        storage: { name: "" },
+        rainbondShareStorage: { storageClassName: "", fstabLine: {} }
       },
-      activeImageHubNames: '1',
-      activeImageHubNamesCollapse: '1',
-      activeregionDatabaseNames: '1',
-      activeregionDatabaseNamesCollapse: '1',
-      activeUiDatabaseNames: '1',
-      activeUiDatabaseNamesCollapse: '1',
+      activeImageHubNames: "1",
+      activeImageHubNamesCollapse: "1",
+      activeregionDatabaseNames: "1",
+      activeregionDatabaseNamesCollapse: "1",
+      activeUiDatabaseNames: "1",
+      activeUiDatabaseNamesCollapse: "1",
 
-      activeETCDNames: '1',
-      activeETCDNamesCollapse: '1',
+      activeETCDNames: "1",
+      activeETCDNamesCollapse: "1",
 
-      activeStorageNames: '1',
-      activeStorageNamesCollapse: '1',
+      activeStorageNames: "1",
+      activeStorageNamesCollapse: "1",
 
-      activeFstabLineNames: '1',
-      activeFstabLineNamesCollapse: '1',
+      activeFstabLineNames: "1",
+      activeFstabLineNamesCollapse: "1",
 
       setgatewayNodes: [],
       fileList: [],
@@ -483,101 +483,101 @@ export default {
         nodes: [
           {
             validator: validateNodes,
-            type: 'array',
+            type: "array",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ],
         address: [
           {
             validator: validateAddress,
-            type: 'string',
+            type: "string",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ],
         uiDatabase: [
           {
             validator: validUiDateBase,
-            type: 'string',
+            type: "string",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ],
         ips: [
           {
             validator: validateIPs,
-            type: 'array',
+            type: "array",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ]
       },
       fstabLineType: [
         {
-          value: 'nfs',
-          label: 'nfs'
+          value: "nfs",
+          label: "nfs"
         },
         {
-          value: 'gfs',
-          label: 'gfs'
+          value: "gfs",
+          label: "gfs"
         },
         {
-          value: 'xfs',
-          label: 'xfs'
+          value: "xfs",
+          label: "xfs"
         }
       ],
       fstabLineOptions: [
         {
-          value: 'defaults',
-          label: 'defaults'
+          value: "defaults",
+          label: "defaults"
         },
         {
-          value: 'auto',
-          label: 'auto'
+          value: "auto",
+          label: "auto"
         }
       ]
-    }
+    };
   },
-  created () {
-    this.fetchClusterInfo()
+  created() {
+    this.fetchClusterInfo();
   },
   methods: {
-    handleChangeImageHubNames () {
-      this.activeImageHubNamesCollapse = this.activeImageHubNames
+    handleChangeImageHubNames() {
+      this.activeImageHubNamesCollapse = this.activeImageHubNames;
     },
-    handleChangeRegionDatabaseNames () {
-      this.activeregionDatabaseNamesCollapse = this.activeregionDatabaseNames
+    handleChangeRegionDatabaseNames() {
+      this.activeregionDatabaseNamesCollapse = this.activeregionDatabaseNames;
     },
-    handleChangeUiDatabaseNames () {
-      this.activeUiDatabaseNamesCollapse = this.activeUiDatabaseNames
+    handleChangeUiDatabaseNames() {
+      this.activeUiDatabaseNamesCollapse = this.activeUiDatabaseNames;
     },
-    handleChangeETCDNames () {
-      this.activeETCDNamesCollapse = this.activeETCDNames
+    handleChangeETCDNames() {
+      this.activeETCDNamesCollapse = this.activeETCDNames;
     },
-    handleChangeStorageNames () {
-      this.activeStorageNamesCollapse = this.activeStorageNames
+    handleChangeStorageNames() {
+      this.activeStorageNamesCollapse = this.activeStorageNames;
     },
 
-    changeImageHubRadio (value) {
-      this.activeImageHubNamesCollapse = value
-      this.activeImageHubNames = value
+    changeImageHubRadio(value) {
+      this.activeImageHubNamesCollapse = value;
+      this.activeImageHubNames = value;
     },
-    changeregionDatabaseRadio (value) {
-      this.activeregionDatabaseNames = value
-      this.activeregionDatabaseNamesCollapse = value
+    changeregionDatabaseRadio(value) {
+      this.activeregionDatabaseNames = value;
+      this.activeregionDatabaseNamesCollapse = value;
     },
-    changeUiDatabaseRadio (value) {
-      this.activeUiDatabaseNames = value
-      this.activeUiDatabaseNamesCollapse = value
+    changeUiDatabaseRadio(value) {
+      this.activeUiDatabaseNames = value;
+      this.activeUiDatabaseNamesCollapse = value;
     },
-    changeETCDRadio (value) {
-      this.activeETCDNames = value
-      this.activeETCDNamesCollapse = value
+    changeETCDRadio(value) {
+      this.activeETCDNames = value;
+      this.activeETCDNamesCollapse = value;
     },
-    changeStorageRadio (value) {
-      this.activeStorageNames = value
-      this.activeStorageNamesCollapse = value
+    changeStorageRadio(value) {
+      this.activeStorageNames = value;
+      this.activeStorageNamesCollapse = value;
     },
     // changeFstabLineRadio (value) {
     //   this.activeFstabLineNames = value
@@ -590,65 +590,65 @@ export default {
     //     this.ruleForm.rainbondShareStorage.fstabLine.pass = 0
     //   }
     // },
-    removeIP (index) {
-      this.ruleForm.gatewayIngressIPs.splice(index, 1)
+    removeIP(index) {
+      this.ruleForm.gatewayIngressIPs.splice(index, 1);
     },
-    addIP () {
-      this.ruleForm.gatewayIngressIPs.push('')
+    addIP() {
+      this.ruleForm.gatewayIngressIPs.push("");
     },
-    addEndpoints () {
-      this.ruleForm.etcdConfig.endpoints.push('')
+    addEndpoints() {
+      this.ruleForm.etcdConfig.endpoints.push("");
     },
-    removeEndpoints (index) {
-      this.ruleForm.etcdConfig.endpoints.splice(index, 1)
+    removeEndpoints(index) {
+      this.ruleForm.etcdConfig.endpoints.splice(index, 1);
     },
-    fetchClusterInfo () {
+    fetchClusterInfo() {
       this.$store
-        .dispatch('fetchClusterInfo')
+        .dispatch("fetchClusterInfo")
         .then(res => {
           if (res && res.data) {
-            this.loading = false
+            this.loading = false;
             // this.ruleForm = res.data;
-            if (res.data.HTTPDomain && res.data.HTTPDomain !== '') {
-              this.HTTPDomainSwitch = false
-              this.ruleForm.HTTPDomain = res.data.HTTPDomain
+            if (res.data.HTTPDomain && res.data.HTTPDomain !== "") {
+              this.HTTPDomainSwitch = false;
+              this.ruleForm.HTTPDomain = res.data.HTTPDomain;
             }
             if (
               res.data.gatewayIngressIPs &&
               res.data.gatewayIngressIPs.length > 0
             ) {
-              this.ruleForm.gatewayIngressIPs = res.data.gatewayIngressIPs
+              this.ruleForm.gatewayIngressIPs = res.data.gatewayIngressIPs;
             }
-            let arr = []
+            let arr = [];
             if (
               this.clusterInfo &&
               this.clusterInfo.nodeAvailPorts.length > 0
             ) {
               this.clusterInfo.nodeAvailPorts.map(item => {
-                const { nodeIP } = item
-                arr.push(nodeIP)
-              })
+                const { nodeIP } = item;
+                arr.push(nodeIP);
+              });
             } else if (
               res.data.gatewayNodes &&
               res.data.gatewayNodes.length > 0
             ) {
               res.data.gatewayNodes.map(item => {
-                const { nodeIP } = item
-                arr.push(nodeIP)
-              })
+                const { nodeIP } = item;
+                arr.push(nodeIP);
+              });
             }
-            this.setgatewayNodes = arr
+            this.setgatewayNodes = arr;
           }
         })
         .catch(err => {
-          this.$emit('onhandleErrorRecord')
-          console.log(err)
-        })
+          this.$emit("onhandleErrorRecord");
+          console.log(err);
+        });
     },
-    submitForm (formName) {
+    submitForm(formName) {
       this.$refs[formName].validate(valid => {
         if (valid) {
-          this.loading = true
+          this.loading = true;
           // this.ruleForm.rainbondShareStorage.fstabLine.dump = Number(
           //   this.ruleForm.fstabLine.dump
           // );
@@ -656,86 +656,87 @@ export default {
           //   this.ruleForm.fstabLine.pass
           // );
 
-          let obj = {}
+          let obj = {};
           if (this.setgatewayNodes.length > 0) {
-            let arr = []
+            let arr = [];
             this.setgatewayNodes.map(item => {
-              arr.push({ nodeIP: item })
-            })
-            obj.gatewayNodes = arr
+              arr.push({ nodeIP: item });
+            });
+            obj.gatewayNodes = arr;
           }
-          if (this.activeImageHubNames === '2') {
-            obj.imageHub = this.ruleForm.imageHub
+          if (this.activeImageHubNames === "2") {
+            obj.imageHub = this.ruleForm.imageHub;
           }
-          if (this.activeregionDatabaseNames === '2') {
-            obj.regionDatabase = this.ruleForm.regionDatabase
-            obj.regionDatabase.port = Number(obj.regionDatabase.port)
+          if (this.activeregionDatabaseNames === "2") {
+            obj.regionDatabase = this.ruleForm.regionDatabase;
+            obj.regionDatabase.port = Number(obj.regionDatabase.port);
           }
-          if (this.activeUiDatabaseNames === '2') {
-            obj.uiDatabase = this.ruleForm.uiDatabase
-            obj.uiDatabase.port = Number(obj.uiDatabase.port)
+          if (this.activeUiDatabaseNames === "2") {
+            obj.uiDatabase = this.ruleForm.uiDatabase;
+            obj.uiDatabase.port = Number(obj.uiDatabase.port);
           }
 
-          if (this.activeETCDNames === '2') {
-            obj.etcdConfig = this.ruleForm.etcdConfig
+          if (this.activeETCDNames === "2") {
+            obj.etcdConfig = this.ruleForm.etcdConfig;
           }
-          if (this.activeStorageNames === '2') {
-            obj.storage = this.ruleForm.storage
+          if (this.activeStorageNames === "2") {
+            obj.storage = this.ruleForm.storage;
           }
           if (
             this.ruleForm.gatewayIngressIPs &&
             this.ruleForm.gatewayIngressIPs.length > 0 &&
-            this.ruleForm.gatewayIngressIPs[0] !== ''
+            this.ruleForm.gatewayIngressIPs[0] !== ""
           ) {
-            obj.gatewayIngressIPs = this.ruleForm.gatewayIngressIPs
+            obj.gatewayIngressIPs = this.ruleForm.gatewayIngressIPs;
           }
 
           if (!this.HTTPDomainSwitch) {
-            obj.HTTPDomain = this.ruleForm.HTTPDomain
+            obj.HTTPDomain = this.ruleForm.HTTPDomain;
           }
 
           this.$store
-            .dispatch('fixClusterInfo', obj)
+            .dispatch("fixClusterInfo", obj)
             .then(res => {
               if (res && res.code === 200) {
-                this.addCluster()
+                this.$emit("onhandleStartRecord");
+                this.addCluster();
               } else {
-                this.handleCancelLoading()
+                this.handleCancelLoading();
               }
             })
             .catch(err => {
-              this.handleCancelLoading()
-              this.$emit('onhandleErrorRecord')
-              console.log(err)
-            })
+              this.handleCancelLoading();
+              this.$emit("onhandleErrorRecord");
+              console.log(err);
+            });
         } else {
-          this.handleCancelLoading()
-          console.log('error submit!!')
-          return false
+          this.handleCancelLoading();
+          console.log("error submit!!");
+          return false;
         }
-      })
+      });
     },
-    addCluster () {
+    addCluster() {
       this.$store
-        .dispatch('addCluster')
+        .dispatch("addCluster")
         .then(en => {
           if (en && en.code === 200) {
-            this.$emit('onResults')
+            this.$emit("onResults");
           } else {
-            this.$emit('onhandleErrorRecord')
-            this.handleCancelLoading()
+            this.$emit("onhandleErrorRecord");
+            this.handleCancelLoading();
           }
         })
         .catch(_ => {
-          this.handleCancelLoading()
-          this.$emit('onhandleErrorRecord')
-        })
+          this.handleCancelLoading();
+          this.$emit("onhandleErrorRecord");
+        });
     },
-    handleCancelLoading () {
-      this.loading = false
+    handleCancelLoading() {
+      this.loading = false;
     }
   }
-}
+};
 </script>
 
 <style rel="stylesheet/scss" lang="scss" scoped>
