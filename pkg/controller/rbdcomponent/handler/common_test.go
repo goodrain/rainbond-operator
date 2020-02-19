@@ -24,9 +24,9 @@ func TestGetDefaultInfo(t *testing.T) {
 			Name:      DBName,
 			Namespace: "rbd-system",
 		},
-		StringData: map[string]string{
-			mysqlPasswordKey: "foobar",
-			mysqlUserKey:     "write",
+		Data: map[string][]byte{
+			mysqlPasswordKey: []byte("foobar"),
+			mysqlUserKey:     []byte("write"),
 		},
 	}
 	clientset := fake.NewFakeClientWithScheme(scheme, secret)
@@ -37,6 +37,6 @@ func TestGetDefaultInfo(t *testing.T) {
 		t.FailNow()
 	}
 	assert.NotNil(t, dbInfo)
-	assert.Equal(t, dbInfo.Password, "foobar")
-	assert.Equal(t, dbInfo.Username, "write")
+	assert.Equal(t, "foobar", dbInfo.Password)
+	assert.Equal(t, "write", dbInfo.Username)
 }

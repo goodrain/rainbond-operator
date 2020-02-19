@@ -1,8 +1,32 @@
+ifdef IMAGE_NAMESPACE
+    IMAGE_NAMESPACE ?= ${IMAGE_NAMESPACE}
+else
+    IMAGE_NAMESPACE=goodrain
+endif
+
+ifdef IMAGE_DOMAIN
+    IMAGE_DOMAIN ?= ${IMAGE_DOMAIN}
+else
+    IMAGE_DOMAIN=registry.cn-hangzhou.aliyuncs.com
+endif
+
 GROUP=rainbond
 VERSION=v1alpha1
-IMAGE_DOMAIN=registry.cn-hangzhou.aliyuncs.com
-IMAGE_NAMESPACE=goodrain
 TAG=v0.0.1
+
+PKG             := github.com/goodrain/rainbond-operator
+SRC_DIRS        := cmd pkg
+
+.PHONY: test
+test:
+	@echo "Testing: $(SRC_DIRS)"
+	./hack/unit_test
+	PKG=$(PKG) ./hack/test $(SRC_DIRS)
+
+.PHONY: build-dirs
+build-dirs:
+	@echo "Creating build directories"
+	@mkdir -p bin/
 
 .PHONY: gen
 gen: crds-gen openapi-gen sdk-gen
@@ -29,9 +53,9 @@ api-add:
 ctrl-add:
 	operator-sdk add controller --api-version=rainbond.io/$(VERSION) --kind=$(KIND)
 
-.PHONY: check
-check:
-	which ./bin/golangci-lint > /dev/null || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.23.2
+.PHONY: golangci-lint
+golangci-lint: build-dirs
+	which ./bin/golangci-lint > /dev/null || sh ./hack/golangci-lint-install.sh v1.23.2
 	@bin/golangci-lint run
 
 

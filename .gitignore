@@ -83,3 +83,4 @@ tags
 bin
 vendor
 ui/node_modules
+coverage.txt

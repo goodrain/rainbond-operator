@@ -7,4 +7,6 @@ git:
   depth: 1
 
 script:
-  - make push
+  - make test
+  - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then make build; fi'
+  - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then make push; fi'
