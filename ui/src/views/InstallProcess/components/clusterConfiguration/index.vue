@@ -603,38 +603,47 @@ export default {
       this.ruleForm.etcdConfig.endpoints.splice(index, 1)
     },
     fetchClusterInfo () {
-      this.$store.dispatch('fetchClusterInfo').then(res => {
-        if (res && res.data) {
-          this.loading = false
-          // this.ruleForm = res.data;
-          if (res.data.HTTPDomain && res.data.HTTPDomain !== '') {
-            this.HTTPDomainSwitch = false
-            this.ruleForm.HTTPDomain = res.data.HTTPDomain
+      this.$store
+        .dispatch('fetchClusterInfo')
+        .then(res => {
+          if (res && res.data) {
+            this.loading = false
+            // this.ruleForm = res.data;
+            if (res.data.HTTPDomain && res.data.HTTPDomain !== '') {
+              this.HTTPDomainSwitch = false
+              this.ruleForm.HTTPDomain = res.data.HTTPDomain
+            }
+            if (
+              res.data.gatewayIngressIPs &&
+              res.data.gatewayIngressIPs.length > 0
+            ) {
+              this.ruleForm.gatewayIngressIPs = res.data.gatewayIngressIPs
+            }
+            let arr = []
+            if (
+              this.clusterInfo &&
+              this.clusterInfo.nodeAvailPorts.length > 0
+            ) {
+              this.clusterInfo.nodeAvailPorts.map(item => {
+                const { nodeIP } = item
+                arr.push(nodeIP)
+              })
+            } else if (
+              res.data.gatewayNodes &&
+              res.data.gatewayNodes.length > 0
+            ) {
+              res.data.gatewayNodes.map(item => {
+                const { nodeIP } = item
+                arr.push(nodeIP)
+              })
+            }
+            this.setgatewayNodes = arr
           }
-          if (
-            res.data.gatewayIngressIPs &&
-            res.data.gatewayIngressIPs.length > 0
-          ) {
-            this.ruleForm.gatewayIngressIPs = res.data.gatewayIngressIPs
-          }
-          let arr = []
-          if (this.clusterInfo && this.clusterInfo.nodeAvailPorts.length > 0) {
-            this.clusterInfo.nodeAvailPorts.map(item => {
-              const { nodeIP } = item
-              arr.push(nodeIP)
-            })
-          } else if (
-            res.data.gatewayNodes &&
-            res.data.gatewayNodes.length > 0
-          ) {
-            res.data.gatewayNodes.map(item => {
-              const { nodeIP } = item
-              arr.push(nodeIP)
-            })
-          }
-          this.setgatewayNodes = arr
-        }
-      })
+        })
+        .catch(err => {
+          this.$emit('onhandleErrorRecord')
+          console.log(err)
+        })
     },
     submitForm (formName) {
       this.$refs[formName].validate(valid => {
@@ -696,11 +705,11 @@ export default {
             })
             .catch(err => {
               this.handleCancelLoading()
+              this.$emit('onhandleErrorRecord')
               console.log(err)
             })
         } else {
           this.handleCancelLoading()
-
           console.log('error submit!!')
           return false
         }
@@ -713,13 +722,13 @@ export default {
           if (en && en.code === 200) {
             this.$emit('onResults')
           } else {
+            this.$emit('onhandleErrorRecord')
             this.handleCancelLoading()
           }
         })
-        .catch(err => {
+        .catch(_ => {
           this.handleCancelLoading()
-
-          console.log(err)
+          this.$emit('onhandleErrorRecord')
         })
     },
     handleCancelLoading () {

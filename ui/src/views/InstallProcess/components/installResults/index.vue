@@ -95,13 +95,16 @@ export default {
                 title: '卸载',
                 message: '卸载成功'
               })
+              this.$emit('onhandleUninstallRecord')
               this.$router.push({
                 name: 'index'
               })
             }
           })
         })
-        .catch(_ => {})
+        .catch(_ => {
+          this.$emit('onhandleErrorRecord')
+        })
     },
 
     loadData () {
@@ -119,35 +122,48 @@ export default {
       this.timer = setTimeout(() => {
         this.fetchClusterInstallResults()
       }, 10000)
-      this.$store.dispatch('fetchClusterInstallResults').then(res => {
-        if (res) {
-          this.loading = false
-          this.installList = res.data.statusList
-          let arrs = res.data.statusList
-          if (arrs && arrs.length > 0) {
-            arrs.map(item => {
-              const { stepName, status } = item
-              if (stepName === 'step_download' && status === 'status_failed') {
-                if (this.dialogVisibleNum < 1) {
-                  this.dialogVisible = true
+      this.$store
+        .dispatch('fetchClusterInstallResults')
+        .then(res => {
+          if (res) {
+            this.loading = false
+            this.installList = res.data.statusList
+            let arrs = res.data.statusList
+            if (arrs && arrs.length > 0) {
+              arrs.map(item => {
+                const { stepName, status } = item
+                if (
+                  stepName === 'step_download' &&
+                  status === 'status_failed'
+                ) {
+                  if (this.dialogVisibleNum < 1) {
+                    this.dialogVisible = true
+                  }
+                  this.dialogVisibleNum = 1
+                  this.timer && clearInterval(this.timer)
                 }
-                this.dialogVisibleNum = 1
-                this.timer && clearInterval(this.timer)
-              }
-            })
+              })
+            }
+          } else {
+            this.loading = false
           }
-        } else {
-          this.loading = false
-        }
-      })
+        })
+        .catch(_ => {
+          this.$emit('onhandleErrorRecord')
+        })
     },
     fetchClusterInstallResultsState () {
       this.timers = setTimeout(() => {
         this.fetchClusterInstallResultsState()
       }, 10000)
-      this.$store.dispatch('fetchClusterInstallResultsState').then(res => {
-        this.componentList = res.data
-      })
+      this.$store
+        .dispatch('fetchClusterInstallResultsState')
+        .then(res => {
+          this.componentList = res.data
+        })
+        .catch(_ => {
+          this.$emit('onhandleErrorRecord')
+        })
     },
     fetchClusterInstallMirrorWarehouse () {
       this.timermirror = setTimeout(() => {
@@ -159,6 +175,9 @@ export default {
           if (res) {
             this.mirrorComponentList = res.data
           }
+        })
+        .catch(_ => {
+          this.$emit('onhandleErrorRecord')
         })
     }
   }

@@ -6,6 +6,7 @@
           <cluster-configuration
             :clusterInfo="clusterInfo"
             @onResults="handlePerform('startrRsults')"
+            @onhandleErrorRecord="handleRecord('failure')"
             class="d2-mt"
           ></cluster-configuration>
         </el-collapse-item>
@@ -15,7 +16,10 @@
           title="安装"
           name="startrRsults"
         >
-          <install-results></install-results>
+          <install-results
+            @onhandleErrorRecord="handleRecord('failure')"
+            @onhandleUninstallRecord="handleRecord('uninstall')"
+          ></install-results>
         </el-collapse-item>
       </el-collapse>
     </div>
@@ -36,7 +40,13 @@ export default {
     return {
       activeName: 'cluster',
       resultShow: false,
-      clusterInfo: null
+      clusterInfo: null,
+      recordInfo: {
+        install_id: '',
+        version: '',
+        status: 'uninstall',
+        eid: ''
+      }
     }
   },
   created () {
@@ -50,6 +60,12 @@ export default {
     handleState () {
       this.$store.dispatch('fetchState').then(res => {
         if (res && res.code === 200 && res.data.final_status) {
+          if (res.data.clusterInfo) {
+            this.recordInfo.install_id = res.data.clusterInfo.installID
+            this.recordInfo.version = res.data.clusterInfo.installVersion
+            this.recordInfo.eid = res.data.clusterInfo.enterpriseID
+          }
+
           this.clusterInfo = res.data.clusterInfo
           switch (res.data.final_status) {
             case 'Initing':
@@ -79,6 +95,12 @@ export default {
         } else {
           this.handleRouter('index')
         }
+      })
+    },
+    handleRecord (states) {
+      this.recordInfo.status = states
+      this.$store.dispatch('putRecord', this.recordInfo).then(res => {
+        console.log('res', res)
       })
     },
     handlePerform (name) {

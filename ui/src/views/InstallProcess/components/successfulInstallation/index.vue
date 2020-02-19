@@ -35,7 +35,13 @@ export default {
       activeName: 'rsultSucess',
       componentList: [],
       loading: true,
-      accessAddress: ''
+      accessAddress: '',
+      recordInfo: {
+        install_id: '',
+        version: '',
+        status: 'complete',
+        eid: ''
+      }
     }
   },
   created () {
@@ -50,6 +56,12 @@ export default {
     handleState () {
       this.$store.dispatch('fetchState').then(res => {
         if (res && res.code === 200 && res.data.final_status) {
+          if (res.data.clusterInfo) {
+            this.recordInfo.install_id = res.data.clusterInfo.installID
+            this.recordInfo.version = res.data.clusterInfo.installVersion
+            this.recordInfo.eid = res.data.clusterInfo.enterpriseID
+          }
+
           switch (res.data.final_status) {
             case 'Initing':
               this.handleRouter('index')
@@ -66,6 +78,10 @@ export default {
             case 'UnInstalling':
               this.handleRouter('index')
               break
+            case 'Running':
+              this.recordInfo.status = 'complete'
+              this.handleRecord()
+              break
             default:
               break
           }
@@ -77,20 +93,31 @@ export default {
         name
       })
     },
+    handleRecord () {
+      this.$store.dispatch('putRecord', this.recordInfo).then(res => {
+        console.log('res', res)
+      })
+    },
     onhandleDelete () {
       this.$confirm('确定要卸载吗？')
         .then(_ => {
           this.$store.dispatch('deleteUnloadingPlatform').then(res => {
             if (res && res.code === 200) {
+              this.recordInfo.status = 'uninstall'
+              this.handleRecord()
               this.$notify({
                 type: 'success',
                 title: '卸载',
                 message: '卸载成功'
               })
+              this.handleRouter('index')
             }
           })
         })
-        .catch(_ => {})
+        .catch(_ => {
+          this.recordInfo.status = 'failure'
+          this.handleRecord()
+        })
     },
     fetchAccessAddress () {
       this.$store.dispatch('fetchAccessAddress').then(res => {
