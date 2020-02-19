@@ -6,7 +6,12 @@ services:
 git:
   depth: 1
 
-script:
-  - make test
-  - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then make build; fi'
-  - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then make push; fi'
+jobs:
+  include:
+    - stage: test
+      script: make test
+    - stage: build
+      script: 
+      - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then make build; fi'
+      - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then make push; fi'
+  
