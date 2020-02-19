@@ -16,8 +16,10 @@ import (
 
 var clusterRepoLog = logf.Log.WithName("cluster repo ")
 
+// ClusterInit cluster init info
 type ClusterInit struct {
-	InitPath string
+	InitPath  string
+	installID string
 }
 
 // NewClusterRepo new cluster repository
@@ -25,6 +27,7 @@ func NewClusterRepo(initPath string) cluster.Repository {
 	return &ClusterInit{InitPath: initPath}
 }
 
+// EnterpriseID get enterprise
 func (ci *ClusterInit) EnterpriseID() string {
 	enterprise := path.Join(ci.InitPath, "enterprise")
 	bs, err := ioutil.ReadFile(enterprise)
@@ -53,6 +56,15 @@ func (ci *ClusterInit) EnterpriseID() string {
 	return hex.EncodeToString(bs)
 }
 
+// InstallID get install id
 func (ci *ClusterInit) InstallID() string {
-	return uuidutil.NewUUID()
+	if ci.installID == "" { // TODO fanyangyang atomic
+		ci.installID = uuidutil.NewUUID()
+	}
+	return ci.installID
+}
+
+// ResetClusterInfo reset install id
+func (ci *ClusterInit) ResetClusterInfo() {
+	ci.installID = ""
 }

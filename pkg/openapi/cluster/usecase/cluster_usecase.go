@@ -27,7 +27,7 @@ func NewClusterUsecaseImpl(cfg *option.Config, repo cluster.Repository, componen
 	return &ClusterUsecaseImpl{cfg: cfg, repo: repo, componentUsecase: componentUsecase}
 }
 
-// Uninstall uninstall cluster reset cluster
+// UnInstall uninstall cluster reset cluster
 func (c *ClusterUsecaseImpl) UnInstall() error {
 	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "name!=rbd-nfs"}); err != nil {
 		log.Error(err, "delete component error")
@@ -49,6 +49,10 @@ func (c *ClusterUsecaseImpl) UnInstall() error {
 			return err
 		}
 	}
+
+	// reset cluster info such as install id
+	c.repo.ResetClusterInfo()
+
 	return nil
 }
 
@@ -61,7 +65,11 @@ func (c *ClusterUsecaseImpl) Status() (*model.ClusterStatus, error) {
 		if k8sErrors.IsNotFound(err) {
 			return &model.ClusterStatus{
 				FinalStatus: model.Waiting,
-				ClusterInfo: model.ClusterInfo{},
+				ClusterInfo: model.ClusterInfo{
+					InstallVersion: c.cfg.RainbondVersion,
+					InstallID:      c.repo.InstallID(),
+					EnterpriseID:   c.repo.EnterpriseID(),
+				},
 			}, nil
 		}
 		return nil, err
@@ -85,6 +93,11 @@ func (c *ClusterUsecaseImpl) Status() (*model.ClusterStatus, error) {
 }
 
 func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.RainbondCluster, status *model.ClusterStatus) {
+	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
+
+	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID()
+	status.ClusterInfo.InstallID = c.repo.InstallID()
+
 	if status.FinalStatus == model.Waiting || status.FinalStatus == model.Initing {
 		log.Info("cluster is not ready")
 		return
@@ -110,11 +123,6 @@ func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.R
 			NodeName: node.NodeName,
 		})
 	}
-
-	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
-
-	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID()
-	status.ClusterInfo.InstallID = c.repo.InstallID()
 }
 
 // no rainbondcluster cr means cluster status is waiting
@@ -206,7 +214,7 @@ func (c *ClusterUsecaseImpl) handleComponentStatus(componentList []*v1.RbdCompon
 	terminal := false
 	for _, component := range componentList {
 		if component.Status == v1.ComponentStatusRunning {
-			readyCount += 1
+			readyCount++
 		}
 		if component.Status == v1.ComponentStatusTerminating { //TODO terminal uninstalling
 			terminal = true

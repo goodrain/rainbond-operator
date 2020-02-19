@@ -4,4 +4,5 @@ package cluster
 type Repository interface {
 	EnterpriseID() string
 	InstallID() string
+	ResetClusterInfo()
 }
