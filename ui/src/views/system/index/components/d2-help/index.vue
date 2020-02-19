@@ -19,7 +19,7 @@ export default {
   data () {
     return {
       text: '开始安装',
-      loading: false,
+      loading: false
     }
   },
   created () {
