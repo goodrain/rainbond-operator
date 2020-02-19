@@ -3,10 +3,10 @@ package usecase
 import (
 	"fmt"
 
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
-
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+	"github.com/goodrain/rainbond-operator/pkg/util/uuidutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
@@ -27,7 +27,7 @@ func NewClusterUsecaseImpl(cfg *option.Config, repo cluster.Repository, componen
 	return &ClusterUsecaseImpl{cfg: cfg, repo: repo, componentUsecase: componentUsecase}
 }
 
-// Uninstall uninstall cluster reset cluster
+// UnInstall uninstall cluster reset cluster
 func (c *ClusterUsecaseImpl) UnInstall() error {
 	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "name!=rbd-nfs"}); err != nil {
 		log.Error(err, "delete component error")
@@ -49,6 +49,7 @@ func (c *ClusterUsecaseImpl) UnInstall() error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -111,10 +112,18 @@ func (c *ClusterUsecaseImpl) hackClusterInfo(rainbondCluster *rainbondv1alpha1.R
 		})
 	}
 
+	// get install version from config
 	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
 
+	// get enterprise from repo
 	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID()
-	status.ClusterInfo.InstallID = c.repo.InstallID()
+
+	// get installID from cluster's annotations
+	if rainbondCluster.Annotations != nil {
+		if value, ok := rainbondCluster.Annotations["install_id"]; ok && value != "" {
+			status.ClusterInfo.InstallID = value
+		}
+	}
 }
 
 // no rainbondcluster cr means cluster status is waiting
@@ -206,7 +215,7 @@ func (c *ClusterUsecaseImpl) handleComponentStatus(componentList []*v1.RbdCompon
 	terminal := false
 	for _, component := range componentList {
 		if component.Status == v1.ComponentStatusRunning {
-			readyCount += 1
+			readyCount++
 		}
 		if component.Status == v1.ComponentStatusTerminating { //TODO terminal uninstalling
 			terminal = true
@@ -257,6 +266,10 @@ func (c *ClusterUsecaseImpl) createCluster() (*rainbondv1alpha1.RainbondCluster,
 			InstallMode: installMode,
 		},
 	}
+
+	annotations := make(map[string]string)
+	annotations["install_id"] = uuidutil.NewUUID()
+	cluster.Annotations = annotations
 
 	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)
 }

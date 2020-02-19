@@ -39,6 +39,7 @@ func (c *CaseImpl) Install() cluster.InstallUseCase {
 	return c.installCaseImpl
 }
 
+// Cluster cluster impl
 func (c *CaseImpl) Cluster() cluster.ClusterUseCase {
 	return c.clusterImpl
 }

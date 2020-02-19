@@ -273,7 +273,7 @@ func (ic *InstallUseCaseImpl) stepHub(clusterInfo *v1alpha1.RainbondCluster, com
 	readyCount := 0
 	for _, cs := range initComponents {
 		if cs.Status == v1.ComponentStatusRunning {
-			readyCount += 1
+			readyCount++
 		}
 	}
 
@@ -425,7 +425,7 @@ func (ic *InstallUseCaseImpl) stepCreateComponent(componentStatues []*v1.RbdComp
 	readyCount := 0
 	for _, cs := range componentStatues {
 		if cs.Status == v1.ComponentStatusRunning {
-			readyCount += 1
+			readyCount++
 		}
 	}
 

@@ -123,7 +123,7 @@ func (cc *ComponentUsecaseImpl) typeRbdComponentStatus(cpn *rainbondv1alpha1.Rbd
 		status.Status = v1.ComponentStatusRunning
 	}
 
-	for index, _ := range status.PodStatuses {
+	for index := range status.PodStatuses {
 		if status.PodStatuses[index].Phase == "NotReady" {
 			status.Status = v1.ComponentStatusCreating // if pod not ready, component status can't be running, even nor replicas equals to ready replicas
 			// message and reason from container
