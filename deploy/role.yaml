@@ -64,6 +64,7 @@ rules:
   - globalconfigs
   - rainbondclusters
   - rainbondpackages
+  - rainbondvolumes
   verbs:
   - create
   - delete

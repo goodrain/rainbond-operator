@@ -30,6 +30,7 @@ type RainbondV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	RainbondClustersGetter
 	RainbondPackagesGetter
+	RainbondVolumesGetter
 	RbdComponentsGetter
 }
 
@@ -44,6 +45,10 @@ func (c *RainbondV1alpha1Client) RainbondClusters(namespace string) RainbondClus
 
 func (c *RainbondV1alpha1Client) RainbondPackages(namespace string) RainbondPackageInterface {
 	return newRainbondPackages(c, namespace)
+}
+
+func (c *RainbondV1alpha1Client) RainbondVolumes(namespace string) RainbondVolumeInterface {
+	return newRainbondVolumes(c, namespace)
 }
 
 func (c *RainbondV1alpha1Client) RbdComponents(namespace string) RbdComponentInterface {

@@ -24,4 +24,6 @@ type RainbondClusterExpansion interface{}
 
 type RainbondPackageExpansion interface{}
 
+type RainbondVolumeExpansion interface{}
+
 type RbdComponentExpansion interface{}

@@ -30,6 +30,8 @@ type Interface interface {
 	RainbondClusters() RainbondClusterInformer
 	// RainbondPackages returns a RainbondPackageInformer.
 	RainbondPackages() RainbondPackageInformer
+	// RainbondVolumes returns a RainbondVolumeInformer.
+	RainbondVolumes() RainbondVolumeInformer
 	// RbdComponents returns a RbdComponentInformer.
 	RbdComponents() RbdComponentInformer
 }
@@ -53,6 +55,11 @@ func (v *version) RainbondClusters() RainbondClusterInformer {
 // RainbondPackages returns a RainbondPackageInformer.
 func (v *version) RainbondPackages() RainbondPackageInformer {
 	return &rainbondPackageInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// RainbondVolumes returns a RainbondVolumeInformer.
+func (v *version) RainbondVolumes() RainbondVolumeInformer {
+	return &rainbondVolumeInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // RbdComponents returns a RbdComponentInformer.
