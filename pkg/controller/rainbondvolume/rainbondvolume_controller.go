@@ -2,11 +2,14 @@ package rainbondvolume
 
 import (
 	"context"
+	"k8s.io/client-go/util/retry"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -77,9 +80,12 @@ func (r *ReconcileRainbondVolume) Reconcile(request reconcile.Request) (reconcil
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.V(6).Info("Reconciling RainbondVolume")
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Fetch the RainbondVolume instance
 	volume := &rainbondv1alpha1.RainbondVolume{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, volume)
+	err := r.client.Get(ctx, request.NamespacedName, volume)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -93,17 +99,52 @@ func (r *ReconcileRainbondVolume) Reconcile(request reconcile.Request) (reconcil
 
 	haveStorageClassName := volume.Spec.StorageClassName != ""
 	if haveStorageClassName {
-		// TODO: update status
+		if err := r.updateVolumeStatus(ctx, volume); err != nil {
+			return reconcile.Result{}, err
+		}
 		return reconcile.Result{}, nil
 	}
 
 	useExternalProvisioner := volume.Spec.CSIPlugin == nil
 	if useExternalProvisioner {
-		// TODO: create storage class
+		// create StorageClass
+
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-
-
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileRainbondVolume) updateVolumeStatus(ctx context.Context, volume *rainbondv1alpha1.RainbondVolume) error {
+	status := volume.Status.DeepCopy()
+	_, condtion := status.GetRainbondVolumeCondition(rainbondv1alpha1.RainbondVolumeReady)
+	if condtion == nil {
+		condtion = &rainbondv1alpha1.RainbondVolumeCondition{Type: rainbondv1alpha1.RainbondVolumeReady}
+	}
+	if volume.Spec.StorageClassName == "" {
+		condtion.Status = corev1.ConditionFalse
+	} else {
+		condtion.Status = corev1.ConditionTrue
+	}
+
+	volume.Status.UpdateRainbondVolumeCondition(condtion)
+	if updated := status.UpdateRainbondVolumeCondition(condtion); updated {
+		return r.updateVolumeStatusRetryOnConflict(ctx, volume)
+	}
+	return nil
+}
+
+func (r *ReconcileRainbondVolume) updateVolumeStatusRetryOnConflict(ctx context.Context, volume *rainbondv1alpha1.RainbondVolume) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return r.client.Status().Update(ctx, volume)
+	})
+}
+
+func storageClassForRainbondVolume(volume *rainbondv1alpha1.RainbondVolume) *storagev1.StorageClass {
+	class := &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: volume.Name,
+		},
+	}
+	return class
 }

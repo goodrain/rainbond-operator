@@ -80,7 +80,40 @@ spec:
               type: object
           type: object
         status:
-          description: RainbondVolumeStatus defines the observed state of RainbondVolume
+          description: RainbondVolumeStatus defines the observed state of rainbondvolume.
+          properties:
+            conditions:
+              description: Condition keeps track of all rainbondvolume conditions,
+                if they exist.
+              items:
+                description: RainbondVolume represents one current condition of an
+                  rainbondvolume.
+                properties:
+                  lastTransitionTime:
+                    description: Last time the condition transitioned from one status
+                      to another.
+                    type: string
+                  lastUpdateTime:
+                    description: The last time this condition was updated.
+                    type: string
+                  message:
+                    description: A human readable message indicating details about
+                      the transition.
+                    type: string
+                  reason:
+                    description: The reason for the condition's last transition.
+                    type: string
+                  status:
+                    description: Status of the condition, one of True, False, Unknown.
+                    type: string
+                  type:
+                    description: Type of rainbondvolume condition.
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              type: array
           type: object
       type: object
   version: v1alpha1
