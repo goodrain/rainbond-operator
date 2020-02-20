@@ -78,8 +78,8 @@ func (r *ReconcileRainbondVolume) Reconcile(request reconcile.Request) (reconcil
 	reqLogger.V(6).Info("Reconciling RainbondVolume")
 
 	// Fetch the RainbondVolume instance
-	instance := &rainbondv1alpha1.RainbondVolume{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	volume := &rainbondv1alpha1.RainbondVolume{}
+	err := r.client.Get(context.TODO(), request.NamespacedName, volume)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -91,7 +91,19 @@ func (r *ReconcileRainbondVolume) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	
+	haveStorageClassName := volume.Spec.StorageClassName != ""
+	if haveStorageClassName {
+		// TODO: update status
+		return reconcile.Result{}, nil
+	}
+
+	useExternalProvisioner := volume.Spec.CSIPlugin == nil
+	if useExternalProvisioner {
+		// TODO: create storage class
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+
 
 	return reconcile.Result{}, nil
 }

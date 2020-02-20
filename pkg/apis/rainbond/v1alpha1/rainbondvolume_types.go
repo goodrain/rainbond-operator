@@ -44,7 +44,7 @@ type RainbondVolumeSpec struct {
 	StorageClassParameters map[string]string `json:"storageClassParameters,omitempty"`
 	// +kubebuilder:validation:MaxProperties=100
 	// CSIPlugin holds the image
-	CSIPlugin CSIPluginSource `json:"csiPlugin,omitempty"`
+	CSIPlugin *CSIPluginSource `json:"csiPlugin,omitempty"`
 }
 
 // RainbondVolumeStatus defines the observed state of RainbondVolume

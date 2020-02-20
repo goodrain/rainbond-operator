@@ -93,6 +93,11 @@ func HostPath(hostpath corev1.HostPathType) *corev1.HostPathType {
 	return &hostpath
 }
 
+// MountPropagationMode returns a pointer to the MountPropagationMode value passed in.
+func MountPropagationMode(moundPropagationMode corev1.MountPropagationMode) *corev1.MountPropagationMode {
+	return &moundPropagationMode
+}
+
 func UpdateCRStatus(client client.Client, obj runtime.Object) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
