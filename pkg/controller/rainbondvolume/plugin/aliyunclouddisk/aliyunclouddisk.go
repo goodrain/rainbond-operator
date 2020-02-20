@@ -2,18 +2,33 @@ package aliyunclouddisk
 
 import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// CSIPlugins is the primary entrypoint for csi plugins.
+func CSIPlugins(volume *rainbondv1alpha1.RainbondVolume) plugin.CSIPlugin {
+	plugin := &aliyunclouddiskPlugin{volume: volume}
+
+	return plugin
+}
 
 type aliyunclouddiskPlugin struct {
 	volume *rainbondv1alpha1.RainbondVolume
 	labels map[string]string
+}
+
+var _ plugin.CSIPlugin = &aliyunclouddiskPlugin{}
+
+func (p *aliyunclouddiskPlugin) GetStorageClass() *storagev1.StorageClass {
+	return nil
 }
 
 func (p *aliyunclouddiskPlugin) GetResources() []interface{} {
@@ -26,13 +41,13 @@ func (p *aliyunclouddiskPlugin) GetResources() []interface{} {
 
 func (p *aliyunclouddiskPlugin) daemonset() *appsv1.DaemonSet {
 	name := "csi-disk-plugin"
-	labels := rbdutil.LabelsForRainbondResource()
+	labels := rbdutil.LabelsForRainbond()
 	labels["app"] = name
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: p.volume.Namespace,
-			Labels:    rbdutil.LabelsForRainbondResource(),
+			Labels:    rbdutil.LabelsForRainbond(),
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{

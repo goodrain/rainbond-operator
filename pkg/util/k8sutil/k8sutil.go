@@ -98,6 +98,11 @@ func MountPropagationMode(moundPropagationMode corev1.MountPropagationMode) *cor
 	return &moundPropagationMode
 }
 
+// PersistentVolumeReclaimPolicy returns a pointer to the PersistentVolumeReclaimPolicy value passed in.
+func PersistentVolumeReclaimPolicy(persistentVolumeReclaimPolicy corev1.PersistentVolumeReclaimPolicy) *corev1.PersistentVolumeReclaimPolicy {
+	return &persistentVolumeReclaimPolicy
+}
+
 func UpdateCRStatus(client client.Client, obj runtime.Object) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()

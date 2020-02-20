@@ -26,13 +26,13 @@ func (p *aliyunnasPlugin) GetResources() []interface{} {
 
 func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 	name := "csi-disk-plugin"
-	labels := rbdutil.LabelsForRainbondResource()
+	labels := rbdutil.LabelsForRainbond()
 	labels["app"] = name
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: p.volume.Namespace,
-			Labels:    rbdutil.LabelsForRainbondResource(),
+			Labels:    rbdutil.LabelsForRainbond(),
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{

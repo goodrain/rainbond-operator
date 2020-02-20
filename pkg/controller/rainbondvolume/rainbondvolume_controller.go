@@ -2,6 +2,8 @@ package rainbondvolume
 
 import (
 	"context"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -9,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -80,6 +83,8 @@ func (r *ReconcileRainbondVolume) Reconcile(request reconcile.Request) (reconcil
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.V(6).Info("Reconciling RainbondVolume")
 
+	// TODO: validate volume
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -97,19 +102,34 @@ func (r *ReconcileRainbondVolume) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	haveStorageClassName := volume.Spec.StorageClassName != ""
-	if haveStorageClassName {
+	useStorageClassName := volume.Spec.StorageClassName != ""
+	if useStorageClassName {
 		if err := r.updateVolumeStatus(ctx, volume); err != nil {
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, nil
 	}
 
-	useExternalProvisioner := volume.Spec.CSIPlugin == nil
-	if useExternalProvisioner {
-		// create StorageClass
+	useStorageClassParameters := volume.Spec.StorageClassParameters != nil
+	if useStorageClassParameters {
+		className, err := r.createIfNotExistStorageClass(ctx, volume)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		volume.Spec.StorageClassName = className
+		if err := r.updateVolumeRetryOnConflict(ctx, volume); err != nil {
+			return reconcile.Result{}, err
+		}
+		if err := r.updateVolumeStatus(ctx, volume); err != nil {
+			return reconcile.Result{}, err
+		}
 
 		return reconcile.Result{Requeue: true}, nil
+	}
+
+	useCSIPlugin := volume.Spec.CSIPlugin != nil
+	if useCSIPlugin {
+
 	}
 
 	return reconcile.Result{}, nil
@@ -140,11 +160,38 @@ func (r *ReconcileRainbondVolume) updateVolumeStatusRetryOnConflict(ctx context.
 	})
 }
 
+func (r *ReconcileRainbondVolume) updateVolumeRetryOnConflict(ctx context.Context, volume *rainbondv1alpha1.RainbondVolume) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return r.client.Update(ctx, volume)
+	})
+}
+
+func (r *ReconcileRainbondVolume) createIfNotExistStorageClass(ctx context.Context, volume *rainbondv1alpha1.RainbondVolume) (string, error) {
+	old := &storagev1.StorageClass{}
+	// check if the storageclass based on the given sc exists.
+	err := r.client.Get(ctx, types.NamespacedName{Name: volume.Name}, old)
+	if err == nil {
+		return old.Name, nil
+	}
+	if !k8sErrors.IsNotFound(err) {
+		return "", err
+	}
+	// create a new one
+	sc := storageClassForRainbondVolume(volume)
+	if err := r.client.Create(ctx, sc); err != nil {
+		return "", err
+	}
+	return sc.Name, nil
+}
+
 func storageClassForRainbondVolume(volume *rainbondv1alpha1.RainbondVolume) *storagev1.StorageClass {
 	class := &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: volume.Name,
 		},
+		Provisioner:   volume.Spec.StorageClassParameters.Provisioner,
+		Parameters:    volume.Spec.StorageClassParameters.Parameters,
+		ReclaimPolicy: k8sutil.PersistentVolumeReclaimPolicy(corev1.PersistentVolumeReclaimDelete),
 	}
 	return class
 }

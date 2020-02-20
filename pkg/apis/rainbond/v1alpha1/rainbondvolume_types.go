@@ -23,6 +23,18 @@ type AliyunNasCSIPluginSource struct {
 	AccessKeySecret string `json:"accessKeySecret"`
 }
 
+// StorageClassParameters describes the parameters for a class of storage for
+// which PersistentVolumes can be dynamically provisioned.
+type StorageClassParameters struct {
+	// Provisioner indicates the type of the provisioner.
+	Provisioner string `json:"provisioner" protobuf:"bytes,2,opt,name=provisioner"`
+
+	// Parameters holds the parameters for the provisioner that should
+	// create volumes of this storage class.
+	// +optional
+	Parameters map[string]string `json:"parameters,omitempty" protobuf:"bytes,3,rep,name=parameters"`
+}
+
 // CSIPluginSource represents the source of a csi driver to create.
 // Only one of its members may be specified.
 type CSIPluginSource struct {
@@ -39,10 +51,9 @@ type RainbondVolumeSpec struct {
 	// The name of StorageClass, which is a kind of kubernetes resource.
 	// It will used to create pvc for rainbond components.
 	// More info: https://kubernetes.io/docs/concepts/storage/storage-classes/
-	StorageClassName string `json:"storageClassName,omitempty"`
-	// Parameters holds the parameters for the provisioner that should
-	// create volumes of this storage class.
-	StorageClassParameters map[string]string `json:"storageClassParameters,omitempty"`
+	StorageClassName       string                  `json:"storageClassName,omitempty"`
+	StorageClassParameters *StorageClassParameters `json:"StorageClassSpec,omitempty"`
+
 	// +kubebuilder:validation:MaxProperties=100
 	// CSIPlugin holds the image
 	CSIPlugin *CSIPluginSource `json:"csiPlugin,omitempty"`

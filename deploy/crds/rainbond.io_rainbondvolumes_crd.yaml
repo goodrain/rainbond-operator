@@ -31,6 +31,22 @@ spec:
         spec:
           description: RainbondVolumeSpec defines the desired state of RainbondVolume
           properties:
+            StorageClassSpec:
+              description: StorageClassParameters describes the parameters for a class
+                of storage for which PersistentVolumes can be dynamically provisioned.
+              properties:
+                parameters:
+                  additionalProperties:
+                    type: string
+                  description: Parameters holds the parameters for the provisioner
+                    that should create volumes of this storage class.
+                  type: object
+                provisioner:
+                  description: Provisioner indicates the type of the provisioner.
+                  type: string
+              required:
+              - provisioner
+              type: object
             csiPlugin:
               description: CSIPlugin holds the image
               properties:
@@ -72,12 +88,6 @@ spec:
                 resource. It will used to create pvc for rainbond components. More
                 info: https://kubernetes.io/docs/concepts/storage/storage-classes/'
               type: string
-            storageClassParameters:
-              additionalProperties:
-                type: string
-              description: Parameters holds the parameters for the provisioner that
-                should create volumes of this storage class.
-              type: object
           type: object
         status:
           description: RainbondVolumeStatus defines the observed state of rainbondvolume.
@@ -92,9 +102,11 @@ spec:
                   lastTransitionTime:
                     description: Last time the condition transitioned from one status
                       to another.
+                    format: date-time
                     type: string
                   lastUpdateTime:
                     description: The last time this condition was updated.
+                    format: date-time
                     type: string
                   message:
                     description: A human readable message indicating details about
