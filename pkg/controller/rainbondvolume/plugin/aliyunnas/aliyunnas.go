@@ -11,12 +11,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type aliyunclouddiskPlugin struct {
+type aliyunnasPlugin struct {
 	volume *rainbondv1alpha1.RainbondVolume
 	labels map[string]string
 }
 
-func (p *aliyunclouddiskPlugin) GetResources() []interface{} {
+func (p *aliyunnasPlugin) GetResources() []interface{} {
 	return []interface{}{
 		p.daemonset(),
 		p.service(),
@@ -24,7 +24,7 @@ func (p *aliyunclouddiskPlugin) GetResources() []interface{} {
 	}
 }
 
-func (p *aliyunclouddiskPlugin) daemonset() *appsv1.DaemonSet {
+func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 	name := "csi-disk-plugin"
 	labels := rbdutil.LabelsForRainbondResource()
 	labels["app"] = name
@@ -256,10 +256,10 @@ func (p *aliyunclouddiskPlugin) daemonset() *appsv1.DaemonSet {
 	return ds
 }
 
-func (p *aliyunclouddiskPlugin) service() *corev1.Service {
+func (p *aliyunnasPlugin) service() *corev1.Service {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "csi-disk-provisioner",
+			Name:      "csi-provisioner",
 			Namespace: "kube-system",
 			Labels:    p.labels,
 		},
@@ -277,15 +277,16 @@ func (p *aliyunclouddiskPlugin) service() *corev1.Service {
 	return svc
 }
 
-func (p *aliyunclouddiskPlugin) statefulset() interface{} {
+func (p *aliyunnasPlugin) statefulset() interface{} {
+	name := "csi-provisioner"
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "csi-disk-provisioner",
+			Name:      name,
 			Namespace: "kube-system",
 			Labels:    p.labels,
 		},
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName: "csi-disk-provisioner",
+			ServiceName: name,
 			Replicas:    commonutil.Int32(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: p.labels,
@@ -323,7 +324,7 @@ func (p *aliyunclouddiskPlugin) statefulset() interface{} {
 					HostNetwork:        true,
 					Containers: []corev1.Container{
 						{
-							Name:            "csi-provisioner",
+							Name:            "csi-nas-external-provisioner",
 							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-provisioner:v1.2.2-aliyun",
 							ImagePullPolicy: "Always",
 							Args: []string{
@@ -347,7 +348,7 @@ func (p *aliyunclouddiskPlugin) statefulset() interface{} {
 							},
 						},
 						{
-							Name:            "csi-nasprovisioner",
+							Name:            "csi-diskplugin",
 							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-plugin:v1.14.8.32-c77e277b-aliyun",
 							ImagePullPolicy: "Always",
 							Args: []string{
@@ -368,6 +369,10 @@ func (p *aliyunclouddiskPlugin) statefulset() interface{} {
 									Name:  "ACCESS_KEY_SECRET",
 									Value: p.volume.Spec.CSIPlugin.AliyunCloudDisk.AccessKeySecret,
 								},
+								{
+									Name:  "MAX_VOLUMES_PERNODE",
+									Value: "15",
+								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
@@ -387,6 +392,16 @@ func (p *aliyunclouddiskPlugin) statefulset() interface{} {
 									Name:      "etc",
 									MountPath: "/host/etc",
 								},
+							},
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									Exec: &corev1.ExecAction{Command: []string{"sh", "-c", "ps -ef | grep plugin.csi.alibabacloud.com | grep nasplugin.csi.alibabacloud.com | grep -v grep"}},
+								},
+								FailureThreshold:    8,
+								InitialDelaySeconds: 15,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								TimeoutSeconds:      15,
 							},
 						},
 					},
