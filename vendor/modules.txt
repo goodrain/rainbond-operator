@@ -233,6 +233,8 @@ github.com/sirupsen/logrus
 github.com/spf13/pflag
 # github.com/stretchr/testify v1.4.0
 github.com/stretchr/testify/assert
+# github.com/twinj/uuid v1.0.0
+github.com/twinj/uuid
 # github.com/ugorji/go/codec v1.1.7
 github.com/ugorji/go/codec
 # go.uber.org/atomic v1.4.0
