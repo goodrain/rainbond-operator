@@ -18,7 +18,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var log = logf.Log.WithName("controller_rainbondvolume")
+var log = logf.Log.WithName("aliyunclouddisk_plugin")
 
 const (
 	provisioner = "diskplugin.csi.alibabacloud.com"
