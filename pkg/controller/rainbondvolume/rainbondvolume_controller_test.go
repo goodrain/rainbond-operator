@@ -2,7 +2,9 @@ package rainbondvolume
 
 import (
 	"context"
+	"github.com/golang/mock/gomock"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin/mock"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -14,12 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"testing"
 )
-
-func prepareClient(initObjs ...runtime.Object) client.Client {
-	scheme := runtime.NewScheme()
-	_ = rainbondv1alpha1.AddToScheme(scheme)
-	return fake.NewFakeClientWithScheme(scheme, initObjs...)
-}
 
 func TestReconcileHaveStorageClassName(t *testing.T) {
 	name := "rainbondvolume"
@@ -152,4 +148,24 @@ func TestReconcileStorageClassParameterNotNil(t *testing.T) {
 			assert.Equal(t, condition.Status, corev1.ConditionTrue)
 		})
 	}
+}
+
+func TestApplyCSIPluginCSIDriverExists(t *testing.T) {
+	provisioenr := "foobar.csi.rainbond.io"
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	plugin := mock.NewMockCSIPlugin(ctrl)
+	plugin.EXPECT().CheckIfCSIDriverExists().Return(true)
+	plugin.EXPECT().GetProvisioner().Return(provisioenr)
+
+	volume := &rainbondv1alpha1.RainbondVolume{}
+
+	ctx := context.Background()
+
+	r := &ReconcileRainbondVolume{}
+	err := r.applyCSIPlugin(ctx, plugin, volume)
+	assert.Nil(t, err)
+	assert.Equal(t, provisioenr, volume.Spec.StorageClassParameters.Provisioner)
 }

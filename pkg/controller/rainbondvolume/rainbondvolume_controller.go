@@ -2,9 +2,12 @@ package rainbondvolume
 
 import (
 	"context"
+	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 
@@ -110,7 +113,7 @@ func (r *ReconcileRainbondVolume) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, nil
 	}
 
-	useStorageClassParameters := volume.Spec.StorageClassParameters != nil
+	useStorageClassParameters := volume.Spec.StorageClassParameters != nil && volume.Spec.StorageClassParameters.Provisioner != ""
 	if useStorageClassParameters {
 		className, err := r.createIfNotExistStorageClass(ctx, volume)
 		if err != nil {
@@ -129,10 +132,72 @@ func (r *ReconcileRainbondVolume) Reconcile(request reconcile.Request) (reconcil
 
 	useCSIPlugin := volume.Spec.CSIPlugin != nil
 	if useCSIPlugin {
-
+		csiplugin := NewCSIPlugin(ctx, r.client, volume)
+		if err := r.applyCSIPlugin(ctx, csiplugin, volume); err != nil {
+			if err := r.updateVolumeStatus(ctx, volume); err != nil {
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{}, err
+		}
+		if err := r.updateVolumeRetryOnConflict(ctx, volume); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileRainbondVolume) applyCSIPlugin(ctx context.Context, plugin plugin.CSIPlugin, volume *rainbondv1alpha1.RainbondVolume) error {
+	if plugin.CheckIfCSIDriverExists() {
+		if volume.Spec.StorageClassParameters == nil {
+			volume.Spec.StorageClassParameters = &rainbondv1alpha1.StorageClassParameters{}
+		}
+		volume.Spec.StorageClassParameters.Provisioner = plugin.GetProvisioner()
+		return nil
+	}
+
+	resources := plugin.GetResources()
+	for idx := range resources {
+		res := resources[idx]
+		if res == nil {
+			continue
+		}
+
+		// set volume as the owner and controller
+		if err := controllerutil.SetControllerReference(volume, res.(metav1.Object), r.scheme); err != nil {
+			return err
+		}
+
+		if err := r.updateOrCreateResource(ctx, res.(runtime.Object), res.(metav1.Object)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *ReconcileRainbondVolume) updateOrCreateResource(ctx context.Context, obj runtime.Object, meta metav1.Object) error {
+	reqLogger := log.WithValues("Namespace", meta.GetNamespace(), "Name", meta.GetName())
+
+	err := r.client.Get(ctx, types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
+	if err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return err
+		}
+
+		reqLogger.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+		err = r.client.Create(ctx, obj)
+		if err != nil {
+			reqLogger.Error(err, "Failed to create new", obj.GetObjectKind(), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+			return err
+		}
+		return nil
+	}
+
+	reqLogger.Info("Object exists.", "Kind", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return r.client.Status().Update(ctx, obj)
+	})
 }
 
 func (r *ReconcileRainbondVolume) updateVolumeStatus(ctx context.Context, volume *rainbondv1alpha1.RainbondVolume) error {

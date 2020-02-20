@@ -62,7 +62,7 @@ golangci-lint: build-dirs
 
 .PHONY: mock
 mock:
-	./mockgen.sh
+	./hack/mockgen.sh
 
 .PHONY: build
 build-ui:
@@ -72,7 +72,7 @@ build-api:
 build-api-dev:
 	docker build . -f hack/build/openapi/Dockerfile.dev -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
 build-operator:
-	docker build . -f hack/build/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
+	docker build --no-cache . -f hack/build/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
 build-operator-dev:
 	docker build . -f hack/build/operator/Dockerfile.dev -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)	
 build: build-ui build-api build-operator

@@ -6,15 +6,12 @@ import (
 	"path"
 )
 
-type Labels map[string]string
-
-func LabelsForRainbond() map[string]string {
-	return map[string]string{
-		"belongTo": "rainbond-operator",
-	}
+func LabelsForRainbond(labels map[string]string) map[string]string {
+	labels["belongTo"] = "rainbond-operator"
+	return labels
 }
 
-// GetStorageClass returns storage class name based on rainbondcluster.
+// GetProvisioner returns storage class name based on rainbondcluster.
 func GetStorageClass(cluster *v1alpha1.RainbondCluster) string {
 	if cluster.Spec.StorageClassName == "" {
 		return constants.DefStorageClass

@@ -1,53 +1,94 @@
 package aliyunclouddisk
 
 import (
+	"context"
+	"fmt"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
+	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+var log = logf.Log.WithName("controller_rainbondvolume")
+
+const (
+	provisioner = "diskplugin.csi.alibabacloud.com"
 )
 
 // CSIPlugins is the primary entrypoint for csi plugins.
-func CSIPlugins(volume *rainbondv1alpha1.RainbondVolume) plugin.CSIPlugin {
-	plugin := &aliyunclouddiskPlugin{volume: volume}
-
-	return plugin
+func CSIPlugins(ctx context.Context, cli client.Client, volume *rainbondv1alpha1.RainbondVolume) plugin.CSIPlugin {
+	labels := rbdutil.LabelsForRainbond(map[string]string{
+		"name": volume.Name,
+	})
+	return &aliyunclouddiskPlugin{
+		ctx:    ctx,
+		cli:    cli,
+		volume: volume,
+		labels: labels,
+	}
 }
 
 type aliyunclouddiskPlugin struct {
+	ctx    context.Context
+	cli    client.Client
 	volume *rainbondv1alpha1.RainbondVolume
 	labels map[string]string
 }
 
 var _ plugin.CSIPlugin = &aliyunclouddiskPlugin{}
 
-func (p *aliyunclouddiskPlugin) GetStorageClass() *storagev1.StorageClass {
-	return nil
+func (p *aliyunclouddiskPlugin) CheckIfCSIDriverExists() bool {
+	csidriver := &storagev1beta1.CSIDriver{}
+	err := p.cli.Get(p.ctx, types.NamespacedName{Name: provisioner}, csidriver)
+	if err != nil {
+		log.V(4).Info(fmt.Sprintf("get csi driver %s: %v", provisioner, err))
+		return false
+	}
+	return true
+}
+
+func (p *aliyunclouddiskPlugin) GetProvisioner() string {
+	return provisioner
 }
 
 func (p *aliyunclouddiskPlugin) GetResources() []interface{} {
 	return []interface{}{
+		p.csiDriver(),
 		p.daemonset(),
 		p.service(),
 		p.statefulset(),
 	}
 }
 
+func (p *aliyunclouddiskPlugin) csiDriver() *storagev1beta1.CSIDriver {
+	return &storagev1beta1.CSIDriver{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: provisioner,
+		},
+		Spec: storagev1beta1.CSIDriverSpec{
+			AttachRequired: commonutil.Bool(false),
+		},
+	}
+}
+
 func (p *aliyunclouddiskPlugin) daemonset() *appsv1.DaemonSet {
 	name := "csi-disk-plugin"
-	labels := rbdutil.LabelsForRainbond()
-	labels["app"] = name
+	labels := p.labels
+	labels["name"] = name
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: p.volume.Namespace,
-			Labels:    rbdutil.LabelsForRainbond(),
+			Labels:    labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
@@ -272,11 +313,14 @@ func (p *aliyunclouddiskPlugin) daemonset() *appsv1.DaemonSet {
 }
 
 func (p *aliyunclouddiskPlugin) service() *corev1.Service {
+	name := "csi-disk-provisioner"
+	labels := p.labels
+	labels["name"] = name
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "csi-disk-provisioner",
-			Namespace: "kube-system",
-			Labels:    p.labels,
+			Name:      name,
+			Namespace: p.volume.Namespace,
+			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
@@ -285,7 +329,7 @@ func (p *aliyunclouddiskPlugin) service() *corev1.Service {
 					Port: 12345,
 				},
 			},
-			Selector: p.labels,
+			Selector: labels,
 		},
 	}
 
@@ -293,21 +337,24 @@ func (p *aliyunclouddiskPlugin) service() *corev1.Service {
 }
 
 func (p *aliyunclouddiskPlugin) statefulset() interface{} {
+	name := "csi-disk-provisioner"
+	labels := p.labels
+	labels["name"] = name
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "csi-disk-provisioner",
-			Namespace: "kube-system",
-			Labels:    p.labels,
+			Name:      name,
+			Namespace: p.volume.Namespace,
+			Labels:    labels,
 		},
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName: "csi-disk-provisioner",
+			ServiceName: name,
 			Replicas:    commonutil.Int32(1),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: p.labels,
+				MatchLabels: labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: p.labels,
+					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
 					Tolerations: []corev1.Toleration{
