@@ -6,5 +6,3 @@ type ComponentHandler interface {
 	Resources() []interface{}
 	After() error
 }
-
-

@@ -3,10 +3,10 @@ package controller
 import (
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/user"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/user/usecase"
-	"github.com/gin-gonic/gin"
 )
 
 type UserController struct {

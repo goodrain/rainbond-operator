@@ -81,5 +81,5 @@ tags
 # End of section
 
 bin
-vendor
 ui/node_modules
+coverage.txt

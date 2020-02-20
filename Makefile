@@ -1,8 +1,40 @@
+ifdef IMAGE_NAMESPACE
+    IMAGE_NAMESPACE ?= ${IMAGE_NAMESPACE}
+else
+    IMAGE_NAMESPACE=goodrain
+endif
+
+ifdef IMAGE_DOMAIN
+    IMAGE_DOMAIN ?= ${IMAGE_DOMAIN}
+else
+    IMAGE_DOMAIN=registry.cn-hangzhou.aliyuncs.com
+endif
+
+ifdef VERSION
+	VERSION ?= ${VERSION}
+else ifdef TRAVIS_COMMIT
+	VERSION ?= v1.0.0-beta1-${TRAVIS_COMMIT}
+else 
+	VERSION ?= v1.0.0-beta1-$(shell git describe --always --dirty)
+endif
+
+
 GROUP=rainbond
-VERSION=v1alpha1
-IMAGE_DOMAIN=registry.cn-hangzhou.aliyuncs.com
-IMAGE_NAMESPACE=goodrain
-TAG=v0.0.1
+APIVERSION=v1alpha1
+
+PKG             := github.com/goodrain/rainbond-operator
+SRC_DIRS        := cmd pkg
+
+.PHONY: test
+test:
+	@echo "Testing: $(SRC_DIRS)"
+	./hack/unit_test
+	PKG=$(PKG) ./hack/test $(SRC_DIRS)
+
+.PHONY: build-dirs
+build-dirs:
+	@echo "Creating build directories"
+	@mkdir -p bin/
 
 .PHONY: gen
 gen: crds-gen openapi-gen sdk-gen
@@ -13,9 +45,9 @@ openapi-gen:
 	which ./bin/openapi-gen > /dev/null || go build -o ./bin/openapi-gen k8s.io/kube-openapi/cmd/openapi-gen
     # Run openapi-gen for each of your API group/version packages
 	./bin/openapi-gen --logtostderr=true \
-    -o "" -i ./pkg/apis/$(GROUP)/$(VERSION) \
+    -o "" -i ./pkg/apis/$(GROUP)/$(APIVERSION) \
     -O zz_generated.openapi \
-    -p ./pkg/apis/$(GROUP)/$(VERSION) \
+    -p ./pkg/apis/$(GROUP)/$(APIVERSION) \
     -h ./hack/k8s/codegen/boilerplate.go.txt -r "-"
 sdk-gen:
 	chmod +x vendor/k8s.io/code-generator/generate-groups.sh
@@ -24,14 +56,14 @@ sdk-verify:
 	./hack/k8s/codegen/verify-generated.sh
 
 api-add:
-	operator-sdk add api --api-version=rainbond.io/$(VERSION) --kind=$(KIND)
+	operator-sdk add api --api-version=rainbond.io/$(APIVERSION) --kind=$(KIND)
 
 ctrl-add:
-	operator-sdk add controller --api-version=rainbond.io/$(VERSION) --kind=$(KIND)
+	operator-sdk add controller --api-version=rainbond.io/$(APIVERSION) --kind=$(KIND)
 
-.PHONY: check
-check:
-	which ./bin/golangci-lint > /dev/null || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.23.2
+.PHONY: golangci-lint
+golangci-lint: build-dirs
+	which ./bin/golangci-lint > /dev/null || sh ./hack/golangci-lint-install.sh v1.23.2
 	@bin/golangci-lint run
 
 
@@ -42,15 +74,15 @@ mock:
 
 .PHONY: build
 build-ui:
-	docker build . -f hack/ui/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui-base:$(TAG)
+	docker build . -f hack/build/ui/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui-base:$(VERSION)
 build-api:
-	docker build . -f hack/openapi/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
+	docker build . -f hack/build/openapi/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(VERSION)
 build-api-dev:
-	docker build . -f hack/openapi/Dockerfile.dev -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
+	docker build . -f hack/build/openapi/Dockerfile.dev -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(VERSION)
 build-operator:
-	docker build . -f hack/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
+	docker build . -f hack/build/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)
 build-operator-dev:
-	docker build . -f hack/operator/Dockerfile.dev -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)	
+	docker build . -f hack/build/operator/Dockerfile.dev -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)	
 build: build-ui build-api build-operator
 
 docker-login:
@@ -58,20 +90,20 @@ docker-login:
 
 .PHONY: push
 push-ui: build-ui
-	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui-base:$(TAG)
+	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui-base:$(VERSION)
 push-api: build-api
-	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
+	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(VERSION)
 push-operator: build-operator
-	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
+	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)
 push: docker-login push-ui push-api push-operator
 
 .PHONY: test
 test-operator:build-operator
-	docker save -o /tmp/rainbond-operator.tgz  $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(TAG)
+	docker save -o /tmp/rainbond-operator.tgz  $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)
 	scp /tmp/rainbond-operator.tgz root@172.20.0.20:/root
 test-api:
 	GOOS=linux go build -o openapi ./cmd/openapi
-	docker build --no-cache . -f hack/openapi/Dockerfile.dev -t  $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(TAG)
+	docker build --no-cache . -f hack/build/openapi/Dockerfile.dev -t  $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(VERSION)
 	rm -rf ./openapi
 
 chart:
