@@ -26,6 +26,8 @@ type worker struct {
 	labels     map[string]string
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
+
+	storageClassNameRWX string
 }
 
 func NewWorker(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
@@ -52,6 +54,10 @@ func (w *worker) Before() error {
 	}
 	w.etcdSecret = secret
 
+	if err := setStorageCassName(w.ctx, w.client, w.component.Namespace, w); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -63,6 +69,17 @@ func (w *worker) Resources() []interface{} {
 
 func (w *worker) After() error {
 	return nil
+}
+
+func (w *worker) SetStorageClassNameRWX(storageClassName string) {
+	w.storageClassNameRWX = storageClassName
+}
+
+func (w *worker) ResourcesCreateIfNotExists() []interface{} {
+	return []interface{}{
+		// pvc is immutable after creation except resources.requests for bound claims
+		createPersistentVolumeClaimRWX(w.component.Namespace, w.storageClassNameRWX, constants.GrDataPVC),
+	}
 }
 
 func (w *worker) daemonSetForWorker() interface{} {

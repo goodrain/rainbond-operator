@@ -8,7 +8,6 @@ import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
@@ -38,6 +37,8 @@ type api struct {
 
 	storageClassNameRWX string
 	storageClassNameRWO string
+
+	pvcName string
 }
 
 //NewAPI new api handle
@@ -49,6 +50,7 @@ func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alph
 		cluster:   cluster,
 		labels:    component.GetLabels(),
 		pkg:       pkg,
+		pvcName:   "rbd-api",
 	}
 }
 
@@ -93,6 +95,14 @@ func (a *api) SetStorageClassNameRWO(storageClassName string) {
 	a.storageClassNameRWO = storageClassName
 }
 
+func (a *api) ResourcesCreateIfNotExists() []interface{} {
+	return []interface{}{
+		// pvc is immutable after creation except resources.requests for bound claims
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.storageClassNameRWX, constants.GrDataPVC),
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.storageClassNameRWX, a.pvcName),
+	}
+}
+
 func (a *api) daemonSetForAPI() interface{} {
 	volumeMounts := []corev1.VolumeMount{
 		{
@@ -116,9 +126,8 @@ func (a *api) daemonSetForAPI() interface{} {
 		{
 			Name: "accesslog",
 			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/opt/rainbond/logs/rbd-api/",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: a.pvcName,
 				},
 			},
 		},

@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"strconv"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -27,6 +26,10 @@ type appui struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	pkg       *rainbondv1alpha1.RainbondPackage
+
+	storageClassNameRWX string
+
+	pvcName string
 }
 
 func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
@@ -37,6 +40,7 @@ func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1al
 		cluster:   cluster,
 		labels:    component.GetLabels(),
 		pkg:       pkg,
+		pvcName:   "rbd-app-ui",
 	}
 }
 
@@ -46,6 +50,10 @@ func (a *appui) Before() error {
 		return fmt.Errorf("get db info: %v", err)
 	}
 	a.db = db
+
+	if err := setStorageCassName(a.ctx, a.client, a.component.Namespace, a); err != nil {
+		return err
+	}
 
 	return isUIDBReady(a.ctx, a.client, a.cluster)
 }
@@ -60,6 +68,17 @@ func (a *appui) Resources() []interface{} {
 
 func (a *appui) After() error {
 	return nil
+}
+
+func (a *appui) SetStorageClassNameRWX(storageClassName string) {
+	a.storageClassNameRWX = storageClassName
+}
+
+func (a *appui) ResourcesCreateIfNotExists() []interface{} {
+	return []interface{}{
+		// pvc is immutable after creation except resources.requests for bound claims
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.storageClassNameRWX, a.pvcName),
+	}
 }
 
 func (a *appui) deploymentForAppUI() interface{} {
@@ -160,18 +179,16 @@ func (a *appui) deploymentForAppUI() interface{} {
 						{
 							Name: "logs",
 							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/opt/rainbond/logs/rbd-app-ui/",
-									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: a.pvcName,
 								},
 							},
 						},
 						{
 							Name: "media",
 							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/opt/rainbond/data/rbd-app-ui/media",
-									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: a.pvcName,
 								},
 							},
 						},

@@ -28,6 +28,8 @@ type node struct {
 	cluster   *rainbondv1alpha1.RainbondCluster
 	component *rainbondv1alpha1.RbdComponent
 	pkg       *rainbondv1alpha1.RainbondPackage
+
+	storageClassNameRWX string
 }
 
 func NewNode(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
@@ -48,6 +50,10 @@ func (n *node) Before() error {
 	}
 	n.etcdSecret = secret
 
+	if err := setStorageCassName(n.ctx, n.client, n.component.Namespace, n); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -59,6 +65,17 @@ func (n *node) Resources() []interface{} {
 
 func (n *node) After() error {
 	return nil
+}
+
+func (a *node) SetStorageClassNameRWX(storageClassName string) {
+	a.storageClassNameRWX = storageClassName
+}
+
+func (a *node) ResourcesCreateIfNotExists() []interface{} {
+	return []interface{}{
+		// pvc is immutable after creation except resources.requests for bound claims
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.storageClassNameRWX, constants.GrDataPVC),
+	}
 }
 
 func (n *node) daemonSetForRainbondNode() interface{} {

@@ -29,6 +29,8 @@ type chaos struct {
 	labels     map[string]string
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
+
+	storageClassNameRWX string
 }
 
 func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
@@ -55,6 +57,10 @@ func (c *chaos) Before() error {
 	}
 	c.etcdSecret = secret
 
+	if err := setStorageCassName(c.ctx, c.client, c.component.Namespace, c); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -66,6 +72,17 @@ func (c *chaos) Resources() []interface{} {
 
 func (c *chaos) After() error {
 	return nil
+}
+
+func (c *chaos) SetStorageClassNameRWX(storageClassName string) {
+	c.storageClassNameRWX = storageClassName
+}
+
+func (c *chaos) ResourcesCreateIfNotExists() []interface{} {
+	return []interface{}{
+		createPersistentVolumeClaimRWX(c.component.Namespace, c.storageClassNameRWX, constants.GrDataPVC),
+		createPersistentVolumeClaimRWX(c.component.Namespace, c.storageClassNameRWX, constants.CachePVC),
+	}
 }
 
 func (c *chaos) daemonSetForChaos() interface{} {

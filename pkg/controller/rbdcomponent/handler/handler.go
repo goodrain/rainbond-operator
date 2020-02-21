@@ -14,3 +14,10 @@ type StorageClassRWXer interface {
 type StorageClassRWOer interface {
 	SetStorageClassNameRWO(sc string)
 }
+
+// K8sResourcesInterface provides methods to create or update k8s resources,
+// such as deployment, daemonset, etc.
+type K8sResourcesInterface interface {
+	// returns the resources that should be created if not exists
+	ResourcesCreateIfNotExists() []interface{}
+}

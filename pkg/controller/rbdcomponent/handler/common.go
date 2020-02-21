@@ -4,12 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"path"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -187,4 +191,35 @@ func setStorageCassName(ctx context.Context, cli client.Client, ns string, obj i
 	}
 
 	return nil
+}
+
+func createPersistentVolumeClaimRWX(ns, className, claimName string) *corev1.PersistentVolumeClaim {
+	accessModes := []corev1.PersistentVolumeAccessMode{
+		corev1.ReadWriteMany,
+	}
+	return createPersistentVolumeClaim(ns, className, claimName, accessModes)
+}
+
+func createPersistentVolumeClaim(ns, className, claimName string, accessModes []corev1.PersistentVolumeAccessMode) *corev1.PersistentVolumeClaim {
+	storageRequest := resource.NewQuantity(21*1024*1024*1024, resource.BinarySI) // TODO: customer specified
+	if className == constants.DefStorageClass {
+		storageRequest = resource.NewQuantity(1*1024*1024, resource.BinarySI)
+	}
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      claimName,
+			Namespace: ns,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: accessModes,
+			Resources: corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceStorage: *storageRequest,
+				},
+			},
+			StorageClassName: commonutil.String(className),
+		},
+	}
+
+	return pvc
 }

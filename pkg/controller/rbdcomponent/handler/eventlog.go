@@ -28,6 +28,8 @@ type eventlog struct {
 	labels     map[string]string
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
+
+	storageClassNameRWX string
 }
 
 func NewEventLog(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
@@ -54,6 +56,10 @@ func (e *eventlog) Before() error {
 	}
 	e.etcdSecret = secret
 
+	if err := setStorageCassName(e.ctx, e.client, e.component.Namespace, e); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -65,6 +71,17 @@ func (e *eventlog) Resources() []interface{} {
 
 func (e *eventlog) After() error {
 	return nil
+}
+
+func (e *eventlog) SetStorageClassNameRWX(storageClassName string) {
+	e.storageClassNameRWX = storageClassName
+}
+
+func (e *eventlog) ResourcesCreateIfNotExists() []interface{} {
+	return []interface{}{
+		// pvc is immutable after creation except resources.requests for bound claims
+		createPersistentVolumeClaimRWX(e.component.Namespace, e.storageClassNameRWX, constants.GrDataPVC),
+	}
 }
 
 func (e *eventlog) daemonSetForEventLog() interface{} {
