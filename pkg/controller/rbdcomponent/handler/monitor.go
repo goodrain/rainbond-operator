@@ -26,7 +26,12 @@ type monitor struct {
 	cluster   *rainbondv1alpha1.RainbondCluster
 	pkg       *rainbondv1alpha1.RainbondPackage
 	labels    map[string]string
+
+	storageClassNameRWO string
 }
+
+var _ ComponentHandler = &monitor{}
+var _ StorageClassRWOer = &monitor{}
 
 func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &monitor{
@@ -47,6 +52,10 @@ func (m *monitor) Before() error {
 	}
 	m.etcdSecret = secret
 
+	if err := setStorageCassName(m.ctx, m.client, m.component.Namespace, m); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -62,7 +71,14 @@ func (m *monitor) After() error {
 	return nil
 }
 
+func (m *monitor) SetStorageClassNameRWO(sc string) {
+	m.storageClassNameRWO = sc
+}
+
 func (m *monitor) daemonSetForMonitor() interface{} {
+	claimName := "rbd-monitor-data"
+	promDataPVC := createPersistentVolumeClaimRWO(m.component.Namespace, m.storageClassNameRWO, claimName)
+
 	args := []string{
 		"--advertise-addr=$(POD_IP):9999",
 		"--alertmanager-address=$(POD_IP):9093",
@@ -72,7 +88,12 @@ func (m *monitor) daemonSetForMonitor() interface{} {
 		fmt.Sprintf("--log.level=%s", m.component.LogLevel()),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(m.cluster), ","),
 	}
-	var volumeMounts []corev1.VolumeMount
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      claimName,
+			MountPath: "/prometheusdata",
+		},
+	}
 	var volumes []corev1.Volume
 	if m.etcdSecret != nil {
 		volume, mount := volumeByEtcd(m.etcdSecret)
@@ -81,13 +102,13 @@ func (m *monitor) daemonSetForMonitor() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
-	ds := &appsv1.DaemonSet{
+	ds := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MonitorName,
 			Namespace: m.component.Namespace,
 			Labels:    m.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.StatefulSetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: m.labels,
 			},
@@ -125,10 +146,10 @@ func (m *monitor) daemonSetForMonitor() interface{} {
 							VolumeMounts: volumeMounts,
 						},
 					},
-					// TODO: /prometheusdata
 					Volumes: volumes,
 				},
 			},
+			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*promDataPVC},
 		},
 	}
 

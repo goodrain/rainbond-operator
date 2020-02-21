@@ -200,6 +200,13 @@ func createPersistentVolumeClaimRWX(ns, className, claimName string) *corev1.Per
 	return createPersistentVolumeClaim(ns, className, claimName, accessModes)
 }
 
+func createPersistentVolumeClaimRWO(ns, className, claimName string) *corev1.PersistentVolumeClaim {
+	accessModes := []corev1.PersistentVolumeAccessMode{
+		corev1.ReadWriteOnce,
+	}
+	return createPersistentVolumeClaim(ns, className, claimName, accessModes)
+}
+
 func createPersistentVolumeClaim(ns, className, claimName string, accessModes []corev1.PersistentVolumeAccessMode) *corev1.PersistentVolumeClaim {
 	storageRequest := resource.NewQuantity(21*1024*1024*1024, resource.BinarySI) // TODO: customer specified
 	if className == constants.DefStorageClass {
