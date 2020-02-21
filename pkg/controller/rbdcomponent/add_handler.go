@@ -8,7 +8,6 @@ func init() {
 	AddHandlerFunc(handler.EtcdName, handler.NewETCD)
 	AddHandlerFunc(handler.GatewayName, handler.NewGateway)
 	AddHandlerFunc(handler.HubName, handler.NewHub)
-	AddHandlerFunc(handler.NFSName, handler.NewNFSProvisioner)
 	AddHandlerFunc(handler.APIName, handler.NewAPI)
 	AddHandlerFunc(handler.AppUIName, handler.NewAppUI)
 	AddHandlerFunc(handler.ChaosName, handler.NewChaos)

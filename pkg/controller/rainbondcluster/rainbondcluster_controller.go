@@ -12,15 +12,12 @@ import (
 	"net/url"
 	"time"
 
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
-	"k8s.io/apimachinery/pkg/api/resource"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/format"
 	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -109,22 +106,6 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 
 	if rainbondcluster.Status != nil && len(rainbondcluster.Status.NodeAvailPorts) > 0 && rainbondcluster.Spec.ImageHub != nil {
 		return reconcile.Result{}, nil
-	}
-
-	if rainbondcluster.Spec.ConfigCompleted {
-		claims := r.claims(rainbondcluster)
-		for i := range claims {
-			claim := claims[i]
-			// Set RbdComponent cpt as the owner and controller
-			if err := controllerutil.SetControllerReference(rainbondcluster, claim, r.scheme); err != nil {
-				reqLogger.Error(err, "set controller reference")
-				return reconcile.Result{RequeueAfter: time.Second * 2}, err
-			}
-			if err = k8sutil.UpdateOrCreateResource(ctx, r.client, reqLogger, claim, claim); err != nil {
-				reqLogger.Error(err, "update or create pvc")
-				return reconcile.Result{RequeueAfter: time.Second * 2}, err
-			}
-		}
 	}
 
 	status, err := r.generateRainbondClusterStatus(ctx, rainbondcluster)

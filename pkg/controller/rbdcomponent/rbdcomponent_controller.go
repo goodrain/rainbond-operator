@@ -111,6 +111,7 @@ type ReconcileRbdComponent struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Namespace", request.Namespace, "Name", request.Name)
+	reqLogger.V(6).Info("Reconciling RbdComponent")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -180,7 +181,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	if err := hdl.Before(); err != nil {
 		// TODO: report events
 		if chandler.IsIgnoreError(err) {
-			reqLogger.Info("checking the prerequisites", "msg", err.Error())
+			reqLogger.V(6).Info("checking the prerequisites", "msg", err.Error())
 			return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 		}
 		isSetV1beta1MetricsFlag := cpt.Annotations != nil && cpt.Annotations["v1beta1.metrics.k8s.io.exists"] == "true"

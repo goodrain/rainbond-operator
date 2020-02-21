@@ -29,7 +29,12 @@ type hub struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	pkg       *rainbondv1alpha1.RainbondPackage
+
+	storageClassNameRWX string
 }
+
+var _ ComponentHandler = &hub{}
+var _ StorageClassRWXer = &hub{}
 
 //NewHub nw hub
 func NewHub(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
@@ -46,6 +51,11 @@ func (h *hub) Before() error {
 	if h.cluster.Spec.ImageHub != nil {
 		return NewIgnoreError("use custom image repository")
 	}
+
+	if err := setStorageCassName(h.ctx, h.client, h.component.Namespace, h); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -61,6 +71,10 @@ func (h *hub) Resources() []interface{} {
 
 func (h *hub) After() error {
 	return nil
+}
+
+func (h *hub) SetStorageClassNameRWX(sc string) {
+	h.storageClassNameRWX = sc
 }
 
 func (h *hub) daemonSetForHub() interface{} {
@@ -165,7 +179,7 @@ func (h *hub) persistentVolumeClaimForHub() interface{} {
 					corev1.ResourceStorage: *storageRequest,
 				},
 			},
-			StorageClassName: commonutil.String(storageClassName),
+			StorageClassName: commonutil.String(h.storageClassNameRWX),
 		},
 	}
 
