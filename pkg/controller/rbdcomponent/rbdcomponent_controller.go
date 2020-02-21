@@ -164,7 +164,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	checkPrerequisites := func() bool {
-		if cluster.Spec.ImageHub == nil && cpt.Spec.PriorityComponent {
+		if cpt.Spec.PriorityComponent {
 			// If ImageHub is empty, the priority component no need to wait until rainbondpackage is completed.
 			return true
 		}
@@ -196,7 +196,9 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
-	if k8sResourcesMgr, ok := hdl.(chandler.K8sResourcesInterface); ok {
+	k8sResourcesMgr, ok := hdl.(chandler.K8sResourcesInterface)
+	if ok  {
+		reqLogger.V(6).Info("K8sResourcesInterface create resources create if not exists")
 		resourcesCreateIfNotExists := k8sResourcesMgr.ResourcesCreateIfNotExists()
 		for _, res := range resourcesCreateIfNotExists {
 			if res == nil {

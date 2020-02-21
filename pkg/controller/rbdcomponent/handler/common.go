@@ -209,7 +209,7 @@ func createPersistentVolumeClaimRWO(ns, className, claimName string) *corev1.Per
 
 func createPersistentVolumeClaim(ns, className, claimName string, accessModes []corev1.PersistentVolumeAccessMode) *corev1.PersistentVolumeClaim {
 	storageRequest := resource.NewQuantity(21*1024*1024*1024, resource.BinarySI) // TODO: customer specified
-	if className == constants.DefStorageClass {
+	if className == constants.DefStorageClass || className == "nfs" {
 		storageRequest = resource.NewQuantity(1*1024*1024, resource.BinarySI)
 	}
 	pvc := &corev1.PersistentVolumeClaim{

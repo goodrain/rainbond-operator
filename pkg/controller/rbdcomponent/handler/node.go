@@ -32,6 +32,10 @@ type node struct {
 	storageClassNameRWX string
 }
 
+var _ ComponentHandler = &node{}
+var _ StorageClassRWXer = &node{}
+var _ K8sResourcesInterface = &node{}
+
 func NewNode(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &node{
 		ctx:       ctx,
@@ -67,14 +71,14 @@ func (n *node) After() error {
 	return nil
 }
 
-func (a *node) SetStorageClassNameRWX(storageClassName string) {
-	a.storageClassNameRWX = storageClassName
+func (n *node) SetStorageClassNameRWX(storageClassName string) {
+	n.storageClassNameRWX = storageClassName
 }
 
-func (a *node) ResourcesCreateIfNotExists() []interface{} {
+func (n *node) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(a.component.Namespace, a.storageClassNameRWX, constants.GrDataPVC),
+		createPersistentVolumeClaimRWX(n.component.Namespace, n.storageClassNameRWX, constants.GrDataPVC),
 	}
 }
 
