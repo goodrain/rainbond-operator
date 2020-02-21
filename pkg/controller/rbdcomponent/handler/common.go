@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
 	"path"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -129,4 +130,61 @@ func etcdSSLArgs() []string {
 		"--etcd-cert=" + path.Join(EtcdSSLPath, "cert-file"),
 		"--etcd-key=" + path.Join(EtcdSSLPath, "key-file"),
 	}
+}
+
+func storageClassNameFromRainbondVolumeRWX(ctx context.Context, cli client.Client, ns string) (string, error) {
+	return storageClassNameFromRainbondVolume(ctx, cli, ns, rbdutil.LabelsForAccessModeRWX())
+}
+
+func storageClassNameFromRainbondVolumeRWO(ctx context.Context, cli client.Client, ns string) (string, error) {
+	storageClassName, err := storageClassNameFromRainbondVolume(ctx, cli, ns, rbdutil.LabelsForAccessModeRWO())
+	if err != nil {
+		if !IsRainbondVolumeNotFound(err) {
+			return "", err
+		}
+		return storageClassNameFromRainbondVolumeRWX(ctx, cli, ns)
+	}
+	return storageClassName, nil
+}
+
+func storageClassNameFromRainbondVolume(ctx context.Context, cli client.Client, ns string, labels map[string]string) (string, error) {
+	volumeList := &rainbondv1alpha1.RainbondVolumeList{}
+	var opts []client.ListOption
+	opts = append(opts, client.InNamespace(ns))
+	opts = append(opts, client.MatchingLabels(labels))
+	if err := cli.List(ctx, volumeList, opts...); err != nil {
+		return "", err
+	}
+
+	if len(volumeList.Items) == 0 {
+		return "", NewIgnoreError(rainbondVolumeNotFound)
+	}
+
+	volume := volumeList.Items[0]
+	if volume.Spec.StorageClassName == "" {
+		return "", NewIgnoreError("storage class not ready")
+	}
+	return volume.Spec.StorageClassName, nil
+}
+
+func setStorageCassName(ctx context.Context, cli client.Client, ns string, obj interface{}) error {
+	storageClassRWXer, ok := obj.(StorageClassRWXer)
+	if ok {
+		sc, err := storageClassNameFromRainbondVolumeRWX(ctx, cli, ns)
+		if err != nil {
+			return err
+		}
+		storageClassRWXer.SetStorageClassNameRWX(sc)
+	}
+
+	storageClassRWOer, ok := obj.(StorageClassRWOer)
+	if ok {
+		sc, err := storageClassNameFromRainbondVolumeRWO(ctx, cli, ns)
+		if err != nil {
+			return err
+		}
+		storageClassRWOer.SetStorageClassNameRWO(sc)
+	}
+
+	return nil
 }

@@ -26,3 +26,15 @@ func GetImageRepository(cluster *v1alpha1.RainbondCluster) string {
 	}
 	return path.Join(cluster.Spec.ImageHub.Domain, cluster.Spec.ImageHub.Namespace)
 }
+
+func LabelsForAccessModeRWX() map[string]string {
+	return map[string]string{
+		"accessModes": "rwx",
+	}
+}
+
+func LabelsForAccessModeRWO() map[string]string {
+	return map[string]string{
+		"accessModes": "rwo",
+	}
+}

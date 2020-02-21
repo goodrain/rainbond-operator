@@ -35,6 +35,9 @@ type api struct {
 	component                *rainbondv1alpha1.RbdComponent
 	cluster                  *rainbondv1alpha1.RainbondCluster
 	pkg                      *rainbondv1alpha1.RainbondPackage
+
+	storageClassNameRWX string
+	storageClassNameRWO string
 }
 
 //NewAPI new api handle
@@ -62,6 +65,10 @@ func (a *api) Before() error {
 	}
 	a.etcdSecret = secret
 
+	if err := setStorageCassName(a.ctx, a.client, a.component.Namespace, a); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -76,6 +83,14 @@ func (a *api) Resources() []interface{} {
 
 func (a *api) After() error {
 	return nil
+}
+
+func (a *api) SetStorageClassNameRWX(storageClassName string) {
+	a.storageClassNameRWX = storageClassName
+}
+
+func (a *api) SetStorageClassNameRWO(storageClassName string) {
+	a.storageClassNameRWO = storageClassName
 }
 
 func (a *api) daemonSetForAPI() interface{} {

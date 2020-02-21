@@ -1,5 +1,10 @@
 package handler
 
+const (
+	// rainbondVolumeNotFound -
+	rainbondVolumeNotFound = "rainbond volume not found"
+)
+
 type IgnoreError struct {
 	msg string
 }
@@ -16,4 +21,12 @@ func (i *IgnoreError) Error() string {
 func IsIgnoreError(err error) bool {
 	_, ok := err.(*IgnoreError)
 	return ok
+}
+
+func IsRainbondVolumeNotFound(e error) bool {
+	err, ok := e.(*IgnoreError)
+	if !ok {
+		return false
+	}
+	return err.msg == rainbondVolumeNotFound
 }

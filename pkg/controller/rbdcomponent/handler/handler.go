@@ -6,3 +6,11 @@ type ComponentHandler interface {
 	Resources() []interface{}
 	After() error
 }
+
+type StorageClassRWXer interface {
+	SetStorageClassNameRWX(sc string)
+}
+
+type StorageClassRWOer interface {
+	SetStorageClassNameRWO(sc string)
+}
