@@ -30,6 +30,7 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/kube-aggregator v0.0.0
 	k8s.io/kube-openapi v0.0.0-20190918143330-0270cf2f1c1d
+	k8s.io/kubectl v0.0.0
 	sigs.k8s.io/controller-runtime v0.4.0
 )
 

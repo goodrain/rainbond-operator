@@ -20,7 +20,7 @@ import (
 
 //HubName name
 var HubName = "rbd-hub"
-var hubDataPvcName = "hubdata"
+var hubDataPvcName = "rbd-hub"
 var hubImageRepository = "hub-image-repository"
 
 type hub struct {
@@ -64,7 +64,7 @@ func (h *hub) Before() error {
 func (h *hub) Resources() []interface{} {
 	return []interface{}{
 		h.secretForHub(), // important! create secret before ingress.
-		h.daemonSetForHub(),
+		h.deployment(),
 		h.serviceForHub(),
 		h.persistentVolumeClaimForHub(),
 		h.ingressForHub(),
@@ -79,14 +79,15 @@ func (h *hub) SetStorageClassNameRWX(sc string) {
 	h.storageClassNameRWX = sc
 }
 
-func (h *hub) daemonSetForHub() interface{} {
-	ds := &appsv1.DaemonSet{
+func (h *hub) deployment() interface{} {
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
 			Namespace: h.component.Namespace,
 			Labels:    h.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.DeploymentSpec{
+			Replicas: h.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: h.labels,
 			},
@@ -97,13 +98,6 @@ func (h *hub) daemonSetForHub() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    h.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
-					NodeSelector: h.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            "rbd-hub",

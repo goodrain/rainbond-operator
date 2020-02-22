@@ -1,7 +1,0 @@
-apiVersion: rainbond.io/v1alpha1
-kind: RbdComponent
-metadata:
-  name: rbd-monitor
-  namespace: rbd-system
-spec:
-  image: goodrain.me/rbd-monitor:V5.2-dev

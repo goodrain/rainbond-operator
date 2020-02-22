@@ -30,6 +30,9 @@ type worker struct {
 	storageClassNameRWX string
 }
 
+var _ ComponentHandler = &worker{}
+var _ StorageClassRWXer = &worker{}
+
 func NewWorker(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &worker{
 		ctx:       ctx,
@@ -63,7 +66,7 @@ func (w *worker) Before() error {
 
 func (w *worker) Resources() []interface{} {
 	return []interface{}{
-		w.daemonSetForWorker(),
+		w.deployment(),
 	}
 }
 
@@ -82,7 +85,7 @@ func (w *worker) ResourcesCreateIfNotExists() []interface{} {
 	}
 }
 
-func (w *worker) daemonSetForWorker() interface{} {
+func (w *worker) deployment() interface{} {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "grdata",
@@ -113,13 +116,14 @@ func (w *worker) daemonSetForWorker() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
-	ds := &appsv1.DaemonSet{
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      WorkerName,
 			Namespace: w.component.Namespace,
 			Labels:    w.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.DeploymentSpec{
+			Replicas: w.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: w.labels,
 			},
@@ -131,13 +135,6 @@ func (w *worker) daemonSetForWorker() interface{} {
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    w.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
-					NodeSelector: w.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            WorkerName,

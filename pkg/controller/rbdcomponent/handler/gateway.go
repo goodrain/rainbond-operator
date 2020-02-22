@@ -26,6 +26,8 @@ type gateway struct {
 	labels    map[string]string
 }
 
+var _ ComponentHandler = &gateway{}
+
 func NewGateway(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &gateway{
 		ctx:       ctx,
@@ -49,7 +51,7 @@ func (g *gateway) Before() error {
 
 func (g *gateway) Resources() []interface{} {
 	return []interface{}{
-		g.daemonSetForGateway(),
+		g.deployment(),
 	}
 }
 
@@ -57,7 +59,7 @@ func (g *gateway) After() error {
 	return nil
 }
 
-func (g *gateway) daemonSetForGateway() interface{} {
+func (g *gateway) deployment() interface{} {
 	args := []string{
 		fmt.Sprintf("--log-level=%s", g.component.LogLevel()),
 		"--error-log=/dev/stderr error",
@@ -73,18 +75,19 @@ func (g *gateway) daemonSetForGateway() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
-	var selectNodeNames []string
-	for _, node := range g.cluster.Spec.GatewayNodes {
-		selectNodeNames = append(selectNodeNames, node.NodeName)
+	var nodeNames []string
+	for _, node := range g.cluster.Spec.NodesForGateway {
+		nodeNames = append(nodeNames, node.Name)
 	}
 
-	ds := &appsv1.DaemonSet{
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayName,
 			Namespace: g.component.Namespace,
 			Labels:    g.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.DeploymentSpec{
+			Replicas: g.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: g.labels,
 			},
@@ -100,8 +103,7 @@ func (g *gateway) daemonSetForGateway() interface{} {
 					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
-							Key:    g.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
+							Operator: corev1.TolerationOpExists, // tolerate everything.
 						},
 					},
 					Affinity: &corev1.Affinity{
@@ -113,7 +115,7 @@ func (g *gateway) daemonSetForGateway() interface{} {
 											{
 												Key:      "metadata.name",
 												Operator: corev1.NodeSelectorOpIn,
-												Values:   selectNodeNames,
+												Values:   nodeNames,
 											},
 										},
 									},

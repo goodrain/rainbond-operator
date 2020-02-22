@@ -22,6 +22,8 @@ type dns struct {
 	labels    map[string]string
 }
 
+var _ ComponentHandler = &dns{}
+
 func NewDNS(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &dns{
 		component: component,
@@ -37,7 +39,7 @@ func (d *dns) Before() error {
 
 func (d *dns) Resources() []interface{} {
 	return []interface{}{
-		d.daemonSetForDNS(),
+		d.deployment(),
 		d.serviceForDNS(),
 	}
 }
@@ -46,14 +48,15 @@ func (d *dns) After() error {
 	return nil
 }
 
-func (d *dns) daemonSetForDNS() interface{} {
-	ds := &appsv1.DaemonSet{
+func (d *dns) deployment() interface{} {
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DNSName,
 			Namespace: d.component.Namespace,
 			Labels:    d.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.DeploymentSpec{
+			Replicas: d.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: d.labels,
 			},
@@ -67,13 +70,6 @@ func (d *dns) daemonSetForDNS() interface{} {
 					ServiceAccountName:            "rainbond-operator",
 					HostNetwork:                   true,
 					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
-					NodeSelector:                  d.cluster.Status.FirstMasterNodeLabel(),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    d.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
 					Containers: []corev1.Container{
 						{
 							Name:            DNSName,

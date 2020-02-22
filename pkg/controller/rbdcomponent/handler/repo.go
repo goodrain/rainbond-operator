@@ -46,7 +46,7 @@ func (r *repo) Before() error {
 
 func (r *repo) Resources() []interface{} {
 	return []interface{}{
-		r.daemonSetForRepo(),
+		r.statefulset(),
 		r.serviceForRepo(),
 	}
 }
@@ -59,7 +59,7 @@ func (r *repo) SetStorageClassNameRWO(storageClassName string) {
 	r.storageClassNameRWO = storageClassName
 }
 
-func (r *repo) daemonSetForRepo() interface{} {
+func (r *repo) statefulset() interface{} {
 	claimName := "data"
 	repoDataPVC := createPersistentVolumeClaimRWO(r.component.Namespace, r.storageClassNameRWO, claimName)
 
@@ -70,6 +70,7 @@ func (r *repo) daemonSetForRepo() interface{} {
 			Labels:    r.labels,
 		},
 		Spec: appsv1.StatefulSetSpec{
+			Replicas: r.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: r.labels,
 			},
@@ -80,12 +81,6 @@ func (r *repo) daemonSetForRepo() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    r.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
 					Containers: []corev1.Container{
 						{
 							Name:            RepoName,

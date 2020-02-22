@@ -1,7 +1,0 @@
-apiVersion: rainbond.io/v1alpha1
-kind: RbdComponent
-metadata:
-  name: rbd-hub
-  namespace: rbd-system
-spec:
-  image: rainbond/rbd-registry:2.6.2

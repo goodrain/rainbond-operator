@@ -1,7 +1,0 @@
-apiVersion: rainbond.io/v1alpha1
-kind: RbdComponent
-metadata:
-  name: rbd-mq
-  namespace: rbd-system
-spec:
-  image: goodrain.me/rbd-mq:V5.2-dev

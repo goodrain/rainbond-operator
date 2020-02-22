@@ -9,7 +9,6 @@ import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -61,9 +60,8 @@ func (m *monitor) Before() error {
 
 func (m *monitor) Resources() []interface{} {
 	return []interface{}{
-		m.daemonSetForMonitor(),
+		m.statefulset(),
 		m.serviceForMonitor(),
-		m.ingressForMonitor(),
 	}
 }
 
@@ -75,7 +73,7 @@ func (m *monitor) SetStorageClassNameRWO(sc string) {
 	m.storageClassNameRWO = sc
 }
 
-func (m *monitor) daemonSetForMonitor() interface{} {
+func (m *monitor) statefulset() interface{} {
 	claimName := "data"
 	promDataPVC := createPersistentVolumeClaimRWO(m.component.Namespace, m.storageClassNameRWO, claimName)
 
@@ -109,6 +107,7 @@ func (m *monitor) daemonSetForMonitor() interface{} {
 			Labels:    m.labels,
 		},
 		Spec: appsv1.StatefulSetSpec{
+			Replicas: m.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: m.labels,
 			},
@@ -120,13 +119,6 @@ func (m *monitor) daemonSetForMonitor() interface{} {
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    m.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
-					NodeSelector: m.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            MonitorName,
@@ -178,26 +170,4 @@ func (m *monitor) serviceForMonitor() interface{} {
 	}
 
 	return svc
-}
-
-func (m *monitor) ingressForMonitor() interface{} {
-	ing := &extensions.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      MonitorName,
-			Namespace: m.component.Namespace,
-			Annotations: map[string]string{
-				"nginx.ingress.kubernetes.io/l4-enable": "true",
-				"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
-				"nginx.ingress.kubernetes.io/l4-port":   "9999",
-			},
-			Labels: m.labels,
-		},
-		Spec: extensions.IngressSpec{
-			Backend: &extensions.IngressBackend{
-				ServiceName: MonitorName,
-				ServicePort: intstr.FromString("http"),
-			},
-		},
-	}
-	return ing
 }

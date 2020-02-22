@@ -1,7 +1,0 @@
-apiVersion: rainbond.io/v1alpha1
-kind: RbdComponent
-metadata:
-  name: rbd-node
-  namespace: rbd-system
-spec:
-  image: abewang/rbd-node:V5.2-dev

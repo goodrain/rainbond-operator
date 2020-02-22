@@ -188,7 +188,7 @@ func (p *aliyunclouddiskPlugin) daemonset() *appsv1.DaemonSet {
 								},
 								{
 									Name:  "MAX_VOLUMES_PERNODE",
-									Value: "true",
+									Value: "15",
 								},
 								{
 									Name:  "DISK_TAGED_BY_PLUGIN",

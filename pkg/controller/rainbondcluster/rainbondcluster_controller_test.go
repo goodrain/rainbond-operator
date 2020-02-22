@@ -45,7 +45,7 @@ func TestCheckPortOccupation(t *testing.T) {
 				}
 			}()
 
-			got := checkPortOccupation(tc.address)
+			got := isPortOccupied(tc.address)
 			if tc.want != got {
 				t.Errorf("Expected %v, but got %v", tc.want, got)
 			}

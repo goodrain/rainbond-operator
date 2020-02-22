@@ -16,9 +16,9 @@ serviceAccount:
 rainbondOperator:
   name: rainbond-operator
   image:
-    repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator
+    repository: registry.cn-hangzhou.aliyuncs.com/abewang/rainbond-operator
     tag: v0.0.1
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
 # openapi
 openapi:

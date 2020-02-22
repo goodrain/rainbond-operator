@@ -16,7 +16,11 @@ const (
 	//DefImageRepository -
 	DefImageRepository = "goodrain.me"
 	//GrDataPVC -
-	GrDataPVC = "grdata"
+	GrDataPVC = "rbd-component-grdata"
 	// CachePVC
-	CachePVC = "cache"
+	CachePVC = "rbd-chaos-cache"
+	// SpecialGatewayLabelKey is a special node label, used to specify where to install the rbd-gateway
+	SpecialGatewayLabelKey = "rainbond.io/gateway"
+	// SpecialChaosLabelKey is a special node label, used to specify where to install the rbd-chaos
+	SpecialChaosLabelKey = "rainbond.io/chaos"
 )

@@ -32,6 +32,9 @@ type eventlog struct {
 	storageClassNameRWX string
 }
 
+var _ ComponentHandler = &eventlog{}
+var _ StorageClassRWXer = &eventlog{}
+
 func NewEventLog(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &eventlog{
 		ctx:       ctx,
@@ -65,7 +68,7 @@ func (e *eventlog) Before() error {
 
 func (e *eventlog) Resources() []interface{} {
 	return []interface{}{
-		e.daemonSetForEventLog(),
+		e.deployment(),
 	}
 }
 
@@ -84,7 +87,7 @@ func (e *eventlog) ResourcesCreateIfNotExists() []interface{} {
 	}
 }
 
-func (e *eventlog) daemonSetForEventLog() interface{} {
+func (e *eventlog) deployment() interface{} {
 	args := []string{
 		"--cluster.bind.ip=$(POD_IP)",
 		"--cluster.instance.ip=$(POD_IP)",
@@ -116,13 +119,14 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 		args = append(args, eventLogEtcdArgs()...)
 	}
 
-	ds := &appsv1.DaemonSet{
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EventLogName,
 			Namespace: e.component.Namespace,
 			Labels:    e.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.DeploymentSpec{
+			Replicas: e.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: e.labels,
 			},
@@ -133,15 +137,6 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					HostNetwork:                   true,
-					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
-					NodeSelector:                  e.cluster.Status.FirstMasterNodeLabel(),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    e.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
 					Containers: []corev1.Container{
 						{
 							Name:            EventLogName,

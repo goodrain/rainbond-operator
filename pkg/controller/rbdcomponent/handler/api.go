@@ -41,6 +41,9 @@ type api struct {
 	pvcName string
 }
 
+var _ ComponentHandler = &api{}
+var _ StorageClassRWXer = &api{}
+
 //NewAPI new api handle
 func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &api{

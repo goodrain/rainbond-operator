@@ -237,8 +237,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 					DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
-							Key:    n.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
+							Operator: corev1.TolerationOpExists, // tolerate everything.
 						},
 					},
 					Containers: []corev1.Container{

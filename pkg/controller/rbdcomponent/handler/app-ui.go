@@ -32,6 +32,9 @@ type appui struct {
 	pvcName string
 }
 
+var _ ComponentHandler = &appui{}
+var _ StorageClassRWXer = &appui{}
+
 func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &appui{
 		ctx:       ctx,
@@ -55,7 +58,7 @@ func (a *appui) Before() error {
 		return err
 	}
 
-	return isUIDBReady(a.ctx, a.client, a.cluster)
+	return isUIDBReady(a.ctx, a.client, a.component, a.cluster)
 }
 
 func (a *appui) Resources() []interface{} {
@@ -90,7 +93,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 			Labels:    a.labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: commonutil.Int32(1),
+			Replicas: a.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: a.labels,
 			},
@@ -101,13 +104,6 @@ func (a *appui) deploymentForAppUI() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					NodeSelector:                  a.cluster.Status.FirstMasterNodeLabel(),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    a.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
 					Containers: []corev1.Container{
 						{
 							Name:            AppUIName,

@@ -1,7 +1,0 @@
-apiVersion: rainbond.io/v1alpha1
-kind: RbdComponent
-metadata:
-  name: rbd-gateway
-  namespace: rbd-system
-spec:
-  image: abewang/rbd-gateway:V5.2-dev

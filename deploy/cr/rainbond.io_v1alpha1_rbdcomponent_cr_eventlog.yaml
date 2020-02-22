@@ -1,7 +1,0 @@
-apiVersion: rainbond.io/v1alpha1
-kind: RbdComponent
-metadata:
-  name: rbd-eventlog
-  namespace: rbd-system
-spec:
-  image: goodrain.me/rbd-eventlog:V5.2-dev

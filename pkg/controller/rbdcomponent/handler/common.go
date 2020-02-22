@@ -31,16 +31,16 @@ func LabelsForRainbondComponent(cpt *rainbondv1alpha1.RbdComponent) map[string]s
 	return labels
 }
 
-func isUIDBReady(ctx context.Context, cli client.Client, cluster *rainbondv1alpha1.RainbondCluster) error {
+func isUIDBReady(ctx context.Context, cli client.Client, cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) error {
 	if cluster.Spec.UIDatabase != nil {
 		return nil
 	}
+	labels := rbdutil.LabelsForRainbond(map[string]string{
+		"name": DBName,
+	})
 	eps := &corev1.EndpointsList{}
 	listOpts := []client.ListOption{
-		client.MatchingLabels(map[string]string{
-			"name":     DBName,
-			"belongTo": "RainbondOperator", // TODO: DO NOT HARD CODE
-		}),
+		client.MatchingLabels(labels),
 	}
 	if err := cli.List(ctx, eps, listOpts...); err != nil {
 		return err
