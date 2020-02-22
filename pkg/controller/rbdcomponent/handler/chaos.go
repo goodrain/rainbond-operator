@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ChaosName name for rbd-chaos
 var ChaosName = "rbd-chaos"
 
 type chaos struct {
@@ -29,15 +30,21 @@ type chaos struct {
 	labels     map[string]string
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
+
+	storageClassNameRWX string
 }
 
+var _ ComponentHandler = &chaos{}
+var _ StorageClassRWXer = &chaos{}
+
+// NewChaos creates a new rbd-chaos handler.
 func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &chaos{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }
@@ -55,12 +62,16 @@ func (c *chaos) Before() error {
 	}
 	c.etcdSecret = secret
 
+	if err := setStorageCassName(c.ctx, c.client, c.component.Namespace, c); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (c *chaos) Resources() []interface{} {
 	return []interface{}{
-		c.daemonSetForChaos(),
+		c.deployment(),
 	}
 }
 
@@ -68,7 +79,18 @@ func (c *chaos) After() error {
 	return nil
 }
 
-func (c *chaos) daemonSetForChaos() interface{} {
+func (c *chaos) SetStorageClassNameRWX(storageClassName string) {
+	c.storageClassNameRWX = storageClassName
+}
+
+func (c *chaos) ResourcesCreateIfNotExists() []interface{} {
+	return []interface{}{
+		createPersistentVolumeClaimRWX(c.component.Namespace, c.storageClassNameRWX, constants.GrDataPVC),
+		createPersistentVolumeClaimRWX(c.component.Namespace, c.storageClassNameRWX, constants.CachePVC),
+	}
+}
+
+func (c *chaos) deployment() interface{} {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "grdata",
@@ -123,13 +145,19 @@ func (c *chaos) daemonSetForChaos() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
-	ds := &appsv1.DaemonSet{
+	var nodeNames []string
+	for _, node := range c.cluster.Spec.NodesForChaos {
+		nodeNames = append(nodeNames, node.Name)
+	}
+
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ChaosName,
 			Namespace: c.component.Namespace,
 			Labels:    c.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.DeploymentSpec{
+			Replicas: c.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: c.labels,
 			},
@@ -140,18 +168,33 @@ func (c *chaos) daemonSetForChaos() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					NodeSelector:                  c.cluster.Status.FirstMasterNodeLabel(),
+					ServiceAccountName:            "rainbond-operator",
 					Tolerations: []corev1.Toleration{
 						{
-							Key:    c.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
+							Operator: corev1.TolerationOpExists, // tolerate everything.
 						},
 					},
-					ServiceAccountName: "rainbond-operator",
 					HostAliases: []corev1.HostAlias{
 						{
 							IP:        c.cluster.GatewayIngressIP(),
 							Hostnames: []string{rbdutil.GetImageRepository(c.cluster)},
+						},
+					},
+					Affinity: &corev1.Affinity{
+						NodeAffinity: &corev1.NodeAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+								NodeSelectorTerms: []corev1.NodeSelectorTerm{
+									{
+										MatchFields: []corev1.NodeSelectorRequirement{
+											{
+												Key:      "metadata.name",
+												Operator: corev1.NodeSelectorOpIn,
+												Values:   nodeNames,
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 					Containers: []corev1.Container{

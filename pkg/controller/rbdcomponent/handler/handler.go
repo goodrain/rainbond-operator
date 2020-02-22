@@ -1,8 +1,28 @@
 package handler
 
+// ComponentHandler will check the prerequisites, create resources for rbdcomponent.
 type ComponentHandler interface {
 	// Before will do something before creating component, such as checking the prerequisites, etc.
 	Before() error
 	Resources() []interface{}
 	After() error
+}
+
+// StorageClassRWXer provides methods to setup storageclass with
+// access mode RWX for rbdcomponent.
+type StorageClassRWXer interface {
+	SetStorageClassNameRWX(sc string)
+}
+
+// StorageClassRWOer provides methods to setup storageclass with
+// access mode RWO for rbdcomponent.
+type StorageClassRWOer interface {
+	SetStorageClassNameRWO(sc string)
+}
+
+// K8sResourcesInterface provides methods to create or update k8s resources,
+// such as deployment, daemonset, etc.
+type K8sResourcesInterface interface {
+	// returns the resources that should be created if not exists
+	ResourcesCreateIfNotExists() []interface{}
 }

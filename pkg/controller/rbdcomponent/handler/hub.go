@@ -20,7 +20,7 @@ import (
 
 //HubName name
 var HubName = "rbd-hub"
-var hubDataPvcName = "hubdata"
+var hubDataPvcName = "rbd-hub"
 var hubImageRepository = "hub-image-repository"
 
 type hub struct {
@@ -29,7 +29,13 @@ type hub struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	pkg       *rainbondv1alpha1.RainbondPackage
+	labels    map[string]string
+
+	storageClassNameRWX string
 }
+
+var _ ComponentHandler = &hub{}
+var _ StorageClassRWXer = &hub{}
 
 //NewHub nw hub
 func NewHub(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
@@ -39,6 +45,7 @@ func NewHub(ctx context.Context, client client.Client, component *rainbondv1alph
 		client:    client,
 		ctx:       ctx,
 		pkg:       pkg,
+		labels:    LabelsForRainbondComponent(component),
 	}
 }
 
@@ -46,13 +53,18 @@ func (h *hub) Before() error {
 	if h.cluster.Spec.ImageHub != nil {
 		return NewIgnoreError("use custom image repository")
 	}
+
+	if err := setStorageCassName(h.ctx, h.client, h.component.Namespace, h); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (h *hub) Resources() []interface{} {
 	return []interface{}{
 		h.secretForHub(), // important! create secret before ingress.
-		h.daemonSetForHub(),
+		h.deployment(),
 		h.serviceForHub(),
 		h.persistentVolumeClaimForHub(),
 		h.ingressForHub(),
@@ -63,32 +75,29 @@ func (h *hub) After() error {
 	return nil
 }
 
-func (h *hub) daemonSetForHub() interface{} {
-	labels := h.component.GetLabels()
-	ds := &appsv1.DaemonSet{
+func (h *hub) SetStorageClassNameRWX(sc string) {
+	h.storageClassNameRWX = sc
+}
+
+func (h *hub) deployment() interface{} {
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
 			Namespace: h.component.Namespace,
-			Labels:    labels,
+			Labels:    h.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.DeploymentSpec{
+			Replicas: h.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: h.labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   HubName,
-					Labels: labels,
+					Labels: h.labels,
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    h.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
-					NodeSelector: h.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            "rbd-hub",
@@ -121,12 +130,11 @@ func (h *hub) daemonSetForHub() interface{} {
 }
 
 func (h *hub) serviceForHub() interface{} {
-	labels := h.component.GetLabels()
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
 			Namespace: h.component.Namespace,
-			Labels:    labels,
+			Labels:    h.labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
@@ -138,7 +146,7 @@ func (h *hub) serviceForHub() interface{} {
 					},
 				},
 			},
-			Selector: labels,
+			Selector: h.labels,
 		},
 	}
 
@@ -165,7 +173,7 @@ func (h *hub) persistentVolumeClaimForHub() interface{} {
 					corev1.ResourceStorage: *storageRequest,
 				},
 			},
-			StorageClassName: commonutil.String(storageClassName),
+			StorageClassName: commonutil.String(h.storageClassNameRWX),
 		},
 	}
 
@@ -173,7 +181,6 @@ func (h *hub) persistentVolumeClaimForHub() interface{} {
 }
 
 func (h *hub) ingressForHub() interface{} {
-	labels := h.component.GetLabels()
 	ing := &extensions.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
@@ -186,7 +193,7 @@ func (h *hub) ingressForHub() interface{} {
 				"nginx.ingress.kubernetes.io/set-header-X-Forwarded-Proto": "https",
 				"nginx.ingress.kubernetes.io/set-header-X-Scheme":          "$scheme",
 			},
-			Labels: labels,
+			Labels: h.labels,
 		},
 		Spec: extensions.IngressSpec{
 			Rules: []extensions.IngressRule{
@@ -224,7 +231,7 @@ func (h *hub) secretForHub() interface{} {
 	if secret != nil {
 		return nil
 	}
-	labels := h.component.GetLabels()
+	labels := h.labels
 	labels["name"] = hubImageRepository
 	_, pem, key, _ := commonutil.DomainSign(nil, rbdutil.GetImageRepository(h.cluster))
 	secret = &corev1.Secret{

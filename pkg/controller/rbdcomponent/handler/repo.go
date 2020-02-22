@@ -2,42 +2,53 @@ package handler
 
 import (
 	"context"
-	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
-
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// RepoName name for rbd-repo.
 var RepoName = "rbd-repo"
 
 type repo struct {
+	ctx       context.Context
+	client    client.Client
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	pkg       *rainbondv1alpha1.RainbondPackage
 	labels    map[string]string
+
+	storageClassNameRWO string
 }
 
+var _ ComponentHandler = &repo{}
+var _ StorageClassRWOer = &repo{}
+
+// NewRepo creates a new rbd-repo hanlder.
 func NewRepo(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &repo{
+		ctx:       ctx,
+		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }
 
 func (r *repo) Before() error {
+	if err := setStorageCassName(r.ctx, r.client, r.component.Namespace, r); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (r *repo) Resources() []interface{} {
 	return []interface{}{
-		r.daemonSetForRepo(),
+		r.statefulset(),
 		r.serviceForRepo(),
 	}
 }
@@ -46,14 +57,22 @@ func (r *repo) After() error {
 	return nil
 }
 
-func (r *repo) daemonSetForRepo() interface{} {
-	ds := &appsv1.DaemonSet{
+func (r *repo) SetStorageClassNameRWO(storageClassName string) {
+	r.storageClassNameRWO = storageClassName
+}
+
+func (r *repo) statefulset() interface{} {
+	claimName := "data"
+	repoDataPVC := createPersistentVolumeClaimRWO(r.component.Namespace, r.storageClassNameRWO, claimName)
+
+	ds := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      RepoName,
 			Namespace: r.component.Namespace,
 			Labels:    r.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.StatefulSetSpec{
+			Replicas: r.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: r.labels,
 			},
@@ -64,13 +83,6 @@ func (r *repo) daemonSetForRepo() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    r.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
-					NodeSelector: r.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            RepoName,
@@ -78,24 +90,16 @@ func (r *repo) daemonSetForRepo() interface{} {
 							ImagePullPolicy: r.component.ImagePullPolicy(),
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "repo-data",
+									Name:      claimName,
 									MountPath: "/var/opt/jfrog/artifactory",
 								},
 							},
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "repo-data",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/opt/rainbond/data/repo",
-									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-								},
-							},
-						},
-					},
 				},
+			},
+			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
+				*repoDataPVC,
 			},
 		},
 	}

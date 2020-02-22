@@ -6,26 +6,21 @@ import (
 	"path"
 )
 
-type Labels map[string]string
-
-func (l Labels) WithRainbondLabels() map[string]string {
-	rainbondLabels := map[string]string{
-		"creator": "Rainbond",
+func LabelsForRainbond(labels map[string]string) map[string]string {
+	rbdLabels := map[string]string{
+		"belongTo": "rainbond-operator",
 	}
-	for k, v := range l {
-		rainbondLabels[k] = v
+	for key, val := range labels {
+		// rbdLabels has priority over labels
+		if rbdLabels[key] != "" {
+			continue
+		}
+		rbdLabels[key] = val
 	}
-	return rainbondLabels
+	return rbdLabels
 }
 
-func LabelsForRainbondResource() map[string]string {
-	return map[string]string{
-		"creator":  "Rainbond",
-		"belongTo": "RainbondOperator",
-	}
-}
-
-// GetStorageClass returns storage class name based on rainbondcluster.
+// GetProvisioner returns storage class name based on rainbondcluster.
 func GetStorageClass(cluster *v1alpha1.RainbondCluster) string {
 	if cluster.Spec.StorageClassName == "" {
 		return constants.DefStorageClass
@@ -39,4 +34,16 @@ func GetImageRepository(cluster *v1alpha1.RainbondCluster) string {
 		return constants.DefImageRepository
 	}
 	return path.Join(cluster.Spec.ImageHub.Domain, cluster.Spec.ImageHub.Namespace)
+}
+
+func LabelsForAccessModeRWX() map[string]string {
+	return map[string]string{
+		"accessModes": "rwx",
+	}
+}
+
+func LabelsForAccessModeRWO() map[string]string {
+	return map[string]string{
+		"accessModes": "rwo",
+	}
 }

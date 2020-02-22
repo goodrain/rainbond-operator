@@ -1,7 +1,0 @@
-apiVersion: rainbond.io/v1alpha1
-kind: RbdComponent
-metadata:
-  name: rbd-worker
-  namespace: rbd-system
-spec:
-  image: goodrain.me/rbd-worker:V5.2-dev

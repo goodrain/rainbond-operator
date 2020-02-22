@@ -4,31 +4,45 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
+	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"path"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ErrNoDBEndpoints -
 var ErrNoDBEndpoints = errors.New("no ready endpoints for DB were found")
 
 const (
+	// EtcdSSLPath ssl file path for etcd
 	EtcdSSLPath = "/run/ssl/etcd"
 )
 
-func isUIDBReady(ctx context.Context, cli client.Client, cluster *rainbondv1alpha1.RainbondCluster) error {
+// LabelsForRainbondComponent returns the labels for the sub resources of rbdcomponent.
+func LabelsForRainbondComponent(cpt *rainbondv1alpha1.RbdComponent) map[string]string {
+	labels := rbdutil.LabelsForRainbond(nil)
+	labels["name"] = cpt.Name
+	return labels
+}
+
+func isUIDBReady(ctx context.Context, cli client.Client, cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) error {
 	if cluster.Spec.UIDatabase != nil {
 		return nil
 	}
+	labels := rbdutil.LabelsForRainbond(map[string]string{
+		"name": DBName,
+	})
 	eps := &corev1.EndpointsList{}
 	listOpts := []client.ListOption{
-		client.MatchingLabels(map[string]string{
-			"name":     DBName,
-			"belongTo": "RainbondOperator", // TODO: DO NOT HARD CODE
-		}),
+		client.MatchingLabels(labels),
 	}
 	if err := cli.List(ctx, eps, listOpts...); err != nil {
 		return err
@@ -129,4 +143,99 @@ func etcdSSLArgs() []string {
 		"--etcd-cert=" + path.Join(EtcdSSLPath, "cert-file"),
 		"--etcd-key=" + path.Join(EtcdSSLPath, "key-file"),
 	}
+}
+
+func storageClassNameFromRainbondVolumeRWX(ctx context.Context, cli client.Client, ns string) (string, error) {
+	return storageClassNameFromRainbondVolume(ctx, cli, ns, rbdutil.LabelsForAccessModeRWX())
+}
+
+func storageClassNameFromRainbondVolumeRWO(ctx context.Context, cli client.Client, ns string) (string, error) {
+	storageClassName, err := storageClassNameFromRainbondVolume(ctx, cli, ns, rbdutil.LabelsForAccessModeRWO())
+	if err != nil {
+		if !IsRainbondVolumeNotFound(err) {
+			return "", err
+		}
+		return storageClassNameFromRainbondVolumeRWX(ctx, cli, ns)
+	}
+	return storageClassName, nil
+}
+
+func storageClassNameFromRainbondVolume(ctx context.Context, cli client.Client, ns string, labels map[string]string) (string, error) {
+	volumeList := &rainbondv1alpha1.RainbondVolumeList{}
+	var opts []client.ListOption
+	opts = append(opts, client.InNamespace(ns))
+	opts = append(opts, client.MatchingLabels(labels))
+	if err := cli.List(ctx, volumeList, opts...); err != nil {
+		return "", err
+	}
+
+	if len(volumeList.Items) == 0 {
+		return "", NewIgnoreError(rainbondVolumeNotFound)
+	}
+
+	volume := volumeList.Items[0]
+	if volume.Spec.StorageClassName == "" {
+		return "", NewIgnoreError("storage class not ready")
+	}
+	return volume.Spec.StorageClassName, nil
+}
+
+func setStorageCassName(ctx context.Context, cli client.Client, ns string, obj interface{}) error {
+	storageClassRWXer, ok := obj.(StorageClassRWXer)
+	if ok {
+		sc, err := storageClassNameFromRainbondVolumeRWX(ctx, cli, ns)
+		if err != nil {
+			return err
+		}
+		storageClassRWXer.SetStorageClassNameRWX(sc)
+	}
+
+	storageClassRWOer, ok := obj.(StorageClassRWOer)
+	if ok {
+		sc, err := storageClassNameFromRainbondVolumeRWO(ctx, cli, ns)
+		if err != nil {
+			return err
+		}
+		storageClassRWOer.SetStorageClassNameRWO(sc)
+	}
+
+	return nil
+}
+
+func createPersistentVolumeClaimRWX(ns, className, claimName string) *corev1.PersistentVolumeClaim {
+	accessModes := []corev1.PersistentVolumeAccessMode{
+		corev1.ReadWriteMany,
+	}
+	return createPersistentVolumeClaim(ns, className, claimName, accessModes)
+}
+
+func createPersistentVolumeClaimRWO(ns, className, claimName string) *corev1.PersistentVolumeClaim {
+	accessModes := []corev1.PersistentVolumeAccessMode{
+		corev1.ReadWriteOnce,
+	}
+	return createPersistentVolumeClaim(ns, className, claimName, accessModes)
+}
+
+func createPersistentVolumeClaim(ns, className, claimName string, accessModes []corev1.PersistentVolumeAccessMode) *corev1.PersistentVolumeClaim {
+	storageRequest := resource.NewQuantity(21*1024*1024*1024, resource.BinarySI) // TODO: customer specified
+	if className == constants.DefStorageClass || className == "nfs" {
+		storageRequest = resource.NewQuantity(1*1024*1024, resource.BinarySI)
+	}
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      claimName,
+			Namespace: ns,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: accessModes,
+			Resources: corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceStorage: *storageRequest,
+				},
+			},
+			StorageClassName: commonutil.String(className),
+		},
+	}
+
+	return pvc
 }

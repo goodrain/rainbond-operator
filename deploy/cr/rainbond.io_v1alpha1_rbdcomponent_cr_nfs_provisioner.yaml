@@ -1,7 +1,0 @@
-apiVersion: rainbond.io/v1alpha1
-kind: RbdComponent
-metadata:
-  name: rbd-nfs
-  namespace: rbd-system
-spec:
-  image: abewang/nfs-provisioner:v2.2.1-k8s1.12

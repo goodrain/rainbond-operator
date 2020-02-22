@@ -26,6 +26,8 @@ spec:
         - name: operator
           image: "{{ .Values.rainbondOperator.image.repository }}:{{ .Values.rainbondOperator.image.tag }}"
           imagePullPolicy: {{ .Values.rainbondOperator.image.pullPolicy }}
+          args:
+            - --zap-level=4
           env:
             - name: WATCH_NAMESPACE
               valueFrom:

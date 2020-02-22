@@ -1,7 +1,0 @@
-apiVersion: rainbond.io/v1alpha1
-kind: RbdComponent
-metadata:
-  name: rbd-app-ui
-  namespace: rbd-system
-spec:
-  image: goodrain.me/rbd-app-ui:V5.2-dev

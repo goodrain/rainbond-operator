@@ -1,0 +1,8 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RbdComponent
+metadata:
+  name: rbd-hub
+  namespace: rbd-system
+spec:
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-registry:2.6.2
+  priorityComponent: true

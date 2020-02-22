@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// EtcdName name for rbd-etcd.
 var EtcdName = "rbd-etcd"
 
 type etcd struct {
@@ -21,8 +22,9 @@ type etcd struct {
 	labels    map[string]string
 }
 
+// NewETCD creates a new rbd-etcd handler.
 func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
-	labels := component.GetLabels()
+	labels := LabelsForRainbondComponent(component)
 	labels["etcd_node"] = EtcdName
 	return &etcd{
 		component: component,

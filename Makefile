@@ -36,6 +36,20 @@ build-dirs:
 	@echo "Creating build directories"
 	@mkdir -p bin/
 
+PKG             := github.com/goodrain/rainbond-operator
+SRC_DIRS        := cmd pkg
+
+.PHONY: test
+test:
+	@echo "Testing: $(SRC_DIRS)"
+	./hack/unit_test
+	PKG=$(PKG) ./hack/test $(SRC_DIRS)
+
+.PHONY: build-dirs
+build-dirs:
+	@echo "Creating build directories"
+	@mkdir -p bin/
+
 .PHONY: gen
 gen: crds-gen openapi-gen sdk-gen
 crds-gen:
@@ -70,7 +84,7 @@ golangci-lint: build-dirs
 
 .PHONY: mock
 mock:
-	./mockgen.sh
+	./hack/mockgen.sh
 
 .PHONY: build
 build-ui:

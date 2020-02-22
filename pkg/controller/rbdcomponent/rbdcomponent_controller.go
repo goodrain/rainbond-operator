@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
-
 	"github.com/go-logr/logr"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -28,6 +26,7 @@ import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	chandler "github.com/goodrain/rainbond-operator/pkg/controller/rbdcomponent/handler"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 )
 
 var log = logf.Log.WithName("controller_rbdcomponent")
@@ -111,6 +110,7 @@ type ReconcileRbdComponent struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Namespace", request.Namespace, "Name", request.Name)
+	reqLogger.V(6).Info("Reconciling RbdComponent")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -148,6 +148,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		}
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, err
 	}
+
 	pkg := &rainbondv1alpha1.RainbondPackage{}
 	if err := r.client.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondPackageName}, pkg); err != nil {
 		reqLogger.Error(err, "failed to get rainbondpackage.")
@@ -162,7 +163,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	checkPrerequisites := func() bool {
-		if cluster.Spec.ImageHub == nil && cpt.Spec.PriorityComponent {
+		if cpt.Spec.PriorityComponent {
 			// If ImageHub is empty, the priority component no need to wait until rainbondpackage is completed.
 			return true
 		}
@@ -177,14 +178,15 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	hdl := fn(ctx, r.client, cpt, cluster, pkg)
+
 	if err := hdl.Before(); err != nil {
 		// TODO: report events
 		if chandler.IsIgnoreError(err) {
-			reqLogger.Info("checking the prerequisites", "msg", err.Error())
+			reqLogger.V(6).Info("checking the prerequisites", "msg", err.Error())
 			return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 		}
 		isSetV1beta1MetricsFlag := cpt.Annotations != nil && cpt.Annotations["v1beta1.metrics.k8s.io.exists"] == "true"
-		if err == chandler.V1beta1MetricsExists && !isSetV1beta1MetricsFlag {
+		if err == chandler.ErrV1beta1MetricsExists && !isSetV1beta1MetricsFlag {
 			if err := r.setV1beta1MetricsFlag(ctx, cpt); err == nil {
 				return reconcile.Result{}, nil
 			}
@@ -193,17 +195,33 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
+	k8sResourcesMgr, ok := hdl.(chandler.K8sResourcesInterface)
+	if ok {
+		reqLogger.V(6).Info("K8sResourcesInterface create resources create if not exists")
+		resourcesCreateIfNotExists := k8sResourcesMgr.ResourcesCreateIfNotExists()
+		for _, res := range resourcesCreateIfNotExists {
+			if res == nil {
+				continue
+			}
+			// Set RbdComponent cpt as the owner and controller
+			if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.scheme); err != nil {
+				return reconcile.Result{}, err
+			}
+			if err := r.resourceCreateIfNotExists(ctx, res.(runtime.Object), res.(metav1.Object)); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+	}
+
 	resources := hdl.Resources()
 	for _, res := range resources {
 		if res == nil {
 			continue
 		}
-
 		// Set RbdComponent cpt as the owner and controller
 		if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.scheme); err != nil {
 			return reconcile.Result{Requeue: true}, err
 		}
-
 		// Check if the resource already exists, if not create a new one
 		reconcileResult, err := r.updateOrCreateResource(reqLogger, res.(runtime.Object), res.(metav1.Object))
 		if err != nil {
@@ -223,6 +241,20 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileRbdComponent) resourceCreateIfNotExists(ctx context.Context, obj runtime.Object, meta metav1.Object) error {
+	reqLogger := log.WithValues("Namespace", meta.GetNamespace(), "Name", meta.GetName())
+
+	err := r.client.Get(ctx, types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
+	if err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return err
+		}
+		reqLogger.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+		return r.client.Create(ctx, obj)
+	}
+	return nil
 }
 
 func (r *ReconcileRbdComponent) updateOrCreateResource(reqLogger logr.Logger, obj runtime.Object, meta metav1.Object) (reconcile.Result, error) {

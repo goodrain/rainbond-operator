@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// EventLogName name for rbd-eventlog.
 var EventLogName = "rbd-eventlog"
 
 type eventlog struct {
@@ -28,15 +29,21 @@ type eventlog struct {
 	labels     map[string]string
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
+
+	storageClassNameRWX string
 }
 
+var _ ComponentHandler = &eventlog{}
+var _ StorageClassRWXer = &eventlog{}
+
+// NewEventLog creates a new rbd-eventlog handler.
 func NewEventLog(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &eventlog{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }
@@ -54,12 +61,16 @@ func (e *eventlog) Before() error {
 	}
 	e.etcdSecret = secret
 
+	if err := setStorageCassName(e.ctx, e.client, e.component.Namespace, e); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (e *eventlog) Resources() []interface{} {
 	return []interface{}{
-		e.daemonSetForEventLog(),
+		e.deployment(),
 	}
 }
 
@@ -67,7 +78,18 @@ func (e *eventlog) After() error {
 	return nil
 }
 
-func (e *eventlog) daemonSetForEventLog() interface{} {
+func (e *eventlog) SetStorageClassNameRWX(storageClassName string) {
+	e.storageClassNameRWX = storageClassName
+}
+
+func (e *eventlog) ResourcesCreateIfNotExists() []interface{} {
+	return []interface{}{
+		// pvc is immutable after creation except resources.requests for bound claims
+		createPersistentVolumeClaimRWX(e.component.Namespace, e.storageClassNameRWX, constants.GrDataPVC),
+	}
+}
+
+func (e *eventlog) deployment() interface{} {
 	args := []string{
 		"--cluster.bind.ip=$(POD_IP)",
 		"--cluster.instance.ip=$(POD_IP)",
@@ -99,13 +121,14 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 		args = append(args, eventLogEtcdArgs()...)
 	}
 
-	ds := &appsv1.DaemonSet{
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EventLogName,
 			Namespace: e.component.Namespace,
 			Labels:    e.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.DeploymentSpec{
+			Replicas: e.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: e.labels,
 			},
@@ -116,15 +139,6 @@ func (e *eventlog) daemonSetForEventLog() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					HostNetwork:                   true,
-					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
-					NodeSelector:                  e.cluster.Status.FirstMasterNodeLabel(),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    e.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
 					Containers: []corev1.Container{
 						{
 							Name:            EventLogName,

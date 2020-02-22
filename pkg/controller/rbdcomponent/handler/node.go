@@ -3,13 +3,13 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/constants"
-	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
 	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// NodeName name for rbd-node
 var NodeName = "rbd-node"
 
 type node struct {
@@ -28,15 +29,22 @@ type node struct {
 	cluster   *rainbondv1alpha1.RainbondCluster
 	component *rainbondv1alpha1.RbdComponent
 	pkg       *rainbondv1alpha1.RainbondPackage
+
+	storageClassNameRWX string
 }
 
+var _ ComponentHandler = &node{}
+var _ StorageClassRWXer = &node{}
+var _ K8sResourcesInterface = &node{}
+
+// NewNode creates a new rbd-node handler.
 func NewNode(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &node{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }
@@ -47,6 +55,10 @@ func (n *node) Before() error {
 		return fmt.Errorf("failed to get etcd secret: %v", err)
 	}
 	n.etcdSecret = secret
+
+	if err := setStorageCassName(n.ctx, n.client, n.component.Namespace, n); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -59,6 +71,17 @@ func (n *node) Resources() []interface{} {
 
 func (n *node) After() error {
 	return nil
+}
+
+func (n *node) SetStorageClassNameRWX(storageClassName string) {
+	n.storageClassNameRWX = storageClassName
+}
+
+func (n *node) ResourcesCreateIfNotExists() []interface{} {
+	return []interface{}{
+		// pvc is immutable after creation except resources.requests for bound claims
+		createPersistentVolumeClaimRWX(n.component.Namespace, n.storageClassNameRWX, constants.GrDataPVC),
+	}
 }
 
 func (n *node) daemonSetForRainbondNode() interface{} {
@@ -216,8 +239,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 					DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
-							Key:    n.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
+							Operator: corev1.TolerationOpExists, // tolerate everything.
 						},
 					},
 					Containers: []corev1.Container{

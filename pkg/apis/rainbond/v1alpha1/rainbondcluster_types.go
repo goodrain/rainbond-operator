@@ -74,7 +74,12 @@ type RainbondClusterSpec struct {
 	GatewayIngressIPs []string `json:"gatewayIngressIPs,omitempty"`
 	// Information about the node where the gateway is located.
 	// If not specified, the gateway will run on nodes where all ports do not conflict.
+	// Deprecated: use xxx instead.
 	GatewayNodes []NodeAvailPorts `json:"gatewayNodes,omitempty"`
+	// Specify the nodes where the rbd-gateway will running.
+	NodesForGateway []K8sNode `json:"nodesForGateway,omitempty"`
+	// Specify the nodes where the rbd-gateway will running.
+	NodesForChaos []K8sNode `json:"nodesForChaos,omitempty"`
 	// InstallMode is the mode of Rainbond cluster installation.
 	InstallMode InstallMode `json:"installMode,omitempty"`
 	// User-specified private image repository, replacing goodrain.me.
@@ -119,16 +124,38 @@ type StorageClass struct {
 	Provisioner string `json:"provisioner"`
 }
 
+// K8sNode holds the information about a kubernetes node.
+type K8sNode struct {
+	Name       string `json:"name,omitempty"`
+	InternalIP string `json:"internalIP,omitempty"`
+	ExternalIP string `json:"externalIP,omitempty"`
+}
+
+// AvailableNodes contains nodes available for special rainbond components to run,
+// such as rbd-gateway, rbd-chaos.
+type AvailableNodes struct {
+	// The nodes with user-specified labels.
+	SpecifiedNodes []*K8sNode `json:"specifiedNodes,omitempty"`
+	// A list of kubernetes master nodes.
+	MasterNodes []*K8sNode `json:"masterNodes,omitempty"`
+}
+
 // RainbondClusterStatus defines the observed state of RainbondCluster
 type RainbondClusterStatus struct {
 	// Master node name list
-	MasterNodeNames []string          `json:"nodeNames,omitempty"`
-	NodeAvailPorts  []*NodeAvailPorts `json:"NodeAvailPorts,omitempty"`
+	// Deprecated: should be deleted
+	MasterNodeNames []string `json:"nodeNames,omitempty"`
+	// Deprecated: Please use GatewayAvailableNodes instead
+	NodeAvailPorts []*NodeAvailPorts `json:"NodeAvailPorts,omitempty"`
 	// List of existing StorageClasses in the cluster
 	// +optional
 	StorageClasses []*StorageClass `json:"storageClasses,omitempty"`
 	// Destination path of the installation package extraction.
 	MasterRoleLabel string `json:"masterRoleLabel,omitempty"`
+	// holds some recommend nodes available for rbd-gateway to run.
+	GatewayAvailableNodes AvailableNodes `json:"gatewayAvailableNodes,omitempty"`
+	// holds some recommend nodes available for rbd-chaos to run.
+	ChaosAvailableNodes AvailableNodes `json:"chaosAvailableNodes,omitempty"`
 }
 
 // +genclient
@@ -162,11 +189,8 @@ func (in *RainbondCluster) GatewayIngressIP() string {
 	if len(in.Spec.GatewayIngressIPs) > 0 && in.Spec.GatewayIngressIPs[0] != "" {
 		return in.Spec.GatewayIngressIPs[0]
 	}
-	if len(in.Spec.GatewayNodes) > 0 {
-		return in.Spec.GatewayNodes[0].NodeIP
-	}
-	if in.Status != nil && len(in.Status.NodeAvailPorts) > 0 {
-		return in.Status.NodeAvailPorts[0].NodeIP
+	if len(in.Spec.NodesForGateway) > 0 {
+		return in.Spec.NodesForGateway[0].InternalIP
 	}
 	return ""
 }
@@ -196,21 +220,6 @@ func (in *RainbondCluster) GatewayIngressIPs() (ips []string) {
 
 func (in *Database) RegionDataSource() string {
 	return fmt.Sprintf("--mysql=%s:%s@tcp(%s:%d)/region", in.Username, in.Password, in.Host, in.Port)
-}
-
-func (in *RainbondClusterStatus) MasterNodeLabel() map[string]string {
-	switch in.MasterRoleLabel {
-	case LabelNodeRolePrefix + "master":
-		return map[string]string{
-			in.MasterRoleLabel: "",
-		}
-	case NodeLabelRole:
-		return map[string]string{
-			NodeLabelRole: "master",
-		}
-	}
-
-	return nil
 }
 
 func (in *RainbondClusterStatus) FirstMasterNodeLabel() map[string]string {

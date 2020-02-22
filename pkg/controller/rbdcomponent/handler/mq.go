@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// MQName name for rbd-mq
 var MQName = "rbd-mq"
 
 type mq struct {
@@ -25,13 +26,16 @@ type mq struct {
 	etcdSecret *corev1.Secret
 }
 
+var _ ComponentHandler = &mq{}
+
+// NewMQ creates a new rbd-mq handler.
 func NewMQ(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &mq{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }
@@ -47,7 +51,7 @@ func (m *mq) Before() error {
 
 func (m *mq) Resources() []interface{} {
 	return []interface{}{
-		m.daemonSetForMQ(),
+		m.deployment(),
 	}
 }
 
@@ -55,7 +59,7 @@ func (m *mq) After() error {
 	return nil
 }
 
-func (m *mq) daemonSetForMQ() interface{} {
+func (m *mq) deployment() interface{} {
 	args := []string{
 		"--log-level=" + string(m.component.Spec.LogLevel),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(m.cluster), ","),
@@ -70,13 +74,14 @@ func (m *mq) daemonSetForMQ() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
-	ds := &appsv1.DaemonSet{
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MQName,
 			Namespace: m.component.Namespace,
 			Labels:    m.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.DeploymentSpec{
+			Replicas: m.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: m.labels,
 			},
@@ -87,13 +92,6 @@ func (m *mq) daemonSetForMQ() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					NodeSelector:                  m.cluster.Status.FirstMasterNodeLabel(),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    m.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
 					Containers: []corev1.Container{
 						{
 							Name:            MQName,

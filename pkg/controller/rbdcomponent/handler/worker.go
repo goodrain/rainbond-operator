@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// WorkerName name for rbd-worker.
 var WorkerName = "rbd-worker"
 
 type worker struct {
@@ -26,15 +27,21 @@ type worker struct {
 	labels     map[string]string
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
+
+	storageClassNameRWX string
 }
 
+var _ ComponentHandler = &worker{}
+var _ StorageClassRWXer = &worker{}
+
+// NewWorker creates a new rbd-worker hanlder.
 func NewWorker(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &worker{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }
@@ -52,12 +59,16 @@ func (w *worker) Before() error {
 	}
 	w.etcdSecret = secret
 
+	if err := setStorageCassName(w.ctx, w.client, w.component.Namespace, w); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (w *worker) Resources() []interface{} {
 	return []interface{}{
-		w.daemonSetForWorker(),
+		w.deployment(),
 	}
 }
 
@@ -65,7 +76,18 @@ func (w *worker) After() error {
 	return nil
 }
 
-func (w *worker) daemonSetForWorker() interface{} {
+func (w *worker) SetStorageClassNameRWX(storageClassName string) {
+	w.storageClassNameRWX = storageClassName
+}
+
+func (w *worker) ResourcesCreateIfNotExists() []interface{} {
+	return []interface{}{
+		// pvc is immutable after creation except resources.requests for bound claims
+		createPersistentVolumeClaimRWX(w.component.Namespace, w.storageClassNameRWX, constants.GrDataPVC),
+	}
+}
+
+func (w *worker) deployment() interface{} {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "grdata",
@@ -96,13 +118,14 @@ func (w *worker) daemonSetForWorker() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
-	ds := &appsv1.DaemonSet{
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      WorkerName,
 			Namespace: w.component.Namespace,
 			Labels:    w.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.DeploymentSpec{
+			Replicas: w.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: w.labels,
 			},
@@ -114,13 +137,6 @@ func (w *worker) daemonSetForWorker() interface{} {
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    w.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
-					NodeSelector: w.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            WorkerName,

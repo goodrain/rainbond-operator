@@ -3,46 +3,17 @@ package k8sutil
 import (
 	"context"
 	"fmt"
+	"k8s.io/kubectl/pkg/describe"
 	"net"
 	"os"
 	"time"
 
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-func UpdateOrCreateResource(ctx context.Context, cli client.Client, reqLogger logr.Logger, obj runtime.Object, meta metav1.Object) error {
-	err := cli.Get(ctx, types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			reqLogger.Error(err, fmt.Sprintf("Failed to get %s", obj.GetObjectKind()))
-			return err
-		}
-		reqLogger.Info("Creating a new", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
-		err = cli.Create(ctx, obj)
-		if err != nil {
-			reqLogger.Error(err, fmt.Sprintf("Failed to create new %s", obj.GetObjectKind()), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
-			return err
-		}
-		return nil
-	}
-
-	// obj exsits, update
-	reqLogger.Info(fmt.Sprintf("Update %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
-	if err := cli.Update(ctx, obj); err != nil {
-		reqLogger.Error(err, "Failed to update ", obj.GetObjectKind())
-		return err
-	}
-
-	return nil
-}
 
 func MustNewKubeConfig(kubeconfigPath string) *rest.Config {
 	if kubeconfigPath != "" {
@@ -93,6 +64,16 @@ func HostPath(hostpath corev1.HostPathType) *corev1.HostPathType {
 	return &hostpath
 }
 
+// MountPropagationMode returns a pointer to the MountPropagationMode value passed in.
+func MountPropagationMode(moundPropagationMode corev1.MountPropagationMode) *corev1.MountPropagationMode {
+	return &moundPropagationMode
+}
+
+// PersistentVolumeReclaimPolicy returns a pointer to the PersistentVolumeReclaimPolicy value passed in.
+func PersistentVolumeReclaimPolicy(persistentVolumeReclaimPolicy corev1.PersistentVolumeReclaimPolicy) *corev1.PersistentVolumeReclaimPolicy {
+	return &persistentVolumeReclaimPolicy
+}
+
 func UpdateCRStatus(client client.Client, obj runtime.Object) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
@@ -104,4 +85,19 @@ func UpdateCRStatus(client client.Client, obj runtime.Object) error {
 		}
 	}
 	return nil
+}
+
+func MaterRoleLabel(key string) map[string]string {
+	var labels map[string]string
+	switch key {
+	case describe.LabelNodeRolePrefix + "master":
+		labels = map[string]string{
+			key: "",
+		}
+	case describe.NodeLabelRole:
+		labels = map[string]string{
+			key: "master",
+		}
+	}
+	return labels
 }

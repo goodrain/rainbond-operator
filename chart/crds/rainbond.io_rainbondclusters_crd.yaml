@@ -54,9 +54,9 @@ spec:
                 type: string
               type: array
             gatewayNodes:
-              description: Information about the node where the gateway is located.
+              description: 'Information about the node where the gateway is located.
                 If not specified, the gateway will run on nodes where all ports do
-                not conflict.
+                not conflict. Deprecated: use xxx instead.'
               items:
                 description: NodeAvailPorts node avail port
                 properties:
@@ -97,6 +97,40 @@ spec:
               description: define install rainbond version, This is usually image
                 tag
               type: string
+            nodesForChaos:
+              description: Specify the nodes where the rbd-gateway will running.
+              items:
+                description: K8sNode holds the information about a kubernetes node.
+                properties:
+                  externalIP:
+                    type: string
+                  internalIP:
+                    type: string
+                  name:
+                    type: string
+                required:
+                  - externalIP
+                  - internalIP
+                  - name
+                type: object
+              type: array
+            nodesForGateway:
+              description: Specify the nodes where the rbd-gateway will running.
+              items:
+                description: K8sNode holds the information about a kubernetes node.
+                properties:
+                  externalIP:
+                    type: string
+                  internalIP:
+                    type: string
+                  name:
+                    type: string
+                required:
+                  - externalIP
+                  - internalIP
+                  - name
+                type: object
+              type: array
             rainbondImageRepository:
               description: Repository of each Rainbond component image, eg. docker.io/rainbond.
               type: string
@@ -122,8 +156,8 @@ spec:
                 storageClassName:
                   type: string
               required:
-              - fstabLine
-              - storageClassName
+                - fstabLine
+                - storageClassName
               type: object
             regionDatabase:
               description: the region database information that rainbond component
@@ -159,12 +193,13 @@ spec:
                   type: string
               type: object
           required:
-          - suffixHTTPHost
+            - suffixHTTPHost
           type: object
         status:
           description: RainbondClusterStatus defines the observed state of RainbondCluster
           properties:
             NodeAvailPorts:
+              description: 'Deprecated: Please use GatewayAvailableNodes instead'
               items:
                 description: NodeAvailPorts node avail port
                 properties:
@@ -178,11 +213,92 @@ spec:
                     type: array
                 type: object
               type: array
+            chaosAvailableNodes:
+              description: holds some recommend nodes available for rbd-chaos to run.
+              properties:
+                masterNodes:
+                  description: A list of kubernetes master nodes.
+                  items:
+                    description: K8sNode holds the information about a kubernetes
+                      node.
+                    properties:
+                      externalIP:
+                        type: string
+                      internalIP:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                      - externalIP
+                      - internalIP
+                      - name
+                    type: object
+                  type: array
+                specifiedNodes:
+                  description: The nodes with user-specified labels.
+                  items:
+                    description: K8sNode holds the information about a kubernetes
+                      node.
+                    properties:
+                      externalIP:
+                        type: string
+                      internalIP:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                      - externalIP
+                      - internalIP
+                      - name
+                    type: object
+                  type: array
+              type: object
+            gatewayAvailableNodes:
+              description: holds some recommend nodes available for rbd-gateway to
+                run.
+              properties:
+                masterNodes:
+                  description: A list of kubernetes master nodes.
+                  items:
+                    description: K8sNode holds the information about a kubernetes
+                      node.
+                    properties:
+                      externalIP:
+                        type: string
+                      internalIP:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                      - externalIP
+                      - internalIP
+                      - name
+                    type: object
+                  type: array
+                specifiedNodes:
+                  description: The nodes with user-specified labels.
+                  items:
+                    description: K8sNode holds the information about a kubernetes
+                      node.
+                    properties:
+                      externalIP:
+                        type: string
+                      internalIP:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                      - externalIP
+                      - internalIP
+                      - name
+                    type: object
+                  type: array
+              type: object
             masterRoleLabel:
               description: Destination path of the installation package extraction.
               type: string
             nodeNames:
-              description: Master node name list
+              description: 'Master node name list Deprecated: should be deleted'
               items:
                 type: string
               type: array
@@ -196,14 +312,14 @@ spec:
                   provisioner:
                     type: string
                 required:
-                - name
-                - provisioner
+                  - name
+                  - provisioner
                 type: object
               type: array
           type: object
       type: object
   version: v1alpha1
   versions:
-  - name: v1alpha1
-    served: true
-    storage: true
+    - name: v1alpha1
+      served: true
+      storage: true

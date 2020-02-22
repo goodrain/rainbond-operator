@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -16,9 +18,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var V1beta1MetricsExists = errors.New("v1beta1.metrics.k8s.io already exists")
+// ErrV1beta1MetricsExists -
+var ErrV1beta1MetricsExists = errors.New("v1beta1.metrics.k8s.io already exists")
 
-//APIName name
+// MetricsServerName name for metrics-server
 var MetricsServerName = "metrics-server"
 var metricsGroupAPI = "v1beta1.metrics.k8s.io"
 
@@ -32,6 +35,8 @@ type metricsServer struct {
 	pkg       *rainbondv1alpha1.RainbondPackage
 }
 
+var _ ComponentHandler = &metricsServer{}
+
 // NewMetricsServer creates a new metrics-server handler
 func NewMetricsServer(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &metricsServer{
@@ -39,7 +44,7 @@ func NewMetricsServer(ctx context.Context, client client.Client, component *rain
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }
@@ -54,40 +59,40 @@ func (m *metricsServer) Before() error {
 	}
 	createdByRainbond := apiservce.Spec.Service.Namespace == m.component.Namespace && apiservce.Spec.Service.Name == MetricsServerName
 	if !createdByRainbond {
-		return V1beta1MetricsExists
+		return ErrV1beta1MetricsExists
 	}
 	return nil
 }
 
 func (m *metricsServer) Resources() []interface{} {
 	return []interface{}{
-		m.deploySetForMetricsServer(),
+		m.deployment(),
 		m.serviceForMetricsServer(),
 	}
 }
 
 func (m *metricsServer) After() error {
-	newApiService := m.apiserviceForMetricsServer()
+	newAPIService := m.apiserviceForMetricsServer()
 	apiservce := &kubeaggregatorv1beta1.APIService{}
 	if err := m.client.Get(m.ctx, types.NamespacedName{Name: metricsGroupAPI}, apiservce); err != nil {
 		if !k8sErrors.IsNotFound(err) {
 			return fmt.Errorf("get apiservice(%s/%s): %v", MetricsServerName, m.cluster.Namespace, err)
 		}
-		if err := m.client.Create(m.ctx, newApiService); err != nil {
+		if err := m.client.Create(m.ctx, newAPIService); err != nil {
 			return fmt.Errorf("create new api service: %v", err)
 		}
 		return nil
 	}
 
-	log.Info(fmt.Sprintf("an old api service(%s) has been found, update it.", newApiService.GetName()))
-	newApiService.ResourceVersion = apiservce.ResourceVersion
-	if err := m.client.Update(m.ctx, newApiService); err != nil {
+	log.Info(fmt.Sprintf("an old api service(%s) has been found, update it.", newAPIService.GetName()))
+	newAPIService.ResourceVersion = apiservce.ResourceVersion
+	if err := m.client.Update(m.ctx, newAPIService); err != nil {
 		return fmt.Errorf("update api service: %v", err)
 	}
 	return nil
 }
 
-func (m *metricsServer) deploySetForMetricsServer() interface{} {
+func (m *metricsServer) deployment() interface{} {
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MetricsServerName,
@@ -95,6 +100,7 @@ func (m *metricsServer) deploySetForMetricsServer() interface{} {
 			Labels:    m.labels,
 		},
 		Spec: appsv1.DeploymentSpec{
+			Replicas: m.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: m.labels,
 			},

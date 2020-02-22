@@ -36,6 +36,14 @@ type RainbondPackageListerExpansion interface{}
 // RainbondPackageNamespaceLister.
 type RainbondPackageNamespaceListerExpansion interface{}
 
+// RainbondVolumeListerExpansion allows custom methods to be added to
+// RainbondVolumeLister.
+type RainbondVolumeListerExpansion interface{}
+
+// RainbondVolumeNamespaceListerExpansion allows custom methods to be added to
+// RainbondVolumeNamespaceLister.
+type RainbondVolumeNamespaceListerExpansion interface{}
+
 // RbdComponentListerExpansion allows custom methods to be added to
 // RbdComponentLister.
 type RbdComponentListerExpansion interface{}

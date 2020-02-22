@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// WebCliName name for rbd-webcli.
 var WebCliName = "rbd-webcli"
 
 type webcli struct {
@@ -26,13 +27,16 @@ type webcli struct {
 	etcdSecret *corev1.Secret
 }
 
+var _ ComponentHandler = &webcli{}
+
+// NewWebCli creates a new rbd-webcli handler.
 func NewWebCli(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &webcli{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }
@@ -49,7 +53,7 @@ func (w *webcli) Before() error {
 
 func (w *webcli) Resources() []interface{} {
 	return []interface{}{
-		w.daemonSetForAPI(),
+		w.deployment(),
 	}
 }
 
@@ -57,7 +61,7 @@ func (w *webcli) After() error {
 	return nil
 }
 
-func (w *webcli) daemonSetForAPI() interface{} {
+func (w *webcli) deployment() interface{} {
 	volumeMounts := []corev1.VolumeMount{}
 	volumes := []corev1.Volume{}
 	args := []string{
@@ -72,13 +76,14 @@ func (w *webcli) daemonSetForAPI() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
-	ds := &appsv1.DaemonSet{
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      WebCliName,
 			Namespace: w.component.Namespace,
 			Labels:    w.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.DeploymentSpec{
+			Replicas: w.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: w.labels,
 			},
@@ -90,13 +95,6 @@ func (w *webcli) daemonSetForAPI() interface{} {
 				Spec: corev1.PodSpec{
 					ServiceAccountName:            "rainbond-operator",
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    w.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
-					NodeSelector: w.cluster.Status.FirstMasterNodeLabel(),
 					Containers: []corev1.Container{
 						{
 							Name:            WebCliName,

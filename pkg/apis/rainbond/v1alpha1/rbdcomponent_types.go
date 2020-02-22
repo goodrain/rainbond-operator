@@ -116,14 +116,6 @@ func init() {
 	SchemeBuilder.Register(&RbdComponent{}, &RbdComponentList{})
 }
 
-func (in *RbdComponent) GetLabels() map[string]string {
-	return map[string]string{
-		"creator":  "Rainbond",
-		"belongTo": "RainbondOperator",
-		"name":     in.Name,
-	}
-}
-
 func (in *RbdComponent) ImagePullPolicy() corev1.PullPolicy {
 	if in.Spec.ImagePullPolicy == "" {
 		return corev1.PullAlways

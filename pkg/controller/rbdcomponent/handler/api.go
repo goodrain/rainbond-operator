@@ -8,7 +8,6 @@ import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
@@ -35,7 +34,15 @@ type api struct {
 	component                *rainbondv1alpha1.RbdComponent
 	cluster                  *rainbondv1alpha1.RainbondCluster
 	pkg                      *rainbondv1alpha1.RainbondPackage
+
+	storageClassNameRWX string
+	storageClassNameRWO string
+
+	pvcName string
 }
+
+var _ ComponentHandler = &api{}
+var _ StorageClassRWXer = &api{}
 
 //NewAPI new api handle
 func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
@@ -44,8 +51,9 @@ func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alph
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
+		pvcName:   "rbd-api",
 	}
 }
 
@@ -62,12 +70,16 @@ func (a *api) Before() error {
 	}
 	a.etcdSecret = secret
 
+	if err := setStorageCassName(a.ctx, a.client, a.component.Namespace, a); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (a *api) Resources() []interface{} {
 	resources := a.secretForAPI()
-	resources = append(resources, a.daemonSetForAPI())
+	resources = append(resources, a.deployment())
 	resources = append(resources, a.createService()...)
 	resources = append(resources, a.ingressForAPI())
 	resources = append(resources, a.ingressForWebsocket())
@@ -78,7 +90,23 @@ func (a *api) After() error {
 	return nil
 }
 
-func (a *api) daemonSetForAPI() interface{} {
+func (a *api) SetStorageClassNameRWX(storageClassName string) {
+	a.storageClassNameRWX = storageClassName
+}
+
+func (a *api) SetStorageClassNameRWO(storageClassName string) {
+	a.storageClassNameRWO = storageClassName
+}
+
+func (a *api) ResourcesCreateIfNotExists() []interface{} {
+	return []interface{}{
+		// pvc is immutable after creation except resources.requests for bound claims
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.storageClassNameRWX, constants.GrDataPVC),
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.storageClassNameRWX, a.pvcName),
+	}
+}
+
+func (a *api) deployment() interface{} {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "grdata",
@@ -101,9 +129,8 @@ func (a *api) daemonSetForAPI() interface{} {
 		{
 			Name: "accesslog",
 			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/opt/rainbond/logs/rbd-api/",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: a.pvcName,
 				},
 			},
 		},
@@ -133,13 +160,14 @@ func (a *api) daemonSetForAPI() interface{} {
 		)
 	}
 	a.labels["name"] = APIName
-	ds := &appsv1.DaemonSet{
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      APIName,
 			Namespace: a.component.Namespace,
 			Labels:    a.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.DeploymentSpec{
+			Replicas: a.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: a.labels,
 			},
@@ -150,13 +178,6 @@ func (a *api) daemonSetForAPI() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					NodeSelector:                  a.cluster.Status.FirstMasterNodeLabel(),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    a.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
 					Containers: []corev1.Container{
 						{
 							Name:            APIName,
@@ -280,7 +301,7 @@ func (a *api) secretForAPI() []interface{} {
 		return nil
 	}
 	var re []interface{}
-	labels := a.component.GetLabels()
+	labels := a.labels
 	labels["availableips"] = ips
 	server := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

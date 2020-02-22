@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
@@ -18,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// AppUIName name for rbd-app-ui resources.
 var AppUIName = "rbd-app-ui"
 
 type appui struct {
@@ -28,16 +27,25 @@ type appui struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	pkg       *rainbondv1alpha1.RainbondPackage
+
+	storageClassNameRWX string
+
+	pvcName string
 }
 
+var _ ComponentHandler = &appui{}
+var _ StorageClassRWXer = &appui{}
+
+// NewAppUI creates a new rbd-app-ui handler.
 func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
 	return &appui{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
+		pvcName:   "rbd-app-ui",
 	}
 }
 
@@ -48,7 +56,11 @@ func (a *appui) Before() error {
 	}
 	a.db = db
 
-	return isUIDBReady(a.ctx, a.client, a.cluster)
+	if err := setStorageCassName(a.ctx, a.client, a.component.Namespace, a); err != nil {
+		return err
+	}
+
+	return isUIDBReady(a.ctx, a.client, a.component, a.cluster)
 }
 
 func (a *appui) Resources() []interface{} {
@@ -63,33 +75,37 @@ func (a *appui) After() error {
 	return nil
 }
 
+func (a *appui) SetStorageClassNameRWX(storageClassName string) {
+	a.storageClassNameRWX = storageClassName
+}
+
+func (a *appui) ResourcesCreateIfNotExists() []interface{} {
+	return []interface{}{
+		// pvc is immutable after creation except resources.requests for bound claims
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.storageClassNameRWX, a.pvcName),
+	}
+}
+
 func (a *appui) deploymentForAppUI() interface{} {
 	cpt := a.component
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      AppUIName,
 			Namespace: cpt.Namespace,
-			Labels:    cpt.GetLabels(),
+			Labels:    a.labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: commonutil.Int32(1),
+			Replicas: a.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: cpt.GetLabels(),
+				MatchLabels: a.labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   AppUIName,
-					Labels: cpt.GetLabels(),
+					Labels: a.labels,
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					NodeSelector:                  a.cluster.Status.FirstMasterNodeLabel(),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    a.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
 					Containers: []corev1.Container{
 						{
 							Name:            AppUIName,
@@ -142,10 +158,6 @@ func (a *appui) deploymentForAppUI() interface{} {
 									Name:      "logs",
 									MountPath: "/app/logs/",
 								},
-								{
-									Name:      "media",
-									MountPath: "/data/media",
-								},
 							},
 						},
 					},
@@ -161,18 +173,8 @@ func (a *appui) deploymentForAppUI() interface{} {
 						{
 							Name: "logs",
 							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/opt/rainbond/logs/rbd-app-ui/",
-									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-								},
-							},
-						},
-						{
-							Name: "media",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/opt/rainbond/data/rbd-app-ui/media",
-									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: a.pvcName,
 								},
 							},
 						},

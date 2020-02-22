@@ -59,6 +59,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Rainbond().V1alpha1().RainbondClusters().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("rainbondpackages"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Rainbond().V1alpha1().RainbondPackages().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("rainbondvolumes"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Rainbond().V1alpha1().RainbondVolumes().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("rbdcomponents"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Rainbond().V1alpha1().RbdComponents().Informer()}, nil
 

@@ -5,13 +5,10 @@ go 1.13
 require (
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.5+incompatible
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
-	github.com/cheggaaa/pb v2.0.7+incompatible // indirect
-	github.com/cheggaaa/pb/v3 v3.0.3 // indirect
 	github.com/coreos/etcd v3.3.15+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v0.7.3-0.20190817195342-4760db040282
-	github.com/gin-contrib/cors v1.3.0 // indirect
 	github.com/gin-gonic/contrib v0.0.0-20191209060500-d6e26eeaa607
 	github.com/gin-gonic/gin v1.5.0
 	github.com/go-logr/logr v0.1.0
@@ -19,22 +16,15 @@ require (
 	github.com/google/go-cmp v0.3.2-0.20191028172631-481baca67f93 // indirect
 	github.com/jinzhu/gorm v1.9.11
 	github.com/klauspost/compress v1.9.7
-	github.com/klauspost/pgzip v1.2.1 // indirect
+	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/myesui/uuid v1.0.0 // indirect
 	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/prometheus/common v0.6.0
-	github.com/schollz/progressbar/v2 v2.15.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
-	github.com/sparrc/go-ping v0.0.0-20190613174326-4e5b6552494c // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
 	github.com/twinj/uuid v1.0.0
-	gopkg.in/VividCortex/ewma.v1 v1.1.1 // indirect
-	gopkg.in/cheggaaa/pb.v2 v2.0.7 // indirect
-	gopkg.in/fatih/color.v1 v1.7.0 // indirect
-	gopkg.in/mattn/go-colorable.v0 v0.1.0 // indirect
-	gopkg.in/mattn/go-isatty.v0 v0.0.4 // indirect
-	gopkg.in/mattn/go-runewidth.v0 v0.0.4 // indirect
+	golang.org/x/sys v0.0.0-20191128015809-6d18c012aee9 // indirect
 	gopkg.in/stretchr/testify.v1 v1.2.2 // indirect
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
@@ -43,6 +33,7 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/kube-aggregator v0.0.0
 	k8s.io/kube-openapi v0.0.0-20190918143330-0270cf2f1c1d
+	k8s.io/kubectl v0.0.0
 	sigs.k8s.io/controller-runtime v0.4.0
 )
 
