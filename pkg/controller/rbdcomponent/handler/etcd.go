@@ -22,7 +22,7 @@ type etcd struct {
 }
 
 func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
-	labels := component.GetLabels()
+	labels := LabelsForRainbondComponent(component)
 	labels["etcd_node"] = EtcdName
 	return &etcd{
 		component: component,

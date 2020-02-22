@@ -39,7 +39,7 @@ func NewChaos(ctx context.Context, client client.Client, component *rainbondv1al
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }

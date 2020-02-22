@@ -48,7 +48,7 @@ func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alph
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 		pvcName:   "rbd-api",
 	}
@@ -76,7 +76,7 @@ func (a *api) Before() error {
 
 func (a *api) Resources() []interface{} {
 	resources := a.secretForAPI()
-	resources = append(resources, a.daemonSetForAPI())
+	resources = append(resources, a.deployment())
 	resources = append(resources, a.createService()...)
 	resources = append(resources, a.ingressForAPI())
 	resources = append(resources, a.ingressForWebsocket())
@@ -103,7 +103,7 @@ func (a *api) ResourcesCreateIfNotExists() []interface{} {
 	}
 }
 
-func (a *api) daemonSetForAPI() interface{} {
+func (a *api) deployment() interface{} {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "grdata",
@@ -157,13 +157,14 @@ func (a *api) daemonSetForAPI() interface{} {
 		)
 	}
 	a.labels["name"] = APIName
-	ds := &appsv1.DaemonSet{
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      APIName,
 			Namespace: a.component.Namespace,
 			Labels:    a.labels,
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.DeploymentSpec{
+			Replicas: a.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: a.labels,
 			},
@@ -174,13 +175,6 @@ func (a *api) daemonSetForAPI() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					NodeSelector:                  a.cluster.Status.FirstMasterNodeLabel(),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    a.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
 					Containers: []corev1.Container{
 						{
 							Name:            APIName,
@@ -304,7 +298,7 @@ func (a *api) secretForAPI() []interface{} {
 		return nil
 	}
 	var re []interface{}
-	labels := a.component.GetLabels()
+	labels := a.labels
 	labels["availableips"] = ips
 	server := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

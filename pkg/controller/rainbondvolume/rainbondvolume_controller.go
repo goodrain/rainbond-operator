@@ -269,7 +269,7 @@ func (r *ReconcileRainbondVolume) createIfNotExistStorageClass(ctx context.Conte
 func storageClassForRainbondVolume(volume *rainbondv1alpha1.RainbondVolume) *storagev1.StorageClass {
 	class := &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: volume.Name,
+			Name:   volume.Name,
 			Labels: rbdutil.LabelsForRainbond(nil),
 		},
 		Provisioner:   volume.Spec.StorageClassParameters.Provisioner,

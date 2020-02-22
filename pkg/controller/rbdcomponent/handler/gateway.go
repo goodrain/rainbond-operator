@@ -23,6 +23,7 @@ type gateway struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	pkg       *rainbondv1alpha1.RainbondPackage
+	labels    map[string]string
 }
 
 func NewGateway(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
@@ -32,6 +33,7 @@ func NewGateway(ctx context.Context, client client.Client, component *rainbondv1
 		component: component,
 		cluster:   cluster,
 		pkg:       pkg,
+		labels:    LabelsForRainbondComponent(component),
 	}
 }
 
@@ -76,21 +78,20 @@ func (g *gateway) daemonSetForGateway() interface{} {
 		selectNodeNames = append(selectNodeNames, node.NodeName)
 	}
 
-	labels := g.component.GetLabels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayName,
 			Namespace: g.component.Namespace,
-			Labels:    labels,
+			Labels:    g.labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: g.labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   GatewayName,
-					Labels: labels,
+					Labels: g.labels,
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),

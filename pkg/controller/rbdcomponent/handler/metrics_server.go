@@ -39,7 +39,7 @@ func NewMetricsServer(ctx context.Context, client client.Client, component *rain
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }

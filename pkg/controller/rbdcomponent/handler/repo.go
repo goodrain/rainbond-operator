@@ -32,7 +32,7 @@ func NewRepo(ctx context.Context, client client.Client, component *rainbondv1alp
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }

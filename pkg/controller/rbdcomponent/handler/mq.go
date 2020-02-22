@@ -31,7 +31,7 @@ func NewMQ(ctx context.Context, client client.Client, component *rainbondv1alpha
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }

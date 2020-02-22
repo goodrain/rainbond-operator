@@ -26,7 +26,7 @@ func NewDNS(ctx context.Context, client client.Client, component *rainbondv1alph
 	return &dns{
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }

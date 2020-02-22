@@ -20,6 +20,5 @@ func init() {
 	AddHandlerFunc(handler.NodeName, handler.NewNode)
 	AddHandlerFunc(handler.DBName, handler.NewDB)
 	AddHandlerFunc(handler.WebCliName, handler.NewWebCli)
-	AddHandlerFunc(handler.GrctlName, handler.NewGrctl)
 	AddHandlerFunc(handler.MetricsServerName, handler.NewMetricsServer)
 }

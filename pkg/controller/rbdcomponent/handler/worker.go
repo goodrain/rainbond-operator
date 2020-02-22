@@ -36,7 +36,7 @@ func NewWorker(ctx context.Context, client client.Client, component *rainbondv1a
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }

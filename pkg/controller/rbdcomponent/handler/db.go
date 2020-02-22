@@ -42,7 +42,7 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 		component:     component,
 		cluster:       cluster,
 		pkg:           pkg,
-		labels:        component.GetLabels(),
+		labels:        LabelsForRainbondComponent(component),
 		mysqlUser:     mysqlUser,
 		mysqlPassword: string(uuid.NewUUID())[0:8],
 	}

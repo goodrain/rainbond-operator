@@ -29,6 +29,7 @@ type hub struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	pkg       *rainbondv1alpha1.RainbondPackage
+	labels    map[string]string
 
 	storageClassNameRWX string
 }
@@ -44,6 +45,7 @@ func NewHub(ctx context.Context, client client.Client, component *rainbondv1alph
 		client:    client,
 		ctx:       ctx,
 		pkg:       pkg,
+		labels:    LabelsForRainbondComponent(component),
 	}
 }
 
@@ -78,21 +80,20 @@ func (h *hub) SetStorageClassNameRWX(sc string) {
 }
 
 func (h *hub) daemonSetForHub() interface{} {
-	labels := h.component.GetLabels()
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
 			Namespace: h.component.Namespace,
-			Labels:    labels,
+			Labels:    h.labels,
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: h.labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   HubName,
-					Labels: labels,
+					Labels: h.labels,
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
@@ -135,12 +136,11 @@ func (h *hub) daemonSetForHub() interface{} {
 }
 
 func (h *hub) serviceForHub() interface{} {
-	labels := h.component.GetLabels()
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
 			Namespace: h.component.Namespace,
-			Labels:    labels,
+			Labels:    h.labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
@@ -152,7 +152,7 @@ func (h *hub) serviceForHub() interface{} {
 					},
 				},
 			},
-			Selector: labels,
+			Selector: h.labels,
 		},
 	}
 
@@ -187,7 +187,6 @@ func (h *hub) persistentVolumeClaimForHub() interface{} {
 }
 
 func (h *hub) ingressForHub() interface{} {
-	labels := h.component.GetLabels()
 	ing := &extensions.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
@@ -200,7 +199,7 @@ func (h *hub) ingressForHub() interface{} {
 				"nginx.ingress.kubernetes.io/set-header-X-Forwarded-Proto": "https",
 				"nginx.ingress.kubernetes.io/set-header-X-Scheme":          "$scheme",
 			},
-			Labels: labels,
+			Labels: h.labels,
 		},
 		Spec: extensions.IngressSpec{
 			Rules: []extensions.IngressRule{
@@ -238,7 +237,7 @@ func (h *hub) secretForHub() interface{} {
 	if secret != nil {
 		return nil
 	}
-	labels := h.component.GetLabels()
+	labels := h.labels
 	labels["name"] = hubImageRepository
 	_, pem, key, _ := commonutil.DomainSign(nil, rbdutil.GetImageRepository(h.cluster))
 	secret = &corev1.Secret{

@@ -38,7 +38,7 @@ func NewEventLog(ctx context.Context, client client.Client, component *rainbondv
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    component.GetLabels(),
+		labels:    LabelsForRainbondComponent(component),
 		pkg:       pkg,
 	}
 }

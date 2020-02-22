@@ -24,6 +24,13 @@ const (
 	EtcdSSLPath = "/run/ssl/etcd"
 )
 
+// LabelsForRainbondComponent returns the labels for the sub resources of rbdcomponent.
+func LabelsForRainbondComponent(cpt *rainbondv1alpha1.RbdComponent) map[string]string {
+	labels := rbdutil.LabelsForRainbond(nil)
+	labels["name"] = cpt.Name
+	return labels
+}
+
 func isUIDBReady(ctx context.Context, cli client.Client, cluster *rainbondv1alpha1.RainbondCluster) error {
 	if cluster.Spec.UIDatabase != nil {
 		return nil

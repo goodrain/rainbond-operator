@@ -197,7 +197,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	k8sResourcesMgr, ok := hdl.(chandler.K8sResourcesInterface)
-	if ok  {
+	if ok {
 		reqLogger.V(6).Info("K8sResourcesInterface create resources create if not exists")
 		resourcesCreateIfNotExists := k8sResourcesMgr.ResourcesCreateIfNotExists()
 		for _, res := range resourcesCreateIfNotExists {
