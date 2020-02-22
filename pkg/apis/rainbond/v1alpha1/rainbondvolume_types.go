@@ -23,11 +23,14 @@ type AliyunNasCSIPluginSource struct {
 	AccessKeySecret string `json:"accessKeySecret"`
 }
 
+type NFSCSIPluginSource struct {
+}
+
 // StorageClassParameters describes the parameters for a class of storage for
 // which PersistentVolumes can be dynamically provisioned.
 type StorageClassParameters struct {
 	// Provisioner indicates the type of the provisioner.
-	Provisioner string `json:"provisioner" protobuf:"bytes,2,opt,name=provisioner"`
+	Provisioner string `json:"provisioner,omitempty" protobuf:"bytes,2,opt,name=provisioner"`
 
 	// Parameters holds the parameters for the provisioner that should
 	// create volumes of this storage class.
@@ -44,6 +47,8 @@ type CSIPluginSource struct {
 	// AliyunNasCSIPluginSource represents a aliyun cloud nas CSI plugin.
 	// More info: https://github.com/GLYASAI/alibaba-cloud-csi-driver/blob/master/docs/nas.md
 	AliyunNas *AliyunNasCSIPluginSource `json:"aliyunNas,omitempty"`
+
+	NFS *NFSCSIPluginSource `json:"nfs,omitempty"`
 }
 
 // RainbondVolumeSpec defines the desired state of RainbondVolume
@@ -52,7 +57,7 @@ type RainbondVolumeSpec struct {
 	// It will used to create pvc for rainbond components.
 	// More info: https://kubernetes.io/docs/concepts/storage/storage-classes/
 	StorageClassName       string                  `json:"storageClassName,omitempty"`
-	StorageClassParameters *StorageClassParameters `json:"StorageClassSpec,omitempty"`
+	StorageClassParameters *StorageClassParameters `json:"storageClassSpec,omitempty"`
 
 	// +kubebuilder:validation:MaxProperties=100
 	// CSIPlugin holds the image

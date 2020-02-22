@@ -60,7 +60,7 @@ func (r *repo) SetStorageClassNameRWO(storageClassName string) {
 }
 
 func (r *repo) daemonSetForRepo() interface{} {
-	claimName := "rbd-repo-data"
+	claimName := "data"
 	repoDataPVC := createPersistentVolumeClaimRWO(r.component.Namespace, r.storageClassNameRWO, claimName)
 
 	ds := &appsv1.StatefulSet{

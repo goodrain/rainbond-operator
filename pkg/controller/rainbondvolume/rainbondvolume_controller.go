@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -132,7 +133,13 @@ func (r *ReconcileRainbondVolume) Reconcile(request reconcile.Request) (reconcil
 
 	useCSIPlugin := volume.Spec.CSIPlugin != nil
 	if useCSIPlugin {
-		csiplugin := NewCSIPlugin(ctx, r.client, volume)
+		csiplugin, err := NewCSIPlugin(ctx, r.client, volume)
+		if err != nil {
+			if err := r.updateVolumeStatus(ctx, volume); err != nil {
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{}, err
+		}
 		if err := r.applyCSIPlugin(ctx, csiplugin, volume); err != nil {
 			if err := r.updateVolumeStatus(ctx, volume); err != nil {
 				return reconcile.Result{}, err
@@ -148,7 +155,7 @@ func (r *ReconcileRainbondVolume) Reconcile(request reconcile.Request) (reconcil
 }
 
 func (r *ReconcileRainbondVolume) applyCSIPlugin(ctx context.Context, plugin plugin.CSIPlugin, volume *rainbondv1alpha1.RainbondVolume) error {
-	if plugin.CheckIfCSIDriverExists() {
+	if plugin.IsPluginReady() {
 		if volume.Spec.StorageClassParameters == nil {
 			volume.Spec.StorageClassParameters = &rainbondv1alpha1.StorageClassParameters{}
 		}
@@ -156,24 +163,34 @@ func (r *ReconcileRainbondVolume) applyCSIPlugin(ctx context.Context, plugin plu
 		return nil
 	}
 
-	resources := plugin.GetResources()
-	for idx := range resources {
-		res := resources[idx]
+	clusterScopedResources := plugin.GetClusterScopedResources()
+	for idx := range clusterScopedResources {
+		res := clusterScopedResources[idx]
 		if res == nil {
 			continue
 		}
-
-		// set volume as the owner and controller
-		if err := controllerutil.SetControllerReference(volume, res.(metav1.Object), r.scheme); err != nil {
-			return err
-		}
-
 		if err := r.updateOrCreateResource(ctx, res.(runtime.Object), res.(metav1.Object)); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	subResources := plugin.GetSubResources()
+	for idx := range subResources {
+		res := subResources[idx]
+		if res == nil {
+			continue
+		}
+		// set volume as the owner and controller
+		if err := controllerutil.SetControllerReference(volume, res.(metav1.Object), r.scheme); err != nil {
+			return err
+		}
+		if err := r.updateOrCreateResource(ctx, res.(runtime.Object), res.(metav1.Object)); err != nil {
+			return err
+		}
+	}
+
+	// requeue the volume with error
+	return fmt.Errorf("csi plugin not ready")
 }
 
 func (r *ReconcileRainbondVolume) updateOrCreateResource(ctx context.Context, obj runtime.Object, meta metav1.Object) error {
@@ -253,6 +270,7 @@ func storageClassForRainbondVolume(volume *rainbondv1alpha1.RainbondVolume) *sto
 	class := &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: volume.Name,
+			Labels: rbdutil.LabelsForRainbond(nil),
 		},
 		Provisioner:   volume.Spec.StorageClassParameters.Provisioner,
 		Parameters:    volume.Spec.StorageClassParameters.Parameters,

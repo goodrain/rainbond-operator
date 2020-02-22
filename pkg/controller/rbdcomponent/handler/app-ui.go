@@ -160,10 +160,6 @@ func (a *appui) deploymentForAppUI() interface{} {
 									Name:      "logs",
 									MountPath: "/app/logs/",
 								},
-								{
-									Name:      "media",
-									MountPath: "/data/media",
-								},
 							},
 						},
 					},
@@ -178,14 +174,6 @@ func (a *appui) deploymentForAppUI() interface{} {
 						},
 						{
 							Name: "logs",
-							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: a.pvcName,
-								},
-							},
-						},
-						{
-							Name: "media",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: a.pvcName,

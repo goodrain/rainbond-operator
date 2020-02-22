@@ -7,8 +7,17 @@ import (
 )
 
 func LabelsForRainbond(labels map[string]string) map[string]string {
-	labels["belongTo"] = "rainbond-operator"
-	return labels
+	rbdLabels := map[string]string{
+		"belongTo": "rainbond-operator",
+	}
+	for key, val := range labels {
+		// rbdLabels has priority over labels
+		if rbdLabels[key] != "" {
+			continue
+		}
+		rbdLabels[key] = val
+	}
+	return rbdLabels
 }
 
 // GetProvisioner returns storage class name based on rainbondcluster.

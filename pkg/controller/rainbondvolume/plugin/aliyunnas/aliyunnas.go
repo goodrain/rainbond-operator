@@ -1,4 +1,4 @@
-package aliyunclouddisk
+package aliyunnas
 
 import (
 	"context"
@@ -26,27 +26,28 @@ const (
 
 // CSIPlugins is the primary entrypoint for csi plugins.
 func CSIPlugins(ctx context.Context, cli client.Client, volume *rainbondv1alpha1.RainbondVolume) plugin.CSIPlugin {
-	labels := rbdutil.LabelsForRainbond(map[string]string{
-		"name": volume.Name,
-	})
+	labels := rbdutil.LabelsForRainbond(nil)
 	return &aliyunnasPlugin{
-		ctx:    ctx,
-		cli:    cli,
-		volume: volume,
-		labels: labels,
+		ctx:             ctx,
+		cli:             cli,
+		volume:          volume,
+		labels:          labels,
+		pluginName:      "csi-nas-plugin",
+		provisionerName: "csi-nas-provisioner",
 	}
 }
 
 type aliyunnasPlugin struct {
-	ctx    context.Context
-	cli    client.Client
-	volume *rainbondv1alpha1.RainbondVolume
-	labels map[string]string
+	ctx                         context.Context
+	cli                         client.Client
+	volume                      *rainbondv1alpha1.RainbondVolume
+	labels                      map[string]string
+	pluginName, provisionerName string
 }
 
 var _ plugin.CSIPlugin = &aliyunnasPlugin{}
 
-func (p *aliyunnasPlugin) CheckIfCSIDriverExists() bool {
+func (p *aliyunnasPlugin) IsPluginReady() bool {
 	csidriver := &storagev1beta1.CSIDriver{}
 	err := p.cli.Get(p.ctx, types.NamespacedName{Name: provisioner}, csidriver)
 	if err != nil {
@@ -60,10 +61,16 @@ func (p *aliyunnasPlugin) GetProvisioner() string {
 	return provisioner
 }
 
-func (p *aliyunnasPlugin) GetResources() []interface{} {
+func (p *aliyunnasPlugin) GetClusterScopedResources() []interface{} {
+	return []interface{}{
+		p.csiDriver(),
+	}
+}
+
+func (p *aliyunnasPlugin) GetSubResources() []interface{} {
 	return []interface{}{
 		p.daemonset(),
-		p.service(),
+		p.serviceForProvisioner(),
 		p.statefulset(),
 	}
 }
@@ -80,7 +87,7 @@ func (p *aliyunnasPlugin) csiDriver() *storagev1beta1.CSIDriver {
 }
 
 func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
-	name := "csi-disk-plugin"
+	name := "csi-nas-plugin"
 	labels := p.labels
 	labels["name"] = name
 	ds := &appsv1.DaemonSet{
@@ -104,31 +111,29 @@ func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 					HostPID:                       true,
 					Tolerations: []corev1.Toleration{
 						{
-							Key:      "node-role.kubernetes.io/master",
 							Operator: corev1.TolerationOpExists,
-							Effect:   corev1.TaintEffectNoSchedule,
 						},
 					},
 					Containers: []corev1.Container{
 						{
 							Name:            "driver-registrar",
-							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-node-driver-registrar:v1.0.1",
+							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-node-driver-registrar:v1.1.0",
 							ImagePullPolicy: "IfNotPresent",
 							Lifecycle: &corev1.Lifecycle{
-								PostStart: &corev1.Handler{
+								PreStop: &corev1.Handler{
 									Exec: &corev1.ExecAction{
 										Command: []string{
 											"/bin/sh",
 											"-c",
-											"rm -rf /registration/diskplugin.csi.alibabacloud.com /registration/diskplugin.csi.alibabacloud.com-reg.sock",
+											"rm -rf /registration/nasplugin.csi.alibabacloud.com /registration/nasplugin.csi.alibabacloud.com-reg.sock",
 										},
 									},
 								},
 							},
 							Args: []string{
 								"--v=5",
-								"--csi-address=/csi/csi.sock",
-								"--kubelet-registration-path=/var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com/csi.sock",
+								"--csi-address=/var/lib/kubelet/plugins/nasplugin.csi.alibabacloud.com/csi.sock",
+								"--kubelet-registration-path=/var/lib/kubelet/plugins/nasplugin.csi.alibabacloud.com/csi.sock",
 							},
 							Env: []corev1.EnvVar{
 								{
@@ -142,8 +147,8 @@ func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "plugin-dir",
-									MountPath: "/csi",
+									Name:      "kubelet-dir",
+									MountPath: "/var/lib/kubelet/",
 								},
 								{
 									Name:      "registration-dir",
@@ -152,8 +157,8 @@ func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 							},
 						},
 						{
-							Name:            "csi-diskplugin",
-							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-node-driver-registrar:v1.0.1",
+							Name:            "csi-nasplugin",
+							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-plugin:v1.14.8.32-c77e277b-aliyun",
 							ImagePullPolicy: "IfNotPresent",
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),
@@ -165,77 +170,41 @@ func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 								AllowPrivilegeEscalation: commonutil.Bool(true),
 							},
 							Args: []string{
+								"--endpoint=$(CSI_ENDPOINT)",
 								"--v=5",
-								"--endpoint=$(CSI_ENDPOINT",
-								"--driver=diskplugin.csi.alibabacloud.com",
+								"--driver=nasplugin.csi.alibabacloud.com",
 							},
 							Env: []corev1.EnvVar{
 								{
 									Name:  "CSI_ENDPOINT",
-									Value: "unix://var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com/csi.sock",
-								},
-								{
-									Name:  "ACCESS_KEY_ID",
-									Value: p.volume.Spec.CSIPlugin.AliyunCloudDisk.AccessKeyID,
-								},
-								{
-									Name:  "ACCESS_KEY_SECRET",
-									Value: p.volume.Spec.CSIPlugin.AliyunCloudDisk.AccessKeySecret,
+									Value: "unix://var/lib/kubelet/plugins/nasplugin.csi.alibabacloud.com/csi.sock",
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "plugin-dir",
-									MountPath: "/var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com",
-								},
-								{
-									Name:             "pods-mount-dir",
-									MountPath:        "/var/lib/kubelet/pods",
+									Name:             "kubelet-dir",
+									MountPath:        "/var/lib/kubelet/",
 									MountPropagation: k8sutil.MountPropagationMode(corev1.MountPropagationBidirectional),
 								},
 								{
-									Name:             "plugin-mount-dir",
-									MountPath:        "/var/lib/kubelet/plugins/kubernetes.io/csi/volumeDevices/",
+									Name:             "host-log",
+									MountPath:        "/var/log/",
 									MountPropagation: k8sutil.MountPropagationMode(corev1.MountPropagationBidirectional),
 								},
 								{
-									Name:             "host-dev",
-									MountPath:        "/dev",
-									MountPropagation: k8sutil.MountPropagationMode(corev1.MountPropagationHostToContainer),
-								},
-								{
-									Name:      "lib-modules",
-									MountPath: "/lib/modules",
-									ReadOnly:  true,
-								},
-								{
-									Name:      "host-run",
-									MountPath: "/run/dbus",
-									ReadOnly:  true,
-								},
-								{
-									Name:      "host-log",
-									MountPath: "/var/log/alicloud",
+									Name:      "etc",
+									MountPath: "/host/etc",
 								},
 							},
 						},
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: "plugin-dir",
+							Name: "kubelet-dir",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com",
-									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-								},
-							},
-						},
-						{
-							Name: "plugin-mount-dir",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/lib/kubelet/plugins/kubernetes.io/csi/volumeDevices/",
-									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+									Path: "/var/lib/kubelet/",
+									Type: k8sutil.HostPath(corev1.HostPathDirectory),
 								},
 							},
 						},
@@ -249,56 +218,20 @@ func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 							},
 						},
 						{
-							Name: "pods-mount-dir",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/lib/kubelet/pods",
-									Type: k8sutil.HostPath(corev1.HostPathDirectory),
-								},
-							},
-						},
-						{
-							Name: "host-dev",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/dev",
-									Type: k8sutil.HostPath(corev1.HostPathDirectory),
-								},
-							},
-						},
-						{
-							Name: "host-run",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/run/dbus",
-									Type: k8sutil.HostPath(corev1.HostPathDirectory),
-								},
-							},
-						},
-						{
-							Name: "host-sys",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/sys",
-									Type: k8sutil.HostPath(corev1.HostPathDirectory),
-								},
-							},
-						},
-						{
-							Name: "lib-modules",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/lib/modules",
-									Type: k8sutil.HostPath(corev1.HostPathDirectory),
-								},
-							},
-						},
-						{
 							Name: "host-log",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/log/alicloud/",
-									Type: k8sutil.HostPath(corev1.HostPathDirectory),
+									Path: "/var/log/",
+									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+								},
+							},
+						},
+						{
+							Name: "etc",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/etc",
+									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 								},
 							},
 						},
@@ -311,13 +244,12 @@ func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 	return ds
 }
 
-func (p *aliyunnasPlugin) service() *corev1.Service {
-	name := "csi-provisioner"
+func (p *aliyunnasPlugin) serviceForProvisioner() *corev1.Service {
 	labels := p.labels
-	labels["name"] = name
+	labels["name"] = p.provisionerName
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      p.provisionerName,
 			Namespace: p.volume.Namespace,
 			Labels:    labels,
 		},
@@ -336,17 +268,16 @@ func (p *aliyunnasPlugin) service() *corev1.Service {
 }
 
 func (p *aliyunnasPlugin) statefulset() interface{} {
-	name := "csi-provisioner"
 	labels := p.labels
-	labels["name"] = name
+	labels["name"] = p.provisionerName
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      p.provisionerName,
 			Namespace: p.volume.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName: name,
+			ServiceName: p.provisionerName,
 			Replicas:    commonutil.Int32(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
@@ -379,8 +310,7 @@ func (p *aliyunnasPlugin) statefulset() interface{} {
 							},
 						},
 					},
-					PriorityClassName:  "system-node-critical",
-					ServiceAccountName: "admin",
+					ServiceAccountName: "rainbond-operator",
 					HostNetwork:        true,
 					Containers: []corev1.Container{
 						{
@@ -388,10 +318,9 @@ func (p *aliyunnasPlugin) statefulset() interface{} {
 							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-provisioner:v1.2.2-aliyun",
 							ImagePullPolicy: "Always",
 							Args: []string{
-								"--provisioner=diskplugin.csi.alibabacloud.com",
+								"--provisioner=nasplugin.csi.alibabacloud.com",
 								"--csi-address=$(ADDRESS)",
-								"--feature-gates=Topology=True",
-								"--volume-name-prefix=pv-disk",
+								"--volume-name-prefix=nas",
 								"--v=5",
 							},
 							Env: []corev1.EnvVar{
@@ -408,30 +337,35 @@ func (p *aliyunnasPlugin) statefulset() interface{} {
 							},
 						},
 						{
-							Name:            "csi-diskplugin",
+							Name:            "csi-nasprovisioner",
 							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-plugin:v1.14.8.32-c77e277b-aliyun",
 							ImagePullPolicy: "Always",
+							SecurityContext: &corev1.SecurityContext{
+								Privileged: commonutil.Bool(true),
+								Capabilities: &corev1.Capabilities{
+									Add: []corev1.Capability{
+										"SYS_ADMIN",
+									},
+								},
+								AllowPrivilegeEscalation: commonutil.Bool(true),
+							},
 							Args: []string{
+								"--endpoint=$(CSI_ENDPOINT)",
 								"--v=5",
-								"--endpoint=$(CSI_ENDPOINT",
-								"--driver=diskplugin.csi.alibabacloud.com",
+								"--driver=nasplugin.csi.alibabacloud.com",
 							},
 							Env: []corev1.EnvVar{
 								{
 									Name:  "CSI_ENDPOINT",
-									Value: "unix://var/lib/kubelet/plugins/diskplugin.csi.alibabacloud.com/csi.sock",
+									Value: "unix://socketDir/csi.sock",
 								},
 								{
 									Name:  "ACCESS_KEY_ID",
-									Value: p.volume.Spec.CSIPlugin.AliyunCloudDisk.AccessKeyID,
+									Value: p.volume.Spec.CSIPlugin.AliyunNas.AccessKeyID,
 								},
 								{
 									Name:  "ACCESS_KEY_SECRET",
-									Value: p.volume.Spec.CSIPlugin.AliyunCloudDisk.AccessKeySecret,
-								},
-								{
-									Name:  "MAX_VOLUMES_PERNODE",
-									Value: "15",
+									Value: p.volume.Spec.CSIPlugin.AliyunNas.AccessKeySecret,
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
@@ -442,11 +376,6 @@ func (p *aliyunnasPlugin) statefulset() interface{} {
 								{
 									Name:      "disk-provisioner-dir",
 									MountPath: "/socketDir/",
-								},
-								{
-									Name:             "plugin-mount-dir",
-									MountPath:        "/var/lib/kubelet/plugins/kubernetes.io/csi/volumeDevices/",
-									MountPropagation: k8sutil.MountPropagationMode(corev1.MountPropagationBidirectional),
 								},
 								{
 									Name:      "etc",

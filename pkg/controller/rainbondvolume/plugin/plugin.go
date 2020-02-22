@@ -1,7 +1,9 @@
 package plugin
 
 type CSIPlugin interface {
-	CheckIfCSIDriverExists() bool
+	// TODO: rename IsPluginReady
+	IsPluginReady() bool
 	GetProvisioner() string
-	GetResources() []interface{}
+	GetClusterScopedResources() []interface{}
+	GetSubResources() []interface{}
 }

@@ -76,7 +76,7 @@ func (m *monitor) SetStorageClassNameRWO(sc string) {
 }
 
 func (m *monitor) daemonSetForMonitor() interface{} {
-	claimName := "rbd-monitor-data"
+	claimName := "data"
 	promDataPVC := createPersistentVolumeClaimRWO(m.component.Namespace, m.storageClassNameRWO, claimName)
 
 	args := []string{

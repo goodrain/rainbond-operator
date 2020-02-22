@@ -31,6 +31,22 @@ spec:
         spec:
           description: RainbondVolumeSpec defines the desired state of RainbondVolume
           properties:
+            StorageClassSpec:
+              description: StorageClassParameters describes the parameters for a class
+                of storage for which PersistentVolumes can be dynamically provisioned.
+              properties:
+                parameters:
+                  additionalProperties:
+                    type: string
+                  description: Parameters holds the parameters for the provisioner
+                    that should create volumes of this storage class.
+                  type: object
+                provisioner:
+                  description: Provisioner indicates the type of the provisioner.
+                  type: string
+              required:
+              - provisioner
+              type: object
             csiPlugin:
               description: CSIPlugin holds the image
               properties:
@@ -66,28 +82,12 @@ spec:
                   - accessKeyID
                   - accessKeySecret
                   type: object
-                nfs:
-                  type: object
               type: object
             storageClassName:
               description: 'The name of StorageClass, which is a kind of kubernetes
                 resource. It will used to create pvc for rainbond components. More
                 info: https://kubernetes.io/docs/concepts/storage/storage-classes/'
               type: string
-            storageClassSpec:
-              description: StorageClassParameters describes the parameters for a class
-                of storage for which PersistentVolumes can be dynamically provisioned.
-              properties:
-                parameters:
-                  additionalProperties:
-                    type: string
-                  description: Parameters holds the parameters for the provisioner
-                    that should create volumes of this storage class.
-                  type: object
-                provisioner:
-                  description: Provisioner indicates the type of the provisioner.
-                  type: string
-              type: object
           type: object
         status:
           description: RainbondVolumeStatus defines the observed state of rainbondvolume.
