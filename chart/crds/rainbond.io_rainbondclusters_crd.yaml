@@ -53,23 +53,6 @@ spec:
               items:
                 type: string
               type: array
-            gatewayNodes:
-              description: 'Information about the node where the gateway is located.
-                If not specified, the gateway will run on nodes where all ports do
-                not conflict. Deprecated: use xxx instead.'
-              items:
-                description: NodeAvailPorts node avail port
-                properties:
-                  nodeIP:
-                    type: string
-                  nodeName:
-                    type: string
-                  ports:
-                    items:
-                      type: integer
-                    type: array
-                type: object
-              type: array
             imageHub:
               description: User-specified private image repository, replacing goodrain.me.
               properties:
@@ -126,31 +109,6 @@ spec:
             rainbondImageRepository:
               description: Repository of each Rainbond component image, eg. docker.io/rainbond.
               type: string
-            rainbondShareStorage:
-              description: 'Deprecated: should be deleted'
-              properties:
-                fstabLine:
-                  description: FstabLine represents a line in file /etc/fstab.
-                  properties:
-                    dump:
-                      type: integer
-                    fileSystem:
-                      type: string
-                    mountPoint:
-                      type: string
-                    options:
-                      type: string
-                    pass:
-                      type: integer
-                    type:
-                      type: string
-                  type: object
-                storageClassName:
-                  type: string
-              required:
-                - fstabLine
-                - storageClassName
-              type: object
             regionDatabase:
               description: the region database information that rainbond component
                 will be used. rainbond-operator will create one if DBInfo is empty
@@ -190,21 +148,6 @@ spec:
         status:
           description: RainbondClusterStatus defines the observed state of RainbondCluster
           properties:
-            NodeAvailPorts:
-              description: 'Deprecated: Please use GatewayAvailableNodes instead'
-              items:
-                description: NodeAvailPorts node avail port
-                properties:
-                  nodeIP:
-                    type: string
-                  nodeName:
-                    type: string
-                  ports:
-                    items:
-                      type: integer
-                    type: array
-                type: object
-              type: array
             chaosAvailableNodes:
               description: holds some recommend nodes available for rbd-chaos to run.
               properties:
@@ -290,7 +233,6 @@ spec:
                   provisioner:
                     type: string
                 required:
-                  - accessMode
                   - name
                   - provisioner
                 type: object

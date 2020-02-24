@@ -132,3 +132,75 @@ type GlobalConfigs struct {
 	NodesForGateways  []*K8sNode `json:"nodesForGateway" binding:"required,dive,required"`
 	NodesForChaos     []*K8sNode `json:"nodesForChaos" binding:"required,dive,required"`
 }
+
+// AliyunCloudDiskCSIPluginSource represents a aliyun cloud disk CSI plugin.
+// More info: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver/blob/master/docs/disk.md
+type AliyunCloudDiskCSIPluginSource struct {
+	// The AccessKey ID provided by Alibaba Cloud for access control.
+	AccessKeyID string `json:"accessKeyID"`
+	// The AccessKey Secret provided by Alibaba Cloud for access control
+	AccessKeySecret string `json:"accessKeySecret"`
+
+	MaxVolumePerNode int `json:"maxVolumePerNode" binding:"lt=16"`
+}
+
+// AliyunNasCSIPluginSource represents a aliyun cloud nas CSI plugin.
+// More info: https://github.com/GLYASAI/alibaba-cloud-csi-driver/blob/master/docs/nas.md
+type AliyunNasCSIPluginSource struct {
+	// The AccessKey ID provided by Alibaba Cloud for access control.
+	AccessKeyID string `json:"accessKeyID"`
+	// The AccessKey Secret provided by Alibaba Cloud for access control
+	AccessKeySecret string `json:"accessKeySecret"`
+}
+
+// NFSCSIPluginSource represents a nfs CSI plugin.
+// More info: https://github.com/kubernetes-incubator/external-storage/tree/master/nfs
+type NFSCSIPluginSource struct {
+}
+
+// CSIPluginSource represents the source of a csi driver to create.
+// Only one of its members may be specified.
+type CSIPluginSource struct {
+	// AliyunCloudDiskCSIPluginSource represents a aliyun cloud disk CSI plugin.
+	// More info: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver/blob/master/docs/disk.md
+	AliyunCloudDisk *AliyunCloudDiskCSIPluginSource `json:"aliyunCloudDisk"`
+	// AliyunNasCSIPluginSource represents a aliyun cloud nas CSI plugin.
+	// More info: https://github.com/GLYASAI/alibaba-cloud-csi-driver/blob/master/docs/nas.md
+	AliyunNas *AliyunNasCSIPluginSource `json:"aliyunNas"`
+	// NFSCSIPluginSource represents a nfs CSI plugin.
+	// More info: https://github.com/kubernetes-incubator/external-storage/tree/master/nfs
+	NFS *NFSCSIPluginSource `json:"nfs,omitempty"`
+}
+
+// StorageClassParameters describes the parameters for a class of storage for
+// which PersistentVolumes can be dynamically provisioned.
+type StorageClassParameters struct {
+	// Provisioner indicates the type of the provisioner.
+	Provisioner string `json:"provisioner"`
+	// Parameters holds the parameters for the provisioner that should
+	// create volumes of this storage class.
+	// +optional
+	Parameters map[string]string `json:"parameters"`
+}
+
+// RainbondVolume -
+type RainbondVolume struct {
+	// Specify the name of the storageClass directly
+	StorageClassName string `json:"storageClassName"`
+	// Specify the storageClass parameter to directly create the corresponding StorageClass
+	StorageClassParameters *StorageClassParameters `json:"storageClassParameters"`
+
+	CSIPlugin *CSIPluginSource `json:"csiPlugin"`
+}
+
+// RainbondVolumes contains information about rainbondvolume, including RWX and RWO.
+// Used to prepare StorageClass for rainbond application.
+type RainbondVolumes struct {
+	RWX *RainbondVolume `json:"RWX" binding:"required"`
+	RWO *RainbondVolume `json:"RWO"`
+}
+
+// ClusterInstallReq -
+type ClusterInstallReq struct {
+	RainbondVolumes *RainbondVolumes `json:"rainbondVolumes" binding:"required"`
+}

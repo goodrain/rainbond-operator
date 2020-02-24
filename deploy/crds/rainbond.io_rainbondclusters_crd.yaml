@@ -233,7 +233,6 @@ spec:
                   provisioner:
                     type: string
                 required:
-                - accessMode
                 - name
                 - provisioner
                 type: object

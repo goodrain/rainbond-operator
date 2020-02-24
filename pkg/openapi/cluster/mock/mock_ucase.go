@@ -316,17 +316,17 @@ func (m *MockInstallUseCase) EXPECT() *MockInstallUseCaseMockRecorder {
 }
 
 // Install mocks base method
-func (m *MockInstallUseCase) Install() error {
+func (m *MockInstallUseCase) Install(req *v1.ClusterInstallReq) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Install")
+	ret := m.ctrl.Call(m, "Install", req)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Install indicates an expected call of Install
-func (mr *MockInstallUseCaseMockRecorder) Install() *gomock.Call {
+func (mr *MockInstallUseCaseMockRecorder) Install(req interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockInstallUseCase)(nil).Install))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockInstallUseCase)(nil).Install), req)
 }
 
 // InstallStatus mocks base method

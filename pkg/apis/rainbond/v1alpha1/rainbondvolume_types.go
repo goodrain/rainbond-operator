@@ -12,6 +12,8 @@ type AliyunCloudDiskCSIPluginSource struct {
 	AccessKeyID string `json:"accessKeyID"`
 	// The AccessKey Secret provided by Alibaba Cloud for access control
 	AccessKeySecret string `json:"accessKeySecret"`
+	// maxVolumePerNode
+	MaxVolumePerNode string `json:"maxVolumePerNode"`
 }
 
 // AliyunNasCSIPluginSource represents a aliyun cloud nas CSI plugin.
@@ -61,8 +63,6 @@ type RainbondVolumeSpec struct {
 	// More info: https://kubernetes.io/docs/concepts/storage/storage-classes/
 	StorageClassName       string                  `json:"storageClassName,omitempty"`
 	StorageClassParameters *StorageClassParameters `json:"storageClassParameters,omitempty"`
-
-	// +kubebuilder:validation:MaxProperties=100
 	// CSIPlugin holds the image
 	CSIPlugin *CSIPluginSource `json:"csiPlugin,omitempty"`
 }

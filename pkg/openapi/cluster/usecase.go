@@ -36,6 +36,6 @@ type ComponentUseCase interface { // TODO: loop call
 
 // InstallUseCase cluster install case
 type InstallUseCase interface {
-	Install() error
+	Install(req *v1.ClusterInstallReq) error
 	InstallStatus() (model.StatusRes, error)
 }

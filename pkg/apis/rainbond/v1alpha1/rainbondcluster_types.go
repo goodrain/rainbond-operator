@@ -94,7 +94,7 @@ type InstallPackageConfig struct {
 type StorageClass struct {
 	Name        string `json:"name"`
 	Provisioner string `json:"provisioner"`
-	AccessMode  string `json:"accessMode"`
+	AccessMode  string `json:"accessMode,omitempty"`
 }
 
 // K8sNode holds the information about a kubernetes node.

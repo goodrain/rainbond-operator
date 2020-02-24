@@ -46,9 +46,13 @@ spec:
                       description: The AccessKey Secret provided by Alibaba Cloud
                         for access control
                       type: string
+                    maxVolumePerNode:
+                      description: maxVolumePerNode
+                      type: string
                   required:
                   - accessKeyID
                   - accessKeySecret
+                  - maxVolumePerNode
                   type: object
                 aliyunNas:
                   description: 'AliyunNasCSIPluginSource represents a aliyun cloud

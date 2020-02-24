@@ -35,6 +35,7 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterUcase) {
 
 	clusterEngine := g.Group("/cluster")
 	clusterEngine.GET("/status", corsMidle(u.ClusterStatus))
+	clusterEngine.GET("/status-info", corsMidle(u.ClusterStatusInfo))
 	clusterEngine.POST("/init", corsMidle(u.ClusterInit))
 
 	clusterEngine.GET("/configs", corsMidle(u.Configs))
@@ -142,12 +143,20 @@ func (cc *ClusterController) Uninstall(c *gin.Context) {
 
 // Install install
 func (cc *ClusterController) Install(c *gin.Context) {
-	if err := cc.clusterUcase.Install().Install(); err != nil {
-		log.Error(err, "install error")
-		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "内部错误，请联系社区帮助"})
+	reqLogger := log.WithName("UpdateConfig")
+	var req v1.ClusterInstallReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		reqLogger.V(4).Info(fmt.Sprintf("bad request: %v", err))
+		ginutil.JSON(c, nil, bcode.BadRequest)
 		return
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
+
+	if err := cc.clusterUcase.Install().Install(&req); err != nil {
+		log.Error(err, "install error")
+		ginutil.JSON(c, nil, err)
+		return
+	}
+	ginutil.JSON(c, nil, nil)
 }
 
 // InstallStatus install status

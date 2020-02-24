@@ -2,6 +2,10 @@ package usecase
 
 import (
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
+	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"strconv"
 	"time"
 
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
@@ -85,34 +89,107 @@ func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
 // InstallUseCaseImpl install case
 type InstallUseCaseImpl struct {
 	cfg                *option.Config
+	namespace          string
 	rainbondKubeClient versioned.Interface
-	componentUsecase   ComponentUseCase
+
+	componentUsecase ComponentUseCase
 }
 
 // NewInstallUseCase new install case
 func NewInstallUseCase(cfg *option.Config, rainbondKubeClient versioned.Interface, componentUsecase ComponentUseCase) *InstallUseCaseImpl {
 	return &InstallUseCaseImpl{
 		cfg:                cfg,
+		namespace:          cfg.Namespace,
 		rainbondKubeClient: rainbondKubeClient,
 		componentUsecase:   componentUsecase,
 	}
 }
 
 // Install install
-func (ic *InstallUseCaseImpl) Install() error {
-	defer commonutil.TimeConsume(time.Now())
-
+func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
+	// create rainbond volume
+	if err := ic.createRainbondVolumes(req); err != nil {
+		return err
+	}
 	if err := ic.initRainbondPackage(); err != nil {
 		return err
 	}
-
 	return ic.createComponents(componentClaims...)
 }
 
+func (ic *InstallUseCaseImpl) createRainbondVolumes(req *v1.ClusterInstallReq) error {
+	rwx := setRainbondVolume("rainbondvolumerwx", ic.namespace, rbdutil.LabelsForAccessModeRWX(), req.RainbondVolumes.RWX)
+	if err := ic.createRainbondVolumeIfNotExists(rwx); err != nil {
+		return err
+	}
+	if req.RainbondVolumes.RWO != nil {
+		rwo := setRainbondVolume("rainbondvolumerwo", ic.namespace, rbdutil.LabelsForAccessModeRWX(), req.RainbondVolumes.RWO)
+		if err := ic.createRainbondVolumeIfNotExists(rwo); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (ic *InstallUseCaseImpl) createRainbondVolumeIfNotExists(volume *v1alpha1.RainbondVolume) error {
+	reqLogger := log.WithValues("Namespace", volume.Namespace, "Name", volume.Name)
+	_, err := ic.rainbondKubeClient.RainbondV1alpha1().RainbondVolumes(ic.namespace).Create(volume)
+	if err != nil {
+		if errors.IsAlreadyExists(err) {
+			reqLogger.Info("rainbond volume already exists")
+			return nil
+		}
+		reqLogger.Error(err, "create rainbond volume")
+		return bcode.ErrCreateRainbondVolume
+	}
+	return nil
+}
+
+func setRainbondVolume(name, namespace string, labels map[string]string, rv *v1.RainbondVolume) *v1alpha1.RainbondVolume {
+	spec := v1alpha1.RainbondVolumeSpec{
+		StorageClassName: rv.StorageClassName,
+	}
+	if rv.StorageClassParameters != nil {
+		spec.StorageClassParameters = &v1alpha1.StorageClassParameters{
+			Provisioner: rv.StorageClassParameters.Provisioner,
+			Parameters:  rv.StorageClassParameters.Parameters,
+		}
+	}
+
+	if rv.CSIPlugin != nil {
+		csiplugin := &v1alpha1.CSIPluginSource{}
+		switch {
+		case rv.CSIPlugin.AliyunCloudDisk != nil:
+			csiplugin.AliyunCloudDisk = &v1alpha1.AliyunCloudDiskCSIPluginSource{
+				AccessKeyID:      rv.CSIPlugin.AliyunCloudDisk.AccessKeyID,
+				AccessKeySecret:  rv.CSIPlugin.AliyunCloudDisk.AccessKeySecret,
+				MaxVolumePerNode: strconv.Itoa(rv.CSIPlugin.AliyunCloudDisk.MaxVolumePerNode),
+			}
+		case rv.CSIPlugin.AliyunNas != nil:
+			csiplugin.AliyunNas = &v1alpha1.AliyunNasCSIPluginSource{
+				AccessKeyID:     rv.CSIPlugin.AliyunNas.AccessKeyID,
+				AccessKeySecret: rv.CSIPlugin.AliyunNas.AccessKeySecret,
+			}
+		case rv.CSIPlugin.NFS != nil:
+			csiplugin.NFS = &v1alpha1.NFSCSIPluginSource{}
+		}
+		spec.CSIPlugin = csiplugin
+	}
+
+	volume := &v1alpha1.RainbondVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    rbdutil.LabelsForRainbond(labels),
+		},
+		Spec: spec,
+	}
+
+	return volume
+}
+
 func (ic *InstallUseCaseImpl) initRainbondPackage() error {
-	defer commonutil.TimeConsume(time.Now())
-	log.Info("create rainbondpackage resource start")
-	// rainbondpackage
+	reqLogger := log.WithValues("Namespace", ic.cfg.Namespace, "Name", ic.cfg.Rainbondpackage)
 	pkg := &v1alpha1.RainbondPackage{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ic.cfg.Rainbondpackage,
@@ -122,24 +199,18 @@ func (ic *InstallUseCaseImpl) initRainbondPackage() error {
 	}
 	_, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(ic.cfg.Namespace).Create(pkg)
 	if err != nil {
-		return fmt.Errorf("failed to create rainbondpackage: %v", err)
+		if errors.IsAlreadyExists(err) {
+			reqLogger.Info("rainbondpackage already exists.")
+			return nil
+		}
+		reqLogger.Error(err, "create rainbond package")
+		return bcode.ErrCreateRainbondPackage
 	}
-	log.Info("create rainbondpackage resource finish")
-	return nil
-}
-
-func (ic *InstallUseCaseImpl) initResourceDep() error {
-	defer commonutil.TimeConsume(time.Now())
-	if err := ic.initRainbondPackage(); err != nil {
-		return err
-	}
-
+	reqLogger.Info("successfully create rainbondpackage")
 	return nil
 }
 
 func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) error {
-	defer commonutil.TimeConsume(time.Now())
-
 	cluster, err := ic.rainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.cfg.Namespace).Get("rainbondcluster", metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -182,11 +253,17 @@ func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) err
 	}
 
 	for _, rbdComponent := range componentClaims {
+		reqLogger := log.WithValues("Namespace", rbdComponent.namespace, rbdComponent.name)
 		data := parseComponentClaim(rbdComponent)
 		// init component
 		data.Namespace = ic.cfg.Namespace
 		if _, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(ic.cfg.Namespace).Create(data); err != nil {
-			return err
+			if errors.IsAlreadyExists(err) {
+				reqLogger.Info("component already exists")
+				continue
+			}
+			reqLogger.Error(err, "create rainbond component")
+			return bcode.ErrCreateRbdComponent
 		}
 	}
 	return nil
