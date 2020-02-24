@@ -1,10 +1,12 @@
 package controller
 
 import (
+	"bytes"
 	"errors"
 	"github.com/golang/mock/gomock"
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/mock"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	"github.com/goodrain/rainbond-operator/pkg/util/ginutil"
 	"github.com/pquerna/ffjson/ffjson"
@@ -22,7 +24,7 @@ func TestClusterInfo404(t *testing.T) {
 	ucase := mock.NewMockUsecase(ctrl)
 	ucase.EXPECT().StatusInfo().Return(nil, bcode.NotFound)
 
-	clusterUcase := mock.NewMockIClusterCase(ctrl)
+	clusterUcase := mock.NewMockIClusterUcase(ctrl)
 	clusterUcase.EXPECT().Cluster().Return(ucase)
 
 	cc := &ClusterController{
@@ -46,7 +48,7 @@ func TestClusterInfo500(t *testing.T) {
 	ucase := mock.NewMockUsecase(ctrl)
 	ucase.EXPECT().StatusInfo().Return(nil, errors.New("foobar"))
 
-	clusterUcase := mock.NewMockIClusterCase(ctrl)
+	clusterUcase := mock.NewMockIClusterUcase(ctrl)
 	clusterUcase.EXPECT().Cluster().Return(ucase)
 
 	cc := &ClusterController{
@@ -66,7 +68,7 @@ func TestClusterInfo500(t *testing.T) {
 
 func TestClusterInfoOK(t *testing.T) {
 	statusInfo := &v1.ClusterStatusInfo{
-		GatewayAvailableNodes: v1.AvailableNodes{
+		GatewayAvailableNodes: &v1.AvailableNodes{
 			SpecifiedNodes: []*v1.K8sNode{
 				{
 					Name:       "foo",
@@ -74,7 +76,7 @@ func TestClusterInfoOK(t *testing.T) {
 				},
 			},
 		},
-		ChaosAvailableNodes: v1.AvailableNodes{
+		ChaosAvailableNodes: &v1.AvailableNodes{
 			MasterNodes: []*v1.K8sNode{
 				{
 					Name:       "foo",
@@ -89,7 +91,7 @@ func TestClusterInfoOK(t *testing.T) {
 	ucase := mock.NewMockUsecase(ctrl)
 	ucase.EXPECT().StatusInfo().Return(statusInfo, nil)
 
-	clusterUcase := mock.NewMockIClusterCase(ctrl)
+	clusterUcase := mock.NewMockIClusterUcase(ctrl)
 	clusterUcase.EXPECT().Cluster().Return(ucase)
 
 	cc := &ClusterController{
@@ -117,4 +119,128 @@ func TestClusterInfoOK(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.EqualValues(t, statusInfo, &info)
+}
+
+func TestClusterInfoRequest(t *testing.T) {
+	tests := []struct {
+		name string
+		data *v1.GlobalConfigs
+		want bcode.Coder
+	}{
+		{
+			name: "no nodes for chaos",
+			data: &v1.GlobalConfigs{
+				NodesForGateways: []*v1.K8sNode{
+					{
+						Name: "foo",
+					},
+				},
+			},
+			want: bcode.BadRequest,
+		},
+		{
+			name: "ok",
+			data: &v1.GlobalConfigs{
+				NodesForGateways: []*v1.K8sNode{
+					{
+						Name:       "foo",
+						InternalIP: "172.20.0.20",
+					},
+				},
+				NodesForChaos: []*v1.K8sNode{
+					{
+						Name:       "bar",
+						InternalIP: "172.20.0.20",
+					},
+				},
+			},
+			want: bcode.OK,
+		},
+		{
+			name: "missing name",
+			data: &v1.GlobalConfigs{
+				NodesForGateways: []*v1.K8sNode{
+					{
+						InternalIP: "1.1.1.1",
+					},
+				},
+				NodesForChaos: []*v1.K8sNode{
+					{
+						Name:       "bar",
+						InternalIP: "1.1.1.1",
+					},
+				},
+			},
+			want: bcode.BadRequest,
+		},
+		{
+			name: "missing internal ip",
+			data: &v1.GlobalConfigs{
+				NodesForGateways: []*v1.K8sNode{
+					{
+						Name: "foo",
+					},
+				},
+				NodesForChaos: []*v1.K8sNode{
+					{
+						Name:       "bar",
+						InternalIP: "1.1.1.1",
+					},
+				},
+			},
+			want: bcode.BadRequest,
+		},
+		{
+			name: "wrong internal ip",
+			data: &v1.GlobalConfigs{
+				NodesForGateways: []*v1.K8sNode{
+					{
+						Name: "foo",
+					},
+				},
+				NodesForChaos: []*v1.K8sNode{
+					{
+						Name:       "bar",
+						InternalIP: "1.1.1.1",
+					},
+				},
+			},
+			want: bcode.BadRequest,
+		},
+	}
+
+	path := "/cluster/configs"
+	for idx := range tests {
+		tc := tests[idx]
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+
+			installUcase := mock.NewMockInstallUseCase(ctrl)
+			statusRes := model.StatusRes{}
+			installUcase.EXPECT().InstallStatus().Return(statusRes, nil)
+
+			configUcase := mock.NewMockGlobalConfigUseCase(ctrl)
+			configUcase.EXPECT().UpdateGlobalConfig(tc.data).Return(nil)
+
+			clusterUcase := mock.NewMockIClusterUcase(ctrl)
+			clusterUcase.EXPECT().Install().Return(installUcase)
+			clusterUcase.EXPECT().GlobalConfigs().Return(configUcase)
+
+			cc := &ClusterController{
+				clusterUcase: clusterUcase,
+			}
+
+			r := gin.Default()
+			// setup router
+			r.PUT(path, cc.UpdateConfig)
+
+			body, _ := ffjson.Marshal(tc.data)
+
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("PUT", path, bytes.NewBuffer(body))
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.want.Code(), w.Code)
+		})
+	}
 }

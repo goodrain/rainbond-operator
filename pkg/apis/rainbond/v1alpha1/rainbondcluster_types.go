@@ -46,22 +46,6 @@ type EtcdConfig struct {
 	SecretName string `json:"secretName,omitempty"`
 }
 
-// FstabLine represents a line in file /etc/fstab.
-type FstabLine struct {
-	Device     string `json:"fileSystem,omitempty"`
-	MountPoint string `json:"mountPoint,omitempty"`
-	Type       string `json:"type,omitempty"`
-	Options    string `json:"options,omitempty"`
-	Dump       int    `json:"dump,omitempty"`
-	Pass       int    `json:"pass,omitempty"`
-}
-
-// RainbondShareStorage -
-type RainbondShareStorage struct {
-	StorageClassName string     `json:"storageClassName"`
-	FstabLine        *FstabLine `json:"fstabLine"`
-}
-
 // RainbondClusterSpec defines the desired state of RainbondCluster
 type RainbondClusterSpec struct {
 	// Repository of each Rainbond component image, eg. docker.io/rainbond.
@@ -72,14 +56,10 @@ type RainbondClusterSpec struct {
 	// Ingress IP addresses of rbd-gateway. If not specified,
 	// the IP of the node where the rbd-gateway is located will be used.
 	GatewayIngressIPs []string `json:"gatewayIngressIPs,omitempty"`
-	// Information about the node where the gateway is located.
-	// If not specified, the gateway will run on nodes where all ports do not conflict.
-	// Deprecated: use xxx instead.
-	GatewayNodes []NodeAvailPorts `json:"gatewayNodes,omitempty"`
 	// Specify the nodes where the rbd-gateway will running.
-	NodesForGateway []K8sNode `json:"nodesForGateway,omitempty"`
+	NodesForGateway []*K8sNode `json:"nodesForGateway,omitempty"`
 	// Specify the nodes where the rbd-gateway will running.
-	NodesForChaos []K8sNode `json:"nodesForChaos,omitempty"`
+	NodesForChaos []*K8sNode `json:"nodesForChaos,omitempty"`
 	// InstallMode is the mode of Rainbond cluster installation.
 	InstallMode InstallMode `json:"installMode,omitempty"`
 	// User-specified private image repository, replacing goodrain.me.
@@ -98,8 +78,6 @@ type RainbondClusterSpec struct {
 	EtcdConfig *EtcdConfig `json:"etcdConfig,omitempty"`
 	// define install rainbond version, This is usually image tag
 	InstallVersion string `json:"installVersion,omitempty"`
-	// Deprecated: should be deleted
-	RainbondShareStorage RainbondShareStorage `json:"rainbondShareStorage,omitempty"`
 	// Whether the configuration has been completed
 	ConfigCompleted bool `json:"configCompleted,omitempty"`
 	//InstallPackageConfig define install package download config
@@ -110,13 +88,6 @@ type RainbondClusterSpec struct {
 type InstallPackageConfig struct {
 	URL string `json:"url,omitempty"`
 	MD5 string `json:"md5,omitempty"`
-}
-
-// NodeAvailPorts node avail port
-type NodeAvailPorts struct {
-	NodeName string `json:"nodeName,omitempty"`
-	NodeIP   string `json:"nodeIP,omitempty"`
-	Ports    []int  `json:"ports,omitempty"`
 }
 
 // StorageClass storage class
@@ -147,8 +118,6 @@ type RainbondClusterStatus struct {
 	// Master node name list
 	// Deprecated: should be deleted
 	MasterNodeNames []string `json:"nodeNames,omitempty"`
-	// Deprecated: Please use GatewayAvailableNodes instead
-	NodeAvailPorts []*NodeAvailPorts `json:"NodeAvailPorts,omitempty"`
 	// List of existing StorageClasses in the cluster
 	// +optional
 	StorageClasses []*StorageClass `json:"storageClasses,omitempty"`
@@ -206,16 +175,9 @@ func (in *RainbondCluster) GatewayIngressIPs() (ips []string) {
 		return in.Spec.GatewayIngressIPs
 	}
 	// user select gateway node ip
-	if len(in.Spec.GatewayNodes) > 0 {
-		for _, node := range in.Spec.GatewayNodes {
-			ips = append(ips, node.NodeIP)
-		}
-		return
-	}
-	// all available gateway node ip
-	if in.Status != nil && len(in.Status.NodeAvailPorts) > 0 {
-		for _, node := range in.Status.NodeAvailPorts {
-			ips = append(ips, node.NodeIP)
+	if len(in.Spec.NodesForGateway) > 0 {
+		for _, node := range in.Spec.NodesForGateway {
+			ips = append(ips, node.InternalIP)
 		}
 		return
 	}

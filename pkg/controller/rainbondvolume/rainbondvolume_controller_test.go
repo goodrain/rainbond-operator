@@ -157,7 +157,7 @@ func TestApplyCSIPluginCSIDriverExists(t *testing.T) {
 	defer ctrl.Finish()
 
 	plugin := mock.NewMockCSIPlugin(ctrl)
-	plugin.EXPECT().CheckIfCSIDriverExists().Return(true)
+	plugin.EXPECT().IsPluginReady().Return(true)
 	plugin.EXPECT().GetProvisioner().Return(provisioenr)
 
 	volume := &rainbondv1alpha1.RainbondVolume{}

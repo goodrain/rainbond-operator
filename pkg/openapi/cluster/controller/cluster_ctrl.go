@@ -1,6 +1,9 @@
 package controller
 
 import (
+	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
+	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	"net/http"
 	"strings"
 
@@ -9,9 +12,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
-	"github.com/prometheus/common/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+var log = logf.Log.WithName("cluster_controller")
 
 // ClusterController k8s controller
 type ClusterController struct {
@@ -88,6 +92,14 @@ func (cc *ClusterController) Configs(c *gin.Context) {
 
 // UpdateConfig update cluster config info
 func (cc *ClusterController) UpdateConfig(c *gin.Context) {
+	reqLogger := log.WithName("UpdateConfig")
+	var req v1.GlobalConfigs
+	if err := c.ShouldBindJSON(&req); err != nil {
+		reqLogger.V(4).Info(fmt.Sprintf("bad request: %v", err))
+		ginutil.JSON(c, nil, bcode.BadRequest)
+		return
+	}
+
 	data, err := cc.clusterUcase.Install().InstallStatus()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
@@ -99,20 +111,13 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 			return
 		}
 	}
-	var req *model.GlobalConfigs
-	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
-		return
-	}
-	if len(req.GatewayNodes) == 0 {
-		c.JSON(http.StatusBadRequest, map[string]interface{}{"code": http.StatusBadRequest, "msg": "please select gatenode"})
-		return
-	}
-	if err := cc.clusterUcase.GlobalConfigs().UpdateGlobalConfig(req); err != nil {
+
+	if err := cc.clusterUcase.GlobalConfigs().UpdateGlobalConfig(&req); err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
+
+	ginutil.JSON(c, nil, nil)
 }
 
 // Address address

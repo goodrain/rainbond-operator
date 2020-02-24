@@ -15,8 +15,8 @@ func TestErr2Coder(t *testing.T) {
 	}{
 		{
 			name: "ok",
-			err:  newCode(10001),
-			want: 10001,
+			err:  newCode(10000001),
+			want: 10000001,
 		},
 		{
 			name: "200",

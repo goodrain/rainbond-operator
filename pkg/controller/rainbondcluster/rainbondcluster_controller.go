@@ -100,7 +100,7 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	if rainbondcluster.Status != nil && len(rainbondcluster.Status.NodeAvailPorts) > 0 && rainbondcluster.Spec.ImageHub != nil {
+	if rainbondcluster.Status != nil && rainbondcluster.Spec.ImageHub != nil {
 		return reconcile.Result{}, nil
 	}
 
@@ -179,11 +179,11 @@ func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(ctx context.Con
 		MasterRoleLabel: masterRoleLabel,
 		StorageClasses:  r.availableStorageClasses(),
 	}
-	s.GatewayAvailableNodes = rainbondv1alpha1.AvailableNodes{
+	s.GatewayAvailableNodes = &rainbondv1alpha1.AvailableNodes{
 		SpecifiedNodes: r.listSpecifiedGatewayNodes(ctx),
 		MasterNodes:    r.listMasterNodesForGateway(ctx, masterRoleLabel),
 	}
-	s.ChaosAvailableNodes = rainbondv1alpha1.AvailableNodes{
+	s.ChaosAvailableNodes = &rainbondv1alpha1.AvailableNodes{
 		SpecifiedNodes: r.listSpecifiedChaosNodes(ctx),
 		MasterNodes:    r.listMasterNodes(ctx, masterRoleLabel),
 	}

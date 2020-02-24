@@ -12,31 +12,31 @@ import (
 	reflect "reflect"
 )
 
-// MockIClusterCase is a mock of IClusterUcase interface
-type MockIClusterCase struct {
+// MockIClusterUcase is a mock of IClusterUcase interface
+type MockIClusterUcase struct {
 	ctrl     *gomock.Controller
-	recorder *MockIClusterCaseMockRecorder
+	recorder *MockIClusterUcaseMockRecorder
 }
 
-// MockIClusterCaseMockRecorder is the mock recorder for MockIClusterCase
-type MockIClusterCaseMockRecorder struct {
-	mock *MockIClusterCase
+// MockIClusterUcaseMockRecorder is the mock recorder for MockIClusterUcase
+type MockIClusterUcaseMockRecorder struct {
+	mock *MockIClusterUcase
 }
 
-// NewMockIClusterCase creates a new mock instance
-func NewMockIClusterCase(ctrl *gomock.Controller) *MockIClusterCase {
-	mock := &MockIClusterCase{ctrl: ctrl}
-	mock.recorder = &MockIClusterCaseMockRecorder{mock}
+// NewMockIClusterUcase creates a new mock instance
+func NewMockIClusterUcase(ctrl *gomock.Controller) *MockIClusterUcase {
+	mock := &MockIClusterUcase{ctrl: ctrl}
+	mock.recorder = &MockIClusterUcaseMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockIClusterCase) EXPECT() *MockIClusterCaseMockRecorder {
+func (m *MockIClusterUcase) EXPECT() *MockIClusterUcaseMockRecorder {
 	return m.recorder
 }
 
 // GlobalConfigs mocks base method
-func (m *MockIClusterCase) GlobalConfigs() cluster.GlobalConfigUseCase {
+func (m *MockIClusterUcase) GlobalConfigs() cluster.GlobalConfigUseCase {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GlobalConfigs")
 	ret0, _ := ret[0].(cluster.GlobalConfigUseCase)
@@ -44,13 +44,13 @@ func (m *MockIClusterCase) GlobalConfigs() cluster.GlobalConfigUseCase {
 }
 
 // GlobalConfigs indicates an expected call of GlobalConfigs
-func (mr *MockIClusterCaseMockRecorder) GlobalConfigs() *gomock.Call {
+func (mr *MockIClusterUcaseMockRecorder) GlobalConfigs() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GlobalConfigs", reflect.TypeOf((*MockIClusterCase)(nil).GlobalConfigs))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GlobalConfigs", reflect.TypeOf((*MockIClusterUcase)(nil).GlobalConfigs))
 }
 
 // Components mocks base method
-func (m *MockIClusterCase) Components() cluster.ComponentUseCase {
+func (m *MockIClusterUcase) Components() cluster.ComponentUseCase {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Components")
 	ret0, _ := ret[0].(cluster.ComponentUseCase)
@@ -58,13 +58,13 @@ func (m *MockIClusterCase) Components() cluster.ComponentUseCase {
 }
 
 // Components indicates an expected call of Components
-func (mr *MockIClusterCaseMockRecorder) Components() *gomock.Call {
+func (mr *MockIClusterUcaseMockRecorder) Components() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Components", reflect.TypeOf((*MockIClusterCase)(nil).Components))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Components", reflect.TypeOf((*MockIClusterUcase)(nil).Components))
 }
 
 // Install mocks base method
-func (m *MockIClusterCase) Install() cluster.InstallUseCase {
+func (m *MockIClusterUcase) Install() cluster.InstallUseCase {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Install")
 	ret0, _ := ret[0].(cluster.InstallUseCase)
@@ -72,13 +72,13 @@ func (m *MockIClusterCase) Install() cluster.InstallUseCase {
 }
 
 // Install indicates an expected call of Install
-func (mr *MockIClusterCaseMockRecorder) Install() *gomock.Call {
+func (mr *MockIClusterUcaseMockRecorder) Install() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockIClusterCase)(nil).Install))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockIClusterUcase)(nil).Install))
 }
 
 // Cluster mocks base method
-func (m *MockIClusterCase) Cluster() cluster.Usecase {
+func (m *MockIClusterUcase) Cluster() cluster.Usecase {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Cluster")
 	ret0, _ := ret[0].(cluster.Usecase)
@@ -86,9 +86,9 @@ func (m *MockIClusterCase) Cluster() cluster.Usecase {
 }
 
 // Cluster indicates an expected call of Cluster
-func (mr *MockIClusterCaseMockRecorder) Cluster() *gomock.Call {
+func (mr *MockIClusterUcaseMockRecorder) Cluster() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cluster", reflect.TypeOf((*MockIClusterCase)(nil).Cluster))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cluster", reflect.TypeOf((*MockIClusterUcase)(nil).Cluster))
 }
 
 // MockUsecase is a mock of Usecase interface
@@ -211,7 +211,7 @@ func (mr *MockGlobalConfigUseCaseMockRecorder) GlobalConfigs() *gomock.Call {
 }
 
 // UpdateGlobalConfig mocks base method
-func (m *MockGlobalConfigUseCase) UpdateGlobalConfig(config *model.GlobalConfigs) error {
+func (m *MockGlobalConfigUseCase) UpdateGlobalConfig(config *v1.GlobalConfigs) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateGlobalConfig", config)
 	ret0, _ := ret[0].(error)

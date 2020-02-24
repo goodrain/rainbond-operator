@@ -169,13 +169,6 @@ func (c *clusterUsecase) hackClusterInfo(rainbondCluster *rainbondv1alpha1.Rainb
 			})
 		}
 	}
-	for _, node := range rainbondCluster.Status.NodeAvailPorts {
-		status.ClusterInfo.NodeAvailPorts = append(status.ClusterInfo.NodeAvailPorts, model.NodeAvailPorts{
-			Ports:    node.Ports,
-			NodeIP:   node.NodeIP,
-			NodeName: node.NodeName,
-		})
-	}
 
 	// get install version from config
 	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
@@ -321,9 +314,6 @@ func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, err
 		},
 		Spec: rainbondv1alpha1.RainbondClusterSpec{
 			RainbondImageRepository: c.cfg.RainbondImageRepository,
-			RainbondShareStorage: rainbondv1alpha1.RainbondShareStorage{
-				FstabLine: &rainbondv1alpha1.FstabLine{},
-			},
 			InstallPackageConfig: rainbondv1alpha1.InstallPackageConfig{
 				URL: c.cfg.DownloadURL,
 				MD5: c.cfg.DownloadMD5,

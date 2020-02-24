@@ -24,7 +24,7 @@ type Usecase interface {
 // GlobalConfigUseCase global config case
 type GlobalConfigUseCase interface {
 	GlobalConfigs() (*model.GlobalConfigs, error)
-	UpdateGlobalConfig(config *model.GlobalConfigs) error
+	UpdateGlobalConfig(config *v1.GlobalConfigs) error
 	Address() (string, error)
 }
 

@@ -59,9 +59,9 @@ type PodContainerStatus struct {
 
 // K8sNode holds the information about a kubernetes node.
 type K8sNode struct {
-	Name       string `json:"name,omitempty"`
-	InternalIP string `json:"internalIP,omitempty"`
-	ExternalIP string `json:"externalIP,omitempty"`
+	Name       string `json:"name" binding:"required"`
+	InternalIP string `json:"internalIP" binding:"required,ipv4"`
+	ExternalIP string `json:"externalIP"`
 }
 
 // AvailableNodes contains nodes available for special rainbond components to run,
@@ -88,4 +88,47 @@ type ClusterStatusInfo struct {
 	// holds some recommend nodes available for rbd-chaos to run.
 	ChaosAvailableNodes *AvailableNodes `json:"chaosAvailableNodes"`
 	StorageClasses      []*StorageClass `json:"storageClasses"`
+}
+
+// ImageHub image hub
+type ImageHub struct {
+	Domain    string `json:"domain"`
+	Namespace string `json:"namespace"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+}
+
+// Database defines the connection information of database.
+type Database struct {
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+// EtcdConfig defines the configuration of etcd client.
+type EtcdConfig struct {
+	// Endpoints is a list of URLs.
+	Endpoints []string `json:"endpoints"`
+	// Secret to mount to read certificate files for tls.
+	CertInfo *EtcdCertInfo `json:"certInfo"`
+}
+
+// EtcdCertInfo etcd cert info
+type EtcdCertInfo struct {
+	CaFile   string `json:"caFile"`
+	CertFile string `json:"certFile"`
+	KeyFile  string `json:"keyFile"`
+}
+
+// GlobalConfigs check result
+type GlobalConfigs struct {
+	ImageHub          ImageHub   `json:"imageHub"`
+	RegionDatabase    Database   `json:"regionDatabase"`
+	UIDatabase        Database   `json:"uiDatabase"`
+	EtcdConfig        EtcdConfig `json:"etcdConfig"`
+	HTTPDomain        string     `json:"HTTPDomain"`
+	GatewayIngressIPs []string   `json:"gatewayIngressIPs"`
+	NodesForGateways  []*K8sNode `json:"nodesForGateway" binding:"required,dive,required"`
+	NodesForChaos     []*K8sNode `json:"nodesForChaos" binding:"required,dive,required"`
 }

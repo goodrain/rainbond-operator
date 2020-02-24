@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
+	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
@@ -36,7 +38,7 @@ func (cc *GlobalConfigUseCaseImpl) GlobalConfigs() (*model.GlobalConfigs, error)
 }
 
 // UpdateGlobalConfig update gloobal config
-func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *model.GlobalConfigs) error {
+func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *v1.GlobalConfigs) error {
 	clusterInfo, err := cc.formatRainbondClusterConfig(data)
 	if err != nil {
 		return err
@@ -45,7 +47,7 @@ func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *model.GlobalConfigs)
 	return err
 }
 
-func (cc *GlobalConfigUseCaseImpl) getSuffixHTTPHost(ip string) (domain string, err error) {
+func (cc *GlobalConfigUseCaseImpl) genSuffixHTTPHost(ip string) (domain string, err error) {
 	id, auth, err := cc.getOrCreateUUIDAndAuth()
 	if err != nil {
 		return "", err
@@ -133,44 +135,21 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 			}
 		}
 	}
-	allNode := make([]model.GatewayNode, 0)
-	if source.Status != nil {
-		for _, node := range source.Status.NodeAvailPorts {
-			allNode = append(allNode, model.GatewayNode{NodeName: node.NodeName, NodeIP: node.NodeIP, Ports: node.Ports})
-		}
-	}
 
-	clusterInfo.GatewayNodes = allNode
 	clusterInfo.HTTPDomain = source.Spec.SuffixHTTPHost
 
 	clusterInfo.GatewayIngressIPs = append(clusterInfo.GatewayIngressIPs, source.Spec.GatewayIngressIPs...)
-
-	storage := model.Storage{Name: source.Spec.StorageClassName}
-	clusterInfo.Storage = storage
-
-	rainbondShareStorage := model.RainbondShareStorage{}
-	if source.Spec.RainbondShareStorage.StorageClassName != "" {
-		rainbondShareStorage.StorageClassName = source.Spec.RainbondShareStorage.StorageClassName
-	}
-	if source.Spec.RainbondShareStorage.FstabLine != nil {
-		rainbondShareStorage.FstabLine = &model.FstabLine{
-			Device:     source.Spec.RainbondShareStorage.FstabLine.Device,
-			MountPoint: source.Spec.RainbondShareStorage.FstabLine.MountPoint,
-			Type:       source.Spec.RainbondShareStorage.FstabLine.Type,
-			Options:    source.Spec.RainbondShareStorage.FstabLine.Options,
-			Dump:       source.Spec.RainbondShareStorage.FstabLine.Dump,
-			Pass:       source.Spec.RainbondShareStorage.FstabLine.Pass,
-		}
-	}
-	clusterInfo.RainbondShareStorage = rainbondShareStorage
 
 	return clusterInfo, nil
 }
 
 // get old config and then set into new
-func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.GlobalConfigs) (*v1alpha1.RainbondCluster, error) {
+func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *v1.GlobalConfigs) (*v1alpha1.RainbondCluster, error) {
 	old, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(cc.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return nil, bcode.NotFound
+		}
 		return nil, err
 	}
 
@@ -217,60 +196,44 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *model.Glo
 		}
 	}
 
-	allNodes := make(map[string]*v1alpha1.NodeAvailPorts)
-	if old.Status != nil {
-		for index := range old.Status.NodeAvailPorts {
-			allNodes[old.Status.NodeAvailPorts[0].NodeIP] = old.Status.NodeAvailPorts[index]
-		}
-	}
-
-	for _, node := range source.GatewayNodes {
-		if n, ok := allNodes[node.NodeIP]; ok {
-			clusterInfo.Spec.GatewayNodes = append(clusterInfo.Spec.GatewayNodes, *n)
-		}
-	}
-
 	if source.HTTPDomain != "" {
 		clusterInfo.Spec.SuffixHTTPHost = source.HTTPDomain
 	} else {
-		httpDomain := source.GatewayNodes[0].NodeIP // gatewayNodes must selected , so it can't be nil
+		// NodesForGateways can not be nil
+		ip := source.NodesForGateways[0].InternalIP
 		if len(source.GatewayIngressIPs) > 0 {
-			httpDomain = source.GatewayIngressIPs[0]
+			ip = source.GatewayIngressIPs[0]
 		}
-		domain, err := cc.getSuffixHTTPHost(httpDomain)
+		domain, err := cc.genSuffixHTTPHost(ip)
 		if err != nil {
-			logrus.Warn("get suffix http host error: ", err.Error())
-			clusterInfo.Spec.SuffixHTTPHost = "pass.grapps.cn"
-		} else {
-			clusterInfo.Spec.SuffixHTTPHost = domain
+			logrus.Errorf("generate suffix http host: %v", err)
+			return nil, bcode.ErrGenHTTPDomain
 		}
+		clusterInfo.Spec.SuffixHTTPHost = domain
 	}
 
 	// must provide all, can't patch
 	clusterInfo.Spec.GatewayIngressIPs = append(clusterInfo.Spec.GatewayIngressIPs, source.GatewayIngressIPs...)
 
-	clusterInfo.Spec.StorageClassName = source.Storage.Name
-
-	if source.RainbondShareStorage.StorageClassName != "" {
-		clusterInfo.Spec.RainbondShareStorage.StorageClassName = source.RainbondShareStorage.StorageClassName
-	}
-	clusterInfo.Spec.RainbondShareStorage.FstabLine = &v1alpha1.FstabLine{}
-	if source.RainbondShareStorage.FstabLine != nil {
-		clusterInfo.Spec.RainbondShareStorage.FstabLine = &v1alpha1.FstabLine{
-			Device:     source.RainbondShareStorage.FstabLine.Device,
-			MountPoint: source.RainbondShareStorage.FstabLine.MountPoint,
-			Type:       source.RainbondShareStorage.FstabLine.Type,
-			Options:    source.RainbondShareStorage.FstabLine.Options,
-			Dump:       source.RainbondShareStorage.FstabLine.Dump,
-			Pass:       source.RainbondShareStorage.FstabLine.Pass,
+	setNodes := func(nodes []*v1.K8sNode) []*v1alpha1.K8sNode {
+		var result []*v1alpha1.K8sNode
+		for _, node := range nodes {
+			result = append(result, &v1alpha1.K8sNode{
+				Name:       node.Name,
+				InternalIP: node.InternalIP,
+				ExternalIP: node.ExternalIP,
+			})
 		}
+		return result
 	}
+	clusterInfo.Spec.NodesForGateway = setNodes(source.NodesForGateways)
+	clusterInfo.Spec.NodesForChaos = setNodes(source.NodesForChaos)
 
 	return clusterInfo, nil
 }
 
 //TODO generate test case
-func (cc *GlobalConfigUseCaseImpl) updateOrCreateEtcdCertInfo(certInfo model.EtcdCertInfo) error {
+func (cc *GlobalConfigUseCaseImpl) updateOrCreateEtcdCertInfo(certInfo *v1.EtcdCertInfo) error {
 	old, err := cc.cfg.KubeClient.CoreV1().Secrets(cc.cfg.Namespace).Get(cc.cfg.EtcdSecretName, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
