@@ -108,10 +108,6 @@ spec:
                     type: string
                   name:
                     type: string
-                required:
-                - externalIP
-                - internalIP
-                - name
                 type: object
               type: array
             nodesForGateway:
@@ -125,17 +121,13 @@ spec:
                     type: string
                   name:
                     type: string
-                required:
-                - externalIP
-                - internalIP
-                - name
                 type: object
               type: array
             rainbondImageRepository:
               description: Repository of each Rainbond component image, eg. docker.io/rainbond.
               type: string
             rainbondShareStorage:
-              description: RainbondShareStorage -
+              description: 'Deprecated: should be deleted'
               properties:
                 fstabLine:
                   description: FstabLine represents a line in file /etc/fstab.
@@ -228,10 +220,6 @@ spec:
                         type: string
                       name:
                         type: string
-                    required:
-                    - externalIP
-                    - internalIP
-                    - name
                     type: object
                   type: array
                 specifiedNodes:
@@ -246,10 +234,6 @@ spec:
                         type: string
                       name:
                         type: string
-                    required:
-                    - externalIP
-                    - internalIP
-                    - name
                     type: object
                   type: array
               type: object
@@ -269,10 +253,6 @@ spec:
                         type: string
                       name:
                         type: string
-                    required:
-                    - externalIP
-                    - internalIP
-                    - name
                     type: object
                   type: array
                 specifiedNodes:
@@ -287,10 +267,6 @@ spec:
                         type: string
                       name:
                         type: string
-                    required:
-                    - externalIP
-                    - internalIP
-                    - name
                     type: object
                   type: array
               type: object
@@ -307,11 +283,14 @@ spec:
               items:
                 description: StorageClass storage class
                 properties:
+                  accessMode:
+                    type: string
                   name:
                     type: string
                   provisioner:
                     type: string
                 required:
+                - accessMode
                 - name
                 - provisioner
                 type: object

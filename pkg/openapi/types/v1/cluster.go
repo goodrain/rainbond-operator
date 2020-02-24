@@ -46,6 +46,7 @@ type PodStatus struct {
 	ContainerStatuses []PodContainerStatus `json:"container_statuses"`
 }
 
+// PodContainerStatus -
 type PodContainerStatus struct {
 	ContainerID string `json:"containerID"`
 	Image       string `json:"image"`
@@ -54,4 +55,37 @@ type PodContainerStatus struct {
 	State   string `json:"state"`
 	Reason  string `json:"reason"`
 	Message string `json:"message"`
+}
+
+// K8sNode holds the information about a kubernetes node.
+type K8sNode struct {
+	Name       string `json:"name,omitempty"`
+	InternalIP string `json:"internalIP,omitempty"`
+	ExternalIP string `json:"externalIP,omitempty"`
+}
+
+// AvailableNodes contains nodes available for special rainbond components to run,
+// such as rbd-gateway, rbd-chaos.
+type AvailableNodes struct {
+	// The nodes with user-specified labels.
+	SpecifiedNodes []*K8sNode `json:"specifiedNodes,omitempty"`
+	// A list of kubernetes master nodes.
+	MasterNodes []*K8sNode `json:"masterNodes,omitempty"`
+}
+
+// StorageClasses is a List of StorageCass available in the cluster.
+// StorageClass storage class
+type StorageClass struct {
+	Name        string `json:"name"`
+	Provisioner string `json:"provisioner"`
+	AccessMode  string `json:"accessMode"`
+}
+
+// ClusterStatusInfo holds the information of rainbondcluster status.
+type ClusterStatusInfo struct {
+	// holds some recommend nodes available for rbd-gateway to run.
+	GatewayAvailableNodes *AvailableNodes `json:"gatewayAvailableNodes"`
+	// holds some recommend nodes available for rbd-chaos to run.
+	ChaosAvailableNodes *AvailableNodes `json:"chaosAvailableNodes"`
+	StorageClasses      []*StorageClass `json:"storageClasses"`
 }

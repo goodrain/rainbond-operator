@@ -41,7 +41,7 @@ func (m *MockCSIPlugin) IsPluginReady() bool {
 }
 
 // IsPluginReady indicates an expected call of IsPluginReady
-func (mr *MockCSIPluginMockRecorder) CheckIfCSIDriverExists() *gomock.Call {
+func (mr *MockCSIPluginMockRecorder) IsPluginReady() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPluginReady", reflect.TypeOf((*MockCSIPlugin)(nil).IsPluginReady))
 }

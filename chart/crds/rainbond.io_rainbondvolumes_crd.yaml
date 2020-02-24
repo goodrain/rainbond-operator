@@ -31,22 +31,6 @@ spec:
         spec:
           description: RainbondVolumeSpec defines the desired state of RainbondVolume
           properties:
-            StorageClassSpec:
-              description: StorageClassParameters describes the parameters for a class
-                of storage for which PersistentVolumes can be dynamically provisioned.
-              properties:
-                parameters:
-                  additionalProperties:
-                    type: string
-                  description: Parameters holds the parameters for the provisioner
-                    that should create volumes of this storage class.
-                  type: object
-                provisioner:
-                  description: Provisioner indicates the type of the provisioner.
-                  type: string
-              required:
-              - provisioner
-              type: object
             csiPlugin:
               description: CSIPlugin holds the image
               properties:
@@ -63,8 +47,8 @@ spec:
                         for access control
                       type: string
                   required:
-                  - accessKeyID
-                  - accessKeySecret
+                    - accessKeyID
+                    - accessKeySecret
                   type: object
                 aliyunNas:
                   description: 'AliyunNasCSIPluginSource represents a aliyun cloud
@@ -79,8 +63,12 @@ spec:
                         for access control
                       type: string
                   required:
-                  - accessKeyID
-                  - accessKeySecret
+                    - accessKeyID
+                    - accessKeySecret
+                  type: object
+                nfs:
+                  description: 'NFSCSIPluginSource represents a nfs CSI plugin. More
+                    info: https://github.com/kubernetes-incubator/external-storage/tree/master/nfs'
                   type: object
               type: object
             storageClassName:
@@ -88,6 +76,20 @@ spec:
                 resource. It will used to create pvc for rainbond components. More
                 info: https://kubernetes.io/docs/concepts/storage/storage-classes/'
               type: string
+            storageClassParameters:
+              description: StorageClassParameters describes the parameters for a class
+                of storage for which PersistentVolumes can be dynamically provisioned.
+              properties:
+                parameters:
+                  additionalProperties:
+                    type: string
+                  description: Parameters holds the parameters for the provisioner
+                    that should create volumes of this storage class.
+                  type: object
+                provisioner:
+                  description: Provisioner indicates the type of the provisioner.
+                  type: string
+              type: object
           type: object
         status:
           description: RainbondVolumeStatus defines the observed state of rainbondvolume.
@@ -96,8 +98,8 @@ spec:
               description: Condition keeps track of all rainbondvolume conditions,
                 if they exist.
               items:
-                description: RainbondVolume represents one current condition of an
-                  rainbondvolume.
+                description: RainbondVolumeCondition represents one current condition
+                  of an rainbondvolume.
                 properties:
                   lastTransitionTime:
                     description: Last time the condition transitioned from one status
@@ -118,14 +120,14 @@ spec:
                     description: Type of rainbondvolume condition.
                     type: string
                 required:
-                - status
-                - type
+                  - status
+                  - type
                 type: object
               type: array
           type: object
       type: object
   version: v1alpha1
   versions:
-  - name: v1alpha1
-    served: true
-    storage: true
+    - name: v1alpha1
+      served: true
+      storage: true

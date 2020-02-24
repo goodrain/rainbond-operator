@@ -116,6 +116,7 @@ func init() {
 	SchemeBuilder.Register(&RbdComponent{}, &RbdComponentList{})
 }
 
+// ImagePullPolicy returns the ImagePullPolicy, or  return PullAlways if it is empty.
 func (in *RbdComponent) ImagePullPolicy() corev1.PullPolicy {
 	if in.Spec.ImagePullPolicy == "" {
 		return corev1.PullAlways
@@ -123,6 +124,7 @@ func (in *RbdComponent) ImagePullPolicy() corev1.PullPolicy {
 	return in.Spec.ImagePullPolicy
 }
 
+// LogLevel returns the LogLevel, or  return LogLevelInfo if it is empty.
 func (in *RbdComponent) LogLevel() LogLevel {
 	if in.Spec.LogLevel == "" {
 		return LogLevelInfo

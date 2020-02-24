@@ -11,16 +11,16 @@ type CaseImpl struct {
 	componentUseCaseImpl    cluster.ComponentUseCase
 	globalConfigUseCaseImpl cluster.GlobalConfigUseCase
 	installCaseImpl         cluster.InstallUseCase
-	clusterImpl             cluster.ClusterUseCase
+	clusterImpl             cluster.Usecase
 }
 
 // NewClusterCase new cluster case
-func NewClusterCase(conf *option.Config, repo cluster.Repository, rainbondKubeClient versioned.Interface) cluster.IClusterCase {
+func NewClusterCase(conf *option.Config, repo cluster.Repository, rainbondKubeClient versioned.Interface) cluster.IClusterUcase {
 	clusterCase := &CaseImpl{}
 	clusterCase.componentUseCaseImpl = NewComponentUsecase(conf)
 	clusterCase.globalConfigUseCaseImpl = NewGlobalConfigUseCase(conf)
 	clusterCase.installCaseImpl = NewInstallUseCase(conf, rainbondKubeClient, clusterCase.componentUseCaseImpl)
-	clusterCase.clusterImpl = NewClusterUsecaseImpl(conf, repo, clusterCase.componentUseCaseImpl)
+	clusterCase.clusterImpl = NewClusterUsecase(conf, repo, clusterCase.componentUseCaseImpl)
 	return clusterCase
 }
 
@@ -40,6 +40,6 @@ func (c *CaseImpl) Install() cluster.InstallUseCase {
 }
 
 // Cluster cluster impl
-func (c *CaseImpl) Cluster() cluster.ClusterUseCase {
+func (c *CaseImpl) Cluster() cluster.Usecase {
 	return c.clusterImpl
 }

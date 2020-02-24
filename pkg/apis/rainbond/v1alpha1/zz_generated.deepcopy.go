@@ -438,8 +438,16 @@ func (in *RainbondClusterStatus) DeepCopyInto(out *RainbondClusterStatus) {
 			}
 		}
 	}
-	in.GatewayAvailableNodes.DeepCopyInto(&out.GatewayAvailableNodes)
-	in.ChaosAvailableNodes.DeepCopyInto(&out.ChaosAvailableNodes)
+	if in.GatewayAvailableNodes != nil {
+		in, out := &in.GatewayAvailableNodes, &out.GatewayAvailableNodes
+		*out = new(AvailableNodes)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.ChaosAvailableNodes != nil {
+		in, out := &in.ChaosAvailableNodes, &out.ChaosAvailableNodes
+		*out = new(AvailableNodes)
+		(*in).DeepCopyInto(*out)
+	}
 	return
 }
 

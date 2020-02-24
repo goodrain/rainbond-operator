@@ -19,6 +19,8 @@ require (
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/myesui/uuid v1.0.0 // indirect
 	github.com/operator-framework/operator-sdk v0.13.0
+	github.com/pkg/errors v0.8.1
+	github.com/pquerna/ffjson v0.0.0-20180717144149-af8b230fcd20
 	github.com/prometheus/common v0.6.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/pflag v1.0.5

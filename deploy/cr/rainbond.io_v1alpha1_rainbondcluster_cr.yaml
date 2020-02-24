@@ -3,3 +3,5 @@ kind: RainbondCluster
 metadata:
   name: rainbondcluster
   namespace: rbd-system
+spec:
+  suffixHTTPHost: foo.bar.com

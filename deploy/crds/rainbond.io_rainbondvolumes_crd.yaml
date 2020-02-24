@@ -67,6 +67,8 @@ spec:
                   - accessKeySecret
                   type: object
                 nfs:
+                  description: 'NFSCSIPluginSource represents a nfs CSI plugin. More
+                    info: https://github.com/kubernetes-incubator/external-storage/tree/master/nfs'
                   type: object
               type: object
             storageClassName:
@@ -74,7 +76,7 @@ spec:
                 resource. It will used to create pvc for rainbond components. More
                 info: https://kubernetes.io/docs/concepts/storage/storage-classes/'
               type: string
-            storageClassSpec:
+            storageClassParameters:
               description: StorageClassParameters describes the parameters for a class
                 of storage for which PersistentVolumes can be dynamically provisioned.
               properties:
@@ -96,8 +98,8 @@ spec:
               description: Condition keeps track of all rainbondvolume conditions,
                 if they exist.
               items:
-                description: RainbondVolume represents one current condition of an
-                  rainbondvolume.
+                description: RainbondVolumeCondition represents one current condition
+                  of an rainbondvolume.
                 properties:
                   lastTransitionTime:
                     description: Last time the condition transitioned from one status

@@ -23,6 +23,8 @@ type AliyunNasCSIPluginSource struct {
 	AccessKeySecret string `json:"accessKeySecret"`
 }
 
+// NFSCSIPluginSource represents a nfs CSI plugin.
+// More info: https://github.com/kubernetes-incubator/external-storage/tree/master/nfs
 type NFSCSIPluginSource struct {
 }
 
@@ -47,7 +49,8 @@ type CSIPluginSource struct {
 	// AliyunNasCSIPluginSource represents a aliyun cloud nas CSI plugin.
 	// More info: https://github.com/GLYASAI/alibaba-cloud-csi-driver/blob/master/docs/nas.md
 	AliyunNas *AliyunNasCSIPluginSource `json:"aliyunNas,omitempty"`
-
+	// NFSCSIPluginSource represents a nfs CSI plugin.
+	// More info: https://github.com/kubernetes-incubator/external-storage/tree/master/nfs
 	NFS *NFSCSIPluginSource `json:"nfs,omitempty"`
 }
 
@@ -57,14 +60,14 @@ type RainbondVolumeSpec struct {
 	// It will used to create pvc for rainbond components.
 	// More info: https://kubernetes.io/docs/concepts/storage/storage-classes/
 	StorageClassName       string                  `json:"storageClassName,omitempty"`
-	StorageClassParameters *StorageClassParameters `json:"storageClassSpec,omitempty"`
+	StorageClassParameters *StorageClassParameters `json:"storageClassParameters,omitempty"`
 
 	// +kubebuilder:validation:MaxProperties=100
 	// CSIPlugin holds the image
 	CSIPlugin *CSIPluginSource `json:"csiPlugin,omitempty"`
 }
 
-// RainbondVolumeConditionType
+// RainbondVolumeConditionType -
 type RainbondVolumeConditionType string
 
 const (
@@ -74,7 +77,7 @@ const (
 	RainbondVolumeProgressing RainbondVolumeConditionType = "Progressing"
 )
 
-// RainbondVolume represents one current condition of an rainbondvolume.
+// RainbondVolumeCondition represents one current condition of an rainbondvolume.
 type RainbondVolumeCondition struct {
 	// Type of rainbondvolume condition.
 	Type RainbondVolumeConditionType `json:"type"`
@@ -121,6 +124,7 @@ func init() {
 	SchemeBuilder.Register(&RainbondVolume{}, &RainbondVolumeList{})
 }
 
+// GetRainbondVolumeCondition returns a condition based on the given type.
 func (in *RainbondVolumeStatus) GetRainbondVolumeCondition(t RainbondVolumeConditionType) (int, *RainbondVolumeCondition) {
 	for i, c := range in.Conditions {
 		if t == c.Type {

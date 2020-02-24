@@ -1,32 +1,33 @@
 package controller
 
 import (
-	"github.com/prometheus/common/log"
 	"net/http"
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/ginutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+	"github.com/prometheus/common/log"
 )
 
 // ClusterController k8s controller
 type ClusterController struct {
-	clusterCase cluster.IClusterCase
+	clusterUcase cluster.IClusterUcase
 }
 
 var corsMidle = func(f gin.HandlerFunc) gin.HandlerFunc {
-	return gin.HandlerFunc(func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
 		corsutil.SetCORS(ctx)
 		f(ctx)
-	})
+	}
 }
 
 // NewClusterController creates a new k8s controller
-func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
-	u := &ClusterController{clusterCase: clusterCase}
+func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterUcase) {
+	u := &ClusterController{clusterUcase: clusterCase}
 
 	clusterEngine := g.Group("/cluster")
 	clusterEngine.GET("/status", corsMidle(u.ClusterStatus))
@@ -50,7 +51,7 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterCase) {
 
 // ClusterStatus cluster status
 func (cc *ClusterController) ClusterStatus(c *gin.Context) {
-	status, err := cc.clusterCase.Cluster().Status()
+	status, err := cc.clusterUcase.Cluster().Status()
 	if err != nil {
 		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "内部错误，请联系社区帮助"})
 		return
@@ -60,7 +61,7 @@ func (cc *ClusterController) ClusterStatus(c *gin.Context) {
 
 // ClusterInit cluster init
 func (cc *ClusterController) ClusterInit(c *gin.Context) {
-	err := cc.clusterCase.Cluster().Init()
+	err := cc.clusterUcase.Cluster().Init()
 	if err != nil {
 		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "内部错误，请联系社区帮助"})
 		return
@@ -68,9 +69,15 @@ func (cc *ClusterController) ClusterInit(c *gin.Context) {
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
 }
 
+// ClusterStatusInfo returns the cluster information from rainbondcluster.
+func (cc *ClusterController) ClusterStatusInfo(c *gin.Context) {
+	info, err := cc.clusterUcase.Cluster().StatusInfo()
+	ginutil.JSON(c, info, err)
+}
+
 // Configs get cluster config info
 func (cc *ClusterController) Configs(c *gin.Context) {
-	configs, err := cc.clusterCase.GlobalConfigs().GlobalConfigs()
+	configs, err := cc.clusterUcase.GlobalConfigs().GlobalConfigs()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
@@ -81,7 +88,7 @@ func (cc *ClusterController) Configs(c *gin.Context) {
 
 // UpdateConfig update cluster config info
 func (cc *ClusterController) UpdateConfig(c *gin.Context) {
-	data, err := cc.clusterCase.Install().InstallStatus()
+	data, err := cc.clusterUcase.Install().InstallStatus()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
@@ -101,7 +108,7 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, map[string]interface{}{"code": http.StatusBadRequest, "msg": "please select gatenode"})
 		return
 	}
-	if err := cc.clusterCase.GlobalConfigs().UpdateGlobalConfig(req); err != nil {
+	if err := cc.clusterUcase.GlobalConfigs().UpdateGlobalConfig(req); err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}
@@ -110,7 +117,7 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 
 // Address address
 func (cc *ClusterController) Address(c *gin.Context) {
-	data, err := cc.clusterCase.GlobalConfigs().Address()
+	data, err := cc.clusterUcase.GlobalConfigs().Address()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
@@ -120,7 +127,7 @@ func (cc *ClusterController) Address(c *gin.Context) {
 
 // Uninstall reset cluster
 func (cc *ClusterController) Uninstall(c *gin.Context) {
-	err := cc.clusterCase.Cluster().UnInstall()
+	err := cc.clusterUcase.Cluster().UnInstall()
 	if err != nil {
 		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "卸载出错，请联系社区帮助"})
 		return
@@ -130,7 +137,7 @@ func (cc *ClusterController) Uninstall(c *gin.Context) {
 
 // Install install
 func (cc *ClusterController) Install(c *gin.Context) {
-	if err := cc.clusterCase.Install().Install(); err != nil {
+	if err := cc.clusterUcase.Install().Install(); err != nil {
 		log.Error(err, "install error")
 		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "内部错误，请联系社区帮助"})
 		return
@@ -140,7 +147,7 @@ func (cc *ClusterController) Install(c *gin.Context) {
 
 // InstallStatus install status
 func (cc *ClusterController) InstallStatus(c *gin.Context) {
-	data, err := cc.clusterCase.Install().InstallStatus()
+	data, err := cc.clusterUcase.Install().InstallStatus()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
@@ -156,7 +163,7 @@ func (cc *ClusterController) Components(c *gin.Context) {
 		isInit = true
 	}
 
-	componseInfos, err := cc.clusterCase.Components().List(isInit)
+	componseInfos, err := cc.clusterUcase.Components().List(isInit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
@@ -173,7 +180,7 @@ func (cc *ClusterController) SingleComponent(c *gin.Context) {
 		cc.Components(c) // TODO fanyangyang need for test TODO: WHY?
 		return
 	}
-	componseInfos, err := cc.clusterCase.Components().Get(name)
+	componseInfos, err := cc.clusterUcase.Components().Get(name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return

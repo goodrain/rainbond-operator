@@ -16,7 +16,8 @@ var (
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
-	AddToScheme   = SchemeBuilder.AddToScheme
+	// AddToScheme adds all registered types to s.
+	AddToScheme = SchemeBuilder.AddToScheme
 )
 
 // Resource gets an EtcdCluster GroupResource for a specified resource

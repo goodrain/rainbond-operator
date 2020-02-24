@@ -5,19 +5,20 @@ import (
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 )
 
-// IClusterCase cluster case
-type IClusterCase interface {
+// IClusterUcase cluster case
+type IClusterUcase interface {
 	GlobalConfigs() GlobalConfigUseCase
 	Components() ComponentUseCase
 	Install() InstallUseCase
-	Cluster() ClusterUseCase
+	Cluster() Usecase
 }
 
-// ClusterUseCase cluster case
-type ClusterUseCase interface {
+// Usecase cluster case
+type Usecase interface {
 	Status() (*model.ClusterStatus, error)
 	Init() error
 	UnInstall() error
+	StatusInfo() (*v1.ClusterStatusInfo, error)
 }
 
 // GlobalConfigUseCase global config case

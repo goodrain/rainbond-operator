@@ -97,7 +97,8 @@ type RainbondClusterSpec struct {
 	// rainbond-operator will create one if EtcdConfig is empty
 	EtcdConfig *EtcdConfig `json:"etcdConfig,omitempty"`
 	// define install rainbond version, This is usually image tag
-	InstallVersion       string               `json:"installVersion,omitempty"`
+	InstallVersion string `json:"installVersion,omitempty"`
+	// Deprecated: should be deleted
 	RainbondShareStorage RainbondShareStorage `json:"rainbondShareStorage,omitempty"`
 	// Whether the configuration has been completed
 	ConfigCompleted bool `json:"configCompleted,omitempty"`
@@ -122,6 +123,7 @@ type NodeAvailPorts struct {
 type StorageClass struct {
 	Name        string `json:"name"`
 	Provisioner string `json:"provisioner"`
+	AccessMode  string `json:"accessMode"`
 }
 
 // K8sNode holds the information about a kubernetes node.
@@ -153,9 +155,9 @@ type RainbondClusterStatus struct {
 	// Destination path of the installation package extraction.
 	MasterRoleLabel string `json:"masterRoleLabel,omitempty"`
 	// holds some recommend nodes available for rbd-gateway to run.
-	GatewayAvailableNodes AvailableNodes `json:"gatewayAvailableNodes,omitempty"`
+	GatewayAvailableNodes *AvailableNodes `json:"gatewayAvailableNodes,omitempty"`
 	// holds some recommend nodes available for rbd-chaos to run.
-	ChaosAvailableNodes AvailableNodes `json:"chaosAvailableNodes,omitempty"`
+	ChaosAvailableNodes *AvailableNodes `json:"chaosAvailableNodes,omitempty"`
 }
 
 // +genclient
@@ -185,6 +187,8 @@ func init() {
 	SchemeBuilder.Register(&RainbondCluster{}, &RainbondClusterList{})
 }
 
+// GatewayIngressIP returns the gateway ip, or take the internal ip
+// of the first node for gateway if it's not exists.
 func (in *RainbondCluster) GatewayIngressIP() string {
 	if len(in.Spec.GatewayIngressIPs) > 0 && in.Spec.GatewayIngressIPs[0] != "" {
 		return in.Spec.GatewayIngressIPs[0]
@@ -218,10 +222,12 @@ func (in *RainbondCluster) GatewayIngressIPs() (ips []string) {
 	return nil
 }
 
+// RegionDataSource returns the data source for database region.
 func (in *Database) RegionDataSource() string {
 	return fmt.Sprintf("--mysql=%s:%s@tcp(%s:%d)/region", in.Username, in.Password, in.Host, in.Port)
 }
 
+// FirstMasterNodeLabel returns master node label of first master node.
 func (in *RainbondClusterStatus) FirstMasterNodeLabel() map[string]string {
 	if len(in.MasterNodeNames) == 0 {
 		return nil

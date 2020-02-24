@@ -1,0 +1,344 @@
+package usecase
+
+import (
+	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
+
+	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+	"github.com/goodrain/rainbond-operator/pkg/util/uuidutil"
+
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
+
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+type clusterUsecase struct {
+	cfg            *option.Config
+	rainbondClient versioned.Interface
+	namespace      string
+	clusterName    string
+
+	cptUcase ComponentUseCase
+	repo     cluster.Repository
+}
+
+// NewClusterUsecase creates a new cluster.Usecase.
+func NewClusterUsecase(cfg *option.Config, repo cluster.Repository, cptUcase ComponentUseCase) cluster.Usecase {
+	return &clusterUsecase{
+		cfg:            cfg,
+		rainbondClient: cfg.RainbondKubeClient,
+		namespace:      cfg.Namespace,
+		clusterName:    cfg.ClusterName,
+		repo:           repo,
+		cptUcase:       cptUcase,
+	}
+}
+
+// UnInstall uninstall cluster reset cluster
+func (c *clusterUsecase) UnInstall() error {
+	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "name!=rbd-nfs"}); err != nil {
+		log.Error(err, "delete component error")
+		return err
+	}
+	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "name=rbd-nfs"}); err != nil {
+		log.Error(err, "delete storage component error")
+		return err
+	}
+
+	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(c.cfg.Namespace).Delete(c.cfg.Rainbondpackage, &metav1.DeleteOptions{}); err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return err
+		}
+	}
+
+	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Delete(c.cfg.ClusterName, &metav1.DeleteOptions{}); err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Status status
+func (c *clusterUsecase) Status() (*model.ClusterStatus, error) {
+	clusterInfo, err := c.getCluster()
+	if err != nil {
+		// cluster is not found, means status is waiting
+		log.Error(err, "get cluster error")
+		if k8sErrors.IsNotFound(err) {
+			return &model.ClusterStatus{
+				FinalStatus: model.Waiting,
+				ClusterInfo: model.ClusterInfo{},
+			}, nil
+		}
+		return nil, err
+	}
+
+	// package
+	rainbondPackage, err := c.getRainbondPackage()
+	if err != nil {
+		log.Error(err, "get package error")
+		rainbondPackage = nil // if can't find package cr, client will return 404 and empty package info not nil
+	}
+
+	components, err := c.cptUcase.List(false)
+	if err != nil {
+		log.Error(err, "get component status list error")
+	}
+
+	status := c.handleStatus(clusterInfo, rainbondPackage, components)
+	c.hackClusterInfo(clusterInfo, &status)
+	return &status, nil
+}
+
+// StatusInfo returns the information of rainbondcluster status.
+func (c *clusterUsecase) StatusInfo() (*v1.ClusterStatusInfo, error) {
+	cluster, err := c.getCluster()
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return nil, bcode.NotFound
+		}
+		return nil, err
+	}
+
+	// StorageClass
+	var storageClasses []*v1.StorageClass
+	for _, c := range cluster.Status.StorageClasses {
+		class := &v1.StorageClass{
+			Name:        c.Name,
+			Provisioner: c.Provisioner,
+			AccessMode:  c.AccessMode,
+		}
+		storageClasses = append(storageClasses, class)
+	}
+
+	// nodes for gateway and chaos
+	getNodes := func(nodes *rainbondv1alpha1.AvailableNodes) *v1.AvailableNodes {
+		setNodes := func(k8sNodes []*rainbondv1alpha1.K8sNode) []*v1.K8sNode {
+			var nodes []*v1.K8sNode
+			for _, node := range k8sNodes {
+				nodes = append(nodes, &v1.K8sNode{
+					Name:       node.Name,
+					InternalIP: node.InternalIP,
+					ExternalIP: node.ExternalIP,
+				})
+			}
+			return nodes
+		}
+		specifiedNodes := setNodes(cluster.Status.GatewayAvailableNodes.SpecifiedNodes)
+		masterNodes := setNodes(cluster.Status.GatewayAvailableNodes.MasterNodes)
+		return &v1.AvailableNodes{
+			SpecifiedNodes: specifiedNodes,
+			MasterNodes:    masterNodes,
+		}
+	}
+	gatewayNodes := getNodes(cluster.Status.GatewayAvailableNodes)
+	chaosNodes := getNodes(cluster.Status.ChaosAvailableNodes)
+
+	result := &v1.ClusterStatusInfo{
+		GatewayAvailableNodes: gatewayNodes,
+		ChaosAvailableNodes:   chaosNodes,
+		StorageClasses:        storageClasses,
+	}
+
+	return result, nil
+}
+
+func (c *clusterUsecase) hackClusterInfo(rainbondCluster *rainbondv1alpha1.RainbondCluster, status *model.ClusterStatus) {
+	if status.FinalStatus == model.Waiting || status.FinalStatus == model.Initing {
+		log.Info("cluster is not ready")
+		return
+	}
+	// init not finished
+	if rainbondCluster.Status == nil {
+		log.Info("cluster's status is not ready")
+		return
+	}
+	//now cluster has init successfully, prepare cluster info
+	for _, sc := range rainbondCluster.Status.StorageClasses {
+		if sc.Name != "rainbondslsc" && sc.Name != "rainbondsssc" {
+			status.ClusterInfo.Storage = append(status.ClusterInfo.Storage, model.Storage{
+				Name:        sc.Name,
+				Provisioner: sc.Provisioner,
+			})
+		}
+	}
+	for _, node := range rainbondCluster.Status.NodeAvailPorts {
+		status.ClusterInfo.NodeAvailPorts = append(status.ClusterInfo.NodeAvailPorts, model.NodeAvailPorts{
+			Ports:    node.Ports,
+			NodeIP:   node.NodeIP,
+			NodeName: node.NodeName,
+		})
+	}
+
+	// get install version from config
+	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
+
+	// get enterprise from repo
+	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID()
+
+	// get installID from cluster's annotations
+	if rainbondCluster.Annotations != nil {
+		if value, ok := rainbondCluster.Annotations["install_id"]; ok && value != "" {
+			status.ClusterInfo.InstallID = value
+		}
+	}
+}
+
+// no rainbondcluster cr means cluster status is waiting
+// rainbondcluster cr without status parameter means cluster status is initing
+// rainbondcluster cr with status parameter means cluster status is setting
+// rainbondpackage cr means cluster status is installing or running
+// rbdcomponent cr means cluster stauts is installing or running
+// all rbdcomponent cr are running means cluster status is running
+// rbdcomponent cr has pod with status terminal means cluster status is uninstalling
+func (c *clusterUsecase) handleStatus(rainbondCluster *rainbondv1alpha1.RainbondCluster, rainbondPackage *rainbondv1alpha1.RainbondPackage, componentStatusList []*v1.RbdComponentStatus) model.ClusterStatus {
+	reqLogger := log.WithValues("Namespace", c.cfg.Namespace)
+
+	rainbondClusterStatus := c.handleRainbondClusterStatus(rainbondCluster)
+	rainbondPackageStatus := c.handlePackageStatus(rainbondPackage)
+	componentStatus := c.handleComponentStatus(componentStatusList)
+	reqLogger.Info(fmt.Sprintf("cluster: %s; package: %s; component: %s \n", rainbondClusterStatus.FinalStatus, rainbondPackageStatus.FinalStatus, componentStatus.FinalStatus))
+	if componentStatus.FinalStatus == model.UnInstalling {
+		rainbondClusterStatus.FinalStatus = model.UnInstalling
+		return rainbondClusterStatus
+	}
+	if rainbondClusterStatus.FinalStatus == model.Waiting {
+		return rainbondClusterStatus
+	}
+
+	if rainbondClusterStatus.FinalStatus == model.Initing {
+		return rainbondClusterStatus
+	}
+
+	if rainbondPackageStatus.FinalStatus == model.Setting && componentStatus.FinalStatus == model.Setting {
+		reqLogger.Info("setting status")
+		rainbondClusterStatus.FinalStatus = model.Setting
+		return rainbondClusterStatus
+	}
+
+	if componentStatus.FinalStatus == model.Running {
+		reqLogger.Info("running status")
+		rainbondClusterStatus.FinalStatus = model.Running
+		return rainbondClusterStatus
+	}
+
+	if rainbondPackageStatus.FinalStatus == model.Installing || componentStatus.FinalStatus == model.Installing {
+		reqLogger.Info("installing status")
+		rainbondClusterStatus.FinalStatus = model.Installing
+		return rainbondClusterStatus
+	}
+
+	return rainbondClusterStatus
+}
+
+func (c *clusterUsecase) handleRainbondClusterStatus(rainbondCluster *rainbondv1alpha1.RainbondCluster) model.ClusterStatus {
+	status := model.ClusterStatus{
+		FinalStatus: model.Waiting,
+		ClusterInfo: model.ClusterInfo{},
+	}
+
+	if rainbondCluster == nil {
+		return status
+	}
+	if rainbondCluster.Status == nil {
+		status.FinalStatus = model.Initing
+		return status
+	}
+	status.FinalStatus = model.Setting
+
+	return status
+}
+
+func (c *clusterUsecase) handlePackageStatus(rainbondPackage *rainbondv1alpha1.RainbondPackage) model.ClusterStatus {
+	status := model.ClusterStatus{
+		FinalStatus: model.Setting,
+	}
+	if rainbondPackage == nil {
+		return status
+	}
+	status.FinalStatus = model.Installing
+	return status
+}
+
+func (c *clusterUsecase) handleComponentStatus(componentList []*v1.RbdComponentStatus) model.ClusterStatus {
+	status := model.ClusterStatus{
+		FinalStatus: model.Setting,
+	}
+	if len(componentList) == 0 {
+		return status
+	}
+	status.FinalStatus = model.Installing
+
+	readyCount := 0
+	terminal := false
+	for _, component := range componentList {
+		if component.Status == v1.ComponentStatusRunning {
+			readyCount++
+		}
+		if component.Status == v1.ComponentStatusTerminating { //TODO terminal uninstalling
+			terminal = true
+		}
+	}
+	if terminal {
+		status.FinalStatus = model.UnInstalling
+		return status
+	}
+	if readyCount != len(componentList) {
+		return status
+	}
+	status.FinalStatus = model.Running
+	return status
+}
+
+// Init init
+func (c *clusterUsecase) Init() error {
+	_, err := c.createCluster()
+	log.Error(err, "create cluster error")
+	return err
+}
+
+func (c *clusterUsecase) getCluster() (*rainbondv1alpha1.RainbondCluster, error) {
+	return c.rainbondClient.RainbondV1alpha1().RainbondClusters(c.namespace).Get(c.clusterName, metav1.GetOptions{})
+}
+
+func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, error) {
+	installMode := rainbondv1alpha1.InstallationModeWithoutPackage
+	if c.cfg.InstallMode == string(rainbondv1alpha1.InstallationModeWithPackage) {
+		installMode = rainbondv1alpha1.InstallationModeWithPackage
+	}
+
+	cluster := &rainbondv1alpha1.RainbondCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: c.cfg.Namespace,
+			Name:      c.cfg.ClusterName,
+		},
+		Spec: rainbondv1alpha1.RainbondClusterSpec{
+			RainbondImageRepository: c.cfg.RainbondImageRepository,
+			RainbondShareStorage: rainbondv1alpha1.RainbondShareStorage{
+				FstabLine: &rainbondv1alpha1.FstabLine{},
+			},
+			InstallPackageConfig: rainbondv1alpha1.InstallPackageConfig{
+				URL: c.cfg.DownloadURL,
+				MD5: c.cfg.DownloadMD5,
+			},
+			InstallMode: installMode,
+		},
+	}
+
+	annotations := make(map[string]string)
+	annotations["install_id"] = uuidutil.NewUUID()
+	cluster.Annotations = annotations
+
+	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)
+}
+
+func (c *clusterUsecase) getRainbondPackage() (*rainbondv1alpha1.RainbondPackage, error) {
+	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(c.cfg.Namespace).Get(c.cfg.Rainbondpackage, metav1.GetOptions{})
+}
