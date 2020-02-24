@@ -36,20 +36,6 @@ build-dirs:
 	@echo "Creating build directories"
 	@mkdir -p bin/
 
-PKG             := github.com/goodrain/rainbond-operator
-SRC_DIRS        := cmd pkg
-
-.PHONY: test
-test:
-	@echo "Testing: $(SRC_DIRS)"
-	./hack/unit_test
-	PKG=$(PKG) ./hack/test $(SRC_DIRS)
-
-.PHONY: build-dirs
-build-dirs:
-	@echo "Creating build directories"
-	@mkdir -p bin/
-
 .PHONY: gen
 gen: crds-gen openapi-gen sdk-gen
 crds-gen:
@@ -110,15 +96,6 @@ push-api: build-api
 push-operator: build-operator
 	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)
 push: docker-login push-ui push-api push-operator
-
-.PHONY: test
-test-operator:build-operator
-	docker save -o /tmp/rainbond-operator.tgz  $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)
-	scp /tmp/rainbond-operator.tgz root@172.20.0.20:/root
-test-api:
-	GOOS=linux go build -o openapi ./cmd/openapi
-	docker build --no-cache . -f hack/build/openapi/Dockerfile.dev -t  $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(VERSION)
-	rm -rf ./openapi
 
 chart:
 	tar -cvf rainbond-operator-chart.tar ./mychart
