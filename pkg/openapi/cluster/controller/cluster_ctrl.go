@@ -135,10 +135,11 @@ func (cc *ClusterController) Address(c *gin.Context) {
 func (cc *ClusterController) Uninstall(c *gin.Context) {
 	err := cc.clusterUcase.Cluster().UnInstall()
 	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "卸载出错，请联系社区帮助"})
+		log.Error(err, "uninstall cluster")
+		ginutil.JSON(c, nil, err)
 		return
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
+	ginutil.JSON(c, nil, nil)
 }
 
 // Install install

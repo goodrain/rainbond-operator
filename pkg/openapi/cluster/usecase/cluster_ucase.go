@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
+	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
@@ -19,6 +22,7 @@ import (
 
 type clusterUsecase struct {
 	cfg            *option.Config
+	clientset      kubernetes.Interface
 	rainbondClient versioned.Interface
 	namespace      string
 	clusterName    string
@@ -31,6 +35,7 @@ type clusterUsecase struct {
 func NewClusterUsecase(cfg *option.Config, repo cluster.Repository, cptUcase ComponentUseCase) cluster.Usecase {
 	return &clusterUsecase{
 		cfg:            cfg,
+		clientset:      cfg.KubeClient,
 		rainbondClient: cfg.RainbondKubeClient,
 		namespace:      cfg.Namespace,
 		clusterName:    cfg.ClusterName,
@@ -42,23 +47,30 @@ func NewClusterUsecase(cfg *option.Config, repo cluster.Repository, cptUcase Com
 // UnInstall uninstall cluster reset cluster
 func (c *clusterUsecase) UnInstall() error {
 	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "name!=rbd-nfs"}); err != nil {
-		log.Error(err, "delete component error")
-		return err
-	}
-	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "name=rbd-nfs"}); err != nil {
-		log.Error(err, "delete storage component error")
-		return err
+		return fmt.Errorf("delete component: %v", err)
 	}
 
-	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(c.cfg.Namespace).Delete(c.cfg.Rainbondpackage, &metav1.DeleteOptions{}); err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			return err
-		}
+	if err := c.rainbondClient.RainbondV1alpha1().RainbondPackages(c.namespace).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{}); err != nil {
+		return fmt.Errorf("delete rainbond package: %v", err)
+	}
+
+	// delete rainbondvolume
+	if err := c.rainbondClient.RainbondV1alpha1().RainbondVolumes(c.namespace).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{}); err != nil {
+		return fmt.Errorf("delete rainbond volume: %v", err)
+	}
+
+	rainbondLabelSelector := fields.SelectorFromSet(rbdutil.LabelsForRainbond(nil)).String()
+	// delete storage class and csidriver
+	if err := c.clientset.StorageV1().StorageClasses().DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: rainbondLabelSelector}); err != nil {
+		return fmt.Errorf("delete storageclass: %v", err)
+	}
+	if err := c.clientset.StorageV1beta1().CSIDrivers().DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: rainbondLabelSelector}); err != nil {
+		return fmt.Errorf("delete csidriver: %v", err)
 	}
 
 	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Delete(c.cfg.ClusterName, &metav1.DeleteOptions{}); err != nil {
 		if !k8sErrors.IsNotFound(err) {
-			return err
+			return fmt.Errorf("delete rainbond cluster: %v", err)
 		}
 	}
 

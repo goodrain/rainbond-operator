@@ -83,6 +83,9 @@ func (p *aliyunclouddiskPlugin) csiDriver() *storagev1beta1.CSIDriver {
 	return &storagev1beta1.CSIDriver{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: provisioner,
+			Labels: rbdutil.LabelsForRainbond(map[string]string{
+				"name": provisioner,
+			}),
 		},
 		Spec: storagev1beta1.CSIDriverSpec{
 			AttachRequired: commonutil.Bool(false),
