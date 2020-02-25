@@ -2,12 +2,12 @@ package aliyunnas
 
 import (
 	"context"
-	"fmt"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -48,13 +48,17 @@ type aliyunnasPlugin struct {
 var _ plugin.CSIPlugin = &aliyunnasPlugin{}
 
 func (p *aliyunnasPlugin) IsPluginReady() bool {
-	csidriver := &storagev1beta1.CSIDriver{}
-	err := p.cli.Get(p.ctx, types.NamespacedName{Name: provisioner}, csidriver)
+	sts := &appsv1.StatefulSet{}
+	err := p.cli.Get(p.ctx, types.NamespacedName{Namespace: p.volume.Namespace, Name: p.provisionerName}, sts)
 	if err != nil {
-		log.V(4).Info(fmt.Sprintf("get csi driver %s: %v", provisioner, err))
+		if !errors.IsNotFound(err) {
+			log.Error(err, "get statefulset for nfs plugin")
+			return false
+		}
 		return false
 	}
-	return true
+
+	return sts.Status.ReadyReplicas == sts.Status.Replicas
 }
 
 func (p *aliyunnasPlugin) GetProvisioner() string {
