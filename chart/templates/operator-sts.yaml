@@ -29,6 +29,8 @@ spec:
           args:
             - --zap-level=4
           env:
+            - name: RAINBOND_VERSION
+              value: {{ .Values.rainbondVersion }}
             - name: WATCH_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -52,7 +54,7 @@ spec:
           image: "{{ .Values.openapi.image.repository }}:{{ .Values.openapi.image.tag }}"
           imagePullPolicy: {{ .Values.openapi.image.pullPolicy }}
           args:
-            - --rainbond-version={{ .Values.openapi.rainbondVersion }}
+            - --rainbond-version={{ .Values.rainbondVersion }}
             - --rbd-download-url={{ .Values.openapi.downloadURL }}
             - --rbd-download-md5={{ .Values.openapi.downloadMD5 }}
             - --image-repository={{ .Values.openapi.imageRepository }}

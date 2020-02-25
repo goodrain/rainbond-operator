@@ -239,6 +239,10 @@ func newpkg(ctx context.Context, client client.Client, p *rainbondv1alpha1.Rainb
 		reqLogger.Error(err, "failed to create docker client")
 		return nil, err
 	}
+	version := os.Getenv("RAINBOND_VERSION")
+	if version == "" {
+		return nil, fmt.Errorf("RAINBOND_VERSION not found")
+	}
 	pkg := &pkg{
 		ctx:           ctx,
 		client:        client,
@@ -247,7 +251,7 @@ func newpkg(ctx context.Context, client client.Client, p *rainbondv1alpha1.Rainb
 		totalImageNum: 23,
 		images:        make(map[string]string, 23),
 		log:           reqLogger,
-		version:       "V5.2.0-beta1",
+		version:       version,
 	}
 	return pkg, nil
 }
