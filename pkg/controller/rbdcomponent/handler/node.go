@@ -9,7 +9,7 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
-	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
+	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

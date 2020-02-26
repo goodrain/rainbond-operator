@@ -73,7 +73,7 @@ type AvailableNodes struct {
 	MasterNodes []*K8sNode `json:"masterNodes,omitempty"`
 }
 
-// StorageClasses is a List of StorageCass available in the cluster.
+// StorageClass is a List of StorageCass available in the cluster.
 // StorageClass storage class
 type StorageClass struct {
 	Name        string `json:"name"`
@@ -123,6 +123,8 @@ type EtcdCertInfo struct {
 
 // GlobalConfigs check result
 type GlobalConfigs struct {
+	// Enable highly available installation, otherwise use all-in-one mode
+	EnableHA          bool       `json:"enableHA"`
 	ImageHub          ImageHub   `json:"imageHub"`
 	RegionDatabase    Database   `json:"regionDatabase"`
 	UIDatabase        Database   `json:"uiDatabase"`

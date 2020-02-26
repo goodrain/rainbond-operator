@@ -19,7 +19,7 @@ import (
 	"github.com/go-logr/logr"
 
 	"github.com/docker/docker/pkg/jsonmessage"
-	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
+	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/tarutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
-	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
+	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"path"
 

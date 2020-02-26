@@ -19,6 +19,7 @@ type Usecase interface {
 	Init() error
 	UnInstall() error
 	StatusInfo() (*v1.ClusterStatusInfo, error)
+	ClusterNodes(query string, runGateway bool) []*v1.K8sNode
 }
 
 // GlobalConfigUseCase global config case

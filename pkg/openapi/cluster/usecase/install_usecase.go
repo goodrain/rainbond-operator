@@ -3,7 +3,7 @@ package usecase
 import (
 	"fmt"
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
-	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
+	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"strconv"
 	"time"

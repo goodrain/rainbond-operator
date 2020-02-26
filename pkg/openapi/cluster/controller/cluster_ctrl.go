@@ -2,10 +2,12 @@ package controller
 
 import (
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
-	"net/http"
-	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/ginutil"
@@ -37,6 +39,7 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterUcase) {
 	clusterEngine.GET("/status", corsMidle(u.ClusterStatus))
 	clusterEngine.GET("/status-info", corsMidle(u.ClusterStatusInfo))
 	clusterEngine.POST("/init", corsMidle(u.ClusterInit))
+	clusterEngine.GET("/nodes", corsMidle(u.ClusterNodes))
 
 	clusterEngine.GET("/configs", corsMidle(u.Configs))
 	clusterEngine.PUT("/configs", corsMidle(u.UpdateConfig))
@@ -78,6 +81,14 @@ func (cc *ClusterController) ClusterInit(c *gin.Context) {
 func (cc *ClusterController) ClusterStatusInfo(c *gin.Context) {
 	info, err := cc.clusterUcase.Cluster().StatusInfo()
 	ginutil.JSON(c, info, err)
+}
+
+// ClusterNodes returns a list of v1.K8sNode
+func (cc *ClusterController) ClusterNodes(c *gin.Context) {
+	query := c.Query("query")
+	runGateway, _ := strconv.ParseBool(c.Query("rungateway"))
+	nodes := cc.clusterUcase.Cluster().ClusterNodes(query, runGateway)
+	ginutil.JSON(c, nodes, nil)
 }
 
 // Configs get cluster config info

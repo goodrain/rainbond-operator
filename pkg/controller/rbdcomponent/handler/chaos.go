@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
+	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"

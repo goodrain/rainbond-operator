@@ -1,35 +1,34 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/repository"
-
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
-
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
-
+	"k8s.io/client-go/kubernetes"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/upload"
-	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
-
 	clusterCtrl "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/controller"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/repository"
 	cucase "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/usecase"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/nodestore"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/upload"
 	uctrl "github.com/goodrain/rainbond-operator/pkg/openapi/user/controller"
 	uucase "github.com/goodrain/rainbond-operator/pkg/openapi/user/usecase"
+	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 )
+
+var log = logf.Log.WithName("main")
 
 var (
 	archiveFilePath = "/opt/rainbond/pkg/tgz/rainbond-pkg-V5.2-dev.tgz"
@@ -46,6 +45,9 @@ func init() {
 }
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Use a zap logr.Logger implementation. If none of the zap
 	// flags are configured (or if the zap flag set is not being
 	// used), this defaults to a production zap logger.
@@ -58,9 +60,17 @@ func main() {
 
 	restConfig := k8sutil.MustNewKubeConfig(cfg.KubeconfigPath)
 	cfg.RestConfig = restConfig
-	cfg.KubeClient = kubernetes.NewForConfigOrDie(restConfig)
+	clientset := kubernetes.NewForConfigOrDie(restConfig)
+	cfg.KubeClient = clientset
 	rainbondKubeClient := versioned.NewForConfigOrDie(restConfig)
 	cfg.RainbondKubeClient = rainbondKubeClient
+
+	nodestorer := nodestore.New(ctx, clientset)
+	if err := nodestorer.Start(); err != nil {
+		log.Error(err, "start node storer")
+		os.Exit(1)
+	}
+	defer nodestorer.Stop()
 
 	repo := repository.NewClusterRepo(cfg.InitPath)
 
@@ -71,7 +81,7 @@ func main() {
 	userUcase := uucase.NewUserUsecase(nil, "my-secret-key")
 	uctrl.NewUserController(r, userUcase)
 
-	clusterUcase := cucase.NewClusterCase(cfg, repo, rainbondKubeClient)
+	clusterUcase := cucase.NewClusterCase(cfg, repo, rainbondKubeClient, nodestorer)
 	clusterCtrl.NewClusterController(r, clusterUcase)
 
 	upload.NewUploadController(r, archiveFilePath)

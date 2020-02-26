@@ -4,13 +4,13 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"net"
 	"net/http"
 	"time"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -155,15 +155,6 @@ func (r *ReconcileRainbondCluster) availableStorageClasses() []*rainbondv1alpha1
 	return storageClasses
 }
 
-func isPortOccupied(address string) bool {
-	l, err := net.Listen("tcp", address)
-	if err != nil {
-		return false
-	}
-	defer func() { _ = l.Close() }()
-	return true
-}
-
 // generateRainbondClusterStatus creates the final rainbondcluster status for a rainbondcluster, given the
 // internal rainbondcluster status.
 func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(ctx context.Context, rainbondCluster *rainbondv1alpha1.RainbondCluster) (*rainbondv1alpha1.RainbondClusterStatus, error) {
@@ -252,34 +243,14 @@ func (r *ReconcileRainbondCluster) listSpecifiedGatewayNodes(ctx context.Context
 	})
 	// Filtering nodes with port conflicts
 	// check gateway ports
-	return filterNodesWithPortConflicts(nodes)
+	return rbdutil.FilterNodesWithPortConflicts(nodes)
 }
 
 func (r *ReconcileRainbondCluster) listMasterNodesForGateway(ctx context.Context, masterLabel string) []*rainbondv1alpha1.K8sNode {
 	nodes := r.listMasterNodes(ctx, masterLabel)
 	// Filtering nodes with port conflicts
 	// check gateway ports
-	return filterNodesWithPortConflicts(nodes)
-}
-
-func filterNodesWithPortConflicts(nodes []*rainbondv1alpha1.K8sNode) []*rainbondv1alpha1.K8sNode {
-	var result []*rainbondv1alpha1.K8sNode
-	gatewayPorts := []int{80, 443, 10254, 18080, 8443, 6060, 7070}
-	for idx := range nodes {
-		node := nodes[idx]
-		ok := true
-		for _, port := range gatewayPorts {
-			if isPortOccupied(fmt.Sprintf("%s:%d", node.InternalIP, port)) {
-				log.Info("The port is occupied", "InternalIP", node.InternalIP, "Port", port)
-				ok = false
-				break
-			}
-		}
-		if ok {
-			result = append(result, node)
-		}
-	}
-	return result
+	return rbdutil.FilterNodesWithPortConflicts(nodes)
 }
 
 func (r *ReconcileRainbondCluster) listSpecifiedChaosNodes(ctx context.Context) []*rainbondv1alpha1.K8sNode {

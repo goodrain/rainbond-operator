@@ -2,22 +2,22 @@ package usecase
 
 import (
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
-	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
-	rbdutil "github.com/goodrain/rainbond-operator/pkg/util/rbduitl"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
-	"github.com/goodrain/rainbond-operator/pkg/util/uuidutil"
-
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/nodestore"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
+	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/uuidutil"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/kubernetes"
 )
 
 type clusterUsecase struct {
@@ -27,12 +27,13 @@ type clusterUsecase struct {
 	namespace      string
 	clusterName    string
 
-	cptUcase ComponentUseCase
-	repo     cluster.Repository
+	cptUcase   ComponentUseCase
+	repo       cluster.Repository
+	nodestorer nodestore.Interface
 }
 
 // NewClusterUsecase creates a new cluster.Usecase.
-func NewClusterUsecase(cfg *option.Config, repo cluster.Repository, cptUcase ComponentUseCase) cluster.Usecase {
+func NewClusterUsecase(cfg *option.Config, repo cluster.Repository, cptUcase ComponentUseCase, nodestorer nodestore.Interface) cluster.Usecase {
 	return &clusterUsecase{
 		cfg:            cfg,
 		clientset:      cfg.KubeClient,
@@ -41,6 +42,7 @@ func NewClusterUsecase(cfg *option.Config, repo cluster.Repository, cptUcase Com
 		clusterName:    cfg.ClusterName,
 		repo:           repo,
 		cptUcase:       cptUcase,
+		nodestorer:     nodestorer,
 	}
 }
 
@@ -160,6 +162,10 @@ func (c *clusterUsecase) StatusInfo() (*v1.ClusterStatusInfo, error) {
 	}
 
 	return result, nil
+}
+
+func (c *clusterUsecase) ClusterNodes(query string, runGateway bool) []*v1.K8sNode {
+	return c.nodestorer.SearchByIIP(query, runGateway)
 }
 
 func (c *clusterUsecase) hackClusterInfo(rainbondCluster *rainbondv1alpha1.RainbondCluster, status *model.ClusterStatus) {

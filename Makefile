@@ -63,7 +63,8 @@ ctrl-add:
 
 .PHONY: golangci-lint
 golangci-lint: build-dirs
-	which ./bin/golangci-lint > /dev/null || sh ./hack/golangci-lint-install.sh v1.23.2
+	which ./bin/golangci-lint > /dev/null || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.23.6
+
 	@bin/golangci-lint run
 
 
