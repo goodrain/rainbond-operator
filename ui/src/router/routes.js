@@ -23,20 +23,20 @@ const frameIn = [
       },
       // 安装流程页面
       {
-        path: 'InstallProcess',
+        path: 'install',
         name: 'InstallProcess',
         meta: {
-          title: '安装',
+          title: '集群安装',
           auth: true
         },
         component: _import('InstallProcess/index')
       },
-      // 安装成功
+      // 集群状态页面
       {
-        path: 'successfulInstallation',
+        path: 'cluster',
         name: 'successfulInstallation',
         meta: {
-          title: '安装成功',
+          title: '集群状态',
           auth: true
         },
         component: _import('InstallProcess/components/successfulInstallation/index')

@@ -1,15 +1,17 @@
 import {
   getClusterInfo,
   getState,
-  putClusterInfo,
-  addsCluster,
+  getClusterInitConfig,
+  putClusterConfig,
+  installCluster,
   detectionCluster,
   getClusterInstallResults,
   getClusterInstallResultsState,
   getAccessAddress,
   deleteUnloadingPlatform,
   putInit,
-  putRecord
+  putRecord,
+  queryNode
 } from '@/api/installProcess'
 
 const installProcess = {
@@ -50,6 +52,19 @@ const installProcess = {
           })
       })
     },
+
+    getClusterInitConfig ({ commit }, resdata) {
+      return new Promise((resolve, reject) => {
+        getClusterInitConfig(resdata)
+          .then(response => {
+            resolve(response)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
+
     fetchClusterInfo ({ commit }, resdata) {
       return new Promise((resolve, reject) => {
         getClusterInfo(resdata)
@@ -61,9 +76,9 @@ const installProcess = {
           })
       })
     },
-    fixClusterInfo ({ commit }, resdata) {
+    putClusterInfo ({ commit }, resdata) {
       return new Promise((resolve, reject) => {
-        putClusterInfo(resdata)
+        putClusterConfig(resdata)
           .then(response => {
             resolve(response)
           })
@@ -72,9 +87,9 @@ const installProcess = {
           })
       })
     },
-    addCluster ({ commit }, resdata) {
+    installCluster ({ commit }, resdata) {
       return new Promise((resolve, reject) => {
-        addsCluster(resdata)
+        installCluster(resdata)
           .then(response => {
             resolve(response)
           })
@@ -131,6 +146,17 @@ const installProcess = {
     deleteUnloadingPlatform ({ commit }, resdata) {
       return new Promise((resolve, reject) => {
         deleteUnloadingPlatform(resdata)
+          .then(response => {
+            resolve(response)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
+    queryNode ({ commit }, resdata) {
+      return new Promise((resolve, reject) => {
+        queryNode(resdata)
           .then(response => {
             resolve(response)
           })

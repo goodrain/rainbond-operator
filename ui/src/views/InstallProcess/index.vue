@@ -2,20 +2,23 @@
   <d2-container type="full">
     <div class="d2-ml-115 d2-w-1100">
       <el-collapse class="clbr" v-model="activeName" accordion>
-        <el-collapse-item name="cluster" class="installationStepTitle" title="集群安装配置">
+        <el-collapse-item
+          name="cluster"
+          class="installationStepTitle"
+          :title="$t('page.install.config.title')"
+        >
           <cluster-configuration
-            :clusterInfo="clusterInfo"
+            :clusterInfo="recordInfo"
             @onResults="handlePerform('startrRsults')"
             @onhandleErrorRecord="handleRecord('failure')"
             @onhandleStartRecord="handleRecord('start')"
-
             class="d2-mt"
           ></cluster-configuration>
         </el-collapse-item>
         <el-collapse-item
           v-if="resultShow"
           class="installationStepTitle"
-          title="安装"
+          :title="$t('page.install.install.title')"
           name="startrRsults"
         >
           <install-results
@@ -47,7 +50,8 @@ export default {
         version: '',
         status: 'uninstall',
         eid: ''
-      }
+      },
+      clusterInitInfo: {}
     }
   },
   created () {
@@ -132,7 +136,7 @@ export default {
   margin: 0 auto;
 }
 </style>
-<style lang="scss" >
+<style lang="scss">
 .installationStepTitle {
   .el-collapse-item__wrap {
     border: none;
@@ -143,7 +147,6 @@ export default {
     color: #606266;
     height: 39px;
     line-height: 39px;
-    border-bottom: 1px solid #409eff;
   }
 }
 </style>

@@ -4,6 +4,7 @@
     size="small"
     @command="onChangeLocale">
     <el-button class="d2-mr btn-text can-hover" type="text">
+      {{$t('page.header.language')}}
       <d2-icon name="language" style="font-size: 16px;"/>
     </el-button>
     <el-dropdown-menu slot="dropdown">
