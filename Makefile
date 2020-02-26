@@ -13,9 +13,9 @@ endif
 ifdef VERSION
 	VERSION ?= ${VERSION}
 else ifdef TRAVIS_COMMIT
-	VERSION ?= v1.0.0-beta1-${TRAVIS_COMMIT}
+	VERSION ?= v1.0.0-beta2-${TRAVIS_COMMIT}
 else 
-	VERSION ?= v1.0.0-beta1-$(shell git describe --always --dirty)
+	VERSION ?= v1.0.0-beta2-$(shell git describe --always --dirty)
 endif
 
 
