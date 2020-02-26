@@ -26,7 +26,6 @@ type chaos struct {
 	client     client.Client
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
-	pkg        *rainbondv1alpha1.RainbondPackage
 	labels     map[string]string
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
@@ -38,14 +37,13 @@ var _ ComponentHandler = &chaos{}
 var _ StorageClassRWXer = &chaos{}
 
 // NewChaos creates a new rbd-chaos handler.
-func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &chaos{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    LabelsForRainbondComponent(component),
-		pkg:       pkg,
 	}
 }
 

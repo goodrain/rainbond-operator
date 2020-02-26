@@ -22,7 +22,6 @@ type webcli struct {
 	client     client.Client
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
-	pkg        *rainbondv1alpha1.RainbondPackage
 	labels     map[string]string
 	etcdSecret *corev1.Secret
 }
@@ -30,14 +29,13 @@ type webcli struct {
 var _ ComponentHandler = &webcli{}
 
 // NewWebCli creates a new rbd-webcli handler.
-func NewWebCli(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewWebCli(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &webcli{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    LabelsForRainbondComponent(component),
-		pkg:       pkg,
 	}
 }
 

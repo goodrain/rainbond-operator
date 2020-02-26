@@ -23,20 +23,18 @@ type gateway struct {
 
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
-	pkg       *rainbondv1alpha1.RainbondPackage
 	labels    map[string]string
 }
 
 var _ ComponentHandler = &gateway{}
 
 // NewGateway returns a new rbd-gateway handler.
-func NewGateway(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewGateway(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &gateway{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		pkg:       pkg,
 		labels:    LabelsForRainbondComponent(component),
 	}
 }

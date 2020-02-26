@@ -28,20 +28,18 @@ type db struct {
 	client                   client.Client
 	component                *rainbondv1alpha1.RbdComponent
 	cluster                  *rainbondv1alpha1.RainbondCluster
-	pkg                      *rainbondv1alpha1.RainbondPackage
 	labels                   map[string]string
 	secret                   *corev1.Secret
 	mysqlUser, mysqlPassword string
 }
 
 //NewDB new db
-func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &db{
 		ctx:           ctx,
 		client:        client,
 		component:     component,
 		cluster:       cluster,
-		pkg:           pkg,
 		labels:        LabelsForRainbondComponent(component),
 		mysqlUser:     mysqlUser,
 		mysqlPassword: string(uuid.NewUUID())[0:8],

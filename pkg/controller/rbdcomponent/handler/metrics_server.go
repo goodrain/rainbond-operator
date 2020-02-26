@@ -32,20 +32,18 @@ type metricsServer struct {
 	labels    map[string]string
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
-	pkg       *rainbondv1alpha1.RainbondPackage
 }
 
 var _ ComponentHandler = &metricsServer{}
 
 // NewMetricsServer creates a new metrics-server handler
-func NewMetricsServer(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewMetricsServer(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &metricsServer{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    LabelsForRainbondComponent(component),
-		pkg:       pkg,
 	}
 }
 

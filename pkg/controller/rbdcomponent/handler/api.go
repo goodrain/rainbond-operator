@@ -33,7 +33,6 @@ type api struct {
 	etcdSecret, serverSecret *corev1.Secret
 	component                *rainbondv1alpha1.RbdComponent
 	cluster                  *rainbondv1alpha1.RainbondCluster
-	pkg                      *rainbondv1alpha1.RainbondPackage
 
 	storageClassNameRWX string
 	storageClassNameRWO string
@@ -45,14 +44,13 @@ var _ ComponentHandler = &api{}
 var _ StorageClassRWXer = &api{}
 
 //NewAPI new api handle
-func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &api{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    LabelsForRainbondComponent(component),
-		pkg:       pkg,
 		pvcName:   "rbd-api",
 	}
 }

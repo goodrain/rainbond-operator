@@ -18,18 +18,16 @@ var EtcdName = "rbd-etcd"
 type etcd struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
-	pkg       *rainbondv1alpha1.RainbondPackage
 	labels    map[string]string
 }
 
 // NewETCD creates a new rbd-etcd handler.
-func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	labels := LabelsForRainbondComponent(component)
 	labels["etcd_node"] = EtcdName
 	return &etcd{
 		component: component,
 		cluster:   cluster,
-		pkg:       pkg,
 		labels:    labels,
 	}
 }

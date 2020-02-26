@@ -19,19 +19,17 @@ var DNSName = "rbd-dns"
 type dns struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
-	pkg       *rainbondv1alpha1.RainbondPackage
 	labels    map[string]string
 }
 
 var _ ComponentHandler = &dns{}
 
 // NewDNS creates a new rbd-dns handler.
-func NewDNS(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewDNS(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &dns{
 		component: component,
 		cluster:   cluster,
 		labels:    LabelsForRainbondComponent(component),
-		pkg:       pkg,
 	}
 }
 

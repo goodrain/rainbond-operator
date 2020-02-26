@@ -21,7 +21,6 @@ type mq struct {
 	client     client.Client
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
-	pkg        *rainbondv1alpha1.RainbondPackage
 	labels     map[string]string
 	etcdSecret *corev1.Secret
 }
@@ -29,14 +28,13 @@ type mq struct {
 var _ ComponentHandler = &mq{}
 
 // NewMQ creates a new rbd-mq handler.
-func NewMQ(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewMQ(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &mq{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    LabelsForRainbondComponent(component),
-		pkg:       pkg,
 	}
 }
 

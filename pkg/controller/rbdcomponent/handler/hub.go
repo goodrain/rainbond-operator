@@ -28,7 +28,6 @@ type hub struct {
 	client    client.Client
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
-	pkg       *rainbondv1alpha1.RainbondPackage
 	labels    map[string]string
 
 	storageClassNameRWX string
@@ -38,13 +37,12 @@ var _ ComponentHandler = &hub{}
 var _ StorageClassRWXer = &hub{}
 
 //NewHub nw hub
-func NewHub(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewHub(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &hub{
 		component: component,
 		cluster:   cluster,
 		client:    client,
 		ctx:       ctx,
-		pkg:       pkg,
 		labels:    LabelsForRainbondComponent(component),
 	}
 }
