@@ -5,6 +5,7 @@ var (
 	// 10000~19999 for global configs.
 	// ErrGenHTTPDomain failed to generate http domain
 	ErrGenHTTPDomain = newCodeWithMsg(10001, "failed to generate http domain")
+	ErrInvalidNodes  = newCodeWithMsg(10002, "invalid nodes")
 
 	// 20000~29999 for rainbond package
 	// ErrCreateRainbondPackage failed to create rainbond package

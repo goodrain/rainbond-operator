@@ -112,6 +112,24 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 		return
 	}
 
+	// check if the given nodes are valid.
+	{
+		validNodes, invalidNodes := cc.clusterUcase.Cluster().CompleteNodes(req.NodesForGateways, true)
+		if len(invalidNodes) > 0 {
+			ginutil.JSON(c, invalidNodes, bcode.ErrInvalidNodes)
+			return
+		}
+		req.NodesForGateways = validNodes
+	}
+	{
+		validNodes, invalidNodes := cc.clusterUcase.Cluster().CompleteNodes(req.NodesForChaos, false)
+		if len(invalidNodes) > 0 {
+			ginutil.JSON(c, invalidNodes, bcode.ErrInvalidNodes)
+			return
+		}
+		req.NodesForChaos = validNodes
+	}
+
 	data, err := cc.clusterUcase.Install().InstallStatus()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})

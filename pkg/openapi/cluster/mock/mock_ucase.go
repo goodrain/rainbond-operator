@@ -172,6 +172,34 @@ func (mr *MockUsecaseMockRecorder) StatusInfo() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StatusInfo", reflect.TypeOf((*MockUsecase)(nil).StatusInfo))
 }
 
+// ClusterNodes mocks base method
+func (m *MockUsecase) ClusterNodes(query string, runGateway bool) []*v1.K8sNode {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClusterNodes", query, runGateway)
+	ret0, _ := ret[0].([]*v1.K8sNode)
+	return ret0
+}
+
+// ClusterNodes indicates an expected call of ClusterNodes
+func (mr *MockUsecaseMockRecorder) ClusterNodes(query, runGateway interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterNodes", reflect.TypeOf((*MockUsecase)(nil).ClusterNodes), query, runGateway)
+}
+
+// ValidateNodes mocks base method
+func (m *MockUsecase) ValidateNodes(nodes []*v1.K8sNode, runGateway bool) []*v1.K8sNode {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateNodes", nodes, runGateway)
+	ret0, _ := ret[0].([]*v1.K8sNode)
+	return ret0
+}
+
+// ValidateNodes indicates an expected call of ValidateNodes
+func (mr *MockUsecaseMockRecorder) ValidateNodes(nodes, runGateway interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateNodes", reflect.TypeOf((*MockUsecase)(nil).ValidateNodes), nodes, runGateway)
+}
+
 // MockGlobalConfigUseCase is a mock of GlobalConfigUseCase interface
 type MockGlobalConfigUseCase struct {
 	ctrl     *gomock.Controller

@@ -20,6 +20,7 @@ type Usecase interface {
 	UnInstall() error
 	StatusInfo() (*v1.ClusterStatusInfo, error)
 	ClusterNodes(query string, runGateway bool) []*v1.K8sNode
+	CompleteNodes(nodes []*v1.K8sNode, runGateway bool) ([]*v1.K8sNode, []*v1.K8sNode)
 }
 
 // GlobalConfigUseCase global config case

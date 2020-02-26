@@ -3,6 +3,10 @@ package controller
 import (
 	"bytes"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/mock"
@@ -10,9 +14,6 @@ import (
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	"github.com/goodrain/rainbond-operator/pkg/util/ginutil"
 	"github.com/pquerna/ffjson/ffjson"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -157,23 +158,6 @@ func TestClusterInfoRequest(t *testing.T) {
 			want: bcode.OK,
 		},
 		{
-			name: "missing name",
-			data: &v1.GlobalConfigs{
-				NodesForGateways: []*v1.K8sNode{
-					{
-						InternalIP: "1.1.1.1",
-					},
-				},
-				NodesForChaos: []*v1.K8sNode{
-					{
-						Name:       "bar",
-						InternalIP: "1.1.1.1",
-					},
-				},
-			},
-			want: bcode.BadRequest,
-		},
-		{
 			name: "missing internal ip",
 			data: &v1.GlobalConfigs{
 				NodesForGateways: []*v1.K8sNode{
@@ -215,6 +199,10 @@ func TestClusterInfoRequest(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
+			usecase := mock.NewMockUsecase(ctrl)
+			usecase.EXPECT().ValidateNodes(tc.data.NodesForGateways, true).Return(nil)
+			usecase.EXPECT().ValidateNodes(tc.data.NodesForChaos, false).Return(nil)
+
 			installUcase := mock.NewMockInstallUseCase(ctrl)
 			statusRes := model.StatusRes{}
 			installUcase.EXPECT().InstallStatus().Return(statusRes, nil)
@@ -225,6 +213,7 @@ func TestClusterInfoRequest(t *testing.T) {
 			clusterUcase := mock.NewMockIClusterUcase(ctrl)
 			clusterUcase.EXPECT().Install().Return(installUcase)
 			clusterUcase.EXPECT().GlobalConfigs().Return(configUcase)
+			clusterUcase.EXPECT().Cluster().AnyTimes().Return(usecase)
 
 			cc := &ClusterController{
 				clusterUcase: clusterUcase,

@@ -59,7 +59,7 @@ type PodContainerStatus struct {
 
 // K8sNode holds the information about a kubernetes node.
 type K8sNode struct {
-	Name       string `json:"name" binding:"required"`
+	Name       string `json:"name"`
 	InternalIP string `json:"internalIP" binding:"required,ipv4"`
 	ExternalIP string `json:"externalIP"`
 }

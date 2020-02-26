@@ -168,6 +168,31 @@ func (c *clusterUsecase) ClusterNodes(query string, runGateway bool) []*v1.K8sNo
 	return c.nodestorer.SearchByIIP(query, runGateway)
 }
 
+func (c *clusterUsecase) ValidateNodes(nodes []*v1.K8sNode, runGateway bool) []*v1.K8sNode {
+	var invalidNodes []*v1.K8sNode
+	for _, node := range nodes {
+		found := c.nodestorer.SearchByIIP(node.InternalIP, runGateway)
+		if len(found) == 0 {
+			invalidNodes = append(invalidNodes, node)
+		}
+	}
+	return invalidNodes
+}
+
+func (c *clusterUsecase) CompleteNodes(nodes []*v1.K8sNode, runGateway bool) ([]*v1.K8sNode, []*v1.K8sNode) {
+	var validNodes []*v1.K8sNode
+	var invalidNodes []*v1.K8sNode
+	for _, node := range nodes {
+		found := c.nodestorer.SearchByIIP(node.InternalIP, runGateway)
+		if len(found) == 0 {
+			invalidNodes = append(invalidNodes, node)
+			continue
+		}
+		validNodes = append(validNodes, found[0])
+	}
+	return validNodes, invalidNodes
+}
+
 func (c *clusterUsecase) hackClusterInfo(rainbondCluster *rainbondv1alpha1.RainbondCluster, status *model.ClusterStatus) {
 	if status.FinalStatus == model.Waiting || status.FinalStatus == model.Initing {
 		log.Info("cluster is not ready")
