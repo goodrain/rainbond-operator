@@ -1,11 +1,16 @@
 import request from '@/plugin/axios'
-
+import setting from '../setting'
 //  获取全局状态
 export function getState () {
   return request({
-    url:
-      // 'http://doc.goodrain.org/mock/48/cluster/status',
-      '/cluster/status',
+    url: `${setting.apiHost}/cluster/status`,
+    method: 'get'
+  })
+}
+
+export function getClusterInitConfig () {
+  return request({
+    url: `${setting.apiHost}/cluster/status-info`,
     method: 'get'
   })
 }
@@ -13,9 +18,7 @@ export function getState () {
 //  获取全局状态
 export function putInit () {
   return request({
-    url:
-      // 'http://doc.goodrain.org/mock/48/cluster/init',
-      '/cluster/init',
+    url: `${setting.apiHost}/cluster/init`,
     method: 'post'
   })
 }
@@ -23,9 +26,7 @@ export function putInit () {
 //  保存安装记录
 export function putRecord (data) {
   return request({
-    url:
-      'https://log.rainbond.com/log/install',
-    // '/log/install',
+    url: 'https://log.rainbond.com/log/install',
     method: 'post',
     data
   })
@@ -34,9 +35,7 @@ export function putRecord (data) {
 //  获取集群配置信息
 export function getClusterInfo () {
   return request({
-    url:
-      // 'http://doc.goodrain.org/mock/48/cluster/configs',
-      '/cluster/configs',
+    url: `${setting.apiHost}/cluster/configs`,
     method: 'get'
   })
 }
@@ -44,47 +43,37 @@ export function getClusterInfo () {
 //  查询安装检测结果
 export function detectionCluster () {
   return request({
-    url:
-      // 'http://doc.goodrain.org/mock/48/cluster/install/status',
-      '/cluster/install/status',
+    url: `${setting.apiHost}/cluster/install/status`,
     method: 'get'
   })
 }
 
 //  修改集群配置信息
-export function putClusterInfo (data) {
+export function putClusterConfig (data) {
   return request({
-    url:
-      // 'http://doc.goodrain.org/mock/48/cluster/configs',
-      '/cluster/configs',
+    url: `${setting.apiHost}/cluster/configs`,
     method: 'PUT',
     data
   })
 }
-//  添加集群配置信息
-export function addsCluster () {
+//
+export function installCluster () {
   return request({
-    url:
-      // 'http://doc.goodrain.org/mock/48/cluster/install',
-      '/cluster/install',
+    url: `${setting.apiHost}/cluster/install`,
     method: 'post'
   })
 }
 //  安装集群配置结果
 export function getClusterInstallResults () {
   return request({
-    url:
-      // 'http://doc.goodrain.org/mock/48/cluster/install/status',
-      '/cluster/install/status',
+    url: `${setting.apiHost}/cluster/install/status`,
     method: 'get'
   })
 }
 //  安装集群配置结果
 export function getClusterInstallResultsState (params) {
   return request({
-    url:
-      //  'http://doc.goodrain.org/mock/48/cluster/components',
-      '/cluster/components',
+    url: `${setting.apiHost}/cluster/components`,
     method: 'get',
     params: {
       isInit: params ? params.isInit : false
@@ -94,18 +83,22 @@ export function getClusterInstallResultsState (params) {
 //  访问地址
 export function getAccessAddress () {
   return request({
-    url:
-      //  'http://doc.goodrain.org/mock/48/cluster/address',
-      '/cluster/address',
+    url: `${setting.apiHost}/cluster/address`,
     method: 'get'
   })
 }
 //  平台安装包卸载
 export function deleteUnloadingPlatform () {
   return request({
-    url:
-      //  'http://doc.goodrain.org/mock/48/cluster/uninstall',
-      '/cluster/uninstall',
+    url: `${setting.apiHost}/cluster/uninstall`,
     method: 'DELETE'
+  })
+}
+
+export function queryNode (params) {
+  return request({
+    url: params.mock ? 'http://doc.goodrain.org/mock/48/cluster/nodes' : `${setting.apiHost}/cluster/nodes`,
+    method: 'GET',
+    params: params
   })
 }

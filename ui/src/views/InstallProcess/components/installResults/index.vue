@@ -116,7 +116,7 @@ export default {
       return ''
     },
     onSubmitLoads () {
-      this.addCluster()
+      this.installCluster()
     },
     fetchClusterInstallResults () {
       this.timer = setTimeout(() => {

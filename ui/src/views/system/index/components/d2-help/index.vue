@@ -18,7 +18,7 @@
 export default {
   data () {
     return {
-      text: '开始安装',
+      text: this.$t('page.overview.install'),
       loading: false
     }
   },
@@ -34,7 +34,7 @@ export default {
         if (res && res.code === 200 && res.data.final_status) {
           switch (res.data.final_status) {
             case 'Initing':
-              this.text = '集群初始化中'
+              this.text = this.$t('page.overview.init')
               this.loading = true
               this.timers = setTimeout(() => {
                 this.handleState()
@@ -55,10 +55,10 @@ export default {
               }, 5000)
               this.recordInfo.status = 'uninstall'
               this.loading = true
-              this.text = '卸载中'
+              this.text = this.$t('page.overview.uninstall')
               break
             default:
-              this.text = '开始安装'
+              this.text = this.$t('page.overview.install')
               this.loading = false
               this.timers && clearInterval(this.timers)
               break
@@ -69,12 +69,12 @@ export default {
     handleInit () {
       this.$store.dispatch('putInit').then(res => {
         if (res && res.code === 200) {
-          this.text = '集群初始化中'
+          this.text = this.$t('page.overview.init')
           this.loading = true
           this.handleState()
         } else if (res && res.code === 400) {
           this.loading = true
-          this.text = '卸载中'
+          this.text = this.$t('page.overview.uninstall')
           this.handleState()
         }
       })

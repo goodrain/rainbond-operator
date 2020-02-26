@@ -3,8 +3,8 @@
     <div class="d2-page-cover__logo">
       <slot name="logo" />
     </div>
-    <p class="d2-page-cover__title">Rainbond V5.2.0-beta1 集群安装控制器</p>
-    <p class="d2-page-cover__sub-title">企业业务中台解决方案</p>
+    <p class="d2-page-cover__title">{{$t('page.overview.title')}}</p>
+    <p class="d2-page-cover__sub-title">{{$t('page.overview.description')}}</p>
     <p class="d2-page-cover__build-time">FINAL BUILD TIME {{$buildTime}}</p>
     <slot name="footer" />
   </div>

@@ -7,6 +7,7 @@ export default {
       close: 'esc'
     }
   },
+  apiHost: process.env.BUILD_ENV ? '' : 'http://39.104.58.169:30008',
   // 侧边栏默认折叠状态
   menu: {
     asideCollapse: false

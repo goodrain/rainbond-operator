@@ -187,7 +187,6 @@ export default {
     color: #606266;
     height: 39px;
     line-height: 39px;
-    border-bottom: 1px solid #409eff;
   }
 }
 </style>
