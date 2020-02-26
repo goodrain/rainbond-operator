@@ -31,7 +31,7 @@ import (
 
 var log = logf.Log.WithName("controller_rbdcomponent")
 
-type handlerFunc func(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) chandler.ComponentHandler
+type handlerFunc func(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) chandler.ComponentHandler
 
 var handlerFuncs map[string]handlerFunc
 
@@ -150,16 +150,18 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	pkg := &rainbondv1alpha1.RainbondPackage{}
-	if err := r.client.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondPackageName}, pkg); err != nil {
-		reqLogger.Error(err, "failed to get rainbondpackage.")
-		cpt.Status = &rainbondv1alpha1.RbdComponentStatus{
-			Message: fmt.Sprintf("failed to get rainbondpackage: %v", err),
-			Reason:  "ErrGetRainbondPackage",
+	if cluster.Spec.InstallMode != rainbondv1alpha1.InstallationModeFullOnline {
+		if err := r.client.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondPackageName}, pkg); err != nil {
+			reqLogger.Error(err, "failed to get rainbondpackage.")
+			cpt.Status = &rainbondv1alpha1.RbdComponentStatus{
+				Message: fmt.Sprintf("failed to get rainbondpackage: %v", err),
+				Reason:  "ErrGetRainbondPackage",
+			}
+			if err := k8sutil.UpdateCRStatus(r.client, cpt); err != nil {
+				reqLogger.Error(err, "update rbdcomponent status")
+			}
+			return reconcile.Result{RequeueAfter: 3 * time.Second}, err
 		}
-		if err := k8sutil.UpdateCRStatus(r.client, cpt); err != nil {
-			reqLogger.Error(err, "update rbdcomponent status")
-		}
-		return reconcile.Result{RequeueAfter: 3 * time.Second}, err
 	}
 
 	checkPrerequisites := func() bool {
@@ -168,8 +170,10 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 			return true
 		}
 		// Otherwise, we have to make sure rainbondpackage is completed before we create the resource.
-		if err := checkPackageStatus(pkg); err != nil {
-			return false
+		if cluster.Spec.InstallMode != rainbondv1alpha1.InstallationModeFullOnline {
+			if err := checkPackageStatus(pkg); err != nil {
+				return false
+			}
 		}
 		return true
 	}
@@ -177,7 +181,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
-	hdl := fn(ctx, r.client, cpt, cluster, pkg)
+	hdl := fn(ctx, r.client, cpt, cluster)
 
 	if err := hdl.Before(); err != nil {
 		// TODO: report events

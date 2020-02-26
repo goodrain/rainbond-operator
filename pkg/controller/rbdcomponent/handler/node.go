@@ -28,7 +28,6 @@ type node struct {
 
 	cluster   *rainbondv1alpha1.RainbondCluster
 	component *rainbondv1alpha1.RbdComponent
-	pkg       *rainbondv1alpha1.RainbondPackage
 
 	storageClassNameRWX string
 }
@@ -38,14 +37,13 @@ var _ StorageClassRWXer = &node{}
 var _ K8sResourcesInterface = &node{}
 
 // NewNode creates a new rbd-node handler.
-func NewNode(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewNode(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &node{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    LabelsForRainbondComponent(component),
-		pkg:       pkg,
 	}
 }
 

@@ -26,7 +26,6 @@ type chaos struct {
 	client     client.Client
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
-	pkg        *rainbondv1alpha1.RainbondPackage
 	labels     map[string]string
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
@@ -38,14 +37,13 @@ var _ ComponentHandler = &chaos{}
 var _ StorageClassRWXer = &chaos{}
 
 // NewChaos creates a new rbd-chaos handler.
-func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &chaos{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    LabelsForRainbondComponent(component),
-		pkg:       pkg,
 	}
 }
 
@@ -149,6 +147,10 @@ func (c *chaos) deployment() interface{} {
 	for _, node := range c.cluster.Spec.NodesForChaos {
 		nodeNames = append(nodeNames, node.Name)
 	}
+	var affinity *corev1.Affinity
+	if len(nodeNames) > 0 {
+		affinity = affinityForRequiredNodes(nodeNames)
+	}
 
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -180,23 +182,7 @@ func (c *chaos) deployment() interface{} {
 							Hostnames: []string{rbdutil.GetImageRepository(c.cluster)},
 						},
 					},
-					Affinity: &corev1.Affinity{
-						NodeAffinity: &corev1.NodeAffinity{
-							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-								NodeSelectorTerms: []corev1.NodeSelectorTerm{
-									{
-										MatchFields: []corev1.NodeSelectorRequirement{
-											{
-												Key:      "metadata.name",
-												Operator: corev1.NodeSelectorOpIn,
-												Values:   nodeNames,
-											},
-										},
-									},
-								},
-							},
-						},
-					},
+					Affinity: affinity,
 					Containers: []corev1.Container{
 						{
 							Name:            ChaosName,

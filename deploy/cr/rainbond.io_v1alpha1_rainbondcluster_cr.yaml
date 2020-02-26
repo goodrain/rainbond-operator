@@ -5,3 +5,5 @@ metadata:
   namespace: rbd-system
 spec:
   suffixHTTPHost: foo.bar.com
+  installMode: FullOnline
+  replicas: 2

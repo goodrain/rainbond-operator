@@ -3,6 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
+
+	etcdv1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	"github.com/docker/distribution/reference"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
@@ -18,18 +23,18 @@ var EtcdName = "rbd-etcd"
 type etcd struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
-	pkg       *rainbondv1alpha1.RainbondPackage
 	labels    map[string]string
+
+	enableEtcdOperator bool
 }
 
 // NewETCD creates a new rbd-etcd handler.
-func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	labels := LabelsForRainbondComponent(component)
 	labels["etcd_node"] = EtcdName
 	return &etcd{
 		component: component,
 		cluster:   cluster,
-		pkg:       pkg,
 		labels:    labels,
 	}
 }
@@ -38,11 +43,20 @@ func (e *etcd) Before() error {
 	if e.cluster.Spec.EtcdConfig != nil {
 		return NewIgnoreError(fmt.Sprintf("specified etcd configuration"))
 	}
+	if enableEtcdOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_ETCD_OPERATOR")); enableEtcdOperator {
+		e.enableEtcdOperator = true
+	}
 
 	return nil
 }
 
 func (e *etcd) Resources() []interface{} {
+	if e.enableEtcdOperator {
+		return []interface{}{
+			e.etcdCluster(),
+		}
+	}
+
 	return []interface{}{
 		e.statefulsetForEtcd(),
 		e.serviceForEtcd(),
@@ -163,4 +177,33 @@ func (e *etcd) serviceForEtcd() interface{} {
 	}
 
 	return svc
+}
+
+func (e *etcd) etcdCluster() *etcdv1beta2.EtcdCluster {
+	// make sure the image name is right
+	repo, _ := reference.Parse(e.component.Spec.Image)
+	named := repo.(reference.Named)
+	tag := "latest"
+	if t, ok := repo.(reference.Tagged); ok {
+		tag = t.Tag()
+	}
+
+	defaultSize := 1
+	if e.component.Spec.Replicas != nil {
+		defaultSize = int(*e.component.Spec.Replicas)
+	}
+	ec := &etcdv1beta2.EtcdCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      EtcdName,
+			Namespace: e.component.Namespace,
+			Labels:    e.labels,
+		},
+		Spec: etcdv1beta2.ClusterSpec{
+			Size:       defaultSize,
+			Repository: named.Name(),
+			Version:    tag,
+		},
+	}
+
+	return ec
 }

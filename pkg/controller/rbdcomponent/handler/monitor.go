@@ -24,7 +24,6 @@ type monitor struct {
 
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
-	pkg       *rainbondv1alpha1.RainbondPackage
 	labels    map[string]string
 
 	storageClassNameRWO string
@@ -34,7 +33,7 @@ var _ ComponentHandler = &monitor{}
 var _ StorageClassRWOer = &monitor{}
 
 // NewMonitor returns a new rbd-monitor handler.
-func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
+func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &monitor{
 		ctx:    ctx,
 		client: client,
@@ -42,7 +41,6 @@ func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1
 		component: component,
 		cluster:   cluster,
 		labels:    LabelsForRainbondComponent(component),
-		pkg:       pkg,
 	}
 }
 

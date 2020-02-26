@@ -12,8 +12,10 @@ type InstallMode string
 const (
 	// InstallationModeWithPackage means some Rainbond images are from the specified image repository, some are from the installation package.
 	InstallationModeWithPackage InstallMode = "WithPackage"
-	// InstallationModeWithoutPackage means all Rainbond images are from the specified image repository, not the installation package.
+	// InstallationModeWithoutPackage means all Rainbond images are from the specified image repository, but still needs rainbond package.
 	InstallationModeWithoutPackage InstallMode = "WithoutPackage"
+	// InstallationModeFullOnline means all Rainbond images are from the specified image repository.
+	InstallationModeFullOnline InstallMode = "FullOnline"
 
 	// LabelNodeRolePrefix is a label prefix for node roles
 	// It's copied over to here until it's merged in core: https://github.com/kubernetes/kubernetes/pull/39112

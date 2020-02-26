@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
+
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"path"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -238,4 +239,24 @@ func createPersistentVolumeClaim(ns, className, claimName string, accessModes []
 	}
 
 	return pvc
+}
+
+func affinityForRequiredNodes(nodeNames []string) *corev1.Affinity {
+	return &corev1.Affinity{
+		NodeAffinity: &corev1.NodeAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+				NodeSelectorTerms: []corev1.NodeSelectorTerm{
+					{
+						MatchFields: []corev1.NodeSelectorRequirement{
+							{
+								Key:      "metadata.name",
+								Operator: corev1.NodeSelectorOpIn,
+								Values:   nodeNames,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 }

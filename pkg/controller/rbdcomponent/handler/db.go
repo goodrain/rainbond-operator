@@ -3,7 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
 
+	mysqlv1alpha1 "github.com/oracle/mysql-operator/pkg/apis/mysql/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,24 +31,28 @@ type db struct {
 	client                   client.Client
 	component                *rainbondv1alpha1.RbdComponent
 	cluster                  *rainbondv1alpha1.RainbondCluster
-	pkg                      *rainbondv1alpha1.RainbondPackage
 	labels                   map[string]string
 	secret                   *corev1.Secret
 	mysqlUser, mysqlPassword string
+
+	enableMysqlOperator bool
 }
 
 //NewDB new db
-func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) ComponentHandler {
-	return &db{
+func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+	d := &db{
 		ctx:           ctx,
 		client:        client,
 		component:     component,
 		cluster:       cluster,
-		pkg:           pkg,
 		labels:        LabelsForRainbondComponent(component),
 		mysqlUser:     mysqlUser,
 		mysqlPassword: string(uuid.NewUUID())[0:8],
 	}
+	if enableMysqlOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_MYSQL_OPERATOR")); enableMysqlOperator {
+		d.enableMysqlOperator = true
+	}
+	return d
 }
 
 func (d *db) Before() error {
@@ -66,6 +73,13 @@ func (d *db) Before() error {
 }
 
 func (d *db) Resources() []interface{} {
+	if d.enableMysqlOperator {
+		return []interface{}{
+			d.secretForMySQLCluster(),
+			d.mysqlCluster(),
+		}
+	}
+
 	return []interface{}{
 		d.secretForDB(),
 		d.statefulsetForDB(),
@@ -314,4 +328,37 @@ func (d *db) secretForDB() interface{} {
 			mysqlUserKey:     d.mysqlUser,
 		},
 	}
+}
+
+func (d *db) secretForMySQLCluster() interface{} {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rbd-db-mysql-root-password",
+			Namespace: d.component.Namespace,
+		},
+		StringData: map[string]string{
+			"password": d.mysqlPassword,
+		},
+	}
+}
+
+func (d *db) mysqlCluster() *mysqlv1alpha1.Cluster {
+	var defaultSize int32 = 1
+	if d.component.Spec.Replicas != nil {
+		defaultSize = *d.component.Spec.Replicas
+	}
+	mc := &mysqlv1alpha1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rbd-db-mysql-cluster-minimal",
+			Namespace: d.component.Namespace,
+		},
+		Spec: mysqlv1alpha1.ClusterSpec{
+			Members:     defaultSize,
+			MultiMaster: false,
+			RootPasswordSecret: &corev1.LocalObjectReference{
+				Name: "rbd-db-mysql-root-password",
+			},
+		},
+	}
+	return mc
 }
