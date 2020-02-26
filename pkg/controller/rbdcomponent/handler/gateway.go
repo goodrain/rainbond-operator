@@ -3,8 +3,9 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"strings"
+
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -79,6 +80,10 @@ func (g *gateway) deployment() interface{} {
 	for _, node := range g.cluster.Spec.NodesForGateway {
 		nodeNames = append(nodeNames, node.Name)
 	}
+	var affinity *corev1.Affinity
+	if len(nodeNames) > 0 {
+		affinity = affinityForRequiredNodes(nodeNames)
+	}
 
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -106,23 +111,7 @@ func (g *gateway) deployment() interface{} {
 							Operator: corev1.TolerationOpExists, // tolerate everything.
 						},
 					},
-					Affinity: &corev1.Affinity{
-						NodeAffinity: &corev1.NodeAffinity{
-							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-								NodeSelectorTerms: []corev1.NodeSelectorTerm{
-									{
-										MatchFields: []corev1.NodeSelectorRequirement{
-											{
-												Key:      "metadata.name",
-												Operator: corev1.NodeSelectorOpIn,
-												Values:   nodeNames,
-											},
-										},
-									},
-								},
-							},
-						},
-					},
+					Affinity: affinity,
 					Containers: []corev1.Container{
 						{
 							Name:            GatewayName,

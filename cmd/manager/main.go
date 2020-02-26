@@ -8,6 +8,7 @@ import (
 	"runtime"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	etcdv1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
@@ -15,6 +16,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	"github.com/operator-framework/operator-sdk/pkg/restmapper"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
+	mysqlv1alpha1 "github.com/oracle/mysql-operator/pkg/apis/mysql/v1alpha1"
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -82,7 +84,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx := context.TODO()
+	ctx := context.Background()
 	// Become the leader before proceeding
 	err = leader.Become(ctx, "rainbond-operator-lock")
 	if err != nil {
@@ -110,6 +112,14 @@ func main() {
 	}
 	if err := kubeaggregatorv1beta1.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Error(err, "registry kubeaggregatorv1beta1")
+		os.Exit(1)
+	}
+	if err := mysqlv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "registry mysqlv1alpha1")
+		os.Exit(1)
+	}
+	if err := etcdv1beta2.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "registry etcdv1beta2")
 		os.Exit(1)
 	}
 

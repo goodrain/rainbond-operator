@@ -6,6 +6,7 @@ require (
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.5+incompatible
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/coreos/etcd v3.3.15+incompatible
+	github.com/coreos/etcd-operator v0.9.4
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v0.7.3-0.20190817195342-4760db040282
@@ -21,6 +22,7 @@ require (
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/myesui/uuid v1.0.0 // indirect
 	github.com/operator-framework/operator-sdk v0.13.0
+	github.com/oracle/mysql-operator v0.0.0-20190515081336-9aebcc37a080
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/ffjson v0.0.0-20180717144149-af8b230fcd20
 	github.com/sirupsen/logrus v1.4.2
