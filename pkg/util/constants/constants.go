@@ -11,13 +11,11 @@ const (
 	RainbondClusterName = "rainbondcluster"
 	//RainbondPackageName rainbond package resource name
 	RainbondPackageName = "rainbondpackage"
-	//DefStorageClass -
-	DefStorageClass = "rbd-nfs"
 	//DefImageRepository -
 	DefImageRepository = "goodrain.me"
 	//GrDataPVC -
 	GrDataPVC = "rbd-component-grdata"
-	// CachePVC
+	// CachePVC -
 	CachePVC = "rbd-chaos-cache"
 	// SpecialGatewayLabelKey is a special node label, used to specify where to install the rbd-gateway
 	SpecialGatewayLabelKey = "rainbond.io/gateway"

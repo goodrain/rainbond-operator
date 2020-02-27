@@ -557,7 +557,7 @@ func (p *pkg) handle() error {
 	p.log.Info("start handling rainbond package.")
 	// check prerequisites
 	if err := p.checkClusterConfig(); err != nil {
-		p.log.Error(err, "check cluster config")
+		p.log.V(6).Info(fmt.Sprintf("check cluster config: %v", err))
 		//To continue waiting
 		if err == errorClusterConfigNotReady || err == errorClusterConfigNoLocalHub {
 			return err

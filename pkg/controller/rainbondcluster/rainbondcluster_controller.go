@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -100,10 +101,6 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	if rainbondcluster.Status != nil && rainbondcluster.Spec.ImageHub != nil {
-		return reconcile.Result{}, nil
-	}
-
 	status, err := r.generateRainbondClusterStatus(ctx, rainbondcluster)
 	if err != nil {
 		reqLogger.Error(err, "failed to generate rainbondcluster status")
@@ -116,7 +113,6 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 	}
 
 	if rainbondcluster.Spec.ImageHub == nil {
-		//TODO: Wait for the rbd-hub component installed to begin health detection.
 		reqLogger.Info("image hub is empty, do sth.")
 		imageHub, err := r.getImageHub(rainbondcluster)
 		if err != nil {
@@ -124,13 +120,15 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 			return reconcile.Result{RequeueAfter: time.Second * 2}, err
 		}
 		rainbondcluster.Spec.ImageHub = imageHub
-		if err = r.client.Update(ctx, rainbondcluster); err != nil {
+		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			return r.client.Update(ctx, rainbondcluster)
+		}); err != nil {
 			reqLogger.Error(err, "update rainbondcluster")
 			return reconcile.Result{RequeueAfter: time.Second * 2}, err
 		}
 	}
 
-	return reconcile.Result{Requeue: false}, nil
+	return reconcile.Result{}, nil
 }
 
 func (r *ReconcileRainbondCluster) availableStorageClasses() []*rainbondv1alpha1.StorageClass {
@@ -205,7 +203,7 @@ func (r *ReconcileRainbondCluster) getMasterRoleLabel(ctx context.Context) (stri
 func (r *ReconcileRainbondCluster) getImageHub(cluster *rainbondv1alpha1.RainbondCluster) (*rainbondv1alpha1.ImageHub, error) {
 	imageHubReady := func() error {
 		httpClient := &http.Client{
-			Timeout: 3 * time.Second,
+			Timeout: 1 * time.Second,
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: true, // TODO: can't ignore TLS

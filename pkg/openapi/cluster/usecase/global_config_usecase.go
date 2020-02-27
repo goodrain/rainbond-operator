@@ -2,9 +2,11 @@ package usecase
 
 import (
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
-	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	"strings"
+
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
+	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	v1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -23,7 +25,7 @@ type GlobalConfigUseCaseImpl struct {
 }
 
 // NewGlobalConfigUseCase new global config case
-func NewGlobalConfigUseCase(cfg *option.Config) *GlobalConfigUseCaseImpl {
+func NewGlobalConfigUseCase(cfg *option.Config) cluster.GlobalConfigUseCase {
 	return &GlobalConfigUseCaseImpl{cfg: cfg}
 }
 
@@ -268,30 +270,4 @@ func (cc *GlobalConfigUseCaseImpl) Address() (string, error) {
 	}
 
 	return fmt.Sprintf("http://%s:7070", addr), nil
-}
-
-// Uninstall reset cluster
-func (cc *GlobalConfigUseCaseImpl) Uninstall() error {
-	components, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).List(metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	var nfscomponent *v1alpha1.RbdComponent
-	for i := range components.Items {
-		if components.Items[i].Name == "rbd-nfs" {
-			nfscomponent = &components.Items[i]
-			continue
-		}
-		err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Delete(components.Items[i].Name, &metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-	}
-	if nfscomponent != nil {
-		if err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Delete(nfscomponent.Name, &metav1.DeleteOptions{}); err != nil {
-			return err
-		}
-	}
-
-	return cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(cc.cfg.Namespace).Delete("rainbondpackage", &metav1.DeleteOptions{})
 }

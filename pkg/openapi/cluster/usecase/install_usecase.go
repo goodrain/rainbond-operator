@@ -2,21 +2,20 @@ package usecase
 
 import (
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
-	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"strconv"
 	"time"
 
-	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
-
-	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
-
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
+
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -247,9 +246,6 @@ func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) err
 
 	if cluster.Spec.EtcdConfig == nil {
 		componentClaims = append(componentClaims, componentClaim{name: "rbd-etcd", image: imageRepository + "/etcd:v3.3.18", isInit: isInit})
-	}
-	if cluster.Spec.StorageClassName == "" {
-		componentClaims = append(componentClaims, componentClaim{name: "rbd-nfs", image: imageRepository + "/nfs-provisioner:v2.2.1-k8s1.12", isInit: isInit})
 	}
 
 	for _, rbdComponent := range componentClaims {

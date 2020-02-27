@@ -15,6 +15,7 @@ import (
 // LabelsForRainbond returns labels for resources created by rainbond operator.
 func LabelsForRainbond(labels map[string]string) map[string]string {
 	rbdLabels := map[string]string{
+		"creator":  "Rainbond",
 		"belongTo": "rainbond-operator",
 	}
 	for key, val := range labels {
@@ -25,14 +26,6 @@ func LabelsForRainbond(labels map[string]string) map[string]string {
 		rbdLabels[key] = val
 	}
 	return rbdLabels
-}
-
-// GetStorageClass returns storage class name based on rainbondcluster.
-func GetStorageClass(cluster *v1alpha1.RainbondCluster) string {
-	if cluster.Spec.StorageClassName == "" {
-		return constants.DefStorageClass
-	}
-	return cluster.Spec.StorageClassName
 }
 
 // GetImageRepository returns image repository name based on rainbondcluster.
