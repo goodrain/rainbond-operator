@@ -57,10 +57,11 @@ export function putClusterConfig (data) {
   })
 }
 //
-export function installCluster () {
+export function installCluster (data) {
   return request({
     url: `/cluster/install`,
-    method: 'post'
+    method: 'post',
+    data
   })
 }
 //  安装集群配置结果

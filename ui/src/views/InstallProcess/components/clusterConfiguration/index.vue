@@ -14,7 +14,11 @@
         :label="$t('page.install.config.installmode')"
         prop="enableHA"
       >
-        <el-radio-group class="d2-ml-35" v-model="ruleForm.enableHA">
+        <el-radio-group
+          class="d2-ml-35"
+          v-model="ruleForm.enableHA"
+          @change="installModeChange"
+        >
           <el-radio class="d2-w-150" :label="false">{{
             $t("page.install.config.minimize")
           }}</el-radio>
@@ -399,7 +403,7 @@
         :label="$t('page.install.config.shareStorage')"
         prop="activeStorageType"
       >
-        <el-radio-group v-model="ruleForm.activeStorageType" class="d2-ml-35">
+        <el-radio-group @change="validShareStorage" v-model="ruleForm.activeStorageType" class="d2-ml-35">
           <el-radio v-if="!ruleForm.enableHA" class="d2-w-150" :label="1">
             {{ $t("page.install.config.newNFSServer") }}
           </el-radio>
@@ -426,7 +430,7 @@
             class="d2-mt d2-form-item"
             v-if="clusterInitInfo.storageClasses"
           >
-            <el-radio-group v-model="ruleForm.shareStorageClassName">
+            <el-radio-group @change="validShareStorage" v-model="ruleForm.shareStorageClassName">
               <el-radio
                 v-for="item in clusterInitInfo.storageClasses"
                 :key="item.name"
@@ -444,6 +448,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validShareStorage"
               :placeholder="$t('page.install.config.accessKeyID')"
               v-model="storage.RWX.csiPlugin.aliyunNas.accessKeyID"
               class="d2-input_inner"
@@ -455,17 +460,31 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validShareStorage"
+              :placeholder="$t('page.install.config.accessKeySecret')"
+              v-model="storage.RWX.csiPlugin.aliyunNas.accessKeySecret"
+              class="d2-input_inner"
+            ></el-input>
+          </el-form-item>
+          <el-form-item
+            label="ZoneID"
+            label-width="130px"
+            class="d2-mt d2-form-item"
+          >
+            <el-input
+              @change="validShareStorage"
               :placeholder="$t('page.install.config.zoneId')"
               v-model="storage.RWX.csiPlugin.aliyunNas.zoneId"
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
           <el-form-item
-            label="AccessKeyID"
+            label="VPC ID"
             label-width="130px"
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validShareStorage"
               :placeholder="$t('page.install.config.vpcId')"
               v-model="storage.RWX.csiPlugin.aliyunNas.vpcId"
               class="d2-input_inner"
@@ -477,6 +496,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validShareStorage"
               :placeholder="$t('page.install.config.vSwitchId')"
               v-model="storage.RWX.csiPlugin.aliyunNas.vSwitchId"
               class="d2-input_inner"
@@ -493,6 +513,7 @@
         prop="activeBlockStorageType"
       >
         <el-radio-group
+          @change="validBlockStorage"
           v-model="ruleForm.activeBlockStorageType"
           class="d2-ml-35"
         >
@@ -523,7 +544,7 @@
             v-if="clusterInitInfo.storageClasses"
             class="d2-mt d2-form-item"
           >
-            <el-radio-group v-model="ruleForm.blockStorageClassName">
+            <el-radio-group @change="validBlockStorage" v-model="ruleForm.blockStorageClassName">
               <el-radio
                 v-for="item in clusterInitInfo.storageClasses"
                 :key="item.name"
@@ -541,6 +562,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               :placeholder="$t('page.install.config.accessKeyID')"
               v-model="storage.RWO.csiPlugin.aliyunCloudDisk.accessKeyID"
               class="d2-input_inner"
@@ -552,42 +574,33 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               :placeholder="$t('page.install.config.accessKeySecret')"
               v-model="storage.RWO.csiPlugin.aliyunCloudDisk.accessKeySecret"
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-
+          <el-form-item
+            label="RegionID"
+            label-width="130px"
+            class="d2-mt d2-form-item"
+          >
+            <el-input
+              @change="validBlockStorage"
+              :placeholder="$t('page.install.config.regionID')"
+              v-model="storage.RWO.csiPlugin.aliyunCloudDisk.region_id"
+              class="d2-input_inner"
+            ></el-input>
+          </el-form-item>
           <el-form-item
             label="ZoneID"
             label-width="130px"
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               :placeholder="$t('page.install.config.zoneId')"
               v-model="storage.RWO.csiPlugin.aliyunCloudDisk.zoneId"
-              class="d2-input_inner"
-            ></el-input>
-          </el-form-item>
-          <el-form-item
-            label="VPC ID"
-            label-width="130px"
-            class="d2-mt d2-form-item"
-          >
-            <el-input
-              :placeholder="$t('page.install.config.vpcId')"
-              v-model="storage.RWO.csiPlugin.aliyunCloudDisk.vpcId"
-              class="d2-input_inner"
-            ></el-input>
-          </el-form-item>
-          <el-form-item
-            :label="$t('page.install.config.vSwitchId')"
-            label-width="130px"
-            class="d2-mt d2-form-item"
-          >
-            <el-input
-              :placeholder="$t('page.install.config.vSwitchId')"
-              v-model="storage.RWO.csiPlugin.aliyunCloudDisk.vSwitchId"
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
@@ -601,6 +614,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               v-model="storage.RWO.provisioner"
               :disabled="true"
               class="d2-input_inner"
@@ -613,6 +627,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               :placeholder="$t('page.install.config.rbdmonitors')"
               v-model="
                 storage.RWO.storageClassParameters.rbdParameters.monitors
@@ -626,6 +641,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               v-model="storage.RWO.storageClassParameters.rbdParameters.adminId"
               class="d2-input_inner"
             ></el-input>
@@ -636,6 +652,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               v-model="
                 storage.RWO.storageClassParameters.rbdParameters.adminSecretName
               "
@@ -648,6 +665,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               v-model="
                 storage.RWO.storageClassParameters.rbdParameters
                   .adminSecretNamespace
@@ -661,6 +679,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               v-model="storage.RWO.storageClassParameters.rbdParameters.pool"
               class="d2-input_inner"
             ></el-input>
@@ -671,6 +690,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               v-model="storage.RWO.storageClassParameters.rbdParameters.userId"
               class="d2-input_inner"
             ></el-input>
@@ -681,6 +701,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               v-model="
                 storage.RWO.storageClassParameters.rbdParameters.userSecretName
               "
@@ -693,6 +714,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               v-model="
                 storage.RWO.storageClassParameters.rbdParameters
                   .userSecretNamespace
@@ -706,6 +728,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               v-model="storage.RWO.storageClassParameters.rbdParameters.fsType"
               class="d2-input_inner"
             ></el-input>
@@ -716,6 +739,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               v-model="
                 storage.RWO.storageClassParameters.rbdParameters.imageFormat
               "
@@ -728,6 +752,7 @@
             class="d2-mt d2-form-item"
           >
             <el-input
+              @change="validBlockStorage"
               v-model="
                 storage.RWO.storageClassParameters.rbdParameters.imageFeatures
               "
@@ -740,9 +765,9 @@
         </div>
       </el-form-item>
       <div style="width:1100px;text-align:center;">
-        <el-button type="primary" @click="submitForm('ruleForm')"
-          >{{$t('page.install.config.startInstall')}}</el-button
-        >
+        <el-button type="primary" @click="submitForm('ruleForm')">{{
+          $t("page.install.config.startInstall")
+        }}</el-button>
       </div>
     </el-form>
   </div>
@@ -805,7 +830,6 @@ export default {
       }
     }
     let validateDomain = (rule, value, callback) => {
-      console.log(value)
       if (value.substr(0, 4) === 'http') {
         callback(new Error(this.$t('page.install.config.nohttpValidation')))
         return
@@ -826,6 +850,73 @@ export default {
       if (value.length < 1 && !this.ruleForm.HTTPDomainSwitch) {
         callback(new Error(this.$t('page.install.config.domainValidation')))
         return
+      }
+      callback()
+    }
+    let validateShareStorage = (rule, value, callback) => {
+      if (value === 2 && this.ruleForm.shareStorageClassName === '') {
+        callback(
+          new Error(this.$t('page.install.config.storageClassValidation'))
+        )
+        return
+      }
+      if (value === 3) {
+        const nas = this.storage.RWX.csiPlugin.aliyunNas
+        if (
+          nas.zoneId === '' ||
+          nas.vpcId === '' ||
+          nas.vSwitchId === '' ||
+          nas.accessKeyID === '' ||
+          nas.accessKeySecret === ''
+        ) {
+          callback(
+            new Error(this.$t('page.install.config.nasValidation'))
+          )
+          return
+        }
+      }
+      callback()
+    }
+    let validateBlockStorage = (rule, value, callback) => {
+      if (value === 1 && this.ruleForm.blockStorageClassName === '') {
+        callback(
+          new Error(this.$t('page.install.config.storageClassValidation'))
+        )
+      }
+      if (value === 2) {
+        const disk = this.storage.RWO.csiPlugin.aliyunCloudDisk
+        if (
+          disk.region_id === '' ||
+          disk.zoneId === '' ||
+          disk.accessKeyID === '' ||
+          disk.accessKeySecret === ''
+        ) {
+          callback(
+            new Error(this.$t('page.install.config.diskValidation'))
+          )
+          return
+        }
+      }
+      if (value === 3) {
+        const rbd = this.storage.RWO.storageClassParameters.rbdParameters
+        if (
+          rbd.monitors === '' ||
+          rbd.adminId === '' ||
+          rbd.adminSecretName === '' ||
+          rbd.adminSecretNamespace === '' ||
+          rbd.pool === '' ||
+          rbd.userId === '' ||
+          rbd.userSecretName === '' ||
+          rbd.userSecretNamespace === '' ||
+          rbd.fsType === '' ||
+          rbd.imageFormat === '' ||
+          rbd.imageFeatures === ''
+        ) {
+          callback(
+            new Error(this.$t('page.install.config.rbdValidation'))
+          )
+          return
+        }
       }
       callback()
     }
@@ -871,11 +962,10 @@ export default {
             aliyunCloudDisk: {
               accessKeyID: '',
               accessKeySecret: '',
-              maxVolumePerNode: 30,
-              volumeAs: 'filesystem',
+              maxVolumePerNode: 15,
+              type: 'cloud_ssd',
               zoneId: '',
-              vpcId: '',
-              vSwitchId: ''
+              region_id: ''
             }
           }
         }
@@ -1015,8 +1105,15 @@ export default {
         ],
         activeStorageType: [
           {
+            validator: validateShareStorage,
             required: true,
-            message: this.$t('page.install.config.shareStorageValidation'),
+            trigger: 'blur'
+          }
+        ],
+        activeBlockStorageType: [
+          {
+            validator: validateBlockStorage,
+            required: true,
             trigger: 'blur'
           }
         ],
@@ -1082,6 +1179,17 @@ export default {
     this.fetchClusterInitConfig()
   },
   methods: {
+    validShareStorage () {
+      this.$refs.ruleForm.validateField('activeStorageType')
+    },
+    validBlockStorage () {
+      this.$refs.ruleForm.validateField('activeBlockStorageType')
+    },
+    installModeChange (value) {
+      if (value && this.ruleForm.activeStorageType === 1) {
+        this.ruleForm.activeStorageType = 2
+      }
+    },
     removeIP (index) {
       this.ruleForm.gatewayIngressIPs.splice(index, 1)
     },
@@ -1182,7 +1290,6 @@ export default {
     submitForm (formName) {
       this.$refs[formName].validate(valid => {
         if (valid) {
-          console.log('valid success')
           this.loading = true
           let obj = {}
           if (!this.ruleForm.imageHubInstall) {
@@ -1215,7 +1322,13 @@ export default {
           if (!this.ruleForm.HTTPDomainSwitch) {
             obj.HTTPDomain = this.ruleForm.HTTPDomain
           }
-          obj.gatewayIngressIPs = this.ruleForm.gatewayIngressIPs
+          let ips = []
+          this.ruleForm.gatewayIngressIPs.map(item => {
+            if (item !== '') {
+              ips.push(ips)
+            }
+          })
+          obj.gatewayIngressIPs = ips
           let gatewayNodes = []
           this.setgatewayNodes.map(item => {
             gatewayNodes.push({ internalIP: item })
@@ -1259,7 +1372,9 @@ export default {
       // share storage nfs
       if (this.ruleForm.activeStorageType === 1) {
         obj.rainbondvolumes.RWX = {
-          nfs: {}
+          csiPlugin: {
+            nfs: {}
+          }
         }
       }
       // share storage class
@@ -1282,7 +1397,8 @@ export default {
           csiPlugin: {
             aliyunNas: {
               accessKeyID: this.storage.RWX.csiPlugin.aliyunNas.accessKeyID,
-              accessKeySecret: this.storage.RWX.csiPlugin.aliyunNas.accessKeySecret
+              accessKeySecret: this.storage.RWX.csiPlugin.aliyunNas
+                .accessKeySecret
             }
           }
         }
@@ -1299,16 +1415,18 @@ export default {
           storageClassParameters: {
             parameters: {
               zoneId: this.storage.RWO.csiPlugin.aliyunCloudDisk.zoneId,
-              volumeAs: this.storage.RWO.csiPlugin.aliyunCloudDisk.volumeAs,
-              vpcId: this.storage.RWO.csiPlugin.aliyunCloudDisk.vpcId,
-              vSwitchId: this.storage.RWO.csiPlugin.aliyunCloudDisk.vSwitchId
+              region_id: this.storage.RWO.csiPlugin.aliyunCloudDisk.region_id,
+              type: this.storage.RWO.csiPlugin.aliyunCloudDisk.type
             }
           },
           csiPlugin: {
             aliyunCloudDisk: {
-              accessKeyID: this.storage.RWO.csiPlugin.aliyunCloudDisk.accessKeyID,
-              accessKeySecret: this.storage.RWO.csiPlugin.aliyunCloudDisk.accessKeySecret,
-              maxVolumePerNode: this.storage.RWO.csiPlugin.aliyunCloudDisk.maxVolumePerNode
+              accessKeyID: this.storage.RWO.csiPlugin.aliyunCloudDisk
+                .accessKeyID,
+              accessKeySecret: this.storage.RWO.csiPlugin.aliyunCloudDisk
+                .accessKeySecret,
+              maxVolumePerNode: this.storage.RWO.csiPlugin.aliyunCloudDisk
+                .maxVolumePerNode
             }
           }
         }
