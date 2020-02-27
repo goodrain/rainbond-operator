@@ -1325,10 +1325,10 @@ export default {
           let ips = []
           this.ruleForm.gatewayIngressIPs.map(item => {
             if (item !== '') {
-              ips.push(ips)
+              ips.push(item)
             }
           })
-          obj.gatewayIngressIPs = ips
+          obj.gatewayIngressIPs = this.unique(ips)
           let gatewayNodes = []
           this.setgatewayNodes.map(item => {
             gatewayNodes.push({ internalIP: item })
