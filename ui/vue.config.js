@@ -29,7 +29,14 @@ module.exports = {
   publicPath,
   lintOnSave: true,
   devServer: {
-    publicPath // 和 publicPath 保持一致
+    publicPath, // 和 publicPath 保持一致
+    proxy: {
+      '/': {
+        target: 'http://39.104.58.169:30008',
+        ws: true,
+        changeOrigin: true
+      }
+    }
   },
   css: {
     loaderOptions: {
