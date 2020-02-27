@@ -1256,6 +1256,12 @@ export default {
     installCluster () {
       let obj = {}
       obj.rainbondvolumes = {}
+      // share storage nfs
+      if (this.ruleForm.activeStorageType === 1) {
+        obj.rainbondvolumes.RWX = {
+          nfs: {}
+        }
+      }
       // share storage class
       if (this.ruleForm.activeStorageType === 2) {
         obj.rainbondvolumes.RWX = {
