@@ -29,7 +29,7 @@ type eventlog struct {
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
 
-	storageClassNameRWX string
+	pvcParametersRWX *pvcParameters
 }
 
 var _ ComponentHandler = &eventlog{}
@@ -76,14 +76,14 @@ func (e *eventlog) After() error {
 	return nil
 }
 
-func (e *eventlog) SetStorageClassNameRWX(storageClassName string) {
-	e.storageClassNameRWX = storageClassName
+func (e *eventlog) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
+	e.pvcParametersRWX = pvcParameters
 }
 
 func (e *eventlog) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(e.component.Namespace, e.storageClassNameRWX, constants.GrDataPVC),
+		createPersistentVolumeClaimRWX(e.component.Namespace, constants.GrDataPVC, e.pvcParametersRWX),
 	}
 }
 

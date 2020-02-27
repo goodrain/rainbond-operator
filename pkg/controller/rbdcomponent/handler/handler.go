@@ -11,13 +11,13 @@ type ComponentHandler interface {
 // StorageClassRWXer provides methods to setup storageclass with
 // access mode RWX for rbdcomponent.
 type StorageClassRWXer interface {
-	SetStorageClassNameRWX(sc string)
+	SetStorageClassNameRWX(pvcParameters *pvcParameters)
 }
 
 // StorageClassRWOer provides methods to setup storageclass with
 // access mode RWO for rbdcomponent.
 type StorageClassRWOer interface {
-	SetStorageClassNameRWO(sc string)
+	SetStorageClassNameRWO(pvcParameters *pvcParameters)
 }
 
 // K8sResourcesInterface provides methods to create or update k8s resources,

@@ -3,9 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
-	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 
@@ -27,7 +28,7 @@ type worker struct {
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
 
-	storageClassNameRWX string
+	pvcParametersRWX *pvcParameters
 }
 
 var _ ComponentHandler = &worker{}
@@ -74,14 +75,14 @@ func (w *worker) After() error {
 	return nil
 }
 
-func (w *worker) SetStorageClassNameRWX(storageClassName string) {
-	w.storageClassNameRWX = storageClassName
+func (w *worker) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
+	w.pvcParametersRWX = pvcParameters
 }
 
 func (w *worker) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(w.component.Namespace, w.storageClassNameRWX, constants.GrDataPVC),
+		createPersistentVolumeClaimRWX(w.component.Namespace, constants.GrDataPVC, w.pvcParametersRWX),
 	}
 }
 

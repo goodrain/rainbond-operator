@@ -21,18 +21,27 @@ import (
 var EtcdName = "rbd-etcd"
 
 type etcd struct {
+	ctx       context.Context
+	client    client.Client
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
 
+	pvcParametersRWO *pvcParameters
+
 	enableEtcdOperator bool
 }
+
+var _ ComponentHandler = &etcd{}
+var _ StorageClassRWOer = &etcd{}
 
 // NewETCD creates a new rbd-etcd handler.
 func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	labels := LabelsForRainbondComponent(component)
 	labels["etcd_node"] = EtcdName
 	return &etcd{
+		ctx:       ctx,
+		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    labels,
@@ -45,6 +54,9 @@ func (e *etcd) Before() error {
 	}
 	if enableEtcdOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_ETCD_OPERATOR")); enableEtcdOperator {
 		e.enableEtcdOperator = true
+	}
+	if err := setStorageCassName(e.ctx, e.client, e.component.Namespace, e); err != nil {
+		return err
 	}
 
 	return nil
@@ -65,6 +77,10 @@ func (e *etcd) Resources() []interface{} {
 
 func (e *etcd) After() error {
 	return nil
+}
+
+func (e *etcd) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
+	e.pvcParametersRWO = pvcParameters
 }
 
 func (e *etcd) statefulsetForEtcd() interface{} {
@@ -180,6 +196,9 @@ func (e *etcd) serviceForEtcd() interface{} {
 }
 
 func (e *etcd) etcdCluster() *etcdv1beta2.EtcdCluster {
+	claimName := "data"
+	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO)
+
 	// make sure the image name is right
 	repo, _ := reference.Parse(e.component.Spec.Image)
 	named := repo.(reference.Named)
@@ -202,6 +221,9 @@ func (e *etcd) etcdCluster() *etcdv1beta2.EtcdCluster {
 			Size:       defaultSize,
 			Repository: named.Name(),
 			Version:    tag,
+			Pod: &etcdv1beta2.PodPolicy{
+				PersistentVolumeClaimSpec: &pvc.Spec,
+			},
 		},
 	}
 

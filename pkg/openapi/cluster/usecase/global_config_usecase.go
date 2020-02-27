@@ -201,7 +201,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *v1.Global
 	} else {
 		// NodesForGateways can not be nil
 		ip := source.NodesForGateways[0].InternalIP
-		if len(source.GatewayIngressIPs) > 0 {
+		if len(source.GatewayIngressIPs) > 0 && source.GatewayIngressIPs[0] != "" {
 			ip = source.GatewayIngressIPs[0]
 		}
 		domain, err := cc.genSuffixHTTPHost(ip)

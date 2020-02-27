@@ -29,7 +29,7 @@ type node struct {
 	cluster   *rainbondv1alpha1.RainbondCluster
 	component *rainbondv1alpha1.RbdComponent
 
-	storageClassNameRWX string
+	pvcParametersRWX *pvcParameters
 }
 
 var _ ComponentHandler = &node{}
@@ -71,14 +71,14 @@ func (n *node) After() error {
 	return nil
 }
 
-func (n *node) SetStorageClassNameRWX(storageClassName string) {
-	n.storageClassNameRWX = storageClassName
+func (n *node) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
+	n.pvcParametersRWX = pvcParameters
 }
 
 func (n *node) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(n.component.Namespace, n.storageClassNameRWX, constants.GrDataPVC),
+		createPersistentVolumeClaimRWX(n.component.Namespace, constants.GrDataPVC, n.pvcParametersRWX),
 	}
 }
 

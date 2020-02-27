@@ -3,10 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +27,7 @@ type monitor struct {
 	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
 
-	storageClassNameRWO string
+	pvcParametersRWO *pvcParameters
 }
 
 var _ ComponentHandler = &monitor{}
@@ -69,13 +70,13 @@ func (m *monitor) After() error {
 	return nil
 }
 
-func (m *monitor) SetStorageClassNameRWO(sc string) {
-	m.storageClassNameRWO = sc
+func (m *monitor) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
+	m.pvcParametersRWO = pvcParameters
 }
 
 func (m *monitor) statefulset() interface{} {
-	claimName := "data"
-	promDataPVC := createPersistentVolumeClaimRWO(m.component.Namespace, m.storageClassNameRWO, claimName)
+	claimName := "data" // unnecessary
+	promDataPVC := createPersistentVolumeClaimRWO(m.component.Namespace, claimName, m.pvcParametersRWO)
 
 	args := []string{
 		"--advertise-addr=$(POD_IP):9999",

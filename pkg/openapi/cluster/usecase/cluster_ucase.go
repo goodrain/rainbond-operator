@@ -97,8 +97,8 @@ func (c *clusterUsecase) Status() (*model.ClusterStatus, error) {
 	// package
 	rainbondPackage, err := c.getRainbondPackage()
 	if err != nil {
-		log.Error(err, "get package error")
-		rainbondPackage = nil // if can't find package cr, client will return 404 and empty package info not nil
+		log.Error(err, "get package")
+		return nil, fmt.Errorf("get package: %v", err)
 	}
 
 	components, err := c.cptUcase.List(false)
@@ -373,5 +373,12 @@ func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, err
 }
 
 func (c *clusterUsecase) getRainbondPackage() (*rainbondv1alpha1.RainbondPackage, error) {
-	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(c.cfg.Namespace).Get(c.cfg.Rainbondpackage, metav1.GetOptions{})
+	pkg, err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(c.cfg.Namespace).Get(c.cfg.Rainbondpackage, metav1.GetOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return pkg, nil
 }

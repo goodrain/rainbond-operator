@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
@@ -12,7 +11,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,7 +28,7 @@ type hub struct {
 	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
 
-	storageClassNameRWX string
+	pvcParametersRWX *pvcParameters
 }
 
 var _ ComponentHandler = &hub{}
@@ -73,8 +71,8 @@ func (h *hub) After() error {
 	return nil
 }
 
-func (h *hub) SetStorageClassNameRWX(sc string) {
-	h.storageClassNameRWX = sc
+func (h *hub) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
+	h.pvcParametersRWX = pvcParameters
 }
 
 func (h *hub) deployment() interface{} {
@@ -151,31 +149,8 @@ func (h *hub) serviceForHub() interface{} {
 	return svc
 }
 
-func (h *hub) persistentVolumeClaimForHub() interface{} {
-	storageClassName := rbdutil.GetStorageClass(h.cluster)
-	storageRequest := resource.NewQuantity(21*1024*1024*1024, resource.BinarySI) // TODO: customer specified
-	if storageClassName == constants.DefStorageClass {
-		storageRequest = resource.NewQuantity(1*1024*1024, resource.BinarySI)
-	}
-	pvc := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      hubDataPvcName,
-			Namespace: h.component.Namespace,
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteMany,
-			},
-			Resources: corev1.ResourceRequirements{
-				Requests: map[corev1.ResourceName]resource.Quantity{
-					corev1.ResourceStorage: *storageRequest,
-				},
-			},
-			StorageClassName: commonutil.String(h.storageClassNameRWX),
-		},
-	}
-
-	return pvc
+func (h *hub) persistentVolumeClaimForHub() *corev1.PersistentVolumeClaim {
+	return createPersistentVolumeClaimRWO(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX)
 }
 
 func (h *hub) ingressForHub() interface{} {

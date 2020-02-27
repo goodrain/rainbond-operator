@@ -30,7 +30,7 @@ type chaos struct {
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
 
-	storageClassNameRWX string
+	pvcParametersRWX *pvcParameters
 }
 
 var _ ComponentHandler = &chaos{}
@@ -77,14 +77,14 @@ func (c *chaos) After() error {
 	return nil
 }
 
-func (c *chaos) SetStorageClassNameRWX(storageClassName string) {
-	c.storageClassNameRWX = storageClassName
+func (c *chaos) SetStorageClassNameRWX(pvcParametersRWX *pvcParameters) {
+	c.pvcParametersRWX = pvcParametersRWX
 }
 
 func (c *chaos) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
-		createPersistentVolumeClaimRWX(c.component.Namespace, c.storageClassNameRWX, constants.GrDataPVC),
-		createPersistentVolumeClaimRWX(c.component.Namespace, c.storageClassNameRWX, constants.CachePVC),
+		createPersistentVolumeClaimRWX(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX),
+		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX),
 	}
 }
 

@@ -34,8 +34,7 @@ type api struct {
 	component                *rainbondv1alpha1.RbdComponent
 	cluster                  *rainbondv1alpha1.RainbondCluster
 
-	storageClassNameRWX string
-	storageClassNameRWO string
+	pvcParametersRWX *pvcParameters
 
 	pvcName string
 }
@@ -88,19 +87,15 @@ func (a *api) After() error {
 	return nil
 }
 
-func (a *api) SetStorageClassNameRWX(storageClassName string) {
-	a.storageClassNameRWX = storageClassName
-}
-
-func (a *api) SetStorageClassNameRWO(storageClassName string) {
-	a.storageClassNameRWO = storageClassName
+func (a *api) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
+	a.pvcParametersRWX = pvcParameters
 }
 
 func (a *api) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(a.component.Namespace, a.storageClassNameRWX, constants.GrDataPVC),
-		createPersistentVolumeClaimRWX(a.component.Namespace, a.storageClassNameRWX, a.pvcName),
+		createPersistentVolumeClaimRWX(a.component.Namespace, constants.GrDataPVC, a.pvcParametersRWX),
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX),
 	}
 }
 

@@ -7,7 +7,6 @@ import (
 	"path"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -26,6 +25,12 @@ const (
 	// EtcdSSLPath ssl file path for etcd
 	EtcdSSLPath = "/run/ssl/etcd"
 )
+
+// pvcParameters holds parameters to create pvc.
+type pvcParameters struct {
+	storageClassName string
+	storageRequest   *int32
+}
 
 // LabelsForRainbondComponent returns the labels for the sub resources of rbdcomponent.
 func LabelsForRainbondComponent(cpt *rainbondv1alpha1.RbdComponent) map[string]string {
@@ -146,39 +151,44 @@ func etcdSSLArgs() []string {
 	}
 }
 
-func storageClassNameFromRainbondVolumeRWX(ctx context.Context, cli client.Client, ns string) (string, error) {
+func storageClassNameFromRainbondVolumeRWX(ctx context.Context, cli client.Client, ns string) (*pvcParameters, error) {
 	return storageClassNameFromRainbondVolume(ctx, cli, ns, rbdutil.LabelsForAccessModeRWX())
 }
 
-func storageClassNameFromRainbondVolumeRWO(ctx context.Context, cli client.Client, ns string) (string, error) {
-	storageClassName, err := storageClassNameFromRainbondVolume(ctx, cli, ns, rbdutil.LabelsForAccessModeRWO())
+func storageClassNameFromRainbondVolumeRWO(ctx context.Context, cli client.Client, ns string) (*pvcParameters, error) {
+	pvcParameters, err := storageClassNameFromRainbondVolume(ctx, cli, ns, rbdutil.LabelsForAccessModeRWO())
 	if err != nil {
 		if !IsRainbondVolumeNotFound(err) {
-			return "", err
+			return nil, err
 		}
 		return storageClassNameFromRainbondVolumeRWX(ctx, cli, ns)
 	}
-	return storageClassName, nil
+	return pvcParameters, nil
 }
 
-func storageClassNameFromRainbondVolume(ctx context.Context, cli client.Client, ns string, labels map[string]string) (string, error) {
+func storageClassNameFromRainbondVolume(ctx context.Context, cli client.Client, ns string, labels map[string]string) (*pvcParameters, error) {
 	volumeList := &rainbondv1alpha1.RainbondVolumeList{}
 	var opts []client.ListOption
 	opts = append(opts, client.InNamespace(ns))
 	opts = append(opts, client.MatchingLabels(labels))
 	if err := cli.List(ctx, volumeList, opts...); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if len(volumeList.Items) == 0 {
-		return "", NewIgnoreError(rainbondVolumeNotFound)
+		return nil, NewIgnoreError(rainbondVolumeNotFound)
 	}
 
 	volume := volumeList.Items[0]
 	if volume.Spec.StorageClassName == "" {
-		return "", NewIgnoreError("storage class not ready")
+		return nil, NewIgnoreError("storage class not ready")
 	}
-	return volume.Spec.StorageClassName, nil
+
+	pvcParameters := &pvcParameters{
+		storageClassName: volume.Spec.StorageClassName,
+		storageRequest:   volume.Spec.StorageRequest,
+	}
+	return pvcParameters, nil
 }
 
 func setStorageCassName(ctx context.Context, cli client.Client, ns string, obj interface{}) error {
@@ -203,25 +213,26 @@ func setStorageCassName(ctx context.Context, cli client.Client, ns string, obj i
 	return nil
 }
 
-func createPersistentVolumeClaimRWX(ns, className, claimName string) *corev1.PersistentVolumeClaim {
+func createPersistentVolumeClaimRWX(ns, claimName string, pvcParameters *pvcParameters) *corev1.PersistentVolumeClaim {
 	accessModes := []corev1.PersistentVolumeAccessMode{
 		corev1.ReadWriteMany,
 	}
-	return createPersistentVolumeClaim(ns, className, claimName, accessModes)
+	return createPersistentVolumeClaim(ns, claimName, accessModes, pvcParameters)
 }
 
-func createPersistentVolumeClaimRWO(ns, className, claimName string) *corev1.PersistentVolumeClaim {
+func createPersistentVolumeClaimRWO(ns, claimName string, pvcParameters *pvcParameters) *corev1.PersistentVolumeClaim {
 	accessModes := []corev1.PersistentVolumeAccessMode{
 		corev1.ReadWriteOnce,
 	}
-	return createPersistentVolumeClaim(ns, className, claimName, accessModes)
+	return createPersistentVolumeClaim(ns, claimName, accessModes, pvcParameters)
 }
 
-func createPersistentVolumeClaim(ns, className, claimName string, accessModes []corev1.PersistentVolumeAccessMode) *corev1.PersistentVolumeClaim {
-	storageRequest := resource.NewQuantity(21*1024*1024*1024, resource.BinarySI) // TODO: customer specified
-	if className == constants.DefStorageClass || className == "nfs" {
-		storageRequest = resource.NewQuantity(1*1024*1024, resource.BinarySI)
+func createPersistentVolumeClaim(ns, claimName string, accessModes []corev1.PersistentVolumeAccessMode, pvcParameters *pvcParameters) *corev1.PersistentVolumeClaim {
+	var size int64 = 1
+	if pvcParameters.storageRequest != nil && *pvcParameters.storageRequest > 0 {
+		size = int64(*pvcParameters.storageRequest)
 	}
+	storageRequest := resource.NewQuantity(size*1024*1024*1024, resource.BinarySI)
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      claimName,
@@ -234,7 +245,7 @@ func createPersistentVolumeClaim(ns, className, claimName string, accessModes []
 					corev1.ResourceStorage: *storageRequest,
 				},
 			},
-			StorageClassName: commonutil.String(className),
+			StorageClassName: commonutil.String(pvcParameters.storageClassName),
 		},
 	}
 

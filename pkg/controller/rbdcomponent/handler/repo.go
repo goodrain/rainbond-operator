@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
@@ -20,7 +21,7 @@ type repo struct {
 	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
 
-	storageClassNameRWO string
+	pvcParametersRWO *pvcParameters
 }
 
 var _ ComponentHandler = &repo{}
@@ -55,13 +56,13 @@ func (r *repo) After() error {
 	return nil
 }
 
-func (r *repo) SetStorageClassNameRWO(storageClassName string) {
-	r.storageClassNameRWO = storageClassName
+func (r *repo) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
+	r.pvcParametersRWO = pvcParameters
 }
 
 func (r *repo) statefulset() interface{} {
 	claimName := "data"
-	repoDataPVC := createPersistentVolumeClaimRWO(r.component.Namespace, r.storageClassNameRWO, claimName)
+	repoDataPVC := createPersistentVolumeClaimRWO(r.component.Namespace, claimName, r.pvcParametersRWO)
 
 	ds := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{

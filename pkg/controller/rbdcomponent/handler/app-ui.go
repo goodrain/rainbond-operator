@@ -27,7 +27,7 @@ type appui struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 
-	storageClassNameRWX string
+	pvcParametersRWX *pvcParameters
 
 	pvcName string
 }
@@ -73,14 +73,14 @@ func (a *appui) After() error {
 	return nil
 }
 
-func (a *appui) SetStorageClassNameRWX(storageClassName string) {
-	a.storageClassNameRWX = storageClassName
+func (a *appui) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
+	a.pvcParametersRWX = pvcParameters
 }
 
 func (a *appui) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(a.component.Namespace, a.storageClassNameRWX, a.pvcName),
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX),
 	}
 }
 
