@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -68,8 +69,6 @@ func (d *dns) deployment() interface{} {
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
-					HostNetwork:                   true,
-					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 					Containers: []corev1.Container{
 						{
 							Name:            DNSName,

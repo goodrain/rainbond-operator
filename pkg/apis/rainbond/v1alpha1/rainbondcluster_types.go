@@ -50,6 +50,8 @@ type EtcdConfig struct {
 
 // RainbondClusterSpec defines the desired state of RainbondCluster
 type RainbondClusterSpec struct {
+	// EnableHA is a highly available switch.
+	EnableHA bool `json:"enableHA"`
 	// Repository of each Rainbond component image, eg. docker.io/rainbond.
 	// +optional
 	RainbondImageRepository string `json:"rainbondImageRepository,omitempty"`

@@ -64,8 +64,8 @@ type RainbondVolumeSpec struct {
 	StorageClassName       string                  `json:"storageClassName,omitempty"`
 	StorageClassParameters *StorageClassParameters `json:"storageClassParameters,omitempty"`
 	// CSIPlugin holds the image
-	CSIPlugin *CSIPluginSource `json:"csiPlugin,omitempty"`
-	StorageRequest *int32 `json:",omitempty"`
+	CSIPlugin      *CSIPluginSource `json:"csiPlugin,omitempty"`
+	StorageRequest *int32           `json:"storageRequest,omitempty"`
 }
 
 // RainbondVolumeConditionType -

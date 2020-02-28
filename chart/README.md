@@ -29,6 +29,19 @@ kubectl create ns rbd-system
 helm install my-release ./mychart --namespace=rbd-system
 ```
 
+## Installing ETCD Operator
+
+### Official Documentation
+
+Official project documentation found [here].
+
+### Installing the ETCD Operator Chart
+
+```bash
+helm repo add stable https://kubernetes-charts.storage.googleapis.com/
+helm install etcd-operator stable/etcd-operator -n rbd-system
+```
+
 ## Uninstalling the Chart
 
 To uninstall/delete the my-release:

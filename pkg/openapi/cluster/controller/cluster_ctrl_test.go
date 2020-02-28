@@ -200,15 +200,15 @@ func TestClusterInfoRequest(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			usecase := mock.NewMockUsecase(ctrl)
-			usecase.EXPECT().ValidateNodes(tc.data.NodesForGateways, true).Return(nil)
-			usecase.EXPECT().ValidateNodes(tc.data.NodesForChaos, false).Return(nil)
+			usecase.EXPECT().CompleteNodes(tc.data.NodesForGateways, true).Return(nil, nil)
+			usecase.EXPECT().CompleteNodes(tc.data.NodesForChaos, false).Return(nil, nil)
 
 			installUcase := mock.NewMockInstallUseCase(ctrl)
 			statusRes := model.StatusRes{}
 			installUcase.EXPECT().InstallStatus().Return(statusRes, nil)
 
 			configUcase := mock.NewMockGlobalConfigUseCase(ctrl)
-			configUcase.EXPECT().UpdateGlobalConfig(tc.data).Return(nil)
+			configUcase.EXPECT().UpdateGlobalConfig(gomock.Any()).Return(nil)
 
 			clusterUcase := mock.NewMockIClusterUcase(ctrl)
 			clusterUcase.EXPECT().Install().Return(installUcase)

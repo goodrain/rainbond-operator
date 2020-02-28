@@ -84,15 +84,18 @@ func (g *gateway) deployment() interface{} {
 	if len(nodeNames) > 0 {
 		affinity = affinityForRequiredNodes(nodeNames)
 	}
+	if affinity == nil {
+		// TODO: make sure nodeNames not empty
+		return nil
+	}
 
-	ds := &appsv1.Deployment{
+	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayName,
 			Namespace: g.component.Namespace,
 			Labels:    g.labels,
 		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: g.component.Spec.Replicas,
+		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: g.labels,
 			},

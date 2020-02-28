@@ -209,7 +209,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 			}
 			// Set RbdComponent cpt as the owner and controller
 			if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.scheme); err != nil {
-				return reconcile.Result{}, err
+				return reconcile.Result{Requeue: true}, err
 			}
 			if err := r.resourceCreateIfNotExists(ctx, res.(runtime.Object), res.(metav1.Object)); err != nil {
 				return reconcile.Result{}, err

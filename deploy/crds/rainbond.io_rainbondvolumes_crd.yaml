@@ -94,6 +94,9 @@ spec:
                   description: Provisioner indicates the type of the provisioner.
                   type: string
               type: object
+            storageRequest:
+              format: int32
+              type: integer
           type: object
         status:
           description: RainbondVolumeStatus defines the observed state of rainbondvolume.

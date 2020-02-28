@@ -46,9 +46,13 @@ spec:
                       description: The AccessKey Secret provided by Alibaba Cloud
                         for access control
                       type: string
+                    maxVolumePerNode:
+                      description: maxVolumePerNode
+                      type: string
                   required:
-                    - accessKeyID
-                    - accessKeySecret
+                  - accessKeyID
+                  - accessKeySecret
+                  - maxVolumePerNode
                   type: object
                 aliyunNas:
                   description: 'AliyunNasCSIPluginSource represents a aliyun cloud
@@ -63,8 +67,8 @@ spec:
                         for access control
                       type: string
                   required:
-                    - accessKeyID
-                    - accessKeySecret
+                  - accessKeyID
+                  - accessKeySecret
                   type: object
                 nfs:
                   description: 'NFSCSIPluginSource represents a nfs CSI plugin. More
@@ -90,6 +94,9 @@ spec:
                   description: Provisioner indicates the type of the provisioner.
                   type: string
               type: object
+            storageRequest:
+              format: int32
+              type: integer
           type: object
         status:
           description: RainbondVolumeStatus defines the observed state of rainbondvolume.
@@ -120,14 +127,14 @@ spec:
                     description: Type of rainbondvolume condition.
                     type: string
                 required:
-                  - status
-                  - type
+                - status
+                - type
                 type: object
               type: array
           type: object
       type: object
   version: v1alpha1
   versions:
-    - name: v1alpha1
-      served: true
-      storage: true
+  - name: v1alpha1
+    served: true
+    storage: true

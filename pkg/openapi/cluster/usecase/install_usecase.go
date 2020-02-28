@@ -1,9 +1,11 @@
 package usecase
 
 import (
-	"fmt"
+	"path"
 	"strconv"
 	"time"
+
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -17,10 +19,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-var (
-	componentClaims []componentClaim
 )
 
 var (
@@ -54,29 +52,32 @@ var (
 // TODO fanyangyang use logrus
 
 type componentClaim struct {
-	namespace string
-	name      string
-	version   string
-	image     string
-	logLevel  string
-	Configs   map[string]string
-	isInit    bool
+	namespace       string
+	name            string
+	version         string
+	imageRepository string
+	imageName       string
+	logLevel        string
+	Configs         map[string]string
+	isInit          bool
+	replicas        *int32
 }
 
-// TODO: custom domain
-var existHubDomain = "registry.cn-hangzhou.aliyuncs.com/goodrain"
+func (c *componentClaim) image() string {
+	return path.Join(c.imageRepository, c.imageName) + ":" + c.version
+}
 
-func parseComponentClaim(claim componentClaim) *v1alpha1.RbdComponent {
+func parseComponentClaim(claim *componentClaim) *v1alpha1.RbdComponent {
 	component := &v1alpha1.RbdComponent{}
 	component.Namespace = claim.namespace
 	component.Name = claim.name
 	component.Spec.Version = claim.version
-	component.Spec.Image = claim.image
+	component.Spec.Image = claim.image()
+	component.Spec.Replicas = claim.replicas
 	component.Spec.Configs = claim.Configs
 	component.Spec.LogLevel = v1alpha1.ParseLogLevel(claim.logLevel)
 	component.Spec.Type = claim.name
-	labels := map[string]string{"name": claim.name}
-	log.Info(fmt.Sprintf("component %s labels:%+v", component.Name, component.Labels))
+	labels := rbdutil.LabelsForRainbond(map[string]string{"name": claim.name})
 	if claim.isInit {
 		component.Spec.PriorityComponent = true
 		labels["priorityComponent"] = "true"
@@ -106,14 +107,23 @@ func NewInstallUseCase(cfg *option.Config, rainbondKubeClient versioned.Interfac
 
 // Install install
 func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
+	cluster, err := ic.rainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.namespace).Get(ic.cfg.ClusterName, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return bcode.ErrClusterNotFound
+		}
+		return err
+	}
+
 	// create rainbond volume
 	if err := ic.createRainbondVolumes(req); err != nil {
 		return err
 	}
+
 	if err := ic.initRainbondPackage(); err != nil {
 		return err
 	}
-	return ic.createComponents(componentClaims...)
+	return ic.createComponents(cluster)
 }
 
 func (ic *InstallUseCaseImpl) createRainbondVolumes(req *v1.ClusterInstallReq) error {
@@ -145,6 +155,7 @@ func (ic *InstallUseCaseImpl) createRainbondVolumeIfNotExists(volume *v1alpha1.R
 }
 
 func setRainbondVolume(name, namespace string, labels map[string]string, rv *v1.RainbondVolume) *v1alpha1.RainbondVolume {
+	var storageRequest int32 = 1
 	spec := v1alpha1.RainbondVolumeSpec{
 		StorageClassName: rv.StorageClassName,
 	}
@@ -164,6 +175,7 @@ func setRainbondVolume(name, namespace string, labels map[string]string, rv *v1.
 				AccessKeySecret:  rv.CSIPlugin.AliyunCloudDisk.AccessKeySecret,
 				MaxVolumePerNode: strconv.Itoa(rv.CSIPlugin.AliyunCloudDisk.MaxVolumePerNode),
 			}
+			storageRequest = 21
 		case rv.CSIPlugin.AliyunNas != nil:
 			csiplugin.AliyunNas = &v1alpha1.AliyunNasCSIPluginSource{
 				AccessKeyID:     rv.CSIPlugin.AliyunNas.AccessKeyID,
@@ -175,6 +187,7 @@ func setRainbondVolume(name, namespace string, labels map[string]string, rv *v1.
 		spec.CSIPlugin = csiplugin
 	}
 
+	spec.StorageRequest = commonutil.Int32(storageRequest)
 	volume := &v1alpha1.RainbondVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -209,48 +222,86 @@ func (ic *InstallUseCaseImpl) initRainbondPackage() error {
 	return nil
 }
 
-func (ic *InstallUseCaseImpl) createComponents(components ...componentClaim) error {
-	cluster, err := ic.rainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.cfg.Namespace).Get("rainbondcluster", metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	componentClaims = []componentClaim{
-		{name: "rbd-api", image: "goodrain.me/rbd-api:" + ic.cfg.RainbondVersion},
-		{name: "rbd-app-ui", image: "goodrain.me/rbd-app-ui:" + ic.cfg.RainbondVersion},
-		{name: "rbd-chaos", image: "goodrain.me/rbd-chaos:" + ic.cfg.RainbondVersion},
-		{name: "rbd-dns", image: "goodrain.me/rbd-dns"},
-		{name: "rbd-eventlog", image: "goodrain.me/rbd-eventlog:" + ic.cfg.RainbondVersion},
-		{name: "rbd-monitor", image: "goodrain.me/rbd-monitor:" + ic.cfg.RainbondVersion},
-		{name: "rbd-mq", image: "goodrain.me/rbd-mq:" + ic.cfg.RainbondVersion},
-		{name: "rbd-worker", image: "goodrain.me/rbd-worker:" + ic.cfg.RainbondVersion},
-		{name: "rbd-webcli", image: "goodrain.me/rbd-webcli:" + ic.cfg.RainbondVersion},
-		{name: "rbd-repo", image: "goodrain.me/rbd-repo:6.16.0"},
-		{name: "metrics-server", image: "goodrain.me/metrics-server:v0.3.6"},
-	}
-	if cluster.Spec.RegionDatabase == nil || cluster.Spec.UIDatabase == nil {
-		componentClaims = append(componentClaims, componentClaim{name: "rbd-db", image: "goodrain.me/rbd-db:v5.1.9"})
+func (ic *InstallUseCaseImpl) genComponentClaims(cluster *v1alpha1.RainbondCluster) map[string]*componentClaim {
+	var defReplicas *int32 = commonutil.Int32(1)
+	if cluster.Spec.EnableHA {
+		defReplicas = commonutil.Int32(2)
 	}
 
 	var isInit bool
-	var imageRepository string
+	imageRepository := constants.DefImageRepository
 	if cluster.Spec.ImageHub == nil {
 		isInit = true
-		imageRepository = existHubDomain
-		componentClaims = append(componentClaims, componentClaim{name: "rbd-hub", image: imageRepository + "/registry:2.6.2", isInit: isInit})
 	} else {
 		imageRepository = cluster.Spec.ImageHub.Domain
 	}
-	componentClaims = append(componentClaims, componentClaim{name: "rbd-gateway", image: imageRepository + "/rbd-gateway:" + ic.cfg.RainbondVersion, isInit: isInit})
-	componentClaims = append(componentClaims, componentClaim{name: "rbd-node", image: imageRepository + "/rbd-node:" + ic.cfg.RainbondVersion, isInit: isInit})
 
-	if cluster.Spec.EtcdConfig == nil {
-		componentClaims = append(componentClaims, componentClaim{name: "rbd-etcd", image: imageRepository + "/etcd:v3.3.18", isInit: isInit})
+	newClaim := func(name string) *componentClaim {
+		defClaim := componentClaim{name: name, imageRepository: imageRepository, version: ic.cfg.RainbondVersion, replicas: defReplicas}
+		defClaim.imageName = name
+		return &defClaim
+	}
+	name2Claim := map[string]*componentClaim{
+		"rbd-api":      newClaim("rbd-api"),
+		"rbd-app-ui":   newClaim("rbd-app-ui"),
+		"rbd-chaos":    newClaim("rbd-chaos"),
+		"rbd-eventlog": newClaim("rbd-eventlog"),
+		"rbd-monitor":  newClaim("rbd-monitor"),
+		"rbd-mq":       newClaim("rbd-mq"),
+		"rbd-worker":   newClaim("rbd-worker"),
+		"rbd-webcli":   newClaim("rbd-webcli"),
+	}
+	name2Claim["rbd-dns"] = newClaim("rbd-dns")
+	name2Claim["rbd-dns"].version = "latest"
+	name2Claim["metrics-server"] = newClaim("metrics-server")
+	name2Claim["metrics-server"].version = "v0.3.6"
+	name2Claim["rbd-repo"] = newClaim("rbd-repo")
+	name2Claim["rbd-repo"].version = "6.16.0"
+
+	if cluster.Spec.RegionDatabase == nil || cluster.Spec.UIDatabase == nil {
+		claim := newClaim("rbd-db")
+		claim.version = "v5.1.9"
+		if cluster.Spec.EnableHA {
+			claim.replicas = commonutil.Int32(1)
+		}
+		name2Claim["rbd-db"] = claim
 	}
 
-	for _, rbdComponent := range componentClaims {
-		reqLogger := log.WithValues("Namespace", rbdComponent.namespace, rbdComponent.name)
-		data := parseComponentClaim(rbdComponent)
+	if cluster.Spec.ImageHub == nil {
+		claim := newClaim("rbd-hub")
+		claim.imageName = "registry"
+		claim.version = "2.6.2"
+		claim.isInit = isInit
+		name2Claim["rbd-hub"] = claim
+	}
+
+	name2Claim["rbd-gateway"] = newClaim("rbd-gateway")
+	name2Claim["rbd-gateway"].isInit = isInit
+	name2Claim["rbd-node"] = newClaim("rbd-node")
+	name2Claim["rbd-node"].isInit = isInit
+
+	if cluster.Spec.EtcdConfig == nil {
+		claim := newClaim("rbd-etcd")
+		claim.imageName = "etcd"
+		claim.version = "v3.3.18"
+		claim.isInit = isInit
+		if cluster.Spec.EnableHA {
+			claim.replicas = commonutil.Int32(3)
+		}
+		name2Claim["rbd-etcd"] = claim
+	}
+
+	return name2Claim
+}
+
+func (ic *InstallUseCaseImpl) createComponents(cluster *v1alpha1.RainbondCluster) error {
+	claims := ic.genComponentClaims(cluster)
+
+	for _, claim := range claims {
+		reqLogger := log.WithValues("Namespace", claim.namespace, "Name", claim.name)
+		// update image repository for priority components
+		claim.imageRepository = cluster.Spec.RainbondImageRepository
+		data := parseComponentClaim(claim)
 		// init component
 		data.Namespace = ic.cfg.Namespace
 		if _, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(ic.cfg.Namespace).Create(data); err != nil {

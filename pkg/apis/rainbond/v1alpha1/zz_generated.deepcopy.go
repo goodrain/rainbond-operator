@@ -633,6 +633,11 @@ func (in *RainbondVolumeSpec) DeepCopyInto(out *RainbondVolumeSpec) {
 		*out = new(CSIPluginSource)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.StorageRequest != nil {
+		in, out := &in.StorageRequest, &out.StorageRequest
+		*out = new(int32)
+		**out = **in
+	}
 	return
 }
 

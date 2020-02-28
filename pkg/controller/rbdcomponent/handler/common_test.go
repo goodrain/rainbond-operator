@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"testing"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"github.com/stretchr/testify/assert"
@@ -9,7 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 func TestGetDefaultInfo(t *testing.T) {
@@ -102,7 +103,7 @@ func TestStorageClassRWXVolumeRWXOK(t *testing.T) {
 	ctx := context.Background()
 	got, err := storageClassNameFromRainbondVolumeRWX(ctx, cli, ns)
 	assert.Nil(t, err)
-	assert.Equal(t, sc, got)
+	assert.Equal(t, sc, got.storageClassName)
 }
 
 func TestStorageClassRWXVolumeRWONotFoundAndRWXNotFound(t *testing.T) {
@@ -142,7 +143,7 @@ func TestStorageClassRWXVolumeRWONotFoundButRWXFound(t *testing.T) {
 	ctx := context.Background()
 	got, err := storageClassNameFromRainbondVolumeRWO(ctx, cli, ns)
 	assert.Nil(t, err)
-	assert.Equal(t, sc, got)
+	assert.Equal(t, sc, got.storageClassName)
 }
 
 func TestStorageClassRWXVolumeRWOOK(t *testing.T) {
@@ -160,7 +161,7 @@ func TestStorageClassRWXVolumeRWOOK(t *testing.T) {
 	ctx := context.Background()
 	got, err := storageClassNameFromRainbondVolumeRWO(ctx, cli, ns)
 	assert.Nil(t, err)
-	assert.Equal(t, volumerwo.Spec.StorageClassName, got)
+	assert.Equal(t, volumerwo.Spec.StorageClassName, got.storageClassName)
 }
 
 func TestSetStorageCassNameRWX(t *testing.T) {
@@ -178,7 +179,7 @@ func TestSetStorageCassNameRWX(t *testing.T) {
 	dummyStorageClassRWX := &dummyStorageClassRWX{}
 	err := setStorageCassName(ctx, cli, ns, dummyStorageClassRWX)
 	assert.Nil(t, err)
-	assert.Equal(t, volumerwx.Spec.StorageClassName, dummyStorageClassRWX.storageClassRWX)
+	assert.Equal(t, volumerwx.Spec.StorageClassName, dummyStorageClassRWX.pvcParametersRWX.storageClassName)
 }
 
 func TestSetStorageCassNameRWO(t *testing.T) {
@@ -196,7 +197,7 @@ func TestSetStorageCassNameRWO(t *testing.T) {
 	dummyStorageClassRWO := &dummyStorageClassRWO{}
 	err := setStorageCassName(ctx, cli, ns, dummyStorageClassRWO)
 	assert.Nil(t, err)
-	assert.Equal(t, volumerwo.Spec.StorageClassName, dummyStorageClassRWO.storageClassRWO)
+	assert.Equal(t, volumerwo.Spec.StorageClassName, dummyStorageClassRWO.pvcParametersRWO.storageClassName)
 }
 
 func TestSetStorageCassNameBothRWXAndRWO(t *testing.T) {
@@ -215,8 +216,8 @@ func TestSetStorageCassNameBothRWXAndRWO(t *testing.T) {
 	dummyStorageClass := &dummyStorageClass{}
 	err := setStorageCassName(ctx, cli, ns, dummyStorageClass)
 	assert.Nil(t, err)
-	assert.Equal(t, volumerwo.Spec.StorageClassName, dummyStorageClass.storageClassRWO)
-	assert.Equal(t, volumerwx.Spec.StorageClassName, dummyStorageClass.storageClassRWX)
+	assert.Equal(t, volumerwo.Spec.StorageClassName, dummyStorageClass.pvcParametersRWO.storageClassName)
+	assert.Equal(t, volumerwx.Spec.StorageClassName, dummyStorageClass.pvcParametersRWX.storageClassName)
 }
 
 func getVolume(ns string, labels map[string]string) *rainbondv1alpha1.RainbondVolume {
@@ -235,19 +236,23 @@ func getVolume(ns string, labels map[string]string) *rainbondv1alpha1.RainbondVo
 }
 
 type dummyStorageClassRWX struct {
-	storageClassRWX string
+	pvcParametersRWX *pvcParameters
 }
 
-func (d *dummyStorageClassRWX) SetStorageClassNameRWX(sc string) {
-	d.storageClassRWX = sc
+var _ StorageClassRWXer = &dummyStorageClassRWX{}
+
+func (d *dummyStorageClassRWX) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
+	d.pvcParametersRWX = pvcParameters
 }
 
 type dummyStorageClassRWO struct {
-	storageClassRWO string
+	pvcParametersRWO *pvcParameters
 }
 
-func (d *dummyStorageClassRWO) SetStorageClassNameRWO(sc string) {
-	d.storageClassRWO = sc
+var _ StorageClassRWOer = &dummyStorageClassRWO{}
+
+func (d *dummyStorageClassRWO) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
+	d.pvcParametersRWO = pvcParameters
 }
 
 type dummyStorageClass struct {

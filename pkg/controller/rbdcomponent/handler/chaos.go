@@ -152,14 +152,13 @@ func (c *chaos) deployment() interface{} {
 		affinity = affinityForRequiredNodes(nodeNames)
 	}
 
-	ds := &appsv1.Deployment{
+	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ChaosName,
 			Namespace: c.component.Namespace,
 			Labels:    c.labels,
 		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: c.component.Spec.Replicas,
+		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: c.labels,
 			},

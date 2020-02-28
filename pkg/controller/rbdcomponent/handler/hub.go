@@ -150,7 +150,7 @@ func (h *hub) serviceForHub() interface{} {
 }
 
 func (h *hub) persistentVolumeClaimForHub() *corev1.PersistentVolumeClaim {
-	return createPersistentVolumeClaimRWO(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX)
+	return createPersistentVolumeClaimRWX(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX)
 }
 
 func (h *hub) ingressForHub() interface{} {
@@ -160,6 +160,7 @@ func (h *hub) ingressForHub() interface{} {
 			Namespace: h.component.Namespace,
 			Annotations: map[string]string{
 				"nginx.ingress.kubernetes.io/weight":                       "100",
+				"nginx.ingress.kubernetes.io/upstream-hash-by":             "$remote_addr", // consistent hashing
 				"nginx.ingress.kubernetes.io/proxy-body-size":              "0",
 				"nginx.ingress.kubernetes.io/set-header-Host":              "$http_host",
 				"nginx.ingress.kubernetes.io/set-header-X-Forwarded-Host":  "$http_host",

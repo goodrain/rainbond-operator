@@ -6,6 +6,8 @@ var (
 	// ErrGenHTTPDomain failed to generate http domain
 	ErrGenHTTPDomain = newCodeWithMsg(10001, "failed to generate http domain")
 	ErrInvalidNodes  = newCodeWithMsg(10002, "invalid nodes")
+	// ErrClusterNotFound rainbondcluster not found
+	ErrClusterNotFound = newCodeWithMsg(10003, "rainbondcluster not found")
 
 	// 20000~29999 for rainbond package
 	// ErrCreateRainbondPackage failed to create rainbond package

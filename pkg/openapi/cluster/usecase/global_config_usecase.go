@@ -157,6 +157,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *v1.Global
 
 	clusterInfo := old.DeepCopy()
 	clusterInfo.Spec.ConfigCompleted = true
+	clusterInfo.Spec.EnableHA = source.EnableHA
 
 	if source.ImageHub.Domain != "" {
 		clusterInfo.Spec.ImageHub = &v1alpha1.ImageHub{

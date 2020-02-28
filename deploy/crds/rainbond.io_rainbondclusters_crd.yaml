@@ -34,6 +34,9 @@ spec:
             configCompleted:
               description: Whether the configuration has been completed
               type: boolean
+            enableHA:
+              description: EnableHA is a highly available switch.
+              type: boolean
             etcdConfig:
               description: the etcd connection information that rainbond component
                 will be used. rainbond-operator will create one if EtcdConfig is empty
@@ -143,6 +146,7 @@ spec:
                   type: string
               type: object
           required:
+          - enableHA
           - suffixHTTPHost
           type: object
         status:
