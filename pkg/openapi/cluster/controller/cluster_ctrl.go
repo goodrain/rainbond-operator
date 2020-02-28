@@ -108,7 +108,7 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 	var req v1.GlobalConfigs
 	if err := c.ShouldBindJSON(&req); err != nil {
 		reqLogger.V(4).Info(fmt.Sprintf("bad request: %v", err))
-		ginutil.JSON(c, nil, bcode.BadRequest)
+		ginutil.JSON(c, err, bcode.BadRequest)
 		return
 	}
 
