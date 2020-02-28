@@ -80,7 +80,7 @@ func getDefaultDBInfo(ctx context.Context, cli client.Client, in *rainbondv1alph
 	pass := string(secret.Data[mysqlPasswordKey])
 
 	return &rainbondv1alpha1.Database{
-		Host:     DBName,
+		Host:     dbhost,
 		Port:     3306,
 		Username: user,
 		Password: pass,
@@ -270,4 +270,13 @@ func affinityForRequiredNodes(nodeNames []string) *corev1.Affinity {
 			},
 		},
 	}
+}
+
+func copyLabels(m map[string]string) map[string]string {
+	cp := make(map[string]string)
+	for k, v := range m {
+		cp[k] = v
+	}
+
+	return cp
 }

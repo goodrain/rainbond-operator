@@ -260,9 +260,9 @@ func (ic *InstallUseCaseImpl) genComponentClaims(cluster *v1alpha1.RainbondClust
 
 	if cluster.Spec.RegionDatabase == nil || cluster.Spec.UIDatabase == nil {
 		claim := newClaim("rbd-db")
-		claim.version = "v5.1.9"
+		claim.version = "8.0.12"
 		if cluster.Spec.EnableHA {
-			claim.replicas = commonutil.Int32(1)
+			claim.replicas = commonutil.Int32(3)
 		}
 		name2Claim["rbd-db"] = claim
 	}

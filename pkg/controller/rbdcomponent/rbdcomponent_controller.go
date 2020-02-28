@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -239,7 +240,9 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	cpt.Status = generateRainbondComponentStatus(cpt, cluster, resources)
-	if err := r.client.Status().Update(ctx, cpt); err != nil {
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return r.client.Status().Update(ctx, cpt)
+	}); err != nil {
 		reqLogger.Error(err, "Update RbdComponent status", "Name", cpt.Name)
 		return reconcile.Result{Requeue: true}, err
 	}

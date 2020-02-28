@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-rainbondVersion: V5.2.0-beta2
+rainbondVersion: V5.2.0-beta1
 
 ## Install Default RBAC roles and bindings
 rbac:

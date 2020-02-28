@@ -116,7 +116,7 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		reqLogger.Info("image hub is empty, do sth.")
 		imageHub, err := r.getImageHub(rainbondcluster)
 		if err != nil {
-			reqLogger.Error(err, "set image hub info")
+			reqLogger.V(6).Info(fmt.Sprintf("set image hub info: %v", err))
 			return reconcile.Result{RequeueAfter: time.Second * 2}, err
 		}
 		rainbondcluster.Spec.ImageHub = imageHub

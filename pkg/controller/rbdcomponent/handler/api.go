@@ -294,7 +294,7 @@ func (a *api) secretForAPI() []interface{} {
 		return nil
 	}
 	var re []interface{}
-	labels := a.labels
+	labels := copyLabels(a.labels)
 	labels["availableips"] = ips
 	server := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

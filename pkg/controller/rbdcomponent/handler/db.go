@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/docker/distribution/reference"
 	mysqlv1alpha1 "github.com/oracle/mysql-operator/pkg/apis/mysql/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -20,23 +21,33 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 )
 
-// DBName name
-var DBName = "rbd-db"
-var mysqlUser = "write"
-var mysqlUserKey = "mysql-user"
-var mysqlPasswordKey = "mysql-password"
+var (
+	// DBName name
+	DBName           = "rbd-db"
+	dbhost           = DBName + "-rw"
+	mycnf            = DBName + "-mycnf"
+	mysqlUser        = "root"
+	mysqlUserKey     = "mysql-user"
+	mysqlPasswordKey = "mysql-password"
+)
 
 type db struct {
-	ctx                      context.Context
-	client                   client.Client
-	component                *rainbondv1alpha1.RbdComponent
-	cluster                  *rainbondv1alpha1.RainbondCluster
-	labels                   map[string]string
+	ctx       context.Context
+	client    client.Client
+	component *rainbondv1alpha1.RbdComponent
+	cluster   *rainbondv1alpha1.RainbondCluster
+	labels    map[string]string
+
 	secret                   *corev1.Secret
 	mysqlUser, mysqlPassword string
 
 	enableMysqlOperator bool
+
+	pvcParametersRWO *pvcParameters
 }
+
+var _ ComponentHandler = &db{}
+var _ StorageClassRWOer = &db{}
 
 //NewDB new db
 func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -46,7 +57,7 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 		component:     component,
 		cluster:       cluster,
 		labels:        LabelsForRainbondComponent(component),
-		mysqlUser:     mysqlUser,
+		mysqlUser:     "root",
 		mysqlPassword: string(uuid.NewUUID())[0:8],
 	}
 	if enableMysqlOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_MYSQL_OPERATOR")); enableMysqlOperator {
@@ -69,13 +80,19 @@ func (d *db) Before() error {
 	}
 	d.secret = secret
 
+	if err := setStorageCassName(d.ctx, d.client, d.component.Namespace, d); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (d *db) Resources() []interface{} {
 	if d.enableMysqlOperator {
 		return []interface{}{
-			d.secretForMySQLCluster(),
+			d.secretForDB(),
+			d.serviceForMysqlCluster(),
+			d.configMapForMySQLCluster(),
 			d.mysqlCluster(),
 		}
 	}
@@ -92,6 +109,10 @@ func (d *db) Resources() []interface{} {
 
 func (d *db) After() error {
 	return nil
+}
+
+func (d *db) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
+	d.pvcParametersRWO = pvcParameters
 }
 
 func (d *db) statefulsetForDB() interface{} {
@@ -230,7 +251,7 @@ func (d *db) statefulsetForDB() interface{} {
 func (d *db) serviceForDB() interface{} {
 	mysqlSvc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      DBName,
+			Name:      dbhost,
 			Namespace: d.component.Namespace,
 			Labels:    d.labels,
 		},
@@ -324,41 +345,106 @@ func (d *db) secretForDB() interface{} {
 			Namespace: d.component.Namespace,
 		},
 		StringData: map[string]string{
+			"password":       d.mysqlPassword,
 			mysqlPasswordKey: d.mysqlPassword,
 			mysqlUserKey:     d.mysqlUser,
 		},
 	}
 }
 
-func (d *db) secretForMySQLCluster() interface{} {
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rbd-db-mysql-root-password",
-			Namespace: d.component.Namespace,
-		},
-		StringData: map[string]string{
-			"password": d.mysqlPassword,
-		},
-	}
-}
-
 func (d *db) mysqlCluster() *mysqlv1alpha1.Cluster {
+	claimName := "data"
+	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO)
+
 	var defaultSize int32 = 1
 	if d.component.Spec.Replicas != nil {
 		defaultSize = *d.component.Spec.Replicas
 	}
+
+	// make sure the image name is right
+	repo, _ := reference.Parse(d.component.Spec.Image)
+	named := repo.(reference.Named)
+	tag := "latest"
+	if t, ok := repo.(reference.Tagged); ok {
+		tag = t.Tag()
+	}
+
 	mc := &mysqlv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rbd-db-mysql-cluster-minimal",
+			Name:      DBName,
 			Namespace: d.component.Namespace,
 		},
 		Spec: mysqlv1alpha1.ClusterSpec{
 			Members:     defaultSize,
 			MultiMaster: false,
 			RootPasswordSecret: &corev1.LocalObjectReference{
-				Name: "rbd-db-mysql-root-password",
+				Name: DBName,
+			},
+			Repository:          named.Name(),
+			Version:             tag,
+			VolumeClaimTemplate: pvc,
+			Config: &corev1.LocalObjectReference{
+				Name: mycnf,
 			},
 		},
 	}
 	return mc
+}
+
+func (d *db) serviceForMysqlCluster() interface{} {
+	labels := d.labels
+	labels["v1alpha1.mysql.oracle.com/cluster"] = DBName
+	selector := map[string]string{
+		"v1alpha1.mysql.oracle.com/cluster": DBName,
+		"v1alpha1.mysql.oracle.com/role":    "primary",
+	}
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dbhost,
+			Namespace: d.component.Namespace,
+			Labels:    labels,
+		},
+		Spec: corev1.ServiceSpec{
+			ClusterIP: "None",
+			Ports: []corev1.ServicePort{
+				{
+					Name: "main",
+					Port: 3306,
+				},
+			},
+			Selector: selector,
+		},
+	}
+	return svc
+}
+
+func (d *db) configMapForMySQLCluster() interface{} {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mycnf,
+			Namespace: d.component.Namespace,
+		},
+		Data: map[string]string{
+			"my.cnf": `
+[client]
+# Default is Latin1, if you need UTF-8 set this (also in server section)
+default-character-set = utf8
+
+[mysqld]
+#
+# * Character sets
+#
+# Default is Latin1, if you need UTF-8 set all this (also in client section)
+#
+default_authentication_plugin=mysql_native_password
+skip-host-cache
+skip-name-resolve
+character-set-server  = utf8
+collation-server      = utf8_general_ci
+character_set_server   = utf8
+collation_server       = utf8_general_ci`,
+		},
+	}
+
+	return cm
 }
