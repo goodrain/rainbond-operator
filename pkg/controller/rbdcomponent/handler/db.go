@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/docker/distribution/reference"
 	mysqlv1alpha1 "github.com/oracle/mysql-operator/pkg/apis/mysql/v1alpha1"
@@ -18,7 +19,6 @@ import (
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 )
 
 var (
@@ -79,6 +79,11 @@ func (d *db) Before() error {
 		secret = nil
 	}
 	d.secret = secret
+	if d.secret != nil {
+		// use the old password
+		d.mysqlUser = string(d.secret.Data[mysqlUserKey])
+		d.mysqlPassword = string(d.secret.Data[mysqlPasswordKey])
+	}
 
 	if err := setStorageCassName(d.ctx, d.client, d.component.Namespace, d); err != nil {
 		return err
@@ -92,18 +97,18 @@ func (d *db) Resources() []interface{} {
 		return []interface{}{
 			d.secretForDB(),
 			d.serviceForMysqlCluster(),
-			d.configMapForMySQLCluster(),
+			d.configMapForMyCnf(),
 			d.mysqlCluster(),
 		}
 	}
 
 	return []interface{}{
 		d.secretForDB(),
+		d.configMapForMyCnf(),
+		d.initdbCMForDB(),
 		d.statefulsetForDB(),
 		d.serviceForDB(),
 		d.serviceForExporter(),
-		d.configMapForDB(),
-		d.initdbCMForDB(),
 	}
 }
 
@@ -116,6 +121,13 @@ func (d *db) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 }
 
 func (d *db) statefulsetForDB() interface{} {
+	repo, _ := reference.Parse(d.component.Spec.Image)
+	name := repo.(reference.Named).Name()
+	exporterImage := strings.Replace(name, "rbd-db", "mysqld-exporter", 1)
+
+	claimName := "data"
+	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO)
+
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
@@ -133,13 +145,6 @@ func (d *db) statefulsetForDB() interface{} {
 					Labels: d.labels,
 				},
 				Spec: corev1.PodSpec{
-					NodeSelector: d.cluster.Status.FirstMasterNodeLabel(),
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    d.cluster.Status.MasterRoleLabel,
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{
@@ -148,23 +153,15 @@ func (d *db) statefulsetForDB() interface{} {
 							ImagePullPolicy: d.component.ImagePullPolicy(),
 							Env: []corev1.EnvVar{
 								{
-									Name:  "MYSQL_ALLOW_EMPTY_PASSWORD",
-									Value: "yes",
+									Name:  "MYSQL_ROOT_HOST",
+									Value: "%",
 								},
 								{
-									Name: "MYSQL_USER",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: DBName,
-											},
-											Key:      mysqlUserKey,
-											Optional: commonutil.Bool(true),
-										},
-									},
+									Name:  "MYSQL_LOG_CONSOLE",
+									Value: "true",
 								},
 								{
-									Name: "MYSQL_PASSWORD",
+									Name: "MYSQL_ROOT_PASSWORD",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
@@ -182,17 +179,22 @@ func (d *db) statefulsetForDB() interface{} {
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "rbd-db-data",
+									Name:      claimName,
 									MountPath: "/data",
 								},
 								{
 									Name:      "initdb",
 									MountPath: "/docker-entrypoint-initdb.d",
 								},
+								{
+									Name:      mycnf,
+									MountPath: "/etc/my.cnf",
+									SubPath:   "my.cnf",
+								},
 							},
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
-									Exec: &corev1.ExecAction{Command: []string{"mysqladmin", "ping"}},
+									Exec: &corev1.ExecAction{Command: []string{"mysqladmin", "-u" + d.mysqlUser, "-p" + d.mysqlPassword, "ping"}},
 								},
 								InitialDelaySeconds: 30,
 								PeriodSeconds:       10,
@@ -200,7 +202,7 @@ func (d *db) statefulsetForDB() interface{} {
 							},
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
-									Exec: &corev1.ExecAction{Command: []string{"mysql", "-e", "SELECT 1"}},
+									Exec: &corev1.ExecAction{Command: []string{"mysql", "-u" + d.mysqlUser, "-p" + d.mysqlPassword, "-e", "SELECT 1"}},
 								},
 								InitialDelaySeconds: 5,
 								PeriodSeconds:       2,
@@ -209,7 +211,7 @@ func (d *db) statefulsetForDB() interface{} {
 						},
 						{
 							Name:            DBName + "-exporter",
-							Image:           "goodrain.me/mysqld-exporter",
+							Image:           exporterImage,
 							ImagePullPolicy: d.component.ImagePullPolicy(),
 							Env: []corev1.EnvVar{
 								{
@@ -221,15 +223,6 @@ func (d *db) statefulsetForDB() interface{} {
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: "rbd-db-data",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/opt/rainbond/data/db",
-									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-								},
-							},
-						},
-						{
 							Name: "initdb",
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -239,9 +232,20 @@ func (d *db) statefulsetForDB() interface{} {
 								},
 							},
 						},
+						{
+							Name: mycnf,
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mycnf,
+									},
+								},
+							},
+						},
 					},
 				},
 			},
+			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*pvc},
 		},
 	}
 
@@ -289,34 +293,6 @@ func (d *db) serviceForExporter() interface{} {
 	}
 }
 
-func (d *db) configMapForDB() interface{} {
-	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rbd-db-conf",
-			Namespace: d.component.Namespace,
-		},
-		Data: map[string]string{
-			"mysql.cnf": `
-[client]
-# Default is Latin1, if you need UTF-8 set this (also in server section)
-default-character-set = utf8
-
-[mysqld]
-#
-# * Character sets
-#
-# Default is Latin1, if you need UTF-8 set all this (also in client section)
-#
-character-set-server  = utf8
-collation-server      = utf8_general_ci
-character_set_server   = utf8
-collation_server       = utf8_general_ci`,
-		},
-	}
-
-	return cm
-}
-
 func (d *db) initdbCMForDB() interface{} {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -325,9 +301,7 @@ func (d *db) initdbCMForDB() interface{} {
 		},
 		Data: map[string]string{
 			"initdb.sql": `
-CREATE DATABASE console;
-GRANT ALL ON *.* TO '` + d.mysqlUser + `'@'%';
-FLUSH PRIVILEGES;
+CREATE DATABASE IF NOT EXISTS console;
 `,
 		},
 	}
@@ -418,7 +392,7 @@ func (d *db) serviceForMysqlCluster() interface{} {
 	return svc
 }
 
-func (d *db) configMapForMySQLCluster() interface{} {
+func (d *db) configMapForMyCnf() interface{} {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mycnf,
@@ -431,18 +405,23 @@ func (d *db) configMapForMySQLCluster() interface{} {
 default-character-set = utf8
 
 [mysqld]
+user=root
+
 #
 # * Character sets
 #
 # Default is Latin1, if you need UTF-8 set all this (also in client section)
 #
-default_authentication_plugin=mysql_native_password
-skip-host-cache
-skip-name-resolve
 character-set-server  = utf8
 collation-server      = utf8_general_ci
 character_set_server   = utf8
-collation_server       = utf8_general_ci`,
+collation_server       = utf8_general_ci
+
+# Compatible with versions before 8.0
+default_authentication_plugin=mysql_native_password
+skip-host-cache
+skip-name-resolve
+`,
 		},
 	}
 
