@@ -229,7 +229,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 			Value: n.component.Namespace,
 		},
 	}
-	if n.cluster.Spec.ImageHub != nil && n.cluster.Spec.ImageHub.Domain != constants.DefImageRepository {
+	if n.cluster.Spec.ImageHub == nil || n.cluster.Spec.ImageHub.Domain == constants.DefImageRepository {
 		envs = append(envs, corev1.EnvVar{
 			Name:  "RBD_DOCKER_SECRET",
 			Value: hubImageRepository,
