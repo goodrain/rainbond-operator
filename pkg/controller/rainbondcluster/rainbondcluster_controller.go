@@ -212,7 +212,11 @@ func (r *ReconcileRainbondCluster) getImageHub(cluster *rainbondv1alpha1.Rainbon
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 		defer cancel()
-		request, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s/v2/", cluster.GatewayIngressIP()), nil)
+		eip := cluster.FirstGatewayEIP()
+		if eip == "" {
+			return fmt.Errorf("no external ip found for gateway")
+		}
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s/v2/", cluster.FirstGatewayEIP()), nil)
 		if err != nil {
 			return fmt.Errorf("new request failure %s", err.Error())
 		}
@@ -231,7 +235,7 @@ func (r *ReconcileRainbondCluster) getImageHub(cluster *rainbondv1alpha1.Rainbon
 	}
 
 	return &rainbondv1alpha1.ImageHub{
-		Domain: "goodrain.me",
+		Domain: constants.DefImageRepository,
 	}, nil
 }
 
