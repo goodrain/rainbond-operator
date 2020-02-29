@@ -83,3 +83,4 @@ tags
 bin
 ui/node_modules
 temp
+coverage.txt
