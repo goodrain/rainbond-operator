@@ -51,7 +51,7 @@ func (cc *ComponentUsecaseImpl) Get(name string) (*v1.RbdComponentStatus, error)
 // List list
 func (cc *ComponentUsecaseImpl) List(isInit bool) ([]*v1.RbdComponentStatus, error) {
 	reqLogger := log.WithValues("Namespace", cc.cfg.Namespace)
-	reqLogger.Info("Start listing RbdComponent associated controller")
+	reqLogger.V(6).Info("Start listing RbdComponent associated controller")
 
 	listOption := metav1.ListOptions{}
 	if isInit {

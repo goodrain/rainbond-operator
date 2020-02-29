@@ -149,6 +149,10 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		}
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, err
 	}
+	if !cluster.Spec.ConfigCompleted {
+		reqLogger.V(6).Info("rainbondcluster configuration is not complete")
+		return reconcile.Result{RequeueAfter: 3 * time.Second}, err
+	}
 
 	pkg := &rainbondv1alpha1.RainbondPackage{}
 	if cluster.Spec.InstallMode != rainbondv1alpha1.InstallationModeFullOnline {

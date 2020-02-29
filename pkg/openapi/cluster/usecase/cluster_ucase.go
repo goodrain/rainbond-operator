@@ -85,33 +85,21 @@ func (c *clusterUsecase) UnInstall() error {
 
 // Status status
 func (c *clusterUsecase) Status() (*model.ClusterStatus, error) {
-	clusterInfo, err := c.getCluster()
+	cluster, err := c.getCluster()
 	if err != nil {
-		// cluster is not found, means status is waiting
-		log.Error(err, "get cluster error")
-		if k8sErrors.IsNotFound(err) {
-			return &model.ClusterStatus{
-				FinalStatus: model.Waiting,
-				ClusterInfo: model.ClusterInfo{},
-			}, nil
-		}
 		return nil, err
 	}
-
-	// package
 	rainbondPackage, err := c.getRainbondPackage()
 	if err != nil {
-		log.Error(err, "get package")
 		return nil, fmt.Errorf("get package: %v", err)
 	}
-
 	components, err := c.cptUcase.List(false)
 	if err != nil {
-		log.Error(err, "get component status list error")
+		return nil, fmt.Errorf("list rainobnd components: %v", err)
 	}
 
-	status := c.handleStatus(clusterInfo, rainbondPackage, components)
-	c.hackClusterInfo(clusterInfo, &status)
+	status := c.handleStatus(cluster, rainbondPackage, components)
+	c.hackClusterInfo(cluster, &status)
 	return &status, nil
 }
 
@@ -242,9 +230,9 @@ func (c *clusterUsecase) handleStatus(rainbondCluster *rainbondv1alpha1.Rainbond
 	reqLogger := log.WithValues("Namespace", c.cfg.Namespace)
 
 	rainbondClusterStatus := c.handleRainbondClusterStatus(rainbondCluster)
-	rainbondPackageStatus := c.handlePackageStatus(rainbondPackage)
-	componentStatus := c.handleComponentStatus(componentStatusList)
-	reqLogger.Info(fmt.Sprintf("cluster: %s; package: %s; component: %s \n", rainbondClusterStatus.FinalStatus, rainbondPackageStatus.FinalStatus, componentStatus.FinalStatus))
+	rainbondPackageStatus := c.handlePackageStatus(rainbondCluster, rainbondPackage)
+	componentStatus := c.handleComponentStatus(rainbondCluster, componentStatusList)
+	reqLogger.V(6).Info(fmt.Sprintf("cluster: %s; package: %s; component: %s \n", rainbondClusterStatus.FinalStatus, rainbondPackageStatus.FinalStatus, componentStatus.FinalStatus))
 	if componentStatus.FinalStatus == model.UnInstalling {
 		rainbondClusterStatus.FinalStatus = model.UnInstalling
 		return rainbondClusterStatus
@@ -296,9 +284,12 @@ func (c *clusterUsecase) handleRainbondClusterStatus(rainbondCluster *rainbondv1
 	return status
 }
 
-func (c *clusterUsecase) handlePackageStatus(rainbondPackage *rainbondv1alpha1.RainbondPackage) model.ClusterStatus {
+func (c *clusterUsecase) handlePackageStatus(cluster *rainbondv1alpha1.RainbondCluster, rainbondPackage *rainbondv1alpha1.RainbondPackage) model.ClusterStatus {
 	status := model.ClusterStatus{
 		FinalStatus: model.Setting,
+	}
+	if cluster == nil || cluster.Status == nil || !cluster.Spec.ConfigCompleted {
+		return status
 	}
 	if rainbondPackage == nil {
 		return status
@@ -307,9 +298,12 @@ func (c *clusterUsecase) handlePackageStatus(rainbondPackage *rainbondv1alpha1.R
 	return status
 }
 
-func (c *clusterUsecase) handleComponentStatus(componentList []*v1.RbdComponentStatus) model.ClusterStatus {
+func (c *clusterUsecase) handleComponentStatus(cluster *rainbondv1alpha1.RainbondCluster, componentList []*v1.RbdComponentStatus) model.ClusterStatus {
 	status := model.ClusterStatus{
 		FinalStatus: model.Setting,
+	}
+	if cluster == nil || cluster.Status == nil || !cluster.Spec.ConfigCompleted {
+		return status
 	}
 	if len(componentList) == 0 {
 		return status
@@ -345,7 +339,14 @@ func (c *clusterUsecase) Init() error {
 }
 
 func (c *clusterUsecase) getCluster() (*rainbondv1alpha1.RainbondCluster, error) {
-	return c.rainbondClient.RainbondV1alpha1().RainbondClusters(c.namespace).Get(c.clusterName, metav1.GetOptions{})
+	cluster, err := c.rainbondClient.RainbondV1alpha1().RainbondClusters(c.namespace).Get(c.clusterName, metav1.GetOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get rainbond clsuter: %v", err)
+	}
+	return cluster, nil
 }
 
 func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, error) {

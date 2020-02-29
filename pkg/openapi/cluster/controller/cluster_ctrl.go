@@ -61,10 +61,10 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterUcase) {
 func (cc *ClusterController) ClusterStatus(c *gin.Context) {
 	status, err := cc.clusterUcase.Cluster().Status()
 	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "内部错误，请联系社区帮助"})
+		ginutil.JSON(c, status, err)
 		return
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": status})
+	ginutil.JSON(c, status, nil)
 }
 
 // ClusterInit cluster init
