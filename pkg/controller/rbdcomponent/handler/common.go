@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -279,4 +280,15 @@ func copyLabels(m map[string]string) map[string]string {
 	}
 
 	return cp
+}
+
+func hostsAliases(cluster *rainbondv1alpha1.RainbondCluster) []corev1.HostAlias {
+	var hostAliases []corev1.HostAlias
+	if rbdutil.GetImageRepository(cluster) == constants.DefImageRepository {
+		hostAliases = append(hostAliases, corev1.HostAlias{
+			IP:        cluster.GatewayIngressIP(),
+			Hostnames: []string{rbdutil.GetImageRepository(cluster)},
+		})
+	}
+	return hostAliases
 }

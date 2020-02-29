@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -175,13 +174,8 @@ func (c *chaos) deployment() interface{} {
 							Operator: corev1.TolerationOpExists, // tolerate everything.
 						},
 					},
-					HostAliases: []corev1.HostAlias{
-						{
-							IP:        c.cluster.GatewayIngressIP(),
-							Hostnames: []string{rbdutil.GetImageRepository(c.cluster)},
-						},
-					},
-					Affinity: affinity,
+					HostAliases: hostsAliases(c.cluster),
+					Affinity:    affinity,
 					Containers: []corev1.Container{
 						{
 							Name:            ChaosName,

@@ -254,15 +254,10 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
-					HostAliases: []corev1.HostAlias{
-						{
-							IP:        n.cluster.GatewayIngressIP(),
-							Hostnames: []string{rbdutil.GetImageRepository(n.cluster)},
-						},
-					},
-					HostNetwork: true,
-					HostPID:     true,
-					DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
+					HostAliases:                   hostsAliases(n.cluster),
+					HostNetwork:                   true,
+					HostPID:                       true,
+					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{
 						{
 							Operator: corev1.TolerationOpExists, // tolerate everything.
