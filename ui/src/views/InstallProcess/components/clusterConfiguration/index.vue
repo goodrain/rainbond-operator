@@ -426,12 +426,15 @@
           >
           <el-form-item
             label="StorageClass"
-            label-width="85px"
+            label-width="120px"
             class="d2-mt d2-form-item"
             v-if="clusterInitInfo.storageClasses"
           >
             <el-radio-group @change="validShareStorage" v-model="ruleForm.shareStorageClassName">
               <el-radio
+                border
+                style="margin-bottom: 1rem"
+                size="medium"
                 v-for="item in clusterInitInfo.storageClasses"
                 :key="item.name"
                 :label="item.name"
@@ -540,12 +543,14 @@
           >
           <el-form-item
             label="StorageClass"
-            label-width="85px"
+            label-width="120px"
             v-if="clusterInitInfo.storageClasses"
             class="d2-mt d2-form-item"
           >
             <el-radio-group @change="validBlockStorage" v-model="ruleForm.blockStorageClassName">
               <el-radio
+                border
+                style="margin-bottom: 1rem"
                 v-for="item in clusterInitInfo.storageClasses"
                 :key="item.name"
                 :label="item.name"
