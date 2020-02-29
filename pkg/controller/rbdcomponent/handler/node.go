@@ -207,6 +207,34 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 		volumes = append(volumes, volume)
 		args = append(args, etcdSSLArgs()...)
 	}
+	envs := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{
+			Name: "NODE_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "spec.nodeName",
+				},
+			},
+		},
+		{
+			Name:  "RBD_NAMESPACE",
+			Value: n.component.Namespace,
+		},
+	}
+	if n.cluster.Spec.ImageHub != nil && n.cluster.Spec.ImageHub.Domain != constants.DefImageRepository {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "RBD_DOCKER_SECRET",
+			Value: hubImageRepository,
+		})
+	}
 
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -245,34 +273,9 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 							Name:            NodeName,
 							Image:           n.component.Spec.Image,
 							ImagePullPolicy: n.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
-								},
-								{
-									Name: "NODE_NAME",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "spec.nodeName",
-										},
-									},
-								},
-								{
-									Name:  "RBD_DOCKER_SECRET",
-									Value: hubImageRepository,
-								},
-								{
-									Name:  "RBD_NAMESPACE",
-									Value: n.component.Namespace,
-								},
-							},
-							Args:         args,
-							VolumeMounts: volumeMounts,
+							Env:             envs,
+							Args:            args,
+							VolumeMounts:    volumeMounts,
 						},
 					},
 					Volumes: volumes,
