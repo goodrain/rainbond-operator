@@ -87,7 +87,10 @@ func (c *clusterUsecase) UnInstall() error {
 func (c *clusterUsecase) Status() (*model.ClusterStatus, error) {
 	cluster, err := c.getCluster()
 	if err != nil {
-		return nil, err
+		if !k8sErrors.IsNotFound(err) {
+			return nil, fmt.Errorf("get rainbond clsuter: %v", err)
+		}
+		cluster = nil
 	}
 	rainbondPackage, err := c.getRainbondPackage()
 	if err != nil {
@@ -339,14 +342,7 @@ func (c *clusterUsecase) Init() error {
 }
 
 func (c *clusterUsecase) getCluster() (*rainbondv1alpha1.RainbondCluster, error) {
-	cluster, err := c.rainbondClient.RainbondV1alpha1().RainbondClusters(c.namespace).Get(c.clusterName, metav1.GetOptions{})
-	if err != nil {
-		if k8sErrors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("get rainbond clsuter: %v", err)
-	}
-	return cluster, nil
+	return c.rainbondClient.RainbondV1alpha1().RainbondClusters(c.namespace).Get(c.clusterName, metav1.GetOptions{})
 }
 
 func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, error) {
