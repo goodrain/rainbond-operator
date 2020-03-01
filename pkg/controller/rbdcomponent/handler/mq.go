@@ -3,9 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -55,6 +56,10 @@ func (m *mq) Resources() []interface{} {
 
 func (m *mq) After() error {
 	return nil
+}
+
+func (m *mq) ListPods() ([]corev1.Pod, error) {
+	return listPods(m.ctx, m.client, m.component.Namespace, m.labels)
 }
 
 func (m *mq) deployment() interface{} {

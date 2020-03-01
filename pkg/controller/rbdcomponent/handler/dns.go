@@ -18,6 +18,8 @@ import (
 var DNSName = "rbd-dns"
 
 type dns struct {
+	ctx       context.Context
+	client    client.Client
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
@@ -28,6 +30,8 @@ var _ ComponentHandler = &dns{}
 // NewDNS creates a new rbd-dns handler.
 func NewDNS(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &dns{
+		ctx:       ctx,
+		client:    client,
 		component: component,
 		cluster:   cluster,
 		labels:    LabelsForRainbondComponent(component),
@@ -36,6 +40,10 @@ func NewDNS(ctx context.Context, client client.Client, component *rainbondv1alph
 
 func (d *dns) Before() error {
 	return nil
+}
+
+func (d *dns) ListPods() ([]corev1.Pod, error) {
+	return listPods(d.ctx, d.client, d.component.Namespace, d.labels)
 }
 
 func (d *dns) Resources() []interface{} {

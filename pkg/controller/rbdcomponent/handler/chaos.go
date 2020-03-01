@@ -76,6 +76,9 @@ func (c *chaos) Resources() []interface{} {
 func (c *chaos) After() error {
 	return nil
 }
+func (c *chaos) ListPods() ([]corev1.Pod, error) {
+	return listPods(c.ctx, c.client, c.component.Namespace, c.labels)
+}
 
 func (c *chaos) SetStorageClassNameRWX(pvcParametersRWX *pvcParameters) {
 	c.pvcParametersRWX = pvcParametersRWX

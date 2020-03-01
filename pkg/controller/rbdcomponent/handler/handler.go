@@ -1,11 +1,14 @@
 package handler
 
+import corev1 "k8s.io/api/core/v1"
+
 // ComponentHandler will check the prerequisites, create resources for rbdcomponent.
 type ComponentHandler interface {
 	// Before will do something before creating component, such as checking the prerequisites, etc.
 	Before() error
 	Resources() []interface{}
 	After() error
+	ListPods() ([]corev1.Pod, error)
 }
 
 // StorageClassRWXer provides methods to setup storageclass with

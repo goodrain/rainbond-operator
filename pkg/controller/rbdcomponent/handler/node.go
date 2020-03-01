@@ -71,6 +71,10 @@ func (n *node) After() error {
 	return nil
 }
 
+func (n *node) ListPods() ([]corev1.Pod, error) {
+	return listPods(n.ctx, n.client, n.component.Namespace, n.labels)
+}
+
 func (n *node) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 	n.pvcParametersRWX = pvcParameters
 }

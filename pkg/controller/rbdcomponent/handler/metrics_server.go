@@ -26,12 +26,13 @@ var MetricsServerName = "metrics-server"
 var metricsGroupAPI = "v1beta1.metrics.k8s.io"
 
 type metricsServer struct {
-	ctx       context.Context
-	client    client.Client
-	db        *rainbondv1alpha1.Database
-	labels    map[string]string
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
+	ctx        context.Context
+	client     client.Client
+	db         *rainbondv1alpha1.Database
+	labels     map[string]string
+	component  *rainbondv1alpha1.RbdComponent
+	cluster    *rainbondv1alpha1.RainbondCluster
+	apiservice *kubeaggregatorv1beta1.APIService
 }
 
 var _ ComponentHandler = &metricsServer{}
@@ -48,21 +49,29 @@ func NewMetricsServer(ctx context.Context, client client.Client, component *rain
 }
 
 func (m *metricsServer) Before() error {
-	apiservce := &kubeaggregatorv1beta1.APIService{}
-	if err := m.client.Get(m.ctx, types.NamespacedName{Name: metricsGroupAPI}, apiservce); err != nil {
+	apiservice := &kubeaggregatorv1beta1.APIService{}
+	if err := m.client.Get(m.ctx, types.NamespacedName{Name: metricsGroupAPI}, apiservice); err != nil {
 		if !k8sErrors.IsNotFound(err) {
 			return fmt.Errorf("get apiservice(%s/%s): %v", MetricsServerName, m.cluster.Namespace, err)
 		}
 		return nil
 	}
-	createdByRainbond := apiservce.Spec.Service.Namespace == m.component.Namespace && apiservce.Spec.Service.Name == MetricsServerName
-	if !createdByRainbond {
-		return ErrV1beta1MetricsExists
-	}
+	m.apiservice = apiservice
 	return nil
 }
 
+func (m *metricsServer) apiServiceCreatedByRainbond() bool {
+	apiservice := m.apiservice
+	if apiservice == nil {
+		return true
+	}
+	return apiservice.Spec.Service.Namespace == m.component.Namespace && apiservice.Spec.Service.Name == MetricsServerName
+}
+
 func (m *metricsServer) Resources() []interface{} {
+	if !m.apiServiceCreatedByRainbond() {
+		return nil
+	}
 	return []interface{}{
 		m.deployment(),
 		m.serviceForMetricsServer(),
@@ -70,9 +79,13 @@ func (m *metricsServer) Resources() []interface{} {
 }
 
 func (m *metricsServer) After() error {
+	if !m.apiServiceCreatedByRainbond() {
+		return nil
+	}
+
 	newAPIService := m.apiserviceForMetricsServer()
-	apiservce := &kubeaggregatorv1beta1.APIService{}
-	if err := m.client.Get(m.ctx, types.NamespacedName{Name: metricsGroupAPI}, apiservce); err != nil {
+	apiservice := &kubeaggregatorv1beta1.APIService{}
+	if err := m.client.Get(m.ctx, types.NamespacedName{Name: metricsGroupAPI}, apiservice); err != nil {
 		if !k8sErrors.IsNotFound(err) {
 			return fmt.Errorf("get apiservice(%s/%s): %v", MetricsServerName, m.cluster.Namespace, err)
 		}
@@ -83,11 +96,24 @@ func (m *metricsServer) After() error {
 	}
 
 	log.Info(fmt.Sprintf("an old api service(%s) has been found, update it.", newAPIService.GetName()))
-	newAPIService.ResourceVersion = apiservce.ResourceVersion
+	newAPIService.ResourceVersion = apiservice.ResourceVersion
 	if err := m.client.Update(m.ctx, newAPIService); err != nil {
 		return fmt.Errorf("update api service: %v", err)
 	}
 	return nil
+}
+
+func (m *metricsServer) ListPods() ([]corev1.Pod, error) {
+	labels := m.labels
+	if !m.apiServiceCreatedByRainbond() {
+		svcRef := m.apiservice.Spec.Service
+		svc := &corev1.Service{}
+		if err := m.client.Get(m.ctx, types.NamespacedName{Namespace: svcRef.Namespace, Name: svcRef.Name}, svc); err != nil {
+			return nil, fmt.Errorf("get svc based on apiservice: %v", err)
+		}
+		labels = svc.Spec.Selector
+	}
+	return listPods(m.ctx, m.client, m.component.Namespace, labels)
 }
 
 func (m *metricsServer) deployment() interface{} {

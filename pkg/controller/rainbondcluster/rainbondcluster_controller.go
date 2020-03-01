@@ -9,16 +9,11 @@ import (
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
-	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -82,7 +77,7 @@ type ReconcileRainbondCluster struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling RainbondCluster")
+	reqLogger.V(6).Info("Reconciling RainbondCluster")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -101,7 +96,9 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	status, err := r.generateRainbondClusterStatus(ctx, rainbondcluster)
+	mgr := newRbdcomponentMgr(ctx, r.client, reqLogger, rainbondcluster)
+
+	status, err := mgr.generateRainbondClusterStatus()
 	if err != nil {
 		reqLogger.Error(err, "failed to generate rainbondcluster status")
 		return reconcile.Result{RequeueAfter: time.Second * 2}, err
@@ -113,91 +110,22 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 	}
 
 	if rainbondcluster.Spec.ImageHub == nil {
-		reqLogger.Info("image hub is empty, do sth.")
+		reqLogger.V(6).Info("image hub is empty, do sth.")
 		imageHub, err := r.getImageHub(rainbondcluster)
 		if err != nil {
 			reqLogger.V(6).Info(fmt.Sprintf("set image hub info: %v", err))
-			return reconcile.Result{RequeueAfter: time.Second * 2}, err
+			return reconcile.Result{RequeueAfter: time.Second * 1}, nil
 		}
 		rainbondcluster.Spec.ImageHub = imageHub
 		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			return r.client.Update(ctx, rainbondcluster)
 		}); err != nil {
 			reqLogger.Error(err, "update rainbondcluster")
-			return reconcile.Result{RequeueAfter: time.Second * 2}, err
+			return reconcile.Result{RequeueAfter: time.Second * 1}, err
 		}
 	}
 
 	return reconcile.Result{}, nil
-}
-
-func (r *ReconcileRainbondCluster) availableStorageClasses() []*rainbondv1alpha1.StorageClass {
-	klog.V(3).Info("Start listing available storage classes")
-
-	storageClassList := &storagev1.StorageClassList{}
-	var opts []client.ListOption
-	if err := r.client.List(context.TODO(), storageClassList, opts...); err != nil {
-		klog.V(2).Info("Start listing available storage classes")
-		return nil
-	}
-
-	var storageClasses []*rainbondv1alpha1.StorageClass
-	for _, sc := range storageClassList.Items {
-		storageClass := &rainbondv1alpha1.StorageClass{
-			Name:        sc.Name,
-			Provisioner: sc.Provisioner,
-		}
-		storageClasses = append(storageClasses, storageClass)
-	}
-
-	return storageClasses
-}
-
-// generateRainbondClusterStatus creates the final rainbondcluster status for a rainbondcluster, given the
-// internal rainbondcluster status.
-func (r *ReconcileRainbondCluster) generateRainbondClusterStatus(ctx context.Context, rainbondCluster *rainbondv1alpha1.RainbondCluster) (*rainbondv1alpha1.RainbondClusterStatus, error) {
-	reqLogger := log.WithValues("Namespace", rainbondCluster.Namespace, "Name", rainbondCluster.Name)
-	reqLogger.V(6).Info("Generating status")
-
-	masterRoleLabel, err := r.getMasterRoleLabel(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get master role label: %v", err)
-	}
-
-	s := &rainbondv1alpha1.RainbondClusterStatus{
-		MasterRoleLabel: masterRoleLabel,
-		StorageClasses:  r.availableStorageClasses(),
-	}
-	s.GatewayAvailableNodes = &rainbondv1alpha1.AvailableNodes{
-		SpecifiedNodes: r.listSpecifiedGatewayNodes(ctx),
-		MasterNodes:    r.listMasterNodesForGateway(ctx, masterRoleLabel),
-	}
-	s.ChaosAvailableNodes = &rainbondv1alpha1.AvailableNodes{
-		SpecifiedNodes: r.listSpecifiedChaosNodes(ctx),
-		MasterNodes:    r.listMasterNodes(ctx, masterRoleLabel),
-	}
-
-	return s, nil
-}
-
-func (r *ReconcileRainbondCluster) getMasterRoleLabel(ctx context.Context) (string, error) {
-	nodes := &corev1.NodeList{}
-	if err := r.client.List(ctx, nodes); err != nil {
-		log.Error(err, "list nodes: %v", err)
-		return "", nil
-	}
-	var label string
-	for _, node := range nodes.Items {
-		for key := range node.Labels {
-			if key == rainbondv1alpha1.LabelNodeRolePrefix+"master" {
-				label = key
-			}
-			if key == rainbondv1alpha1.NodeLabelRole && label != rainbondv1alpha1.LabelNodeRolePrefix+"master" {
-				label = key
-			}
-		}
-	}
-	return label, nil
 }
 
 func (r *ReconcileRainbondCluster) getImageHub(cluster *rainbondv1alpha1.RainbondCluster) (*rainbondv1alpha1.ImageHub, error) {
@@ -233,63 +161,4 @@ func (r *ReconcileRainbondCluster) getImageHub(cluster *rainbondv1alpha1.Rainbon
 	return &rainbondv1alpha1.ImageHub{
 		Domain: "goodrain.me",
 	}, nil
-}
-
-func (r *ReconcileRainbondCluster) listSpecifiedGatewayNodes(ctx context.Context) []*rainbondv1alpha1.K8sNode {
-	nodes := r.listNodesByLabels(ctx, map[string]string{
-		constants.SpecialGatewayLabelKey: "",
-	})
-	// Filtering nodes with port conflicts
-	// check gateway ports
-	return rbdutil.FilterNodesWithPortConflicts(nodes)
-}
-
-func (r *ReconcileRainbondCluster) listMasterNodesForGateway(ctx context.Context, masterLabel string) []*rainbondv1alpha1.K8sNode {
-	nodes := r.listMasterNodes(ctx, masterLabel)
-	// Filtering nodes with port conflicts
-	// check gateway ports
-	return rbdutil.FilterNodesWithPortConflicts(nodes)
-}
-
-func (r *ReconcileRainbondCluster) listSpecifiedChaosNodes(ctx context.Context) []*rainbondv1alpha1.K8sNode {
-	return r.listNodesByLabels(ctx, map[string]string{
-		constants.SpecialChaosLabelKey: "",
-	})
-}
-
-func (r *ReconcileRainbondCluster) listMasterNodes(ctx context.Context, masterRoleLabelKey string) []*rainbondv1alpha1.K8sNode {
-	labels := k8sutil.MaterRoleLabel(masterRoleLabelKey)
-	return r.listNodesByLabels(ctx, labels)
-}
-
-func (r *ReconcileRainbondCluster) listNodesByLabels(ctx context.Context, labels map[string]string) []*rainbondv1alpha1.K8sNode {
-	nodeList := &corev1.NodeList{}
-	listOpts := []client.ListOption{
-		client.MatchingLabels(labels),
-	}
-	if err := r.client.List(ctx, nodeList, listOpts...); err != nil {
-		log.Error(err, "list nodes")
-		return nil
-	}
-
-	findIP := func(addresses []corev1.NodeAddress, addressType corev1.NodeAddressType) string {
-		for _, address := range addresses {
-			if address.Type == addressType {
-				return address.Address
-			}
-		}
-		return ""
-	}
-
-	var k8sNodes []*rainbondv1alpha1.K8sNode
-	for _, node := range nodeList.Items {
-		k8sNode := &rainbondv1alpha1.K8sNode{
-			Name:       node.Name,
-			InternalIP: findIP(node.Status.Addresses, corev1.NodeInternalIP),
-			ExternalIP: findIP(node.Status.Addresses, corev1.NodeExternalIP),
-		}
-		k8sNodes = append(k8sNodes, k8sNode)
-	}
-
-	return k8sNodes
 }

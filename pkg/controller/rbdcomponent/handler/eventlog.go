@@ -76,6 +76,10 @@ func (e *eventlog) After() error {
 	return nil
 }
 
+func (e *eventlog) ListPods() ([]corev1.Pod, error) {
+	return listPods(e.ctx, e.client, e.component.Namespace, e.labels)
+}
+
 func (e *eventlog) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 	e.pvcParametersRWX = pvcParameters
 }

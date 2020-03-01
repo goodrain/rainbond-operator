@@ -59,6 +59,10 @@ func (w *webcli) After() error {
 	return nil
 }
 
+func (w *webcli) ListPods() ([]corev1.Pod, error) {
+	return listPods(w.ctx, w.client, w.component.Namespace, w.labels)
+}
+
 func (w *webcli) deployment() interface{} {
 	volumeMounts := []corev1.VolumeMount{}
 	volumes := []corev1.Volume{}

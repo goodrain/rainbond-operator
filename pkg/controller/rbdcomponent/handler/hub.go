@@ -71,6 +71,10 @@ func (h *hub) After() error {
 	return nil
 }
 
+func (h *hub) ListPods() ([]corev1.Pod, error) {
+	return listPods(h.ctx, h.client, h.component.Namespace, h.labels)
+}
+
 func (h *hub) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 	h.pvcParametersRWX = pvcParameters
 }
