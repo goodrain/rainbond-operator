@@ -6,7 +6,6 @@ import (
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -108,19 +107,14 @@ func (r *rbdcomponentMgr) generateStatus(pods []corev1.Pod) {
 	}
 	status.ReadyReplicas = readyReplicas()
 
-	var podStatuses []corev1.PodStatus
-	for idx := range pods {
-		pod := pods[idx]
-		podStatus := pod.Status
-		var newConditions []corev1.PodCondition
-		for _, condition := range podStatus.Conditions {
-			ensureLastProbeTime(&condition)
-			newConditions = append(newConditions, condition)
+	var newPods []corev1.LocalObjectReference
+	for _, pod := range pods {
+		newPod := corev1.LocalObjectReference{
+			Name: pod.Name,
 		}
-		podStatus.Conditions = newConditions
-		podStatuses = append(podStatuses, podStatus)
+		newPods = append(newPods, newPod)
 	}
-	status.PodStatuses = podStatuses
+	status.Pods = newPods
 
 	if status.ReadyReplicas == replicas {
 		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionTrue, "Ready", "")
@@ -130,8 +124,10 @@ func (r *rbdcomponentMgr) generateStatus(pods []corev1.Pod) {
 	r.cpt.Status = status
 }
 
-func ensureLastProbeTime(condition *corev1.PodCondition) {
-	if condition.LastProbeTime.Equal(&metav1.Time{}) {
-		condition.LastProbeTime = metav1.Now()
+func (r *rbdcomponentMgr) isRbdCmponentReady() bool {
+	_, condition := r.cpt.Status.GetCondition(rainbondv1alpha1.RbdComponentReady)
+	if condition == nil {
+		return false
 	}
+	return condition.Status == corev1.ConditionTrue
 }

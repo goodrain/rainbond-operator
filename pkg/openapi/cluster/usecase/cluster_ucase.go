@@ -28,13 +28,13 @@ type clusterUsecase struct {
 	namespace      string
 	clusterName    string
 
-	cptUcase   ComponentUseCase
+	cptUcase   cluster.ComponentUsecase
 	repo       cluster.Repository
 	nodestorer nodestore.Interface
 }
 
 // NewClusterUsecase creates a new cluster.Usecase.
-func NewClusterUsecase(cfg *option.Config, repo cluster.Repository, cptUcase ComponentUseCase, nodestorer nodestore.Interface) cluster.Usecase {
+func NewClusterUsecase(cfg *option.Config, repo cluster.Repository, cptUcase cluster.ComponentUsecase, nodestorer nodestore.Interface) cluster.Usecase {
 	return &clusterUsecase{
 		cfg:            cfg,
 		clientset:      cfg.KubeClient,
@@ -337,7 +337,6 @@ func (c *clusterUsecase) handleComponentStatus(cluster *rainbondv1alpha1.Rainbon
 // Init init
 func (c *clusterUsecase) Init() error {
 	_, err := c.createCluster()
-	log.Error(err, "create cluster error")
 	return err
 }
 

@@ -8,7 +8,7 @@ import (
 // IClusterUcase cluster case
 type IClusterUcase interface {
 	GlobalConfigs() GlobalConfigUseCase
-	Components() ComponentUseCase
+	Components() ComponentUsecase
 	Install() InstallUseCase
 	Cluster() Usecase
 }
@@ -30,8 +30,8 @@ type GlobalConfigUseCase interface {
 	Address() (string, error)
 }
 
-// ComponentUseCase cluster componse case
-type ComponentUseCase interface { // TODO: loop call
+// ComponentUsecase cluster componse case
+type ComponentUsecase interface { // TODO: loop call
 	Get(name string) (*v1.RbdComponentStatus, error)
 	List(isInit bool) ([]*v1.RbdComponentStatus, error)
 }

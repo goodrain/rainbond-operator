@@ -123,20 +123,8 @@ type RbdComponentStatus struct {
 	// Current state of rainbond component.
 	Conditions []RbdComponentCondition `json:"conditions,omitempty"`
 
-	// A list of pod statused
-	PodStatuses []corev1.PodStatus `json:"podStatuses,omitempty"`
-
-	// Type of Controller owned by RbdComponent
-	// Deprecated
-	ControllerType ControllerType `json:"controllerType"`
-	// ControllerName represents the Controller associated with RbdComponent
-	// The controller could be Deployment, StatefulSet or DaemonSet
-	// Deprecated
-	ControllerName string `json:"controllerName"`
-	// Deprecated
-	Reason string `json:"reason"`
-	// Deprecated
-	Message string `json:"message"`
+	// A list of pods
+	Pods []corev1.LocalObjectReference `json:"pods,omitempty"`
 }
 
 // +genclient

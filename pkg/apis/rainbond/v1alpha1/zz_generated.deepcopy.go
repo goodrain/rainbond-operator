@@ -795,12 +795,10 @@ func (in *RbdComponentStatus) DeepCopyInto(out *RbdComponentStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.PodStatuses != nil {
-		in, out := &in.PodStatuses, &out.PodStatuses
-		*out = make([]v1.PodStatus, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
+	if in.Pods != nil {
+		in, out := &in.Pods, &out.Pods
+		*out = make([]v1.LocalObjectReference, len(*in))
+		copy(*out, *in)
 	}
 	return
 }

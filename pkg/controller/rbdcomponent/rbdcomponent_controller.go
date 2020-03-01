@@ -358,6 +358,10 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 
 	mgr.generateStatus(pods)
 
+	if !mgr.isRbdCmponentReady() {
+		return reconcile.Result{RequeueAfter: 1 * time.Second}, mgr.updateStatus()
+	}
+
 	return reconcile.Result{}, mgr.updateStatus()
 }
 
@@ -399,39 +403,6 @@ func (r *ReconcileRbdComponent) updateOrCreateResource(reqLogger logr.Logger, ob
 	}
 
 	return reconcile.Result{}, nil
-}
-
-func detectControllerType(ctrl interface{}) rainbondv1alpha1.ControllerType {
-	if _, ok := ctrl.(*appv1.Deployment); ok {
-		return rainbondv1alpha1.ControllerTypeDeployment
-	}
-	if _, ok := ctrl.(*appv1.StatefulSet); ok {
-		return rainbondv1alpha1.ControllerTypeStatefulSet
-	}
-	if _, ok := ctrl.(*appv1.DaemonSet); ok {
-		return rainbondv1alpha1.ControllerTypeDaemonSet
-	}
-	return rainbondv1alpha1.ControllerTypeUnknown
-}
-
-func generateRainbondComponentStatus(cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, resources []interface{}) *rainbondv1alpha1.RbdComponentStatus {
-	controllerType := rainbondv1alpha1.ControllerTypeUnknown
-	for _, res := range resources {
-		if res == nil {
-			continue
-		}
-		if ct := detectControllerType(res); ct != rainbondv1alpha1.ControllerTypeUnknown {
-			controllerType = ct
-			break
-		}
-	}
-
-	status := &rainbondv1alpha1.RbdComponentStatus{
-		ControllerType: controllerType,
-		ControllerName: cpt.Name,
-	}
-
-	return status
 }
 
 func checkPackageStatus(pkg *rainbondv1alpha1.RainbondPackage) error {

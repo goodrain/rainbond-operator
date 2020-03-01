@@ -7,7 +7,7 @@ var (
 	ErrGenHTTPDomain = newCodeWithMsg(10001, "failed to generate http domain")
 	ErrInvalidNodes  = newCodeWithMsg(10002, "invalid nodes")
 	// ErrClusterNotFound rainbondcluster not found
-	ErrClusterNotFound = newCodeWithMsg(10003, "rainbondcluster not found")
+	ErrClusterNotFound = newCodeWithStatus(404, 10003, "rainbondcluster not found")
 
 	// 20000~29999 for rainbond package
 	// ErrCreateRainbondPackage failed to create rainbond package
@@ -19,5 +19,6 @@ var (
 
 	// 40000~49999 for rainbond component
 	// ErrCreateRainbondVolume failed to create rainbond component
-	ErrCreateRbdComponent = newCodeWithMsg(40001, "failed to create rainbond component")
+	ErrCreateRbdComponent   = newCodeWithMsg(40001, "failed to create rainbond component")
+	ErrRbdComponentNotFound = newCodeWithStatus(404, 40002, "rbdcomponent not found")
 )
