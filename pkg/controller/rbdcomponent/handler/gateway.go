@@ -60,6 +60,10 @@ func (g *gateway) After() error {
 	return nil
 }
 
+func (g *gateway) ListPods() ([]corev1.Pod, error) {
+	return listPods(g.ctx, g.client, g.component.Namespace, g.labels)
+}
+
 func (g *gateway) deployment() interface{} {
 	args := []string{
 		fmt.Sprintf("--log-level=%s", g.component.LogLevel()),

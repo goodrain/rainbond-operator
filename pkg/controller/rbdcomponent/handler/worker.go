@@ -75,6 +75,10 @@ func (w *worker) After() error {
 	return nil
 }
 
+func (w *worker) ListPods() ([]corev1.Pod, error) {
+	return listPods(w.ctx, w.client, w.component.Namespace, w.labels)
+}
+
 func (w *worker) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 	w.pvcParametersRWX = pvcParameters
 }

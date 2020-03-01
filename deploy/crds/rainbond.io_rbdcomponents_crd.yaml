@@ -69,22 +69,58 @@ spec:
         status:
           description: RbdComponentStatus defines the observed state of RbdComponent
           properties:
-            controllerName:
-              description: ControllerName represents the Controller associated with
-                RbdComponent The controller could be Deployment, StatefulSet or DaemonSet
-              type: string
-            controllerType:
-              description: Type of Controller owned by RbdComponent
-              type: string
-            message:
-              type: string
-            reason:
-              type: string
-          required:
-          - controllerName
-          - controllerType
-          - message
-          - reason
+            conditions:
+              description: Current state of rainbond component.
+              items:
+                description: RbdComponentCondition contains details for the current
+                  condition of this rbdcomponent.
+                properties:
+                  lastTransitionTime:
+                    description: Last time the condition transitioned from one status
+                      to another.
+                    format: date-time
+                    type: string
+                  message:
+                    description: Human-readable message indicating details about last
+                      transition.
+                    type: string
+                  reason:
+                    description: Unique, one-word, CamelCase reason for the condition's
+                      last transition.
+                    type: string
+                  status:
+                    description: 'Status is the status of the condition. Can be True,
+                      False, Unknown. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-conditions'
+                    type: string
+                  type:
+                    description: Type is the type of the condition.
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              type: array
+            pods:
+              description: A list of pods
+              items:
+                description: LocalObjectReference contains enough information to let
+                  you locate the referenced object inside the same namespace.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+              type: array
+            readyReplicas:
+              description: Total number of ready pods targeted by this deployment.
+              format: int32
+              type: integer
+            replicas:
+              description: Total number of non-terminated pods targeted by this deployment
+                (their labels match the selector).
+              format: int32
+              type: integer
           type: object
       type: object
   version: v1alpha1

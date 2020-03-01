@@ -4,17 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
-
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	plabels "k8s.io/apimachinery/pkg/labels"
-
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -22,37 +21,56 @@ var log = logf.Log.WithName("usecase_cluster")
 
 type rbdComponentStatusFromSubObject func(cpn *rainbondv1alpha1.RbdComponent) (*v1.RbdComponentStatus, error)
 
-// ComponentUseCase cluster componse case
-type ComponentUseCase interface { // TODO: loop call
-	Get(name string) (*v1.RbdComponentStatus, error)
-	List(isInit bool) ([]*v1.RbdComponentStatus, error)
-}
-
-// ComponentUsecaseImpl cluster
-type ComponentUsecaseImpl struct {
+type componentUsecase struct {
 	cfg *option.Config
 }
 
-// NewComponentUsecase new componse case impl
-func NewComponentUsecase(cfg *option.Config) cluster.ComponentUseCase {
-	return &ComponentUsecaseImpl{cfg: cfg}
+// NewComponentUsecase new component usecase.
+func NewComponentUsecase(cfg *option.Config) cluster.ComponentUsecase {
+	return &componentUsecase{cfg: cfg}
 }
 
 // Get get
-func (cc *ComponentUsecaseImpl) Get(name string) (*v1.RbdComponentStatus, error) {
-	component, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Get(name, metav1.GetOptions{})
+func (cc *componentUsecase) Get(name string) (*v1.RbdComponentStatus, error) {
+	cpn, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return nil, bcode.ErrRbdComponentNotFound
+		}
 		return nil, err
 	}
 
-	return cc.typeRbdComponentStatus(component)
+	pods, err := cc.listPods(cpn)
+	if err != nil {
+		return nil, fmt.Errorf("list pods: %v", err)
+	}
+
+	status := cc.convertRbdComponent(cpn, pods)
+
+	return status, nil
+}
+
+func (cc *componentUsecase) listPods(cpn *rainbondv1alpha1.RbdComponent) ([]*corev1.Pod, error) {
+	if cpn.Status == nil {
+		return nil, nil
+	}
+	var pods []*corev1.Pod
+	for _, ref := range cpn.Status.Pods {
+		pod, err := cc.cfg.KubeClient.CoreV1().Pods(cc.cfg.Namespace).Get(ref.Name, metav1.GetOptions{})
+		if err != nil {
+			if k8sErrors.IsNotFound(err) {
+				log.V(3).Info("pod reated to cpn not found", "namespace", cc.cfg.Namespace, "name", ref.Name)
+				continue
+			}
+			return nil, fmt.Errorf("get pod: %v", err)
+		}
+		pods = append(pods, pod)
+	}
+	return pods, nil
 }
 
 // List list
-func (cc *ComponentUsecaseImpl) List(isInit bool) ([]*v1.RbdComponentStatus, error) {
-	reqLogger := log.WithValues("Namespace", cc.cfg.Namespace)
-	reqLogger.V(6).Info("Start listing RbdComponent associated controller")
-
+func (cc *componentUsecase) List(isInit bool) ([]*v1.RbdComponentStatus, error) {
 	listOption := metav1.ListOptions{}
 	if isInit {
 		log.Info("get init component status list")
@@ -60,164 +78,65 @@ func (cc *ComponentUsecaseImpl) List(isInit bool) ([]*v1.RbdComponentStatus, err
 	}
 	components, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(cc.cfg.Namespace).List(listOption)
 	if err != nil {
-		reqLogger.Error(err, "Listing RbdComponents")
-		return nil, err
+		return nil, fmt.Errorf("list rainbond components: %v", err)
 	}
 
 	var statues []*v1.RbdComponentStatus
-	for _, component := range components.Items {
-		var status *v1.RbdComponentStatus
-		if component.Name == "metrics-server" {
-			// handle metrics-server service already case, rainbond cluster won't create metrics-server now
-			if component.Annotations != nil && component.Annotations["v1beta1.metrics.k8s.io.exists"] == "true" {
-				continue
-			}
+	for _, cpn := range components.Items {
+		pods, err := cc.listPods(&cpn)
+		if err != nil {
+			return nil, fmt.Errorf("list pods: %v", err)
 		}
-		if component.Status == nil {
-			// Initially, status may be nil
-			status = &v1.RbdComponentStatus{
-				Name:   component.Name,
-				Status: v1.ComponentStatusIniting,
-			}
-		} else {
-			status, err = cc.typeRbdComponentStatus(&component)
-			if err != nil {
-				reqLogger.Error(err, "Get RbdComponent status", "Name", component.Name)
-				status = &v1.RbdComponentStatus{
-					Name:            component.Name,
-					Status:          v1.ComponentStatusFailed,
-					Message:         "系统异常，请联系社区帮助",
-					ISInitComponent: component.Spec.PriorityComponent,
-					Reason:          fmt.Sprintf("get RbdComponent:%s status error: %s", component.Name, err.Error()),
-				}
-			}
-		}
+
+		status := cc.convertRbdComponent(&cpn, pods)
+
 		statues = append(statues, status)
 	}
 
 	return statues, nil
 }
 
-func (cc *ComponentUsecaseImpl) typeRbdComponentStatus(cpn *rainbondv1alpha1.RbdComponent) (*v1.RbdComponentStatus, error) {
-	reqLogger := log.WithValues("Namespace", cpn.Namespace, "Name", cpn.Name, "ControllerType", cpn.Status.ControllerType)
-	reqLogger.Info("Start getting RbdComponent associated controller")
-
-	k2fn := map[string]rbdComponentStatusFromSubObject{
-		rainbondv1alpha1.ControllerTypeDeployment.String():  cc.rbdComponentStatusFromDeployment,
-		rainbondv1alpha1.ControllerTypeStatefulSet.String(): cc.rbdComponentStatusFromStatefulSet,
-		rainbondv1alpha1.ControllerTypeDaemonSet.String():   cc.rbdComponentStatusFromDaemonSet,
-	}
-	fn, ok := k2fn[cpn.Status.ControllerType.String()]
-	if !ok {
-		return nil, fmt.Errorf("unsupportted controller type: %s", cpn.Status.ControllerType.String())
+func (cc *componentUsecase) convertRbdComponent(cpn *rainbondv1alpha1.RbdComponent, pods []*corev1.Pod) *v1.RbdComponentStatus {
+	var replicas int32 = 1 // defualt replicas is 1
+	if cpn.Spec.Replicas != nil {
+		replicas = *cpn.Spec.Replicas
 	}
 
-	status, err := fn(cpn)
-	if err != nil {
-		log.Error(err, "get RbdComponent associated controller")
-		return nil, err
+	result := &v1.RbdComponentStatus{
+		Name:            cpn.Name,
+		ISInitComponent: cpn.Spec.PriorityComponent,
+	}
+	result.Replicas = replicas
+
+	if cpn.Status != nil {
+		result.ReadyReplicas = cpn.Status.ReadyReplicas
 	}
 
-	status.Status = v1.ComponentStatusCreating
-	if status.Replicas == status.ReadyReplicas && status.Replicas > 0 {
-		status.Status = v1.ComponentStatusRunning
+	result.Status = v1.ComponentStatusCreating
+	if result.Replicas == result.ReadyReplicas && result.Replicas > 0 {
+		result.Status = v1.ComponentStatusRunning
 	}
 
-	for index := range status.PodStatuses {
-		if status.PodStatuses[index].Phase == "NotReady" {
-			status.Status = v1.ComponentStatusCreating // if pod not ready, component status can't be running, even nor replicas equals to ready replicas
+	podStatuses := cc.convertPodStatues(pods)
+	for index := range podStatuses {
+		if podStatuses[index].Phase == "NotReady" {
+			result.Status = v1.ComponentStatusCreating // if pod not ready, component status can't be running, even nor replicas equals to ready replicas
 			// message and reason from container
-			for _, container := range status.PodStatuses[index].ContainerStatuses {
+			for _, container := range podStatuses[index].ContainerStatuses {
 				if container.State != "Running" {
-					status.PodStatuses[index].Message = container.Message
-					status.PodStatuses[index].Reason = container.Reason
+					podStatuses[index].Message = container.Message
+					podStatuses[index].Reason = container.Reason
 					break
 				}
 			}
 		}
 	}
+	result.PodStatuses = podStatuses
 
-	return status, nil
+	return result
 }
 
-func (cc *ComponentUsecaseImpl) rbdComponentStatusFromDeployment(cpn *rainbondv1alpha1.RbdComponent) (*v1.RbdComponentStatus, error) {
-	reqLogger := log.WithValues("Namespace", cpn.Namespace, "Name", cpn.Name, "ControllerType", cpn.Status.ControllerType)
-	reqLogger.Info("Start getting RbdComponent associated deployment")
-
-	deploy, err := cc.cfg.KubeClient.AppsV1().Deployments(cpn.Namespace).Get(cpn.Status.ControllerName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	status := &v1.RbdComponentStatus{
-		Name:            cpn.Name,
-		Replicas:        deploy.Status.Replicas,
-		ReadyReplicas:   deploy.Status.ReadyReplicas,
-		ISInitComponent: cpn.Spec.PriorityComponent,
-	}
-
-	labels := deploy.Spec.Template.Labels
-	podStatuses, err := cc.listPodStatues(deploy.Namespace, labels)
-	if err != nil {
-		reqLogger.Error(err, "List deployment associated pods", "labels", labels)
-	}
-	status.PodStatuses = podStatuses
-
-	return status, nil
-}
-
-func (cc *ComponentUsecaseImpl) rbdComponentStatusFromStatefulSet(cpn *rainbondv1alpha1.RbdComponent) (*v1.RbdComponentStatus, error) {
-	reqLogger := log.WithValues("Namespace", cpn.Namespace, "Name", cpn.Name, "ControllerType", cpn.Status.ControllerType)
-	reqLogger.Info("Start getting RbdComponent associated statefulset")
-
-	sts, err := cc.cfg.KubeClient.AppsV1().StatefulSets(cpn.Namespace).Get(cpn.Status.ControllerName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	status := &v1.RbdComponentStatus{
-		Name:            cpn.Name,
-		Replicas:        sts.Status.Replicas,
-		ReadyReplicas:   sts.Status.ReadyReplicas,
-		ISInitComponent: cpn.Spec.PriorityComponent,
-	}
-	labels := sts.Spec.Template.Labels
-	podStatuses, err := cc.listPodStatues(sts.Namespace, labels)
-	if err != nil {
-		reqLogger.Error(err, "List deployment associated pods", "labels", labels)
-	}
-	status.PodStatuses = podStatuses
-
-	return status, nil
-}
-
-func (cc *ComponentUsecaseImpl) rbdComponentStatusFromDaemonSet(cpn *rainbondv1alpha1.RbdComponent) (*v1.RbdComponentStatus, error) {
-	reqLogger := log.WithValues("Namespace", cpn.Namespace, "Name", cpn.Name, "ControllerType", cpn.Status.ControllerType)
-	reqLogger.Info("Start getting RbdComponent associated daemonset")
-
-	ds, err := cc.cfg.KubeClient.AppsV1().DaemonSets(cpn.Namespace).Get(cpn.Status.ControllerName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	status := &v1.RbdComponentStatus{
-		Name:            cpn.Name,
-		Replicas:        ds.Status.DesiredNumberScheduled,
-		ReadyReplicas:   ds.Status.NumberAvailable,
-		ISInitComponent: cpn.Spec.PriorityComponent,
-	}
-
-	labels := ds.Spec.Template.Labels
-	podStatuses, err := cc.listPodStatues(ds.Namespace, labels)
-	if err != nil {
-		reqLogger.Error(err, "List deployment associated pods", "labels", labels)
-	}
-	status.PodStatuses = podStatuses
-
-	return status, nil
-}
-
-func (cc *ComponentUsecaseImpl) listPodStatues(namespace string, labels map[string]string) ([]v1.PodStatus, error) {
+func (cc *componentUsecase) listPodStatues(namespace string, labels map[string]string) ([]v1.PodStatus, error) {
 	selector := plabels.SelectorFromSet(labels)
 	opts := metav1.ListOptions{
 		LabelSelector: selector.String(),
@@ -274,4 +193,54 @@ func (cc *ComponentUsecaseImpl) listPodStatues(namespace string, labels map[stri
 	}
 
 	return podStatuses, nil
+}
+
+func (cc *componentUsecase) convertPodStatues(pods []*corev1.Pod) []v1.PodStatus {
+	var podStatuses []v1.PodStatus
+	for _, pod := range pods {
+		podStatus := v1.PodStatus{
+			Name:    pod.Name,
+			Phase:   "NotReady", // default phase NotReady, util PodReady condition is true
+			HostIP:  pod.Status.HostIP,
+			Reason:  pod.Status.Reason,
+			Message: pod.Status.Message,
+		}
+		for _, condition := range pod.Status.Conditions {
+			if condition.Type == corev1.PodReady && condition.Status == "True" {
+				podStatus.Phase = "Ready"
+				break
+			}
+		}
+		var containerStatuses []v1.PodContainerStatus
+		for _, cs := range pod.Status.ContainerStatuses {
+			containerStatus := v1.PodContainerStatus{
+				Image: cs.Image,
+				Ready: cs.Ready,
+			}
+			if cs.ContainerID != "" {
+				containerStatus.ContainerID = strings.Replace(cs.ContainerID, "docker://", "", -1)[0:8]
+			}
+
+			// TODO: move out
+			if cs.State.Running != nil {
+				containerStatus.State = "Running"
+			}
+			if cs.State.Waiting != nil {
+				containerStatus.State = "Waiting"
+				containerStatus.Reason = cs.State.Waiting.Reason
+				containerStatus.Message = cs.State.Waiting.Message
+			}
+			if cs.State.Terminated != nil {
+				containerStatus.State = "Terminated"
+				containerStatus.Reason = cs.State.Terminated.Reason
+				containerStatus.Message = cs.State.Terminated.Message
+			}
+
+			containerStatuses = append(containerStatuses, containerStatus)
+		}
+		podStatus.ContainerStatuses = containerStatuses
+		podStatuses = append(podStatuses, podStatus)
+	}
+
+	return podStatuses
 }

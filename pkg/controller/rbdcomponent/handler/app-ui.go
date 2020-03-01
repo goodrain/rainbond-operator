@@ -73,6 +73,10 @@ func (a *appui) After() error {
 	return nil
 }
 
+func (a *appui) ListPods() ([]corev1.Pod, error) {
+	return listPods(a.ctx, a.client, a.component.Namespace, a.labels)
+}
+
 func (a *appui) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 	a.pvcParametersRWX = pvcParameters
 }

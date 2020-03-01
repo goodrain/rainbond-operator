@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"path"
 	"strconv"
 	"time"
@@ -49,8 +50,6 @@ var (
 	InstallStatusFailed = "status_failed"
 )
 
-// TODO fanyangyang use logrus
-
 type componentClaim struct {
 	namespace       string
 	name            string
@@ -92,11 +91,11 @@ type InstallUseCaseImpl struct {
 	namespace          string
 	rainbondKubeClient versioned.Interface
 
-	componentUsecase ComponentUseCase
+	componentUsecase cluster.ComponentUsecase
 }
 
 // NewInstallUseCase new install case
-func NewInstallUseCase(cfg *option.Config, rainbondKubeClient versioned.Interface, componentUsecase ComponentUseCase) *InstallUseCaseImpl {
+func NewInstallUseCase(cfg *option.Config, rainbondKubeClient versioned.Interface, componentUsecase cluster.ComponentUsecase) *InstallUseCaseImpl {
 	return &InstallUseCaseImpl{
 		cfg:                cfg,
 		namespace:          cfg.Namespace,

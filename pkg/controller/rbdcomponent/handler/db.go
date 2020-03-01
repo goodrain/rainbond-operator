@@ -116,6 +116,16 @@ func (d *db) After() error {
 	return nil
 }
 
+func (d *db) ListPods() ([]corev1.Pod, error) {
+	labels := d.labels
+	if d.enableMysqlOperator {
+		labels = map[string]string{
+			"v1alpha1.mysql.oracle.com/cluster": DBName,
+		}
+	}
+	return listPods(d.ctx, d.client, d.component.Namespace, labels)
+}
+
 func (d *db) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 	d.pvcParametersRWO = pvcParameters
 }

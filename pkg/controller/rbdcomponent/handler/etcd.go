@@ -79,6 +79,18 @@ func (e *etcd) After() error {
 	return nil
 }
 
+func (e *etcd) ListPods() ([]corev1.Pod, error) {
+	labels := e.labels
+	if e.enableEtcdOperator {
+		labels = map[string]string{
+			// app=etcd,etcd_cluster=example-etcd-cluster
+			"app":          "etcd",
+			"etcd_cluster": EtcdName,
+		}
+	}
+	return listPods(e.ctx, e.client, e.component.Namespace, labels)
+}
+
 func (e *etcd) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 	e.pvcParametersRWO = pvcParameters
 }

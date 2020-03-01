@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
@@ -201,34 +200,27 @@ func (cc *ClusterController) InstallStatus(c *gin.Context) {
 
 // Components components status
 func (cc *ClusterController) Components(c *gin.Context) {
-	data := c.DefaultQuery("isInit", "false")
-	isInit := false
-	if data == "true" {
-		isInit = true
-	}
+	isInit, _ := strconv.ParseBool(c.Query("isInit"))
 
 	componseInfos, err := cc.clusterUcase.Components().List(isInit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		log.Error(err, "list components")
+		ginutil.JSON(c, nil, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": componseInfos})
+	ginutil.JSON(c, componseInfos, nil)
 }
 
 // SingleComponent single component
 func (cc *ClusterController) SingleComponent(c *gin.Context) {
 	name := c.Param("name")
-	name = strings.TrimSpace(name)
-	if name == "" {
-		cc.Components(c) // TODO fanyangyang need for test TODO: WHY?
-		return
-	}
-	componseInfos, err := cc.clusterUcase.Components().Get(name)
+	cpn, err := cc.clusterUcase.Components().Get(name)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		log.Info(fmt.Sprintf("get rbdcomponent: %v", err))
+		ginutil.JSON(c, nil, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": componseInfos})
+	ginutil.JSON(c, cpn, nil)
 }

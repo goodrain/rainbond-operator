@@ -292,3 +292,17 @@ func hostsAliases(cluster *rainbondv1alpha1.RainbondCluster) []corev1.HostAlias 
 	}
 	return hostAliases
 }
+
+func listPods(ctx context.Context, cli client.Client, namespace string, labels map[string]string) ([]corev1.Pod, error) {
+	podList := &corev1.PodList{}
+	var opts []client.ListOption
+	opts = append(opts, client.InNamespace(namespace))
+	opts = append(opts, client.MatchingLabels(labels))
+	if err := cli.List(ctx, podList, opts...); err != nil {
+		return nil, err
+	}
+	if len(podList.Items) == 0 {
+		log.V(6).Info("pod list is empty", "labels", labels)
+	}
+	return podList.Items, nil
+}

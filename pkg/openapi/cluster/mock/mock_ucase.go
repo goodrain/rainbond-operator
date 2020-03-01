@@ -50,10 +50,10 @@ func (mr *MockIClusterUcaseMockRecorder) GlobalConfigs() *gomock.Call {
 }
 
 // Components mocks base method
-func (m *MockIClusterUcase) Components() cluster.ComponentUseCase {
+func (m *MockIClusterUcase) Components() cluster.ComponentUsecase {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Components")
-	ret0, _ := ret[0].(cluster.ComponentUseCase)
+	ret0, _ := ret[0].(cluster.ComponentUsecase)
 	return ret0
 }
 
@@ -268,31 +268,31 @@ func (mr *MockGlobalConfigUseCaseMockRecorder) Address() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Address", reflect.TypeOf((*MockGlobalConfigUseCase)(nil).Address))
 }
 
-// MockComponentUseCase is a mock of ComponentUseCase interface
-type MockComponentUseCase struct {
+// MockComponentUsecase is a mock of ComponentUsecase interface
+type MockComponentUsecase struct {
 	ctrl     *gomock.Controller
-	recorder *MockComponentUseCaseMockRecorder
+	recorder *MockComponentUsecaseMockRecorder
 }
 
-// MockComponentUseCaseMockRecorder is the mock recorder for MockComponentUseCase
-type MockComponentUseCaseMockRecorder struct {
-	mock *MockComponentUseCase
+// MockComponentUsecaseMockRecorder is the mock recorder for MockComponentUsecase
+type MockComponentUsecaseMockRecorder struct {
+	mock *MockComponentUsecase
 }
 
-// NewMockComponentUseCase creates a new mock instance
-func NewMockComponentUseCase(ctrl *gomock.Controller) *MockComponentUseCase {
-	mock := &MockComponentUseCase{ctrl: ctrl}
-	mock.recorder = &MockComponentUseCaseMockRecorder{mock}
+// NewMockComponentUsecase creates a new mock instance
+func NewMockComponentUsecase(ctrl *gomock.Controller) *MockComponentUsecase {
+	mock := &MockComponentUsecase{ctrl: ctrl}
+	mock.recorder = &MockComponentUsecaseMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockComponentUseCase) EXPECT() *MockComponentUseCaseMockRecorder {
+func (m *MockComponentUsecase) EXPECT() *MockComponentUsecaseMockRecorder {
 	return m.recorder
 }
 
 // Get mocks base method
-func (m *MockComponentUseCase) Get(name string) (*v1.RbdComponentStatus, error) {
+func (m *MockComponentUsecase) Get(name string) (*v1.RbdComponentStatus, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", name)
 	ret0, _ := ret[0].(*v1.RbdComponentStatus)
@@ -301,13 +301,13 @@ func (m *MockComponentUseCase) Get(name string) (*v1.RbdComponentStatus, error) 
 }
 
 // Get indicates an expected call of Get
-func (mr *MockComponentUseCaseMockRecorder) Get(name interface{}) *gomock.Call {
+func (mr *MockComponentUsecaseMockRecorder) Get(name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockComponentUseCase)(nil).Get), name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockComponentUsecase)(nil).Get), name)
 }
 
 // List mocks base method
-func (m *MockComponentUseCase) List(isInit bool) ([]*v1.RbdComponentStatus, error) {
+func (m *MockComponentUsecase) List(isInit bool) ([]*v1.RbdComponentStatus, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", isInit)
 	ret0, _ := ret[0].([]*v1.RbdComponentStatus)
@@ -316,9 +316,9 @@ func (m *MockComponentUseCase) List(isInit bool) ([]*v1.RbdComponentStatus, erro
 }
 
 // List indicates an expected call of List
-func (mr *MockComponentUseCaseMockRecorder) List(isInit interface{}) *gomock.Call {
+func (mr *MockComponentUsecaseMockRecorder) List(isInit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockComponentUseCase)(nil).List), isInit)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockComponentUsecase)(nil).List), isInit)
 }
 
 // MockInstallUseCase is a mock of InstallUseCase interface

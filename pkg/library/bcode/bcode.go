@@ -11,6 +11,8 @@ import (
 
 // Coder has ability to get code, msg or detail from error.
 type Coder interface {
+	// http status code
+	Status() int
 	// business code
 	Code() int
 	Error() string
@@ -38,12 +40,35 @@ func newCodeWithMsg(i int, msg string) Coder {
 	return Code{code: i, msg: msg}
 }
 
-// Code represents a business code.
-type Code struct {
-	code int
-	msg  string
+func newCodeWithStatus(s, i int, msg string) Coder {
+	if _, ok := codes[i]; ok {
+		panic(fmt.Sprintf("bcode %d already exists", i))
+	}
+	if s < 100 || s > 599 {
+		panic(fmt.Sprintf("invalid http status code: %d", s))
+	}
+	codes[i] = struct{}{}
+	return Code{status: s, code: i, msg: msg}
 }
 
+// Code represents a business code.
+type Code struct {
+	status, code int
+	msg          string
+}
+
+// Status returns a http status code.
+func (c Code) Status() int {
+	if c.code == 0 {
+		return 200
+	}
+	if c.code >= 100 && c.code <= 599 {
+		return c.code
+	}
+	return c.status
+}
+
+// Code returns a business code
 func (c Code) Code() int {
 	return c.code
 }
@@ -52,6 +77,7 @@ func (c Code) Error() string {
 	return strconv.FormatInt(int64(c.code), 10)
 }
 
+// Msg returns a message
 func (c Code) Msg() string {
 	if c.msg != "" {
 		return c.msg

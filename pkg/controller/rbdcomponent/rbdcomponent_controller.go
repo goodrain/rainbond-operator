@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -14,7 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/retry"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -27,7 +29,6 @@ import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	chandler "github.com/goodrain/rainbond-operator/pkg/controller/rbdcomponent/handler"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 )
 
 var log = logf.Log.WithName("controller_rbdcomponent")
@@ -44,6 +45,15 @@ func AddHandlerFunc(name string, fn handlerFunc) {
 	handlerFuncs[name] = fn
 }
 
+func supportedComponents() string {
+	var supported []string
+	for name := range handlerFuncs {
+		supported = append(supported, name)
+	}
+	sort.Strings(supported)
+	return strings.Join(supported, ",")
+}
+
 // Add creates a new RbdComponent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
@@ -52,7 +62,8 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileRbdComponent{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	recorder := mgr.GetEventRecorderFor("rbdcomponent")
+	return &ReconcileRbdComponent{client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: recorder}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -100,8 +111,9 @@ var _ reconcile.Reconciler = &ReconcileRbdComponent{}
 type ReconcileRbdComponent struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	client   client.Client
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // Reconcile reads that state of the cluster for a RbdComponent object and makes changes based on the state read
@@ -129,78 +141,119 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		// Error reading the object - requeue the request.
 		return reconcile.Result{Requeue: true}, err
 	}
+	if cpt.Status == nil {
+		cpt.Status = &rainbondv1alpha1.RbdComponentStatus{}
+	}
+
+	mgr := newRbdcomponentMgr(ctx, r.client, reqLogger, cpt)
 
 	fn, ok := handlerFuncs[cpt.Name]
 	if !ok {
-		// TODO: report status, events
-		reqLogger.Info("Unsupported RbdComponent.")
+		reqLogger.V(6).Info("Unsupported RbdComponent")
+		reason := "UnsupportedType"
+		msg := fmt.Sprintf("only supports the following types of rbdcomponent: %s", supportedComponents())
+
+		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse, reason, msg)
+		changed := cpt.Status.UpdateCondition(condition)
+		if changed {
+			r.recorder.Event(cpt, corev1.EventTypeWarning, reason, msg)
+			return reconcile.Result{}, mgr.updateStatus()
+		}
 		return reconcile.Result{}, nil
 	}
 
 	cluster := &rainbondv1alpha1.RainbondCluster{}
 	if err := r.client.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondClusterName}, cluster); err != nil {
-		reqLogger.Error(err, "failed to get rainbondcluster.")
-		cpt.Status = &rainbondv1alpha1.RbdComponentStatus{
-			Message: fmt.Sprintf("failed to get rainbondcluster: %v", err),
-			Reason:  "ErrGetRainbondCluster",
+		reason := "ClusterNotFound"
+		msg := "rainbondcluster not found"
+		if !k8sErrors.IsNotFound(err) {
+			reqLogger.Error(err, "get rainbondcluster.")
+			reason = "UnknownErr"
+			msg = fmt.Sprintf("failed to get rainbondcluster: %v", err)
 		}
-		if err := k8sutil.UpdateCRStatus(r.client, cpt); err != nil {
-			reqLogger.Error(err, "update rbdcomponent status")
+
+		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.ClusterConfigCompeleted, corev1.ConditionFalse, reason, msg)
+		changed := cpt.Status.UpdateCondition(condition)
+		if changed {
+			r.recorder.Event(cpt, corev1.EventTypeWarning, reason, msg)
+			return reconcile.Result{RequeueAfter: 3 * time.Second}, mgr.updateStatus()
 		}
-		return reconcile.Result{RequeueAfter: 3 * time.Second}, err
+
+		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
+
 	if !cluster.Spec.ConfigCompleted {
 		reqLogger.V(6).Info("rainbondcluster configuration is not complete")
+
+		reason := "ConfigNotCompleted"
+		msg := "rainbondcluster configuration is not complete"
+
+		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.ClusterConfigCompeleted, corev1.ConditionFalse, reason, msg)
+		changed := cpt.Status.UpdateCondition(condition)
+		if changed {
+			r.recorder.Event(cpt, corev1.EventTypeWarning, reason, msg)
+			return reconcile.Result{RequeueAfter: 3 * time.Second}, mgr.updateStatus()
+		}
+
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, err
 	}
+	mgr.setConfigCompletedCondition()
 
-	pkg := &rainbondv1alpha1.RainbondPackage{}
+	var pkg *rainbondv1alpha1.RainbondPackage
 	if cluster.Spec.InstallMode != rainbondv1alpha1.InstallationModeFullOnline {
+		pkg = &rainbondv1alpha1.RainbondPackage{}
 		if err := r.client.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondPackageName}, pkg); err != nil {
-			reqLogger.Error(err, "failed to get rainbondpackage.")
-			cpt.Status = &rainbondv1alpha1.RbdComponentStatus{
-				Message: fmt.Sprintf("failed to get rainbondpackage: %v", err),
-				Reason:  "ErrGetRainbondPackage",
+			reason := "PackageNotFound"
+			msg := "rainbondpackage not found"
+			if !k8sErrors.IsNotFound(err) {
+				reqLogger.Error(err, "get rainbondpackage.")
+				reason = "UnknownErr"
+				msg = fmt.Sprintf("failed to get rainbondpackage: %v", err)
 			}
-			if err := k8sutil.UpdateCRStatus(r.client, cpt); err != nil {
-				reqLogger.Error(err, "update rbdcomponent status")
-			}
-			return reconcile.Result{RequeueAfter: 3 * time.Second}, err
-		}
-	}
 
-	checkPrerequisites := func() bool {
-		if cpt.Spec.PriorityComponent {
-			// If ImageHub is empty, the priority component no need to wait until rainbondpackage is completed.
-			return true
-		}
-		// Otherwise, we have to make sure rainbondpackage is completed before we create the resource.
-		if cluster.Spec.InstallMode != rainbondv1alpha1.InstallationModeFullOnline {
-			if err := checkPackageStatus(pkg); err != nil {
-				return false
+			condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionFalse, reason, msg)
+			changed := cpt.Status.UpdateCondition(condition)
+			if changed {
+				r.recorder.Event(cpt, corev1.EventTypeWarning, reason, msg)
+				return reconcile.Result{RequeueAfter: 3 * time.Second}, mgr.updateStatus()
 			}
+
+			return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 		}
-		return true
 	}
-	if !checkPrerequisites() {
+	mgr.setPackageReadyCondition(pkg)
+
+	if !mgr.checkPrerequisites(cluster, pkg) {
+		reason := "PrerequisitesFailed"
+		msg := "failed to check prerequisites"
+
+		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse, reason, msg)
+		changed := cpt.Status.UpdateCondition(condition)
+		if changed {
+			r.recorder.Event(cpt, corev1.EventTypeWarning, reason, msg)
+			return reconcile.Result{RequeueAfter: 3 * time.Second}, mgr.updateStatus()
+		}
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
 	hdl := fn(ctx, r.client, cpt, cluster)
-
 	if err := hdl.Before(); err != nil {
-		// TODO: report events
+		// TODO: merge with mgr.checkPrerequisites
+		reason := "PrerequisitesFailed"
+		msg := err.Error()
+
 		if chandler.IsIgnoreError(err) {
+			reqLogger.V(7).Info("checking the prerequisites", "msg", err.Error())
+		} else {
 			reqLogger.V(6).Info("checking the prerequisites", "msg", err.Error())
-			return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 		}
-		isSetV1beta1MetricsFlag := cpt.Annotations != nil && cpt.Annotations["v1beta1.metrics.k8s.io.exists"] == "true"
-		if err == chandler.ErrV1beta1MetricsExists && !isSetV1beta1MetricsFlag {
-			if err := r.setV1beta1MetricsFlag(ctx, cpt); err == nil {
-				return reconcile.Result{}, nil
-			}
+
+		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse, reason, msg)
+		changed := cpt.Status.UpdateCondition(condition)
+		if changed {
+			r.recorder.Event(cpt, corev1.EventTypeWarning, reason, msg)
+			return reconcile.Result{RequeueAfter: 3 * time.Second}, mgr.updateStatus()
 		}
-		reqLogger.Info("error checking the prerequisites", "err", err)
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
@@ -214,9 +267,27 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 			}
 			// Set RbdComponent cpt as the owner and controller
 			if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.scheme); err != nil {
-				return reconcile.Result{Requeue: true}, err
+				reqLogger.Error(err, "set controller reference")
+				reason := "SetControllerReferenceFailed"
+				msg := err.Error()
+				condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse, reason, msg)
+				changed := cpt.Status.UpdateCondition(condition)
+				if changed {
+					r.recorder.Event(cpt, corev1.EventTypeWarning, reason, msg)
+					return reconcile.Result{Requeue: true}, mgr.updateStatus()
+				}
+				return reconcile.Result{}, err
 			}
 			if err := r.resourceCreateIfNotExists(ctx, res.(runtime.Object), res.(metav1.Object)); err != nil {
+				reqLogger.Error(err, "create resouce if not exists")
+				reason := "ErrCreateResources"
+				msg := err.Error()
+				condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse, reason, msg)
+				changed := cpt.Status.UpdateCondition(condition)
+				if changed {
+					r.recorder.Event(cpt, corev1.EventTypeWarning, reason, msg)
+					return reconcile.Result{Requeue: true}, mgr.updateStatus()
+				}
 				return reconcile.Result{}, err
 			}
 		}
@@ -229,29 +300,69 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		}
 		// Set RbdComponent cpt as the owner and controller
 		if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.scheme); err != nil {
-			return reconcile.Result{Requeue: true}, err
+			reqLogger.Error(err, "set controller reference")
+			reason := "SetControllerReferenceFailed"
+			msg := err.Error()
+			condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse, reason, msg)
+			changed := cpt.Status.UpdateCondition(condition)
+			if changed {
+				r.recorder.Event(cpt, corev1.EventTypeWarning, reason, msg)
+				return reconcile.Result{Requeue: true}, mgr.updateStatus()
+			}
+			return reconcile.Result{}, err
 		}
 		// Check if the resource already exists, if not create a new one
 		reconcileResult, err := r.updateOrCreateResource(reqLogger, res.(runtime.Object), res.(metav1.Object))
 		if err != nil {
+			reqLogger.Error(err, "update or create resource")
+			reason := "ErrCreateResources"
+			msg := err.Error()
+			condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse, reason, msg)
+			changed := cpt.Status.UpdateCondition(condition)
+			if changed {
+				r.recorder.Event(cpt, corev1.EventTypeWarning, reason, msg)
+				return reconcile.Result{Requeue: true}, mgr.updateStatus()
+			}
 			return reconcileResult, err
 		}
 	}
 
 	if err := hdl.After(); err != nil {
 		reqLogger.Error(err, "failed to execute after process")
+
+		reason := "ErrAfterProcess"
+		msg := err.Error()
+		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse, reason, msg)
+		changed := cpt.Status.UpdateCondition(condition)
+		if changed {
+			r.recorder.Event(cpt, corev1.EventTypeWarning, reason, msg)
+			return reconcile.Result{Requeue: true}, mgr.updateStatus()
+		}
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	cpt.Status = generateRainbondComponentStatus(cpt, cluster, resources)
-	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		return r.client.Status().Update(ctx, cpt)
-	}); err != nil {
-		reqLogger.Error(err, "Update RbdComponent status", "Name", cpt.Name)
+	pods, err := hdl.ListPods()
+	if err != nil {
+		reqLogger.Error(err, "list pods")
+
+		reason := "ErrListPods"
+		msg := err.Error()
+		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse, reason, msg)
+		changed := cpt.Status.UpdateCondition(condition)
+		if changed {
+			r.recorder.Event(cpt, corev1.EventTypeWarning, reason, msg)
+			return reconcile.Result{Requeue: true}, mgr.updateStatus()
+		}
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	return reconcile.Result{}, nil
+	mgr.generateStatus(pods)
+
+	if !mgr.isRbdCmponentReady() {
+		return reconcile.Result{RequeueAfter: 1 * time.Second}, mgr.updateStatus()
+	}
+
+	return reconcile.Result{}, mgr.updateStatus()
 }
 
 func (r *ReconcileRbdComponent) resourceCreateIfNotExists(ctx context.Context, obj runtime.Object, meta metav1.Object) error {
@@ -292,39 +403,6 @@ func (r *ReconcileRbdComponent) updateOrCreateResource(reqLogger logr.Logger, ob
 	}
 
 	return reconcile.Result{}, nil
-}
-
-func detectControllerType(ctrl interface{}) rainbondv1alpha1.ControllerType {
-	if _, ok := ctrl.(*appv1.Deployment); ok {
-		return rainbondv1alpha1.ControllerTypeDeployment
-	}
-	if _, ok := ctrl.(*appv1.StatefulSet); ok {
-		return rainbondv1alpha1.ControllerTypeStatefulSet
-	}
-	if _, ok := ctrl.(*appv1.DaemonSet); ok {
-		return rainbondv1alpha1.ControllerTypeDaemonSet
-	}
-	return rainbondv1alpha1.ControllerTypeUnknown
-}
-
-func generateRainbondComponentStatus(cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster, resources []interface{}) *rainbondv1alpha1.RbdComponentStatus {
-	controllerType := rainbondv1alpha1.ControllerTypeUnknown
-	for _, res := range resources {
-		if res == nil {
-			continue
-		}
-		if ct := detectControllerType(res); ct != rainbondv1alpha1.ControllerTypeUnknown {
-			controllerType = ct
-			break
-		}
-	}
-
-	status := &rainbondv1alpha1.RbdComponentStatus{
-		ControllerType: controllerType,
-		ControllerName: cpt.Name,
-	}
-
-	return status
 }
 
 func checkPackageStatus(pkg *rainbondv1alpha1.RainbondPackage) error {

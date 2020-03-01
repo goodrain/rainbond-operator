@@ -70,6 +70,10 @@ func (m *monitor) After() error {
 	return nil
 }
 
+func (m *monitor) ListPods() ([]corev1.Pod, error) {
+	return listPods(m.ctx, m.client, m.component.Namespace, m.labels)
+}
+
 func (m *monitor) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 	m.pvcParametersRWO = pvcParameters
 }

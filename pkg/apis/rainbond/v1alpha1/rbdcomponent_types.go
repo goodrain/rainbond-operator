@@ -78,15 +78,53 @@ func (c ControllerType) String() string {
 	return string(c)
 }
 
+// RbdComponentConditionType is a valid value for RbdComponentCondition.Type
+type RbdComponentConditionType string
+
+// These are valid conditions of pod.
+const (
+	// ClusterConfigCompeleted indicates whether the configuration of the rainbondcluster cluster is complete.
+	ClusterConfigCompeleted RbdComponentConditionType = "ClusterConfigCompeleted"
+	// ClusterConfigCompeleted indicates whether the rainbondpackage is ready.
+	RainbondPackageReady RbdComponentConditionType = "RainbondPackageReady"
+	// RbdComponentReady means all pods related to the rbdcomponent are ready.
+	RbdComponentReady RbdComponentConditionType = "Ready"
+)
+
+// RbdComponentCondition contains details for the current condition of this rbdcomponent.
+type RbdComponentCondition struct {
+	// Type is the type of the condition.
+	Type RbdComponentConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=PodConditionType"`
+	// Status is the status of the condition.
+	// Can be True, False, Unknown.
+	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-conditions
+	Status corev1.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=ConditionStatus"`
+	// Last time the condition transitioned from one status to another.
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,4,opt,name=lastTransitionTime"`
+	// Unique, one-word, CamelCase reason for the condition's last transition.
+	// +optional
+	Reason string `json:"reason,omitempty" protobuf:"bytes,5,opt,name=reason"`
+	// Human-readable message indicating details about last transition.
+	// +optional
+	Message string `json:"message,omitempty" protobuf:"bytes,6,opt,name=message"`
+}
+
 // RbdComponentStatus defines the observed state of RbdComponent
 type RbdComponentStatus struct {
-	// Type of Controller owned by RbdComponent
-	ControllerType ControllerType `json:"controllerType"`
-	// ControllerName represents the Controller associated with RbdComponent
-	// The controller could be Deployment, StatefulSet or DaemonSet
-	ControllerName string `json:"controllerName"`
-	Reason         string `json:"reason"`
-	Message        string `json:"message"`
+	// Total number of non-terminated pods targeted by this deployment (their labels match the selector).
+	// +optional
+	Replicas int32 `json:"replicas,omitempty" protobuf:"varint,2,opt,name=replicas"`
+
+	// Total number of ready pods targeted by this deployment.
+	// +optional
+	ReadyReplicas int32 `json:"readyReplicas,omitempty" protobuf:"varint,7,opt,name=readyReplicas"`
+
+	// Current state of rainbond component.
+	Conditions []RbdComponentCondition `json:"conditions,omitempty"`
+
+	// A list of pods
+	Pods []corev1.LocalObjectReference `json:"pods,omitempty"`
 }
 
 // +genclient

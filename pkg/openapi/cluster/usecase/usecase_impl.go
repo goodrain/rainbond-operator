@@ -9,7 +9,7 @@ import (
 
 // CaseImpl case
 type CaseImpl struct {
-	componentUseCaseImpl    cluster.ComponentUseCase
+	componentUseCaseImpl    cluster.ComponentUsecase
 	globalConfigUseCaseImpl cluster.GlobalConfigUseCase
 	installCaseImpl         cluster.InstallUseCase
 	clusterImpl             cluster.Usecase
@@ -26,7 +26,7 @@ func NewClusterCase(conf *option.Config, repo cluster.Repository, rainbondKubeCl
 }
 
 // Components components
-func (c *CaseImpl) Components() cluster.ComponentUseCase {
+func (c *CaseImpl) Components() cluster.ComponentUsecase {
 	return c.componentUseCaseImpl
 }
 

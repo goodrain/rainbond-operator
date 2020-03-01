@@ -56,6 +56,10 @@ func (r *repo) After() error {
 	return nil
 }
 
+func (r *repo) ListPods() ([]corev1.Pod, error) {
+	return listPods(r.ctx, r.client, r.component.Namespace, r.labels)
+}
+
 func (r *repo) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 	r.pvcParametersRWO = pvcParameters
 }
