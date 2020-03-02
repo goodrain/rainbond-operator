@@ -47,6 +47,10 @@ func (g *gateway) Before() error {
 	}
 	g.etcdSecret = secret
 
+	if err := isEtcdAvailable(g.ctx, g.client, g.component, g.cluster); err != nil {
+		return fmt.Errorf("etcd not availabl: %v", err)
+	}
+
 	return nil
 }
 

@@ -109,7 +109,7 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{RequeueAfter: time.Second * 2}, err
 	}
 
-	if rainbondcluster.Spec.ImageHub == nil {
+	if rainbondcluster.Spec.ImageHub == nil && rainbondcluster.Spec.ConfigCompleted {
 		reqLogger.V(6).Info("image hub is empty, do sth.")
 		imageHub, err := r.getImageHub(rainbondcluster)
 		if err != nil {

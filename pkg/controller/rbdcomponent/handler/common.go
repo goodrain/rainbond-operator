@@ -303,3 +303,24 @@ func listPods(ctx context.Context, cli client.Client, namespace string, labels m
 	}
 	return podList.Items, nil
 }
+
+func isEtcdAvailable(ctx context.Context, cli client.Client, cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) error {
+	if cluster.Spec.EtcdConfig != nil {
+		return nil
+	}
+
+	dbcpt := &rainbondv1alpha1.RbdComponent{}
+	if err := cli.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: EtcdName}, dbcpt); err != nil {
+		return err
+	}
+
+	if dbcpt.Status == nil {
+		return errors.New("no status for rbdcomponent rbd-etcd")
+	}
+
+	if dbcpt.Status.ReadyReplicas == 0 {
+		return errors.New("no ready replicas for rbdcomponent rbd-etcd")
+	}
+
+	return nil
+}
