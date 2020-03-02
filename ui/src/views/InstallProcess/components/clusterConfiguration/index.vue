@@ -450,8 +450,8 @@ export default {
           username: '',
           password: ''
         },
-        regionDatabase: { host: '', port: '', username: '', password: '' },
-        uiDatabase: { host: '', port: '', username: '', password: '' },
+        regionDatabase: { host: '', port: 0, username: '', password: '' },
+        uiDatabase: { host: '', port: 0, username: '', password: '' },
         etcdConfig: {
           endpoints: [''],
           certInfo: { caFile: '', certFile: '', keyFile: '' }
