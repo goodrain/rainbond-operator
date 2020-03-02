@@ -1308,7 +1308,7 @@ export default {
           if (!this.ruleForm.installRegionDB) {
             obj.regionDatabase = {
               host: this.ruleForm.regionDatabaseHost,
-              port: this.ruleForm.regionDatabasePort,
+              port: Number (this.ruleForm.regionDatabasePort),
               username: this.ruleForm.regionDatabaseUsername,
               password: this.ruleForm.regionDatabasePassword
             }
@@ -1316,7 +1316,7 @@ export default {
           if (!this.ruleForm.installUIDB) {
             obj.uiDatabase = {
               host: this.ruleForm.uiDatabaseHost,
-              port: this.ruleForm.uiDatabasePort,
+              port: Number(this.ruleForm.uiDatabasePort),
               username: this.ruleForm.uiDatabaseUsername,
               password: this.ruleForm.uiDatabasePassword
             }
