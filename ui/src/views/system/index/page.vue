@@ -29,7 +29,7 @@ export default {
     }
   },
   created () {
-    console.log('代码版本:2-19:17:00')
+    console.log('代码版本:3-02:14:40')
   }
 }
 </script>
