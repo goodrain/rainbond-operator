@@ -70,13 +70,19 @@ func (r *rainbondClusteMgr) generateRainbondClusterStatus() (*rainbondv1alpha1.R
 		MasterRoleLabel: masterRoleLabel,
 		StorageClasses:  r.listStorageClasses(),
 	}
+	var masterNodesForGateway []*rainbondv1alpha1.K8sNode
+	var masterNodesForChaos []*rainbondv1alpha1.K8sNode
+	if masterRoleLabel != "" {
+		masterNodesForGateway = r.listMasterNodesForGateway(masterRoleLabel)
+		masterNodesForChaos = r.listMasterNodes(masterRoleLabel)
+	}
 	s.GatewayAvailableNodes = &rainbondv1alpha1.AvailableNodes{
 		SpecifiedNodes: r.listSpecifiedGatewayNodes(),
-		MasterNodes:    r.listMasterNodesForGateway(masterRoleLabel),
+		MasterNodes:    masterNodesForGateway,
 	}
 	s.ChaosAvailableNodes = &rainbondv1alpha1.AvailableNodes{
 		SpecifiedNodes: r.listSpecifiedChaosNodes(),
-		MasterNodes:    r.listMasterNodes(masterRoleLabel),
+		MasterNodes:    masterNodesForChaos,
 	}
 
 	return s, nil
