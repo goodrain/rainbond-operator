@@ -10,7 +10,6 @@ import (
 	"github.com/docker/distribution/reference"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -96,6 +95,8 @@ func (e *etcd) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 }
 
 func (e *etcd) statefulsetForEtcd() interface{} {
+	claimName := "data"
+	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO)
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EtcdName,
@@ -150,25 +151,15 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "etcd-data",
+									Name:      claimName,
 									MountPath: "/var/lib/etcd",
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "etcd-data",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/opt/rainbond/data/etcd",
-									Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 								},
 							},
 						},
 					},
 				},
 			},
+			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*pvc},
 		},
 	}
 	return sts
