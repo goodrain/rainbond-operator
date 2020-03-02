@@ -3,10 +3,10 @@ package handler
 import (
 	"context"
 
-	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
+	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -46,7 +46,7 @@ func NewHub(ctx context.Context, client client.Client, component *rainbondv1alph
 }
 
 func (h *hub) Before() error {
-	if h.cluster.Spec.ImageHub != nil {
+	if h.cluster.Spec.ImageHub != nil && h.cluster.Spec.ImageHub.Domain != constants.DefImageRepository {
 		return NewIgnoreError("use custom image repository")
 	}
 
@@ -209,7 +209,7 @@ func (h *hub) secretForHub() interface{} {
 	if secret != nil {
 		return nil
 	}
-	labels := h.labels
+	labels := copyLabels(h.labels)
 	labels["name"] = hubImageRepository
 	_, pem, key, _ := commonutil.DomainSign(nil, rbdutil.GetImageRepository(h.cluster))
 	secret = &corev1.Secret{

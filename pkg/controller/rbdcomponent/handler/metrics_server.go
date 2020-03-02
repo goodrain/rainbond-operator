@@ -187,7 +187,7 @@ func (m *metricsServer) deployment() interface{} {
 }
 
 func (m *metricsServer) serviceForMetricsServer() interface{} {
-	labels := m.labels
+	labels := copyLabels(m.labels)
 	labels["kubernetes.io/name"] = "Metrics-server"
 	labels["kubernetes.io/cluster-service"] = "true"
 	svc := &corev1.Service{

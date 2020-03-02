@@ -380,7 +380,9 @@ func (d *db) serviceForMysqlCluster() interface{} {
 	labels["v1alpha1.mysql.oracle.com/cluster"] = DBName
 	selector := map[string]string{
 		"v1alpha1.mysql.oracle.com/cluster": DBName,
-		"v1alpha1.mysql.oracle.com/role":    "primary",
+	}
+	if d.enableMysqlOperator && d.component.Spec.Replicas != nil && *d.component.Spec.Replicas > 1 {
+		selector["v1alpha1.mysql.oracle.com/role"] = "primary"
 	}
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{

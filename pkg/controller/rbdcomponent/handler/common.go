@@ -44,24 +44,21 @@ func isUIDBReady(ctx context.Context, cli client.Client, cpt *rainbondv1alpha1.R
 	if cluster.Spec.UIDatabase != nil {
 		return nil
 	}
-	labels := rbdutil.LabelsForRainbond(map[string]string{
-		"name": DBName,
-	})
-	eps := &corev1.EndpointsList{}
-	listOpts := []client.ListOption{
-		client.MatchingLabels(labels),
-	}
-	if err := cli.List(ctx, eps, listOpts...); err != nil {
+
+	dbcpt := &rainbondv1alpha1.RbdComponent{}
+	if err := cli.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: DBName}, dbcpt); err != nil {
 		return err
 	}
-	for _, ep := range eps.Items {
-		for _, subset := range ep.Subsets {
-			if len(subset.Addresses) > 0 {
-				return nil
-			}
-		}
+
+	if dbcpt.Status == nil {
+		return errors.New("no status for rbdcomponent rbd-db")
 	}
-	return ErrNoDBEndpoints
+
+	if dbcpt.Status.ReadyReplicas == 0 {
+		return errors.New("no ready replicas for rbdcomponent rbd-db")
+	}
+
+	return nil
 }
 
 func getDefaultDBInfo(ctx context.Context, cli client.Client, in *rainbondv1alpha1.Database, namespace, name string) (*rainbondv1alpha1.Database, error) {
