@@ -140,8 +140,8 @@ func (c *clusterUsecase) StatusInfo() (*v1.ClusterStatusInfo, error) {
 			}
 			return nodes
 		}
-		specifiedNodes := setNodes(cluster.Status.GatewayAvailableNodes.SpecifiedNodes)
-		masterNodes := setNodes(cluster.Status.GatewayAvailableNodes.MasterNodes)
+		specifiedNodes := setNodes(nodes.SpecifiedNodes)
+		masterNodes := setNodes(nodes.MasterNodes)
 		return &v1.AvailableNodes{
 			SpecifiedNodes: specifiedNodes,
 			MasterNodes:    masterNodes,
