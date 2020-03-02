@@ -211,21 +211,21 @@ func setStorageCassName(ctx context.Context, cli client.Client, ns string, obj i
 	return nil
 }
 
-func createPersistentVolumeClaimRWX(ns, claimName string, pvcParameters *pvcParameters) *corev1.PersistentVolumeClaim {
+func createPersistentVolumeClaimRWX(ns, claimName string, pvcParameters *pvcParameters, labels map[string]string) *corev1.PersistentVolumeClaim {
 	accessModes := []corev1.PersistentVolumeAccessMode{
 		corev1.ReadWriteMany,
 	}
-	return createPersistentVolumeClaim(ns, claimName, accessModes, pvcParameters)
+	return createPersistentVolumeClaim(ns, claimName, accessModes, pvcParameters, labels)
 }
 
-func createPersistentVolumeClaimRWO(ns, claimName string, pvcParameters *pvcParameters) *corev1.PersistentVolumeClaim {
+func createPersistentVolumeClaimRWO(ns, claimName string, pvcParameters *pvcParameters, labels map[string]string) *corev1.PersistentVolumeClaim {
 	accessModes := []corev1.PersistentVolumeAccessMode{
 		corev1.ReadWriteOnce,
 	}
-	return createPersistentVolumeClaim(ns, claimName, accessModes, pvcParameters)
+	return createPersistentVolumeClaim(ns, claimName, accessModes, pvcParameters, labels)
 }
 
-func createPersistentVolumeClaim(ns, claimName string, accessModes []corev1.PersistentVolumeAccessMode, pvcParameters *pvcParameters) *corev1.PersistentVolumeClaim {
+func createPersistentVolumeClaim(ns, claimName string, accessModes []corev1.PersistentVolumeAccessMode, pvcParameters *pvcParameters, labels map[string]string) *corev1.PersistentVolumeClaim {
 	var size int64 = 1
 	if pvcParameters.storageRequest != nil && *pvcParameters.storageRequest > 0 {
 		size = int64(*pvcParameters.storageRequest)
@@ -235,6 +235,7 @@ func createPersistentVolumeClaim(ns, claimName string, accessModes []corev1.Pers
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      claimName,
 			Namespace: ns,
+			Labels:    labels,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: accessModes,

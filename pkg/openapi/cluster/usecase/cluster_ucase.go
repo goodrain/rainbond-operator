@@ -52,6 +52,10 @@ func (c *clusterUsecase) UnInstall() error {
 	deleteOpts := &metav1.DeleteOptions{
 		GracePeriodSeconds: commonutil.Int64(0),
 	}
+	if err := c.cfg.KubeClient.CoreV1().PersistentVolumeClaims(c.namespace).DeleteCollection(deleteOpts, metav1.ListOptions{}); err != nil {
+		return fmt.Errorf("delete persistent volume claims: %v", err)
+	}
+
 	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).DeleteCollection(deleteOpts, metav1.ListOptions{}); err != nil {
 		return fmt.Errorf("delete component: %v", err)
 	}

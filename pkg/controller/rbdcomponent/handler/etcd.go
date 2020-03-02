@@ -96,7 +96,7 @@ func (e *etcd) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 
 func (e *etcd) statefulsetForEtcd() interface{} {
 	claimName := "data"
-	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO)
+	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO, e.labels)
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EtcdName,
@@ -193,7 +193,7 @@ func (e *etcd) serviceForEtcd() interface{} {
 
 func (e *etcd) etcdCluster() *etcdv1beta2.EtcdCluster {
 	claimName := "data"
-	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO)
+	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO, e.labels)
 
 	// make sure the image name is right
 	repo, _ := reference.Parse(e.component.Spec.Image)

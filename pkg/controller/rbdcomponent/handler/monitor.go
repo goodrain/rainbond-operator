@@ -80,7 +80,7 @@ func (m *monitor) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 
 func (m *monitor) statefulset() interface{} {
 	claimName := "data" // unnecessary
-	promDataPVC := createPersistentVolumeClaimRWO(m.component.Namespace, claimName, m.pvcParametersRWO)
+	promDataPVC := createPersistentVolumeClaimRWO(m.component.Namespace, claimName, m.pvcParametersRWO, m.labels)
 
 	args := []string{
 		"--advertise-addr=$(POD_IP):9999",

@@ -21,4 +21,13 @@ const (
 	SpecialGatewayLabelKey = "rainbond.io/gateway"
 	// SpecialChaosLabelKey is a special node label, used to specify where to install the rbd-chaos
 	SpecialChaosLabelKey = "rainbond.io/chaos"
+
+	// AliyunCSIDiskPlugin name for aliyun csi disk plugin
+	AliyunCSIDiskPlugin = "aliyun-csi-disk-plugin"
+	// AliyunCSIDiskProvisioner name for aliyun csi disk provisioner
+	AliyunCSIDiskProvisioner = "aliyun-csi-disk-provisioner"
+	// AliyunCSINasPlugin name for aliyun csi nas plugin
+	AliyunCSINasPlugin = "aliyun-csi-nas-plugin"
+	// AliyunCSINasProvisioner name for aliyun csi nas provisioner
+	AliyunCSINasProvisioner = "aliyun-csi-nas-provisioner"
 )

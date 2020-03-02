@@ -66,7 +66,7 @@ func (r *repo) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 
 func (r *repo) statefulset() interface{} {
 	claimName := "data"
-	repoDataPVC := createPersistentVolumeClaimRWO(r.component.Namespace, claimName, r.pvcParametersRWO)
+	repoDataPVC := createPersistentVolumeClaimRWO(r.component.Namespace, claimName, r.pvcParametersRWO, r.labels)
 
 	ds := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{

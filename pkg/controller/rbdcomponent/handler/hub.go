@@ -154,7 +154,7 @@ func (h *hub) serviceForHub() interface{} {
 }
 
 func (h *hub) persistentVolumeClaimForHub() *corev1.PersistentVolumeClaim {
-	return createPersistentVolumeClaimRWX(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX)
+	return createPersistentVolumeClaimRWX(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels)
 }
 
 func (h *hub) ingressForHub() interface{} {

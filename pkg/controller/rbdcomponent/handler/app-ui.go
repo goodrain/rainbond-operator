@@ -84,7 +84,7 @@ func (a *appui) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 func (a *appui) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX),
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels),
 	}
 }
 

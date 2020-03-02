@@ -87,7 +87,7 @@ func (e *eventlog) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 func (e *eventlog) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(e.component.Namespace, constants.GrDataPVC, e.pvcParametersRWX),
+		createPersistentVolumeClaimRWX(e.component.Namespace, constants.GrDataPVC, e.pvcParametersRWX, e.labels),
 	}
 }
 

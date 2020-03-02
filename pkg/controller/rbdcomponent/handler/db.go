@@ -136,7 +136,7 @@ func (d *db) statefulsetForDB() interface{} {
 	exporterImage := strings.Replace(name, "rbd-db", "mysqld-exporter", 1)
 
 	claimName := "data"
-	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO)
+	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO, d.labels)
 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -338,7 +338,7 @@ func (d *db) secretForDB() interface{} {
 
 func (d *db) mysqlCluster() *mysqlv1alpha1.Cluster {
 	claimName := "data"
-	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO)
+	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO, d.labels)
 
 	var defaultSize int32 = 1
 	if d.component.Spec.Replicas != nil {

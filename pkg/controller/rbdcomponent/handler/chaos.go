@@ -85,8 +85,8 @@ func (c *chaos) SetStorageClassNameRWX(pvcParametersRWX *pvcParameters) {
 
 func (c *chaos) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
-		createPersistentVolumeClaimRWX(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX),
-		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX),
+		createPersistentVolumeClaimRWX(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX, c.labels),
+		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels),
 	}
 }
 

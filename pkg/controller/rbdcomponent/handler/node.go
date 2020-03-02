@@ -82,7 +82,7 @@ func (n *node) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 func (n *node) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(n.component.Namespace, constants.GrDataPVC, n.pvcParametersRWX),
+		createPersistentVolumeClaimRWX(n.component.Namespace, constants.GrDataPVC, n.pvcParametersRWX, n.labels),
 	}
 }
 
