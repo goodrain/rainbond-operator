@@ -29,6 +29,7 @@ type worker struct {
 	etcdSecret *corev1.Secret
 
 	pvcParametersRWX *pvcParameters
+	storageRequest   int64
 }
 
 var _ ComponentHandler = &worker{}
@@ -37,11 +38,12 @@ var _ StorageClassRWXer = &worker{}
 // NewWorker creates a new rbd-worker hanlder.
 func NewWorker(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &worker{
-		ctx:       ctx,
-		client:    client,
-		component: component,
-		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
+		ctx:            ctx,
+		client:         client,
+		component:      component,
+		cluster:        cluster,
+		labels:         LabelsForRainbondComponent(component),
+		storageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
 	}
 }
 

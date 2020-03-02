@@ -28,8 +28,8 @@ type appui struct {
 	cluster   *rainbondv1alpha1.RainbondCluster
 
 	pvcParametersRWX *pvcParameters
-
-	pvcName string
+	pvcName          string
+	storageRequest   int64
 }
 
 var _ ComponentHandler = &appui{}
@@ -38,12 +38,13 @@ var _ StorageClassRWXer = &appui{}
 // NewAppUI creates a new rbd-app-ui handler.
 func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &appui{
-		ctx:       ctx,
-		client:    client,
-		component: component,
-		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
-		pvcName:   "rbd-app-ui",
+		ctx:            ctx,
+		client:         client,
+		component:      component,
+		cluster:        cluster,
+		labels:         LabelsForRainbondComponent(component),
+		pvcName:        "rbd-app-ui",
+		storageRequest: getStorageRequest("APP_UI_DATA_STORAGE_REQUEST", 1),
 	}
 }
 

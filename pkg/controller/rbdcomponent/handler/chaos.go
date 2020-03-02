@@ -29,7 +29,9 @@ type chaos struct {
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
 
-	pvcParametersRWX *pvcParameters
+	pvcParametersRWX     *pvcParameters
+	cacheStorageRequest  int64
+	grdataStorageRequest int64
 }
 
 var _ ComponentHandler = &chaos{}
@@ -38,11 +40,13 @@ var _ StorageClassRWXer = &chaos{}
 // NewChaos creates a new rbd-chaos handler.
 func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &chaos{
-		ctx:       ctx,
-		client:    client,
-		component: component,
-		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
+		ctx:                  ctx,
+		client:               client,
+		component:            component,
+		cluster:              cluster,
+		labels:               LabelsForRainbondComponent(component),
+		cacheStorageRequest:  getStorageRequest("CHAOS_CACHE_STORAGE_REQUEST", 10),
+		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
 	}
 }
 

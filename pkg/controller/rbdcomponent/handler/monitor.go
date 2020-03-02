@@ -28,6 +28,7 @@ type monitor struct {
 	labels    map[string]string
 
 	pvcParametersRWO *pvcParameters
+	storageRequest   int64
 }
 
 var _ ComponentHandler = &monitor{}
@@ -39,9 +40,10 @@ func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1
 		ctx:    ctx,
 		client: client,
 
-		component: component,
-		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
+		component:      component,
+		cluster:        cluster,
+		labels:         LabelsForRainbondComponent(component),
+		storageRequest: getStorageRequest("MONITOR_DATA_STORAGE_REQUEST", 21),
 	}
 }
 
@@ -80,7 +82,7 @@ func (m *monitor) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 
 func (m *monitor) statefulset() interface{} {
 	claimName := "data" // unnecessary
-	promDataPVC := createPersistentVolumeClaimRWO(m.component.Namespace, claimName, m.pvcParametersRWO, m.labels)
+	promDataPVC := createPersistentVolumeClaimRWO(m.component.Namespace, claimName, m.pvcParametersRWO, m.labels, m.storageRequest)
 
 	args := []string{
 		"--advertise-addr=$(POD_IP):9999",

@@ -29,7 +29,8 @@ type node struct {
 	cluster   *rainbondv1alpha1.RainbondCluster
 	component *rainbondv1alpha1.RbdComponent
 
-	pvcParametersRWX *pvcParameters
+	pvcParametersRWX     *pvcParameters
+	grdataStorageRequest int64
 }
 
 var _ ComponentHandler = &node{}
@@ -39,11 +40,12 @@ var _ K8sResourcesInterface = &node{}
 // NewNode creates a new rbd-node handler.
 func NewNode(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &node{
-		ctx:       ctx,
-		client:    client,
-		component: component,
-		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
+		ctx:                  ctx,
+		client:               client,
+		component:            component,
+		cluster:              cluster,
+		labels:               LabelsForRainbondComponent(component),
+		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
 	}
 }
 

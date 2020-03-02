@@ -29,6 +29,7 @@ type hub struct {
 	labels    map[string]string
 
 	pvcParametersRWX *pvcParameters
+	storageRequest   int64
 }
 
 var _ ComponentHandler = &hub{}
@@ -37,11 +38,12 @@ var _ StorageClassRWXer = &hub{}
 //NewHub nw hub
 func NewHub(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &hub{
-		component: component,
-		cluster:   cluster,
-		client:    client,
-		ctx:       ctx,
-		labels:    LabelsForRainbondComponent(component),
+		component:      component,
+		cluster:        cluster,
+		client:         client,
+		ctx:            ctx,
+		labels:         LabelsForRainbondComponent(component),
+		storageRequest: getStorageRequest("HUB_DATA_STORAGE_REQUEST", 40),
 	}
 }
 
