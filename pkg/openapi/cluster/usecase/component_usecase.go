@@ -121,14 +121,6 @@ func (cc *componentUsecase) convertRbdComponent(cpn *rainbondv1alpha1.RbdCompone
 	for index := range podStatuses {
 		if podStatuses[index].Phase == "NotReady" {
 			result.Status = v1.ComponentStatusCreating // if pod not ready, component status can't be running, even nor replicas equals to ready replicas
-			// message and reason from container
-			for _, container := range podStatuses[index].ContainerStatuses {
-				if container.State != "Running" {
-					podStatuses[index].Message = container.Message
-					podStatuses[index].Reason = container.Reason
-					break
-				}
-			}
 		}
 	}
 	result.PodStatuses = podStatuses
@@ -205,42 +197,38 @@ func (cc *componentUsecase) convertPodStatues(pods []*corev1.Pod) []v1.PodStatus
 			Reason:  pod.Status.Reason,
 			Message: pod.Status.Message,
 		}
+		ready := false
 		for _, condition := range pod.Status.Conditions {
 			if condition.Type == corev1.PodReady && condition.Status == "True" {
 				podStatus.Phase = "Ready"
 				break
 			}
 		}
-		var containerStatuses []v1.PodContainerStatus
-		for _, cs := range pod.Status.ContainerStatuses {
-			containerStatus := v1.PodContainerStatus{
-				Image: cs.Image,
-				Ready: cs.Ready,
+		if !ready {
+			events, err := cc.cfg.KubeClient.CoreV1().Events(cc.cfg.Namespace).List(metav1.ListOptions{})
+			if err != nil {
+				log.V(3).Info("get pod[%s] event list failed: %s", pod.Name, err.Error())
 			}
-			if cs.ContainerID != "" {
-				containerStatus.ContainerID = strings.Replace(cs.ContainerID, "docker://", "", -1)[0:8]
+			if events != nil && len(events.Items) > 0 {
+				podStatus.Message = cc.convertEventMessage(events.Items)
 			}
-
-			// TODO: move out
-			if cs.State.Running != nil {
-				containerStatus.State = "Running"
-			}
-			if cs.State.Waiting != nil {
-				containerStatus.State = "Waiting"
-				containerStatus.Reason = cs.State.Waiting.Reason
-				containerStatus.Message = cs.State.Waiting.Message
-			}
-			if cs.State.Terminated != nil {
-				containerStatus.State = "Terminated"
-				containerStatus.Reason = cs.State.Terminated.Reason
-				containerStatus.Message = cs.State.Terminated.Message
-			}
-
-			containerStatuses = append(containerStatuses, containerStatus)
 		}
-		podStatus.ContainerStatuses = containerStatuses
 		podStatuses = append(podStatuses, podStatus)
 	}
 
 	return podStatuses
+}
+
+func (cc *componentUsecase) convertEventMessage(events []corev1.Event) string {
+	message := ""
+	if len(events) == 0 {
+		return message
+	}
+	for _, event := range events {
+		switch event.Type {
+		case corev1.EventTypeWarning:
+			message = fmt.Sprintf("%s%s\n", message, event.Message)
+		}
+	}
+	return message
 }
