@@ -11,6 +11,7 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
+	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,13 +22,14 @@ import (
 var NodeName = "rbd-node"
 
 type node struct {
-	ctx        context.Context
-	client     client.Client
+	ctx    context.Context
+	client client.Client
+	log    logr.Logger
+
 	labels     map[string]string
 	etcdSecret *corev1.Secret
-
-	cluster   *rainbondv1alpha1.RainbondCluster
-	component *rainbondv1alpha1.RbdComponent
+	cluster    *rainbondv1alpha1.RainbondCluster
+	component  *rainbondv1alpha1.RbdComponent
 
 	pvcParametersRWX     *pvcParameters
 	grdataStorageRequest int64
@@ -36,12 +38,14 @@ type node struct {
 var _ ComponentHandler = &node{}
 var _ StorageClassRWXer = &node{}
 var _ K8sResourcesInterface = &node{}
+var _ Replicaser = &node{}
 
 // NewNode creates a new rbd-node handler.
 func NewNode(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &node{
 		ctx:                  ctx,
 		client:               client,
+		log:                  log.WithValues("Name: %s", component.Name),
 		component:            component,
 		cluster:              cluster,
 		labels:               LabelsForRainbondComponent(component),
@@ -86,6 +90,15 @@ func (n *node) ResourcesCreateIfNotExists() []interface{} {
 		// pvc is immutable after creation except resources.requests for bound claims
 		createPersistentVolumeClaimRWX(n.component.Namespace, constants.GrDataPVC, n.pvcParametersRWX, n.labels),
 	}
+}
+
+func (n *node) Replicas() *int32 {
+	nodeList := &corev1.NodeList{}
+	if err := n.client.List(n.ctx, nodeList); err != nil {
+		n.log.V(6).Info(fmt.Sprintf("list nodes: %v", err))
+		return nil
+	}
+	return commonutil.Int32(int32(len(nodeList.Items)))
 }
 
 func (n *node) daemonSetForRainbondNode() interface{} {

@@ -37,9 +37,12 @@ type metricsServer struct {
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
 	apiservice *kubeaggregatorv1beta1.APIService
+
+	pods []corev1.Pod
 }
 
 var _ ComponentHandler = &metricsServer{}
+var _ Replicaser = &metricsServer{}
 
 // NewMetricsServer creates a new metrics-server handler
 func NewMetricsServer(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -128,9 +131,16 @@ func (m *metricsServer) ListPods() ([]corev1.Pod, error) {
 		if err != nil {
 			return nil, err
 		}
+		m.pods = podList.Items
 		return podList.Items, nil
 	}
-	return listPods(m.ctx, m.client, m.component.Namespace, labels)
+	pods, err := listPods(m.ctx, m.client, m.component.Namespace, labels)
+	m.pods = pods
+	return pods, err
+}
+
+func (m *metricsServer) Replicas() *int32 {
+	return commonutil.Int32(int32(len(m.pods)))
 }
 
 func (m *metricsServer) deployment() interface{} {

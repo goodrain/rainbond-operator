@@ -98,8 +98,8 @@ func (cc *componentUsecase) List(isInit bool) ([]*v1.RbdComponentStatus, error) 
 
 func (cc *componentUsecase) convertRbdComponent(cpn *rainbondv1alpha1.RbdComponent, pods []*corev1.Pod) *v1.RbdComponentStatus {
 	var replicas int32 = 1 // defualt replicas is 1
-	if cpn.Spec.Replicas != nil {
-		replicas = *cpn.Spec.Replicas
+	if cpn.Status != nil {
+		replicas = cpn.Status.Replicas
 	}
 
 	result := &v1.RbdComponentStatus{

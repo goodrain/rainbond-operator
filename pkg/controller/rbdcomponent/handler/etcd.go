@@ -96,6 +96,13 @@ func (e *etcd) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 	e.pvcParametersRWO = pvcParameters
 }
 
+func (e *etcd) Replicas() *int32 {
+	if !e.enableEtcdOperator {
+		commonutil.Int32(1)
+	}
+	return nil
+}
+
 func (e *etcd) statefulsetForEtcd() interface{} {
 	claimName := "data"
 	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO, e.labels, e.storageRequest)

@@ -36,6 +36,7 @@ type chaos struct {
 
 var _ ComponentHandler = &chaos{}
 var _ StorageClassRWXer = &chaos{}
+var _ Replicaser = &chaos{}
 
 // NewChaos creates a new rbd-chaos handler.
 func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -92,6 +93,10 @@ func (c *chaos) ResourcesCreateIfNotExists() []interface{} {
 		createPersistentVolumeClaimRWX(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX, c.labels),
 		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels),
 	}
+}
+
+func (c *chaos) Replicas() *int32 {
+	return commonutil.Int32(int32(len(c.cluster.Spec.NodesForChaos)))
 }
 
 func (c *chaos) deployment() interface{} {

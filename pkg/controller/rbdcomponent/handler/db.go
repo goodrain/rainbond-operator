@@ -132,6 +132,13 @@ func (d *db) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 	d.pvcParametersRWO = pvcParameters
 }
 
+func (d *db) Replicas() *int32 {
+	if !d.enableMysqlOperator {
+		commonutil.Int32(1)
+	}
+	return nil
+}
+
 func (d *db) statefulsetForDB() interface{} {
 	repo, _ := reference.Parse(d.component.Spec.Image)
 	name := repo.(reference.Named).Name()
