@@ -126,7 +126,10 @@ func (c *clusterUsecase) StatusInfo() (*v1.ClusterStatusInfo, error) {
 		class := &v1.StorageClass{
 			Name:        c.Name,
 			Provisioner: c.Provisioner,
-			AccessMode:  c.AccessMode,
+			AccessMode:  string(c.AccessMode),
+		}
+		if class.AccessMode == "" {
+			class.AccessMode = "Unknown"
 		}
 		storageClasses = append(storageClasses, class)
 	}
