@@ -24,5 +24,7 @@ func init() {
 	AddHandlerFunc(handler.MetricsServerName, handler.NewMetricsServer)
 	AddHandlerFunc(handler.NFSName, handler.NewNFS)
 	AddHandlerFunc(constants.AliyunCSINasPlugin, handler.NewAliyunCSINasPlugin)
+	AddHandlerFunc(constants.AliyunCSINasProvisioner, handler.NewAliyunCSINasProvisioner)
 	AddHandlerFunc(constants.AliyunCSIDiskPlugin, handler.NewAliyunCSIDiskPlugin)
+	AddHandlerFunc(constants.AliyunCSIDiskProvisioner, handler.NewaliyunCSIDiskProvisioner)
 }
