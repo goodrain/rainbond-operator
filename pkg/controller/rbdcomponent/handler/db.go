@@ -192,7 +192,8 @@ func (d *db) statefulsetForDB() interface{} {
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      claimName,
-									MountPath: "/data",
+									MountPath: "/var/lib/mysql",
+									SubPath:   "mysql",
 								},
 								{
 									Name:      "initdb",
