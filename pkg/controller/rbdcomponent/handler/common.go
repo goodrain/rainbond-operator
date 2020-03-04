@@ -266,9 +266,12 @@ func affinityForRequiredNodes(nodeNames []string) *corev1.Affinity {
 			RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
 				NodeSelectorTerms: []corev1.NodeSelectorTerm{
 					{
-						MatchFields: []corev1.NodeSelectorRequirement{
+						// You cannot use matchFields directly to select multiple nodes.
+						// When nodes have no labels, there will be problems.
+						// More info: https://github.com/kubernetes/kubernetes/issues/78238#issuecomment-495373236
+						MatchExpressions: []corev1.NodeSelectorRequirement{
 							{
-								Key:      "metadata.name",
+								Key:      "kubernetes.io/hostname",
 								Operator: corev1.NodeSelectorOpIn,
 								Values:   nodeNames,
 							},
