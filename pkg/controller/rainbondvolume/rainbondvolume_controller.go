@@ -3,23 +3,24 @@ package rainbondvolume
 import (
 	"context"
 	"fmt"
+
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/retry"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-
+	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -54,14 +55,24 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner RainbondVolume
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &rainbondv1alpha1.RainbondVolume{},
-	})
-	if err != nil {
-		return err
+	secondaryResourceTypes := []runtime.Object{
+		&appv1.DaemonSet{},
+		&appv1.StatefulSet{},
+		&appv1.Deployment{},
+		&corev1.Service{},
+		&corev1.Secret{},
+		&corev1.ConfigMap{},
+		&corev1.PersistentVolumeClaim{},
+	}
+
+	for _, t := range secondaryResourceTypes {
+		err = c.Watch(&source.Kind{Type: t}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &rainbondv1alpha1.RbdComponent{},
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

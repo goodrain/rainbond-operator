@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -96,9 +97,9 @@ type InstallPackageConfig struct {
 
 // StorageClass storage class
 type StorageClass struct {
-	Name        string `json:"name"`
-	Provisioner string `json:"provisioner"`
-	AccessMode  string `json:"accessMode,omitempty"`
+	Name        string                            `json:"name"`
+	Provisioner string                            `json:"provisioner"`
+	AccessMode  corev1.PersistentVolumeAccessMode `json:"accessMode,omitempty"`
 }
 
 // K8sNode holds the information about a kubernetes node.

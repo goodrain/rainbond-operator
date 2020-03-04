@@ -5,13 +5,17 @@ import (
 	"errors"
 	"fmt"
 
+	"k8s.io/client-go/kubernetes"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	plabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kubeaggregatorv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
@@ -33,9 +37,12 @@ type metricsServer struct {
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
 	apiservice *kubeaggregatorv1beta1.APIService
+
+	pods []corev1.Pod
 }
 
 var _ ComponentHandler = &metricsServer{}
+var _ Replicaser = &metricsServer{}
 
 // NewMetricsServer creates a new metrics-server handler
 func NewMetricsServer(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -106,14 +113,34 @@ func (m *metricsServer) After() error {
 func (m *metricsServer) ListPods() ([]corev1.Pod, error) {
 	labels := m.labels
 	if !m.apiServiceCreatedByRainbond() {
+		restConfig := k8sutil.MustNewKubeConfig("")
+		clientset := kubernetes.NewForConfigOrDie(restConfig)
+
 		svcRef := m.apiservice.Spec.Service
-		svc := &corev1.Service{}
-		if err := m.client.Get(m.ctx, types.NamespacedName{Namespace: svcRef.Namespace, Name: svcRef.Name}, svc); err != nil {
-			return nil, fmt.Errorf("get svc based on apiservice: %v", err)
+		svc, err := clientset.CoreV1().Services(svcRef.Namespace).Get(svcRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("get svc(%s/%s) based on apiservice %s: %v", svcRef.Namespace, svcRef.Name, m.apiservice.Name, err)
 		}
+
 		labels = svc.Spec.Selector
+		selector := plabels.SelectorFromSet(labels)
+		opts := metav1.ListOptions{
+			LabelSelector: selector.String(),
+		}
+		podList, err := clientset.CoreV1().Pods(svcRef.Namespace).List(opts)
+		if err != nil {
+			return nil, err
+		}
+		m.pods = podList.Items
+		return podList.Items, nil
 	}
-	return listPods(m.ctx, m.client, m.component.Namespace, labels)
+	pods, err := listPods(m.ctx, m.client, m.component.Namespace, labels)
+	m.pods = pods
+	return pods, err
+}
+
+func (m *metricsServer) Replicas() *int32 {
+	return commonutil.Int32(int32(len(m.pods)))
 }
 
 func (m *metricsServer) deployment() interface{} {

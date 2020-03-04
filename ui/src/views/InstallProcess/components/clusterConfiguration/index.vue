@@ -103,13 +103,17 @@
               style="width:200px"
             ></el-input>
             <span class="d2-w-20">:</span>
-            <el-input
-              v-model="ruleForm.regionDatabasePort"
-              class="d2-input_inner_url"
-              style="width:80px"
-              type="number"
-            ></el-input>
+
+            <el-form-item prop="regionDatabasePort" style="width:300px;display: inline-block">
+              <el-input
+                v-model="ruleForm.regionDatabasePort"
+                class="d2-input_inner_url"
+                style="width:80px"
+                type="number"
+              ></el-input>
+            </el-form-item>
           </el-form-item>
+
           <el-form-item
             :label="$t('page.install.config.regionDBUser')"
             label-width="85px"
@@ -161,12 +165,15 @@
               style="width:200px"
             ></el-input>
             <span class="d2-w-20">:</span>
-            <el-input
-              v-model="ruleForm.uiDatabasePort"
-              class="d2-input_inner_url"
-              style="width:80px"
-              type="number"
-            ></el-input>
+
+            <el-form-item prop="uiDatabasePort" style="width:300px;display: inline-block">
+              <el-input
+                v-model="ruleForm.uiDatabasePort"
+                class="d2-input_inner_url"
+                style="width:80px"
+                type="number"
+              ></el-input>
+            </el-form-item>
           </el-form-item>
           <el-form-item
             :label="$t('page.install.config.uiDBUser')"
@@ -676,7 +683,7 @@ export default {
         if (gatewayIngressIPs.length === 1 && gatewayIngressIPs[0] === "") {
           callback();
         } else if (arr.length >= 1) {
-          callback(new Error("格式不对，请重新输入"));
+          callback(new Error(this.$t("page.install.config.portValidation")));
         } else {
           callback();
         }
@@ -684,6 +691,20 @@ export default {
         callback();
       }
     };
+
+
+    let validateport = (rule, value, callback) => {
+      let regPort = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-5]{2}[0-3][0-5])$/;
+      let isRegPort = regPort.test(value);
+      if (value === "") {
+        callback(new Error(this.$t("page.install.config.dbPortValidation")));
+      } else if (!isRegPort) {
+        callback(new Error(this.$t("page.install.config.portValidation")));
+      } else {
+        callback();
+      }
+    };
+
     let reg = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/;
 
     let validateAddress = (rule, value, callback) => {
@@ -917,9 +938,10 @@ export default {
         ],
         regionDatabasePort: [
           {
+            validator: validateport,
+            type: "Number",
             required: true,
-            message: this.$t("page.install.config.dbPortValidation"),
-            trigger: "blur"
+            trigger: "change"
           }
         ],
         regionDatabaseUsername: [
@@ -945,9 +967,10 @@ export default {
         ],
         uiDatabasePort: [
           {
+            validator: validateport,
+            type: "Number",
             required: true,
-            message: this.$t("page.install.config.dbPortValidation"),
-            trigger: "blur"
+            trigger: "change"
           }
         ],
         uiDatabaseUsername: [
@@ -1226,7 +1249,6 @@ export default {
           obj.nodesForChaos = chaosNodes;
           obj.enableHA = this.ruleForm.enableHA;
           console.log(obj);
-          this.installCluster();
           this.$store
             .dispatch("putClusterInfo", obj)
             .then(res => {

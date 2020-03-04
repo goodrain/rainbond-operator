@@ -28,6 +28,7 @@ type gateway struct {
 }
 
 var _ ComponentHandler = &gateway{}
+var _ Replicaser = &gateway{}
 
 // NewGateway returns a new rbd-gateway handler.
 func NewGateway(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -47,6 +48,10 @@ func (g *gateway) Before() error {
 	}
 	g.etcdSecret = secret
 
+	if err := isEtcdAvailable(g.ctx, g.client, g.component, g.cluster); err != nil {
+		return fmt.Errorf("etcd not available: %v", err)
+	}
+
 	return nil
 }
 
@@ -62,6 +67,10 @@ func (g *gateway) After() error {
 
 func (g *gateway) ListPods() ([]corev1.Pod, error) {
 	return listPods(g.ctx, g.client, g.component.Namespace, g.labels)
+}
+
+func (g *gateway) Replicas() *int32 {
+	return commonutil.Int32(int32(len(g.cluster.Spec.NodesForGateway)))
 }
 
 func (g *gateway) deployment() interface{} {

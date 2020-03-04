@@ -2,6 +2,9 @@ package nfs
 
 import (
 	"context"
+
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
@@ -101,7 +104,7 @@ func (p *nfsPlugin) statefulset() interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            p.name,
-							Image:           "registry.cn-hangzhou.aliyuncs.com/goodrain/nfs-provisioner:v2.2.1-k8s1.12", // TODO: do not hard code, get sa from configuration.
+							Image:           "registry.cn-hangzhou.aliyuncs.com/goodrain/nfs-provisioner:v2.3.0", // TODO: do not hard code, get sa from configuration.
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports: []corev1.ContainerPort{
 								{
@@ -109,8 +112,37 @@ func (p *nfsPlugin) statefulset() interface{} {
 									ContainerPort: 2049,
 								},
 								{
+									Name:          "nfs-udp",
+									ContainerPort: 2049,
+									Protocol:      corev1.ProtocolUDP,
+								},
+								{
+									Name:          "nlockmgr",
+									ContainerPort: 32803,
+									Protocol:      corev1.ProtocolTCP,
+								},
+								{
+									Name:          "nlockmgr-udp",
+									ContainerPort: 32803,
+									Protocol:      corev1.ProtocolUDP,
+								},
+								{
 									Name:          "mountd",
 									ContainerPort: 20048,
+								},
+								{
+									Name:          "mountd-udp",
+									ContainerPort: 20048,
+									Protocol:      corev1.ProtocolUDP,
+								},
+								{
+									Name:          "rquotad",
+									ContainerPort: 875,
+								},
+								{
+									Name:          "rquotad-udp",
+									ContainerPort: 875,
+									Protocol:      corev1.ProtocolUDP,
 								},
 								{
 									Name:          "rpcbind",
@@ -119,6 +151,15 @@ func (p *nfsPlugin) statefulset() interface{} {
 								{
 									Name:          "rpcbind-udp",
 									ContainerPort: 111,
+									Protocol:      corev1.ProtocolUDP,
+								},
+								{
+									Name:          "statd",
+									ContainerPort: 662,
+								},
+								{
+									Name:          "statd-udp",
+									ContainerPort: 662,
 									Protocol:      corev1.ProtocolUDP,
 								},
 							},
@@ -192,21 +233,76 @@ func (p *nfsPlugin) service() *corev1.Service {
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
-					Name: "name",
-					Port: 2049,
+					Name:       "nfs",
+					Port:       2049,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: intstr.Parse("nfs"),
 				},
 				{
-					Name: "mountd",
-					Port: 20048,
+					Name:       "nfs-udp",
+					Port:       2049,
+					Protocol:   corev1.ProtocolUDP,
+					TargetPort: intstr.Parse("nfs-udp"),
 				},
 				{
-					Name: "rpcbind",
-					Port: 111,
+					Name:       "nlockmgr",
+					Port:       32803,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: intstr.Parse("nlockmgr"),
 				},
 				{
-					Name:     "rpcbind-udp",
-					Port:     111,
-					Protocol: corev1.ProtocolUDP,
+					Name:       "nlockmgr-udp",
+					Port:       32803,
+					Protocol:   corev1.ProtocolUDP,
+					TargetPort: intstr.Parse("nlockmgr-udp"),
+				},
+				{
+					Name:       "mountd",
+					Port:       20048,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: intstr.Parse("mountd"),
+				},
+				{
+					Name:       "mountd-udp",
+					Port:       20048,
+					Protocol:   corev1.ProtocolUDP,
+					TargetPort: intstr.Parse("mountd-udp"),
+				},
+				{
+					Name:       "rquotad",
+					Port:       875,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: intstr.Parse("rquotad"),
+				},
+				{
+					Name:       "rquotad-udp",
+					Port:       875,
+					Protocol:   corev1.ProtocolUDP,
+					TargetPort: intstr.Parse("rquotad-udp"),
+				},
+				{
+					Name:       "rpcbind",
+					Port:       111,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: intstr.Parse("rpcbind"),
+				},
+				{
+					Name:       "rpcbind-udp",
+					Port:       111,
+					Protocol:   corev1.ProtocolUDP,
+					TargetPort: intstr.Parse("rpcbind-udp"),
+				},
+				{
+					Name:       "statd",
+					Port:       662,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: intstr.Parse("statd"),
+				},
+				{
+					Name:       "statd-udp",
+					Port:       662,
+					Protocol:   corev1.ProtocolUDP,
+					TargetPort: intstr.Parse("statd-udp"),
 				},
 			},
 			Selector: p.labels,

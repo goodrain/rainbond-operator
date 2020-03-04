@@ -29,20 +29,25 @@ type chaos struct {
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
 
-	pvcParametersRWX *pvcParameters
+	pvcParametersRWX     *pvcParameters
+	cacheStorageRequest  int64
+	grdataStorageRequest int64
 }
 
 var _ ComponentHandler = &chaos{}
 var _ StorageClassRWXer = &chaos{}
+var _ Replicaser = &chaos{}
 
 // NewChaos creates a new rbd-chaos handler.
 func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &chaos{
-		ctx:       ctx,
-		client:    client,
-		component: component,
-		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
+		ctx:                  ctx,
+		client:               client,
+		component:            component,
+		cluster:              cluster,
+		labels:               LabelsForRainbondComponent(component),
+		cacheStorageRequest:  getStorageRequest("CHAOS_CACHE_STORAGE_REQUEST", 10),
+		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
 	}
 }
 
@@ -85,9 +90,13 @@ func (c *chaos) SetStorageClassNameRWX(pvcParametersRWX *pvcParameters) {
 
 func (c *chaos) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
-		createPersistentVolumeClaimRWX(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX),
-		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX),
+		createPersistentVolumeClaimRWX(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX, c.labels),
+		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels),
 	}
+}
+
+func (c *chaos) Replicas() *int32 {
+	return commonutil.Int32(int32(len(c.cluster.Spec.NodesForChaos)))
 }
 
 func (c *chaos) deployment() interface{} {
@@ -136,6 +145,8 @@ func (c *chaos) deployment() interface{} {
 		fmt.Sprintf("--log-level=%s", c.component.LogLevel()),
 		c.db.RegionDataSource(),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(c.cluster), ","),
+		"--pvc-grdata-name=" + constants.GrDataPVC,
+		"--pvc-cache-name=" + constants.CachePVC,
 	}
 
 	if c.etcdSecret != nil {

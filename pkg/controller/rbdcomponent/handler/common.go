@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path"
+	"strconv"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -150,11 +152,11 @@ func etcdSSLArgs() []string {
 }
 
 func storageClassNameFromRainbondVolumeRWX(ctx context.Context, cli client.Client, ns string) (*pvcParameters, error) {
-	return storageClassNameFromRainbondVolume(ctx, cli, ns, rbdutil.LabelsForAccessModeRWX())
+	return storageClassNameFromRainbondVolume(ctx, cli, ns, false)
 }
 
 func storageClassNameFromRainbondVolumeRWO(ctx context.Context, cli client.Client, ns string) (*pvcParameters, error) {
-	pvcParameters, err := storageClassNameFromRainbondVolume(ctx, cli, ns, rbdutil.LabelsForAccessModeRWO())
+	pvcParameters, err := storageClassNameFromRainbondVolume(ctx, cli, ns, true)
 	if err != nil {
 		if !IsRainbondVolumeNotFound(err) {
 			return nil, err
@@ -164,7 +166,13 @@ func storageClassNameFromRainbondVolumeRWO(ctx context.Context, cli client.Clien
 	return pvcParameters, nil
 }
 
-func storageClassNameFromRainbondVolume(ctx context.Context, cli client.Client, ns string, labels map[string]string) (*pvcParameters, error) {
+func storageClassNameFromRainbondVolume(ctx context.Context, cli client.Client, ns string, rwo bool) (*pvcParameters, error) {
+	var labels map[string]string
+	if rwo {
+		labels = rbdutil.LabelsForAccessModeRWO()
+	} else {
+		labels = rbdutil.LabelsForAccessModeRWX()
+	}
 	volumeList := &rainbondv1alpha1.RainbondVolumeList{}
 	var opts []client.ListOption
 	opts = append(opts, client.InNamespace(ns))
@@ -184,7 +192,9 @@ func storageClassNameFromRainbondVolume(ctx context.Context, cli client.Client, 
 
 	pvcParameters := &pvcParameters{
 		storageClassName: volume.Spec.StorageClassName,
-		storageRequest:   volume.Spec.StorageRequest,
+	}
+	if !rwo {
+		pvcParameters.storageRequest = commonutil.Int32(1)
 	}
 	return pvcParameters, nil
 }
@@ -211,36 +221,36 @@ func setStorageCassName(ctx context.Context, cli client.Client, ns string, obj i
 	return nil
 }
 
-func createPersistentVolumeClaimRWX(ns, claimName string, pvcParameters *pvcParameters) *corev1.PersistentVolumeClaim {
+func createPersistentVolumeClaimRWX(ns, claimName string, pvcParameters *pvcParameters, labels map[string]string) *corev1.PersistentVolumeClaim {
 	accessModes := []corev1.PersistentVolumeAccessMode{
 		corev1.ReadWriteMany,
 	}
-	return createPersistentVolumeClaim(ns, claimName, accessModes, pvcParameters)
+	return createPersistentVolumeClaim(ns, claimName, accessModes, pvcParameters, labels, 1)
 }
 
-func createPersistentVolumeClaimRWO(ns, claimName string, pvcParameters *pvcParameters) *corev1.PersistentVolumeClaim {
+func createPersistentVolumeClaimRWO(ns, claimName string, pvcParameters *pvcParameters, labels map[string]string, storageRequest int64) *corev1.PersistentVolumeClaim {
 	accessModes := []corev1.PersistentVolumeAccessMode{
 		corev1.ReadWriteOnce,
 	}
-	return createPersistentVolumeClaim(ns, claimName, accessModes, pvcParameters)
+	return createPersistentVolumeClaim(ns, claimName, accessModes, pvcParameters, labels, storageRequest)
 }
 
-func createPersistentVolumeClaim(ns, claimName string, accessModes []corev1.PersistentVolumeAccessMode, pvcParameters *pvcParameters) *corev1.PersistentVolumeClaim {
-	var size int64 = 1
-	if pvcParameters.storageRequest != nil && *pvcParameters.storageRequest > 0 {
-		size = int64(*pvcParameters.storageRequest)
+func createPersistentVolumeClaim(ns, claimName string, accessModes []corev1.PersistentVolumeAccessMode, pvcParameters *pvcParameters, labels map[string]string, storageRequest int64) *corev1.PersistentVolumeClaim {
+	if pvcParameters.storageRequest != nil {
+		storageRequest = int64(*pvcParameters.storageRequest)
 	}
-	storageRequest := resource.NewQuantity(size*1024*1024*1024, resource.BinarySI)
+	size := resource.NewQuantity(storageRequest*1024*1024*1024, resource.BinarySI)
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      claimName,
 			Namespace: ns,
+			Labels:    labels,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: accessModes,
 			Resources: corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]resource.Quantity{
-					corev1.ResourceStorage: *storageRequest,
+					corev1.ResourceStorage: *size,
 				},
 			},
 			StorageClassName: commonutil.String(pvcParameters.storageClassName),
@@ -256,9 +266,12 @@ func affinityForRequiredNodes(nodeNames []string) *corev1.Affinity {
 			RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
 				NodeSelectorTerms: []corev1.NodeSelectorTerm{
 					{
-						MatchFields: []corev1.NodeSelectorRequirement{
+						// You cannot use matchFields directly to select multiple nodes.
+						// When nodes have no labels, there will be problems.
+						// More info: https://github.com/kubernetes/kubernetes/issues/78238#issuecomment-495373236
+						MatchExpressions: []corev1.NodeSelectorRequirement{
 							{
-								Key:      "metadata.name",
+								Key:      "kubernetes.io/hostname",
 								Operator: corev1.NodeSelectorOpIn,
 								Values:   nodeNames,
 							},
@@ -302,4 +315,33 @@ func listPods(ctx context.Context, cli client.Client, namespace string, labels m
 		log.V(6).Info("pod list is empty", "labels", labels)
 	}
 	return podList.Items, nil
+}
+
+func isEtcdAvailable(ctx context.Context, cli client.Client, cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) error {
+	if cluster.Spec.EtcdConfig != nil {
+		return nil
+	}
+
+	dbcpt := &rainbondv1alpha1.RbdComponent{}
+	if err := cli.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: EtcdName}, dbcpt); err != nil {
+		return err
+	}
+
+	if dbcpt.Status == nil {
+		return errors.New("no status for rbdcomponent rbd-etcd")
+	}
+
+	if dbcpt.Status.ReadyReplicas == 0 {
+		return errors.New("no ready replicas for rbdcomponent rbd-etcd")
+	}
+
+	return nil
+}
+
+func getStorageRequest(env string, defSize int64) int64 {
+	storageRequest, _ := strconv.ParseInt(os.Getenv(env), 10, 64)
+	if storageRequest == 0 {
+		storageRequest = defSize
+	}
+	return storageRequest
 }

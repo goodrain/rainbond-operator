@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 
@@ -13,7 +12,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	plabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/reference"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -98,8 +99,8 @@ func (cc *componentUsecase) List(isInit bool) ([]*v1.RbdComponentStatus, error) 
 
 func (cc *componentUsecase) convertRbdComponent(cpn *rainbondv1alpha1.RbdComponent, pods []*corev1.Pod) *v1.RbdComponentStatus {
 	var replicas int32 = 1 // defualt replicas is 1
-	if cpn.Spec.Replicas != nil {
-		replicas = *cpn.Spec.Replicas
+	if cpn.Status != nil {
+		replicas = cpn.Status.Replicas
 	}
 
 	result := &v1.RbdComponentStatus{
@@ -121,78 +122,11 @@ func (cc *componentUsecase) convertRbdComponent(cpn *rainbondv1alpha1.RbdCompone
 	for index := range podStatuses {
 		if podStatuses[index].Phase == "NotReady" {
 			result.Status = v1.ComponentStatusCreating // if pod not ready, component status can't be running, even nor replicas equals to ready replicas
-			// message and reason from container
-			for _, container := range podStatuses[index].ContainerStatuses {
-				if container.State != "Running" {
-					podStatuses[index].Message = container.Message
-					podStatuses[index].Reason = container.Reason
-					break
-				}
-			}
 		}
 	}
 	result.PodStatuses = podStatuses
 
 	return result
-}
-
-func (cc *componentUsecase) listPodStatues(namespace string, labels map[string]string) ([]v1.PodStatus, error) {
-	selector := plabels.SelectorFromSet(labels)
-	opts := metav1.ListOptions{
-		LabelSelector: selector.String(),
-	}
-	podList, err := cc.cfg.KubeClient.CoreV1().Pods(namespace).List(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	var podStatuses []v1.PodStatus
-	for _, pod := range podList.Items {
-		podStatus := v1.PodStatus{
-			Name:    pod.Name,
-			Phase:   "NotReady", // default phase NotReady, util PodReady condition is true
-			HostIP:  pod.Status.HostIP,
-			Reason:  pod.Status.Reason,
-			Message: pod.Status.Message,
-		}
-		for _, condition := range pod.Status.Conditions {
-			if condition.Type == corev1.PodReady && condition.Status == "True" {
-				podStatus.Phase = "Ready"
-				break
-			}
-		}
-		var containerStatuses []v1.PodContainerStatus
-		for _, cs := range pod.Status.ContainerStatuses {
-			containerStatus := v1.PodContainerStatus{
-				Image: cs.Image,
-				Ready: cs.Ready,
-			}
-			if cs.ContainerID != "" {
-				containerStatus.ContainerID = strings.Replace(cs.ContainerID, "docker://", "", -1)[0:8]
-			}
-
-			// TODO: move out
-			if cs.State.Running != nil {
-				containerStatus.State = "Running"
-			}
-			if cs.State.Waiting != nil {
-				containerStatus.State = "Waiting"
-				containerStatus.Reason = cs.State.Waiting.Reason
-				containerStatus.Message = cs.State.Waiting.Message
-			}
-			if cs.State.Terminated != nil {
-				containerStatus.State = "Terminated"
-				containerStatus.Reason = cs.State.Terminated.Reason
-				containerStatus.Message = cs.State.Terminated.Message
-			}
-
-			containerStatuses = append(containerStatuses, containerStatus)
-		}
-		podStatus.ContainerStatuses = containerStatuses
-		podStatuses = append(podStatuses, podStatus)
-	}
-
-	return podStatuses, nil
 }
 
 func (cc *componentUsecase) convertPodStatues(pods []*corev1.Pod) []v1.PodStatus {
@@ -211,36 +145,53 @@ func (cc *componentUsecase) convertPodStatues(pods []*corev1.Pod) []v1.PodStatus
 				break
 			}
 		}
-		var containerStatuses []v1.PodContainerStatus
-		for _, cs := range pod.Status.ContainerStatuses {
-			containerStatus := v1.PodContainerStatus{
-				Image: cs.Image,
-				Ready: cs.Ready,
-			}
-			if cs.ContainerID != "" {
-				containerStatus.ContainerID = strings.Replace(cs.ContainerID, "docker://", "", -1)[0:8]
-			}
-
-			// TODO: move out
-			if cs.State.Running != nil {
-				containerStatus.State = "Running"
-			}
-			if cs.State.Waiting != nil {
-				containerStatus.State = "Waiting"
-				containerStatus.Reason = cs.State.Waiting.Reason
-				containerStatus.Message = cs.State.Waiting.Message
-			}
-			if cs.State.Terminated != nil {
-				containerStatus.State = "Terminated"
-				containerStatus.Reason = cs.State.Terminated.Reason
-				containerStatus.Message = cs.State.Terminated.Message
-			}
-
-			containerStatuses = append(containerStatuses, containerStatus)
+		if podStatus.Phase != "Ready" {
+			podStatus.Reason, podStatus.Message = cc.getPodEvents(pod)
 		}
-		podStatus.ContainerStatuses = containerStatuses
 		podStatuses = append(podStatuses, podStatus)
 	}
 
 	return podStatuses
+}
+
+func (cc *componentUsecase) getPodEvents(pod *corev1.Pod) (string, string) {
+	ref, err := reference.GetReference(scheme.Scheme, pod)
+	if err != nil {
+		log.V(3).Info("get pod[%s] event list failed: %s", pod.Name, err.Error())
+		return "", ""
+	}
+	ref.Kind = ""
+	if _, isMirrorPod := pod.Annotations[corev1.MirrorPodAnnotationKey]; isMirrorPod {
+		ref.UID = types.UID(pod.Annotations[corev1.MirrorPodAnnotationKey])
+	}
+	events, err := cc.cfg.KubeClient.CoreV1().Events(pod.GetNamespace()).Search(scheme.Scheme, ref)
+	if err != nil {
+		log.V(3).Info("search pod[%s] event list failed: %s", pod.Name, err.Error())
+		return "", ""
+	}
+	if events == nil {
+		return "", ""
+	}
+	return cc.convertEventMessage(events.Items)
+}
+
+func (cc *componentUsecase) convertEventMessage(events []corev1.Event) (string, string) {
+	warnings := []corev1.Event{}
+	for _, event := range events {
+		switch event.Type {
+		case corev1.EventTypeWarning:
+			warnings = append(warnings, event)
+		}
+	}
+	if len(warnings) == 0 {
+		return "", ""
+	}
+	// get the latest event
+	latest := warnings[0]
+	for _, event := range warnings {
+		if event.LastTimestamp.Time.After(latest.LastTimestamp.Time) {
+			latest = event
+		}
+	}
+	return latest.Reason, latest.Message
 }

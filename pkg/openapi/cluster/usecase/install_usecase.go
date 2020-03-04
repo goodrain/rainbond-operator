@@ -1,10 +1,11 @@
 package usecase
 
 import (
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"path"
 	"strconv"
 	"time"
+
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 
@@ -122,7 +123,7 @@ func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
 	if err := ic.initRainbondPackage(); err != nil {
 		return err
 	}
-	return ic.createComponents(cluster)
+	return ic.createComponents(req, cluster)
 }
 
 func (ic *InstallUseCaseImpl) createRainbondVolumes(req *v1.ClusterInstallReq) error {
@@ -131,7 +132,7 @@ func (ic *InstallUseCaseImpl) createRainbondVolumes(req *v1.ClusterInstallReq) e
 		return err
 	}
 	if req.RainbondVolumes.RWO != nil {
-		rwo := setRainbondVolume("rainbondvolumerwo", ic.namespace, rbdutil.LabelsForAccessModeRWX(), req.RainbondVolumes.RWO)
+		rwo := setRainbondVolume("rainbondvolumerwo", ic.namespace, rbdutil.LabelsForAccessModeRWO(), req.RainbondVolumes.RWO)
 		if err := ic.createRainbondVolumeIfNotExists(rwo); err != nil {
 			return err
 		}
@@ -221,7 +222,7 @@ func (ic *InstallUseCaseImpl) initRainbondPackage() error {
 	return nil
 }
 
-func (ic *InstallUseCaseImpl) genComponentClaims(cluster *v1alpha1.RainbondCluster) map[string]*componentClaim {
+func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, cluster *v1alpha1.RainbondCluster) map[string]*componentClaim {
 	var defReplicas *int32 = commonutil.Int32(1)
 	if cluster.Spec.EnableHA {
 		defReplicas = commonutil.Int32(2)
@@ -290,11 +291,35 @@ func (ic *InstallUseCaseImpl) genComponentClaims(cluster *v1alpha1.RainbondClust
 		name2Claim["rbd-etcd"] = claim
 	}
 
+	if req.RainbondVolumes.RWX != nil && req.RainbondVolumes.RWX.CSIPlugin != nil {
+		if req.RainbondVolumes.RWX.CSIPlugin.NFS != nil {
+			name2Claim["nfs-provisioner"] = newClaim("nfs-provisioner")
+			name2Claim["nfs-provisioner"].replicas = commonutil.Int32(1)
+			name2Claim["nfs-provisioner"].isInit = isInit
+		}
+		if req.RainbondVolumes.RWX.CSIPlugin.AliyunNas != nil {
+			name2Claim[constants.AliyunCSINasPlugin] = newClaim(constants.AliyunCSINasPlugin)
+			name2Claim[constants.AliyunCSINasPlugin].isInit = isInit
+			name2Claim[constants.AliyunCSINasProvisioner] = newClaim(constants.AliyunCSINasProvisioner)
+			name2Claim[constants.AliyunCSINasProvisioner].isInit = isInit
+			name2Claim[constants.AliyunCSINasProvisioner].replicas = commonutil.Int32(1)
+		}
+	}
+	if req.RainbondVolumes.RWO != nil && req.RainbondVolumes.RWO.CSIPlugin != nil {
+		if req.RainbondVolumes.RWO.CSIPlugin.AliyunCloudDisk != nil {
+			name2Claim[constants.AliyunCSIDiskPlugin] = newClaim(constants.AliyunCSIDiskPlugin)
+			name2Claim[constants.AliyunCSIDiskPlugin].isInit = isInit
+			name2Claim[constants.AliyunCSIDiskProvisioner] = newClaim(constants.AliyunCSIDiskProvisioner)
+			name2Claim[constants.AliyunCSIDiskProvisioner].isInit = isInit
+			name2Claim[constants.AliyunCSIDiskProvisioner].replicas = commonutil.Int32(1)
+		}
+	}
+
 	return name2Claim
 }
 
-func (ic *InstallUseCaseImpl) createComponents(cluster *v1alpha1.RainbondCluster) error {
-	claims := ic.genComponentClaims(cluster)
+func (ic *InstallUseCaseImpl) createComponents(req *v1.ClusterInstallReq, cluster *v1alpha1.RainbondCluster) error {
+	claims := ic.genComponentClaims(req, cluster)
 
 	for _, claim := range claims {
 		reqLogger := log.WithValues("Namespace", claim.namespace, "Name", claim.name)

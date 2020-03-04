@@ -44,6 +44,7 @@ type db struct {
 	enableMysqlOperator bool
 
 	pvcParametersRWO *pvcParameters
+	storageRequest   int64
 }
 
 var _ ComponentHandler = &db{}
@@ -52,13 +53,14 @@ var _ StorageClassRWOer = &db{}
 //NewDB new db
 func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	d := &db{
-		ctx:           ctx,
-		client:        client,
-		component:     component,
-		cluster:       cluster,
-		labels:        LabelsForRainbondComponent(component),
-		mysqlUser:     "root",
-		mysqlPassword: string(uuid.NewUUID())[0:8],
+		ctx:            ctx,
+		client:         client,
+		component:      component,
+		cluster:        cluster,
+		labels:         LabelsForRainbondComponent(component),
+		mysqlUser:      "root",
+		mysqlPassword:  string(uuid.NewUUID())[0:8],
+		storageRequest: getStorageRequest("DB_DATA_STORAGE_REQUEST", 21),
 	}
 	if enableMysqlOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_MYSQL_OPERATOR")); enableMysqlOperator {
 		d.enableMysqlOperator = true
@@ -130,13 +132,20 @@ func (d *db) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 	d.pvcParametersRWO = pvcParameters
 }
 
+func (d *db) Replicas() *int32 {
+	if !d.enableMysqlOperator {
+		commonutil.Int32(1)
+	}
+	return nil
+}
+
 func (d *db) statefulsetForDB() interface{} {
 	repo, _ := reference.Parse(d.component.Spec.Image)
 	name := repo.(reference.Named).Name()
 	exporterImage := strings.Replace(name, "rbd-db", "mysqld-exporter", 1)
 
 	claimName := "data"
-	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO)
+	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO, d.labels, d.storageRequest)
 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -190,7 +199,8 @@ func (d *db) statefulsetForDB() interface{} {
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      claimName,
-									MountPath: "/data",
+									MountPath: "/var/lib/mysql",
+									SubPath:   "mysql",
 								},
 								{
 									Name:      "initdb",
@@ -338,7 +348,7 @@ func (d *db) secretForDB() interface{} {
 
 func (d *db) mysqlCluster() *mysqlv1alpha1.Cluster {
 	claimName := "data"
-	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO)
+	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO, d.labels, d.storageRequest)
 
 	var defaultSize int32 = 1
 	if d.component.Spec.Replicas != nil {

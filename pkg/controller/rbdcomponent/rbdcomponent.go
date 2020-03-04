@@ -2,9 +2,11 @@ package rbdcomponent
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/controller/rbdcomponent/handler"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -15,7 +17,8 @@ type rbdcomponentMgr struct {
 	client client.Client
 	log    logr.Logger
 
-	cpt *rainbondv1alpha1.RbdComponent
+	cpt        *rainbondv1alpha1.RbdComponent
+	replicaser handler.Replicaser
 }
 
 func newRbdcomponentMgr(ctx context.Context, client client.Client, log logr.Logger, cpt *rainbondv1alpha1.RbdComponent) *rbdcomponentMgr {
@@ -26,6 +29,10 @@ func newRbdcomponentMgr(ctx context.Context, client client.Client, log logr.Logg
 		cpt:    cpt,
 	}
 	return mgr
+}
+
+func (r *rbdcomponentMgr) setReplicaser(replicaser handler.Replicaser) {
+	r.replicaser = replicaser
 }
 
 func (r *rbdcomponentMgr) updateStatus() error {
@@ -91,6 +98,12 @@ func (r *rbdcomponentMgr) generateStatus(pods []corev1.Pod) {
 	var replicas int32 = 1
 	if r.cpt.Spec.Replicas != nil {
 		replicas = *r.cpt.Spec.Replicas
+	}
+	if r.replicaser != nil {
+		if rc := r.replicaser.Replicas(); rc != nil {
+			r.log.V(6).Info(fmt.Sprintf("replica from replicaser: %d", *rc))
+			replicas = *rc
+		}
 	}
 	status.Replicas = replicas
 

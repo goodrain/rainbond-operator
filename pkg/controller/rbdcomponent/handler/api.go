@@ -34,9 +34,10 @@ type api struct {
 	component                *rainbondv1alpha1.RbdComponent
 	cluster                  *rainbondv1alpha1.RainbondCluster
 
-	pvcParametersRWX *pvcParameters
-
-	pvcName string
+	pvcParametersRWX     *pvcParameters
+	pvcName              string
+	dataStorageRequest   int64
+	grdataStorageRequest int64
 }
 
 var _ ComponentHandler = &api{}
@@ -45,12 +46,14 @@ var _ StorageClassRWXer = &api{}
 //NewAPI new api handle
 func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &api{
-		ctx:       ctx,
-		client:    client,
-		component: component,
-		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
-		pvcName:   "rbd-api",
+		ctx:                  ctx,
+		client:               client,
+		component:            component,
+		cluster:              cluster,
+		labels:               LabelsForRainbondComponent(component),
+		pvcName:              "rbd-api",
+		dataStorageRequest:   getStorageRequest("API_DATA_STORAGE_REQUEST", 1),
+		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
 	}
 }
 
@@ -98,8 +101,8 @@ func (a *api) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 func (a *api) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(a.component.Namespace, constants.GrDataPVC, a.pvcParametersRWX),
-		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX),
+		createPersistentVolumeClaimRWX(a.component.Namespace, constants.GrDataPVC, a.pvcParametersRWX, a.labels),
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels),
 	}
 }
 

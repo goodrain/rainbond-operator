@@ -29,3 +29,10 @@ type K8sResourcesInterface interface {
 	// returns the resources that should be created if not exists
 	ResourcesCreateIfNotExists() []interface{}
 }
+
+// Replicaser provides methods to get replicas for rbdcomponent.
+// This interface is generally used when the actual number of component is different from the spec definition.
+type Replicaser interface {
+	// return replicas for rbdcomponent.
+	Replicas() *int32
+}

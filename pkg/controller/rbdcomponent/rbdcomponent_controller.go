@@ -293,6 +293,11 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		}
 	}
 
+	replicaser, ok := hdl.(chandler.Replicaser)
+	if ok {
+		mgr.setReplicaser(replicaser)
+	}
+
 	resources := hdl.Resources()
 	for _, res := range resources {
 		if res == nil {

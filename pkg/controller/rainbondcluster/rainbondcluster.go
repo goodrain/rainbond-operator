@@ -4,17 +4,45 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
-
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
 	"github.com/go-logr/logr"
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var provisionerAccessModes map[string]corev1.PersistentVolumeAccessMode = map[string]corev1.PersistentVolumeAccessMode{
+	// Kubernetes Internal Provisioner.
+	// More info: https://github.com/kubernetes/kubernetes/tree/v1.17.3/pkg/volume
+	"kubernetes.io/aws-ebs":         corev1.ReadWriteOnce,
+	"kubernetes.io/azure-disk":      corev1.ReadWriteOnce,
+	"kubernetes.io/azure-file":      corev1.ReadWriteMany,
+	"kubernetes.io/cephfs":          corev1.ReadWriteMany,
+	"kubernetes.io/cinder":          corev1.ReadWriteOnce,
+	"kubernetes.io/fc":              corev1.ReadWriteOnce,
+	"kubernetes.io/flocker":         corev1.ReadWriteOnce,
+	"kubernetes.io/gce-pd":          corev1.ReadWriteOnce,
+	"kubernetes.io/glusterfs":       corev1.ReadWriteMany,
+	"kubernetes.io/iscsi":           corev1.ReadWriteOnce,
+	"kubernetes.io/nfs":             corev1.ReadWriteMany,
+	"kubernetes.io/portworx-volume": corev1.ReadWriteMany,
+	"kubernetes.io/quobyte":         corev1.ReadWriteMany,
+	"kubernetes.io/rbd":             corev1.ReadWriteMany,
+	"kubernetes.io/scaleio":         corev1.ReadWriteMany,
+	"kubernetes.io/storageos":       corev1.ReadWriteMany,
+	// Alibaba csi plugins for kubernetes.
+	// More info: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver/tree/master/pkg
+	"cpfsplugin.csi.alibabacloud.com": corev1.ReadWriteMany,
+	"diskplugin.csi.alibabacloud.com": corev1.ReadWriteMany,
+	"lvmplugin.csi.alibabacloud.com":  corev1.ReadWriteMany,
+	"memplugin.csi.alibabacloud.com":  corev1.ReadWriteMany,
+	"nasplugin.csi.alibabacloud.com":  corev1.ReadWriteMany,
+	"ossplugin.csi.alibabacloud.com":  corev1.ReadWriteMany,
+}
 
 type rainbondClusteMgr struct {
 	ctx    context.Context
@@ -49,6 +77,7 @@ func (r *rainbondClusteMgr) listStorageClasses() []*rainbondv1alpha1.StorageClas
 		storageClass := &rainbondv1alpha1.StorageClass{
 			Name:        sc.Name,
 			Provisioner: sc.Provisioner,
+			AccessMode:  provisionerAccessModes[sc.Provisioner],
 		}
 		storageClasses = append(storageClasses, storageClass)
 	}

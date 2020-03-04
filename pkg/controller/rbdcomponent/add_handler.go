@@ -2,6 +2,7 @@ package rbdcomponent
 
 import (
 	"github.com/goodrain/rainbond-operator/pkg/controller/rbdcomponent/handler"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 )
 
 func init() {
@@ -21,4 +22,9 @@ func init() {
 	AddHandlerFunc(handler.DBName, handler.NewDB)
 	AddHandlerFunc(handler.WebCliName, handler.NewWebCli)
 	AddHandlerFunc(handler.MetricsServerName, handler.NewMetricsServer)
+	AddHandlerFunc(handler.NFSName, handler.NewNFS)
+	AddHandlerFunc(constants.AliyunCSINasPlugin, handler.NewAliyunCSINasPlugin)
+	AddHandlerFunc(constants.AliyunCSINasProvisioner, handler.NewAliyunCSINasProvisioner)
+	AddHandlerFunc(constants.AliyunCSIDiskPlugin, handler.NewAliyunCSIDiskPlugin)
+	AddHandlerFunc(constants.AliyunCSIDiskProvisioner, handler.NewaliyunCSIDiskProvisioner)
 }

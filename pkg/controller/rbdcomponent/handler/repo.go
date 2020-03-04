@@ -22,6 +22,7 @@ type repo struct {
 	labels    map[string]string
 
 	pvcParametersRWO *pvcParameters
+	storageRequest   int64
 }
 
 var _ ComponentHandler = &repo{}
@@ -30,11 +31,12 @@ var _ StorageClassRWOer = &repo{}
 // NewRepo creates a new rbd-repo hanlder.
 func NewRepo(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &repo{
-		ctx:       ctx,
-		client:    client,
-		component: component,
-		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
+		ctx:            ctx,
+		client:         client,
+		component:      component,
+		cluster:        cluster,
+		labels:         LabelsForRainbondComponent(component),
+		storageRequest: getStorageRequest("REPO_DATA_STORAGE_REQUEST", 21),
 	}
 }
 
@@ -66,7 +68,7 @@ func (r *repo) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 
 func (r *repo) statefulset() interface{} {
 	claimName := "data"
-	repoDataPVC := createPersistentVolumeClaimRWO(r.component.Namespace, claimName, r.pvcParametersRWO)
+	repoDataPVC := createPersistentVolumeClaimRWO(r.component.Namespace, claimName, r.pvcParametersRWO, r.labels, r.storageRequest)
 
 	ds := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{

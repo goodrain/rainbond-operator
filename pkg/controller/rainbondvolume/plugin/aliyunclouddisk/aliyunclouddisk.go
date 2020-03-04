@@ -2,19 +2,21 @@ package aliyunclouddisk
 
 import (
 	"context"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1beta1 "k8s.io/api/storage/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -32,8 +34,8 @@ func CSIPlugins(ctx context.Context, cli client.Client, volume *rainbondv1alpha1
 		cli:             cli,
 		volume:          volume,
 		labels:          labels,
-		pluginName:      "csi-disk-plugin",
-		provisionerName: "csi-disk-provisioner",
+		pluginName:      constants.AliyunCSIDiskPlugin,
+		provisionerName: constants.AliyunCSIDiskProvisioner,
 	}
 }
 
@@ -94,7 +96,7 @@ func (p *aliyunclouddiskPlugin) csiDriver() *storagev1beta1.CSIDriver {
 }
 
 func (p *aliyunclouddiskPlugin) daemonset() *appsv1.DaemonSet {
-	labels := p.labels
+	labels := commonutil.CopyLabels(p.labels)
 	labels["name"] = p.pluginName
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -277,7 +279,7 @@ func (p *aliyunclouddiskPlugin) daemonset() *appsv1.DaemonSet {
 }
 
 func (p *aliyunclouddiskPlugin) serviceForProvisioner() *corev1.Service {
-	labels := p.labels
+	labels := commonutil.CopyLabels(p.labels)
 	labels["name"] = p.provisionerName
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -300,7 +302,7 @@ func (p *aliyunclouddiskPlugin) serviceForProvisioner() *corev1.Service {
 }
 
 func (p *aliyunclouddiskPlugin) statefulset() interface{} {
-	labels := p.labels
+	labels := commonutil.CopyLabels(p.labels)
 	labels["name"] = p.provisionerName
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{

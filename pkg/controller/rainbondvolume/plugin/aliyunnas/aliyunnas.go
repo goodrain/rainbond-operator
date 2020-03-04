@@ -2,9 +2,11 @@ package aliyunnas
 
 import (
 	"context"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -32,8 +34,8 @@ func CSIPlugins(ctx context.Context, cli client.Client, volume *rainbondv1alpha1
 		cli:             cli,
 		volume:          volume,
 		labels:          labels,
-		pluginName:      "csi-nas-plugin",
-		provisionerName: "csi-nas-provisioner",
+		pluginName:      constants.AliyunCSINasPlugin,
+		provisionerName: constants.AliyunCSINasProvisioner,
 	}
 }
 
@@ -94,12 +96,11 @@ func (p *aliyunnasPlugin) csiDriver() *storagev1beta1.CSIDriver {
 }
 
 func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
-	name := "csi-nas-plugin"
-	labels := p.labels
-	labels["name"] = name
+	labels := commonutil.CopyLabels(p.labels)
+	labels["name"] = p.pluginName
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      p.pluginName,
 			Namespace: p.volume.Namespace,
 			Labels:    labels,
 		},
@@ -252,7 +253,7 @@ func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 }
 
 func (p *aliyunnasPlugin) serviceForProvisioner() *corev1.Service {
-	labels := p.labels
+	labels := commonutil.CopyLabels(p.labels)
 	labels["name"] = p.provisionerName
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -275,7 +276,7 @@ func (p *aliyunnasPlugin) serviceForProvisioner() *corev1.Service {
 }
 
 func (p *aliyunnasPlugin) statefulset() interface{} {
-	labels := p.labels
+	labels := commonutil.CopyLabels(p.labels)
 	labels["name"] = p.provisionerName
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{

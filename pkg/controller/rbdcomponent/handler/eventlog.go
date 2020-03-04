@@ -30,6 +30,7 @@ type eventlog struct {
 	etcdSecret *corev1.Secret
 
 	pvcParametersRWX *pvcParameters
+	storageRequest   int64
 }
 
 var _ ComponentHandler = &eventlog{}
@@ -38,11 +39,12 @@ var _ StorageClassRWXer = &eventlog{}
 // NewEventLog creates a new rbd-eventlog handler.
 func NewEventLog(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &eventlog{
-		ctx:       ctx,
-		client:    client,
-		component: component,
-		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
+		ctx:            ctx,
+		client:         client,
+		component:      component,
+		cluster:        cluster,
+		labels:         LabelsForRainbondComponent(component),
+		storageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
 	}
 }
 
@@ -87,7 +89,7 @@ func (e *eventlog) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 func (e *eventlog) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(e.component.Namespace, constants.GrDataPVC, e.pvcParametersRWX),
+		createPersistentVolumeClaimRWX(e.component.Namespace, constants.GrDataPVC, e.pvcParametersRWX, e.labels),
 	}
 }
 

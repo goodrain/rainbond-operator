@@ -27,6 +27,7 @@ type etcd struct {
 	labels    map[string]string
 
 	pvcParametersRWO *pvcParameters
+	storageRequest   int64
 
 	enableEtcdOperator bool
 }
@@ -39,11 +40,12 @@ func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alp
 	labels := LabelsForRainbondComponent(component)
 	labels["etcd_node"] = EtcdName
 	return &etcd{
-		ctx:       ctx,
-		client:    client,
-		component: component,
-		cluster:   cluster,
-		labels:    labels,
+		ctx:            ctx,
+		client:         client,
+		component:      component,
+		cluster:        cluster,
+		labels:         labels,
+		storageRequest: getStorageRequest("ETCD_DATA_STORAGE_REQUEST", 21),
 	}
 }
 
@@ -94,9 +96,16 @@ func (e *etcd) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 	e.pvcParametersRWO = pvcParameters
 }
 
+func (e *etcd) Replicas() *int32 {
+	if !e.enableEtcdOperator {
+		commonutil.Int32(1)
+	}
+	return nil
+}
+
 func (e *etcd) statefulsetForEtcd() interface{} {
 	claimName := "data"
-	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO)
+	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO, e.labels, e.storageRequest)
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EtcdName,
@@ -193,7 +202,7 @@ func (e *etcd) serviceForEtcd() interface{} {
 
 func (e *etcd) etcdCluster() *etcdv1beta2.EtcdCluster {
 	claimName := "data"
-	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO)
+	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO, e.labels, e.storageRequest)
 
 	// make sure the image name is right
 	repo, _ := reference.Parse(e.component.Spec.Image)
