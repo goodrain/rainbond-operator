@@ -132,7 +132,7 @@ func (ic *InstallUseCaseImpl) createRainbondVolumes(req *v1.ClusterInstallReq) e
 		return err
 	}
 	if req.RainbondVolumes.RWO != nil {
-		rwo := setRainbondVolume("rainbondvolumerwo", ic.namespace, rbdutil.LabelsForAccessModeRWX(), req.RainbondVolumes.RWO)
+		rwo := setRainbondVolume("rainbondvolumerwo", ic.namespace, rbdutil.LabelsForAccessModeRWO(), req.RainbondVolumes.RWO)
 		if err := ic.createRainbondVolumeIfNotExists(rwo); err != nil {
 			return err
 		}
