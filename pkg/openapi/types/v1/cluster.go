@@ -206,15 +206,3 @@ type RainbondVolumes struct {
 type ClusterInstallReq struct {
 	RainbondVolumes *RainbondVolumes `json:"rainbondVolumes" binding:"required"`
 }
-
-// EventReason event reason
-type EventReason string
-
-// FailedSchedulingEventReason FailedScheduling
-var FailedSchedulingEventReason = "FailedScheduling"
-
-// FailedEventReason Failed
-var FailedEventReason = "Failed"
-
-// BackOffEventReason BackOff
-var BackOffEventReason = "BackOff"
