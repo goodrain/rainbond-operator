@@ -14,6 +14,9 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	plabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/reference"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -204,13 +207,7 @@ func (cc *componentUsecase) convertPodStatues(pods []*corev1.Pod) []v1.PodStatus
 			}
 		}
 		if podStatus.Phase != "Ready" {
-			events, err := cc.cfg.KubeClient.CoreV1().Events(cc.cfg.Namespace).List(metav1.ListOptions{})
-			if err != nil {
-				log.V(3).Info("get pod[%s] event list failed: %s", pod.Name, err.Error())
-			}
-			if events != nil && len(events.Items) > 0 {
-				podStatus.Reason, podStatus.Message = cc.convertEventMessage(events.Items)
-			}
+			podStatus.Reason, podStatus.Message = cc.getPodEvents(pod)
 		}
 		podStatuses = append(podStatuses, podStatus)
 	}
@@ -218,24 +215,41 @@ func (cc *componentUsecase) convertPodStatues(pods []*corev1.Pod) []v1.PodStatus
 	return podStatuses
 }
 
-func (cc *componentUsecase) convertEventMessage(events []corev1.Event) (string, string) {
-	if len(events) == 0 {
+func (cc *componentUsecase) getPodEvents(pod *corev1.Pod) (string, string) {
+	ref, err := reference.GetReference(scheme.Scheme, pod)
+	if err != nil {
+		println(err.Error())
+		log.V(3).Info("get pod[%s] event list failed: %s", pod.Name, err.Error())
 		return "", ""
 	}
+	ref.Kind = ""
+	if _, isMirrorPod := pod.Annotations[corev1.MirrorPodAnnotationKey]; isMirrorPod {
+		ref.UID = types.UID(pod.Annotations[corev1.MirrorPodAnnotationKey])
+	}
+	events, _ := cc.cfg.KubeClient.CoreV1().Events(pod.GetNamespace()).Search(scheme.Scheme, ref)
+	if events == nil {
+		return "", ""
+	}
+	return cc.convertEventMessage(events.Items)
+}
+
+func (cc *componentUsecase) convertEventMessage(events []corev1.Event) (string, string) {
+	warnings := []corev1.Event{}
 	for _, event := range events {
 		switch event.Type {
 		case corev1.EventTypeWarning:
-			// return event message order by failedschedule、failed、backoff
-			if event.Reason == v1.FailedSchedulingEventReason {
-				return event.Reason, event.Message
-			}
-			if event.Reason == v1.FailedEventReason {
-				return event.Reason, event.Message
-			}
-			if event.Reason == v1.BackOffEventReason {
-				return event.Reason, event.Message
-			}
+			warnings = append(warnings, event)
 		}
 	}
-	return "", ""
+	if len(warnings) == 0 {
+		return "", ""
+	}
+	// get the latest event
+	latest := warnings[0]
+	for _, event := range warnings {
+		if event.LastTimestamp.Time.After(latest.LastTimestamp.Time) {
+			latest = event
+		}
+	}
+	return latest.Reason, latest.Message
 }
