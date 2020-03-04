@@ -2,9 +2,11 @@ package usecase
 
 import (
 	"testing"
+	"time"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func Test_componentUsecase_convertEventMessage(t *testing.T) {
@@ -15,22 +17,26 @@ func Test_componentUsecase_convertEventMessage(t *testing.T) {
 		events []corev1.Event
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   string
+		name    string
+		fields  fields
+		args    args
+		reason  string
+		message string
 	}{
 		{
 			name: "test1",
 			args: args{
 				events: []corev1.Event{
 					{
-						Type:    corev1.EventTypeWarning,
-						Message: "message 1",
+						Type:          corev1.EventTypeWarning,
+						Reason:        "filed shedule",
+						Message:       "message 1",
+						LastTimestamp: metav1.Time{Time: time.Now().Add(1 * time.Second)},
 					},
 					{
-						Type:    corev1.EventTypeWarning,
-						Message: "message 2",
+						Type:          corev1.EventTypeWarning,
+						Message:       "message 2",
+						LastTimestamp: metav1.Time{Time: time.Now()},
 					},
 					{
 						Type:    corev1.EventTypeNormal,
@@ -38,7 +44,8 @@ func Test_componentUsecase_convertEventMessage(t *testing.T) {
 					},
 				},
 			},
-			want: "message 1\nmessage 2\n",
+			reason:  "filed shedule",
+			message: "message 1",
 		},
 	}
 	for _, tt := range tests {
@@ -46,8 +53,12 @@ func Test_componentUsecase_convertEventMessage(t *testing.T) {
 			cc := &componentUsecase{
 				cfg: tt.fields.cfg,
 			}
-			if got := cc.convertEventMessage(tt.args.events); got != tt.want {
-				t.Errorf("componentUsecase.convertEventMessage() = %v, want %v", got, tt.want)
+			reason, message := cc.convertEventMessage(tt.args.events)
+			if reason != tt.reason {
+				t.Errorf("componentUsecase.convertEventMessage() got = %v, want %v", reason, tt.reason)
+			}
+			if message != tt.message {
+				t.Errorf("componentUsecase.convertEventMessage() got1 = %v, want %v", message, tt.message)
 			}
 		})
 	}
