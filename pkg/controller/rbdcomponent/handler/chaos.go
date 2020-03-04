@@ -145,6 +145,8 @@ func (c *chaos) deployment() interface{} {
 		fmt.Sprintf("--log-level=%s", c.component.LogLevel()),
 		c.db.RegionDataSource(),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(c.cluster), ","),
+		"--pvc-grdata-name=" + constants.GrDataPVC,
+		"--pvc-cache-name=" + constants.CachePVC,
 	}
 
 	if c.etcdSecret != nil {
