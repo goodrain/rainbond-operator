@@ -10,34 +10,30 @@
       class="demo-ruleForm"
     >
       <!-- install mode -->
-      <el-form-item
-        :label="$t('page.install.config.installmode')"
-        prop="enableHA"
-      >
-        <el-radio-group
-          class="d2-ml-35"
-          v-model="ruleForm.enableHA"
-          @change="installModeChange"
-        >
-          <el-radio class="d2-w-150" :label="false">{{
+      <el-form-item :label="$t('page.install.config.installmode')" prop="enableHA">
+        <el-radio-group class="d2-ml-35" v-model="ruleForm.enableHA" @change="installModeChange">
+          <el-radio class="d2-w-150" :label="false">
+            {{
             $t("page.install.config.minimize")
-          }}</el-radio>
+            }}
+          </el-radio>
           <el-radio :label="true">{{ $t("page.install.config.ha") }}</el-radio>
         </el-radio-group>
         <div class="clues">{{ $t("page.install.config.installmodeDesc") }}</div>
       </el-form-item>
       <!-- hub config -->
-      <el-form-item
-        :label="$t('page.install.config.hub')"
-        prop="imageHubInstall"
-      >
+      <el-form-item :label="$t('page.install.config.hub')" prop="imageHubInstall">
         <el-radio-group class="d2-ml-35" v-model="ruleForm.imageHubInstall">
-          <el-radio class="d2-w-150" :label="true">{{
+          <el-radio class="d2-w-150" :label="true">
+            {{
             $t("page.install.config.hubInstall")
-          }}</el-radio>
-          <el-radio :label="false">{{
+            }}
+          </el-radio>
+          <el-radio :label="false">
+            {{
             $t("page.install.config.hubProvide")
-          }}</el-radio>
+            }}
+          </el-radio>
         </el-radio-group>
         <div v-if="!ruleForm.imageHubInstall" class="boxs">
           <el-form-item
@@ -46,10 +42,7 @@
             label-width="85px"
             class="d2-mt d2-form-item"
           >
-            <el-input
-              v-model="ruleForm.imageHubDomain"
-              class="d2-input_inner"
-            ></el-input>
+            <el-input v-model="ruleForm.imageHubDomain" class="d2-input_inner"></el-input>
           </el-form-item>
           <el-form-item
             prop="hubnamespace"
@@ -57,10 +50,7 @@
             label-width="85px"
             class="d2-mt d2-form-item"
           >
-            <el-input
-              v-model="ruleForm.imageHubNamespace"
-              class="d2-input_inner"
-            ></el-input>
+            <el-input v-model="ruleForm.imageHubNamespace" class="d2-input_inner"></el-input>
           </el-form-item>
           <el-form-item
             prop="hubuser"
@@ -68,10 +58,7 @@
             label-width="85px"
             class="d2-mt d2-form-item"
           >
-            <el-input
-              v-model="ruleForm.imageHubUsername"
-              class="d2-input_inner"
-            ></el-input>
+            <el-input v-model="ruleForm.imageHubUsername" class="d2-input_inner"></el-input>
           </el-form-item>
           <el-form-item
             prop="hubpassword"
@@ -79,31 +66,31 @@
             label-width="85px"
             class="d2-mt d2-form-item"
           >
-            <el-input
-              v-model="ruleForm.imageHubPassword"
-              class="d2-input_inner"
-            ></el-input>
+            <el-input v-model="ruleForm.imageHubPassword" class="d2-input_inner"></el-input>
           </el-form-item>
         </div>
         <div class="clues">{{ $t("page.install.config.hubDesc") }}</div>
       </el-form-item>
       <!-- region db config -->
-      <el-form-item
-        :label="$t('page.install.config.regionDB')"
-        prop="installRegionDB"
-      >
+      <el-form-item :label="$t('page.install.config.regionDB')" prop="installRegionDB">
         <el-radio-group class="d2-ml-35" v-model="ruleForm.installRegionDB">
-          <el-radio class="d2-w-150" :label="true">{{
+          <el-radio class="d2-w-150" :label="true">
+            {{
             $t("page.install.config.regionDBInstall")
-          }}</el-radio>
-          <el-radio :label="false">{{
+            }}
+          </el-radio>
+          <el-radio :label="false">
+            {{
             $t("page.install.config.regionDBProvide")
-          }}</el-radio>
+            }}
+          </el-radio>
         </el-radio-group>
         <div v-if="!ruleForm.installRegionDB" class="boxs">
-          <span class="desc">{{
+          <span class="desc">
+            {{
             $t("page.install.config.regionDBProviderDesc")
-          }}</span>
+            }}
+          </span>
           <el-form-item
             :label="$t('page.install.config.regionDBAddress')"
             label-width="85px"
@@ -129,10 +116,7 @@
             class="d2-mt d2-form-item"
             prop="regionDatabaseUsername"
           >
-            <el-input
-              v-model="ruleForm.regionDatabaseUsername"
-              class="d2-input_inner"
-            ></el-input>
+            <el-input v-model="ruleForm.regionDatabaseUsername" class="d2-input_inner"></el-input>
           </el-form-item>
           <el-form-item
             :label="$t('page.install.config.regionDBPassword')"
@@ -140,30 +124,31 @@
             class="d2-mt d2-form-item"
             prop="regionDatabasePassword"
           >
-            <el-input
-              v-model="ruleForm.regionDatabasePassword"
-              class="d2-input_inner"
-            ></el-input>
+            <el-input v-model="ruleForm.regionDatabasePassword" class="d2-input_inner"></el-input>
           </el-form-item>
         </div>
-        <div class="clues">
-          {{ $t("page.install.config.regionDBDesc") }}
-        </div>
+        <div class="clues">{{ $t("page.install.config.regionDBDesc") }}</div>
       </el-form-item>
       <!-- ui db config -->
       <el-form-item :label="$t('page.install.config.uiDB')" prop="installUIDB">
         <el-radio-group class="d2-ml-35" v-model="ruleForm.installUIDB">
-          <el-radio class="d2-w-150" :label="true">{{
+          <el-radio class="d2-w-150" :label="true">
+            {{
             $t("page.install.config.uiDBInstall")
-          }}</el-radio>
-          <el-radio :label="false">{{
+            }}
+          </el-radio>
+          <el-radio :label="false">
+            {{
             $t("page.install.config.uiDBProvide")
-          }}</el-radio>
+            }}
+          </el-radio>
         </el-radio-group>
         <div v-if="!ruleForm.installUIDB" class="boxs">
-          <span class="desc">{{
+          <span class="desc">
+            {{
             $t("page.install.config.uiDBProviderDesc")
-          }}</span>
+            }}
+          </span>
           <el-form-item
             :label="$t('page.install.config.uiDBAddress')"
             label-width="85px"
@@ -189,10 +174,7 @@
             class="d2-mt d2-form-item"
             prop="uiDatabaseUsername"
           >
-            <el-input
-              v-model="ruleForm.uiDatabaseUsername"
-              class="d2-input_inner"
-            ></el-input>
+            <el-input v-model="ruleForm.uiDatabaseUsername" class="d2-input_inner"></el-input>
           </el-form-item>
           <el-form-item
             :label="$t('page.install.config.uiDBPassword')"
@@ -200,10 +182,7 @@
             class="d2-mt d2-form-item"
             prop="uiDatabasePassword"
           >
-            <el-input
-              v-model="ruleForm.uiDatabasePassword"
-              class="d2-input_inner"
-            ></el-input>
+            <el-input v-model="ruleForm.uiDatabasePassword" class="d2-input_inner"></el-input>
           </el-form-item>
         </div>
         <div class="clues">{{ $t("page.install.config.uiDBDesc") }}</div>
@@ -211,12 +190,16 @@
       <!-- etcd config -->
       <el-form-item :label="$t('page.install.config.etcd')" prop="installETCD">
         <el-radio-group class="d2-ml-35" v-model="ruleForm.installETCD">
-          <el-radio class="d2-w-150" :label="true">{{
+          <el-radio class="d2-w-150" :label="true">
+            {{
             $t("page.install.config.etcdInstall")
-          }}</el-radio>
-          <el-radio :label="false">{{
+            }}
+          </el-radio>
+          <el-radio :label="false">
+            {{
             $t("page.install.config.etcdProvide")
-          }}</el-radio>
+            }}
+          </el-radio>
         </el-radio-group>
         <div v-if="!ruleForm.installETCD" class="boxs">
           <el-form-item
@@ -233,10 +216,7 @@
                 marginTop: index === 0 ? '0' : '20px'
               }"
             >
-              <el-input
-                v-model="ruleForm.etcdConfig.endpoints[index]"
-                class="d2-input_inner"
-              ></el-input>
+              <el-input v-model="ruleForm.etcdConfig.endpoints[index]" class="d2-input_inner"></el-input>
               <i
                 v-if="ruleForm.etcdConfig.endpoints.length > 1"
                 style="margin-left:1rem;font-size:16px"
@@ -249,8 +229,7 @@
             style="margin:1rem 0 0 120px"
             size="small"
             @click="addEndpoints"
-            >{{ $t("page.install.config.etcdEndpointAdd") }}</el-button
-          >
+          >{{ $t("page.install.config.etcdEndpointAdd") }}</el-button>
           <el-form-item
             :label="$t('page.install.config.etcdTLS')"
             label-width="120px"
@@ -313,24 +292,13 @@
           :remote-method="queryGatewayNode"
           default-first-option
         >
-          <el-option
-            v-for="item in optionGatewayNodes"
-            :key="item"
-            :label="item"
-            :value="item"
-          >
-          </el-option>
+          <el-option v-for="item in optionGatewayNodes" :key="item" :label="item" :value="item"></el-option>
         </el-select>
 
-        <div class="clues">
-          {{ $t("page.install.config.gatewayNodeDesc") }}
-        </div>
+        <div class="clues">{{ $t("page.install.config.gatewayNodeDesc") }}</div>
       </el-form-item>
       <!-- chaos node config -->
-      <el-form-item
-        :label="$t('page.install.config.chaosNode')"
-        prop="chaosNodes"
-      >
+      <el-form-item :label="$t('page.install.config.chaosNode')" prop="chaosNodes">
         <el-select
           v-model="setChaosNodes"
           multiple
@@ -342,23 +310,12 @@
           :remote-method="queryChaosNode"
           default-first-option
         >
-          <el-option
-            v-for="item in optionChaosNodes"
-            :key="item"
-            :label="item"
-            :value="item"
-          >
-          </el-option>
+          <el-option v-for="item in optionChaosNodes" :key="item" :label="item" :value="item"></el-option>
         </el-select>
-        <div class="clues">
-          {{ $t("page.install.config.chaosNodeDesc") }}
-        </div>
+        <div class="clues">{{ $t("page.install.config.chaosNodeDesc") }}</div>
       </el-form-item>
       <!-- default app domain config -->
-      <el-form-item
-        :label="$t('page.install.config.appDefaultDomain')"
-        prop="HTTPDomain"
-      >
+      <el-form-item :label="$t('page.install.config.appDefaultDomain')" prop="HTTPDomain">
         <el-switch v-model="ruleForm.HTTPDomainSwitch"></el-switch>
         <el-input
           style="margin-left:10px"
@@ -367,52 +324,42 @@
           :placeholder="$t('page.install.config.appDefaultDomainPlaceholder')"
           class="d2-input_inner"
         ></el-input>
-        <div class="clues">
-          {{ $t("page.install.config.appDefaultDomainDesc") }}
-        </div>
+        <div class="clues">{{ $t("page.install.config.appDefaultDomainDesc") }}</div>
       </el-form-item>
       <!-- eip config -->
       <el-form-item :label="$t('page.install.config.gatewayIP')" prop="ips">
         <div class="boxs">
-          <div
-            v-for="(item, indexs) in ruleForm.gatewayIngressIPs"
-            :key="indexs"
-            class="cen"
-          >
-            <el-input
-              v-model="ruleForm.gatewayIngressIPs[indexs]"
-              class="d2-input_inner"
-            ></el-input>
+          <div v-for="(item, indexs) in ruleForm.gatewayIngressIPs" :key="indexs" class="cen">
+            <el-input v-model="ruleForm.gatewayIngressIPs[indexs]" class="d2-input_inner"></el-input>
             <i
               v-show="ruleForm.gatewayIngressIPs.length != 1"
               class="el-icon-remove-outline icon-f-22 d2-ml-16"
               @click.prevent="removeIP(indexs)"
             ></i>
           </div>
-          <el-button style="margin-top:1rem" size="small" @click="addIP">{{
+          <el-button style="margin-top:1rem" size="small" @click="addIP">
+            {{
             $t("page.install.config.gatewayIPAdd")
-          }}</el-button>
+            }}
+          </el-button>
         </div>
 
-        <div class="clues">
-          {{ $t("page.install.config.gatewayIPDesc") }}
-        </div>
+        <div class="clues">{{ $t("page.install.config.gatewayIPDesc") }}</div>
       </el-form-item>
       <!-- share storage config -->
-      <el-form-item
-        :label="$t('page.install.config.shareStorage')"
-        prop="activeStorageType"
-      >
-        <el-radio-group @change="validShareStorage" v-model="ruleForm.activeStorageType" class="d2-ml-35">
-          <el-radio v-if="!ruleForm.enableHA" class="d2-w-150" :label="1">
-            {{ $t("page.install.config.newNFSServer") }}
-          </el-radio>
-          <el-radio :label="2">
-            {{ $t("page.install.config.selectStorage") }}
-          </el-radio>
-          <el-radio :label="3">
-            {{ $t("page.install.config.useAliNas") }}
-          </el-radio>
+      <el-form-item :label="$t('page.install.config.shareStorage')" prop="activeStorageType">
+        <el-radio-group
+          @change="validShareStorage"
+          v-model="ruleForm.activeStorageType"
+          class="d2-ml-35"
+        >
+          <el-radio
+            v-if="!ruleForm.enableHA"
+            class="d2-w-150"
+            :label="1"
+          >{{ $t("page.install.config.newNFSServer") }}</el-radio>
+          <el-radio :label="2">{{ $t("page.install.config.selectStorage") }}</el-radio>
+          <el-radio :label="3">{{ $t("page.install.config.useAliNas") }}</el-radio>
         </el-radio-group>
         <!-- storage class -->
         <div v-show="ruleForm.activeStorageType == 2" class="boxs">
@@ -422,12 +369,11 @@
                 clusterInitInfo.storageClasses.length === 0
             "
             class="desc"
-            >{{ $t("page.install.config.noStorageClass") }}</span
-          >
+          >{{ $t("page.install.config.noStorageClass") }}</span>
           <el-form-item
             label="StorageClass"
             label-width="120px"
-            class="d2-mt d2-form-item"
+            class="d2-mt-form d2-form-item"
             v-if="clusterInitInfo.storageClasses"
           >
             <el-radio-group @change="validShareStorage" v-model="ruleForm.shareStorageClassName">
@@ -435,7 +381,9 @@
                 border
                 style="margin-bottom: 1rem"
                 size="medium"
+                :title="item.accessMode==='Unknown'&&'无法识别读写模式'"
                 v-for="item in clusterInitInfo.storageClasses"
+                v-show="item.accessMode!=='ReadWriteOnce'"
                 :key="item.name"
                 :label="item.name"
               ></el-radio>
@@ -445,11 +393,7 @@
         <!-- nas -->
         <div v-show="ruleForm.activeStorageType == 3" class="boxs">
           <span class="desc">{{ $t("page.install.config.nasDesc") }}</span>
-          <el-form-item
-            label="AccessKeyID"
-            label-width="130px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="AccessKeyID" label-width="130px" class="d2-mt d2-form-item">
             <el-input
               @change="validShareStorage"
               :placeholder="$t('page.install.config.accessKeyID')"
@@ -457,11 +401,7 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="AccessKeySecret"
-            label-width="130px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="AccessKeySecret" label-width="130px" class="d2-mt d2-form-item">
             <el-input
               @change="validShareStorage"
               :placeholder="$t('page.install.config.accessKeySecret')"
@@ -469,11 +409,7 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="ZoneID"
-            label-width="130px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="ZoneID" label-width="130px" class="d2-mt d2-form-item">
             <el-input
               @change="validShareStorage"
               :placeholder="$t('page.install.config.zoneId')"
@@ -481,11 +417,7 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="VPC ID"
-            label-width="130px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="VPC ID" label-width="130px" class="d2-mt d2-form-item">
             <el-input
               @change="validShareStorage"
               :placeholder="$t('page.install.config.vpcId')"
@@ -506,29 +438,22 @@
             ></el-input>
           </el-form-item>
         </div>
-        <div class="clues">
-          {{ $t("page.install.config.shareStorageDesc") }}
-        </div>
+        <div class="clues">{{ $t("page.install.config.shareStorageDesc") }}</div>
       </el-form-item>
       <!-- block storage config -->
-      <el-form-item
-        :label="$t('page.install.config.blockStorage')"
-        prop="activeBlockStorageType"
-      >
+      <el-form-item :label="$t('page.install.config.blockStorage')" prop="activeBlockStorageType">
         <el-radio-group
           @change="validBlockStorage"
           v-model="ruleForm.activeBlockStorageType"
           class="d2-ml-35"
         >
-          <el-radio :label="0">
-            {{ $t("page.install.config.noStorage") }}
-          </el-radio>
-          <el-radio :label="1">
-            {{ $t("page.install.config.selectStorage") }}
-          </el-radio>
-          <el-radio :label="2">{{
+          <el-radio :label="0">{{ $t("page.install.config.noStorage") }}</el-radio>
+          <el-radio :label="1">{{ $t("page.install.config.selectStorage") }}</el-radio>
+          <el-radio :label="2">
+            {{
             $t("page.install.config.useAliDisk")
-          }}</el-radio>
+            }}
+          </el-radio>
           <el-radio :label="3">{{ $t("page.install.config.useRBD") }}</el-radio>
         </el-radio-group>
         <!-- storage class -->
@@ -539,19 +464,20 @@
                 clusterInitInfo.storageClasses.length === 0
             "
             class="desc"
-            >{{ $t("page.install.config.noStorageClass") }}</span
-          >
+          >{{ $t("page.install.config.noStorageClass") }}</span>
           <el-form-item
             label="StorageClass"
             label-width="120px"
             v-if="clusterInitInfo.storageClasses"
-            class="d2-mt d2-form-item"
+            class="d2-mt-form d2-form-item"
           >
             <el-radio-group @change="validBlockStorage" v-model="ruleForm.blockStorageClassName">
               <el-radio
                 border
                 style="margin-bottom: 1rem"
                 v-for="item in clusterInitInfo.storageClasses"
+                :title="item.accessMode==='Unknown'&&'无法识别读写模式'"
+                v-show="item.accessMode!=='ReadWriteMany'"
                 :key="item.name"
                 :label="item.name"
               ></el-radio>
@@ -561,11 +487,7 @@
         <!-- ali disk -->
         <div v-if="ruleForm.activeBlockStorageType == 2" class="boxs">
           <span class="desc">{{ $t("page.install.config.aliDiskDesc") }}</span>
-          <el-form-item
-            label="AccessKeyID"
-            label-width="130px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="AccessKeyID" label-width="130px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               :placeholder="$t('page.install.config.accessKeyID')"
@@ -573,11 +495,7 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="AccessKeySecret"
-            label-width="130px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="AccessKeySecret" label-width="130px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               :placeholder="$t('page.install.config.accessKeySecret')"
@@ -585,11 +503,7 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="RegionID"
-            label-width="130px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="RegionID" label-width="130px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               :placeholder="$t('page.install.config.regionID')"
@@ -597,11 +511,7 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="ZoneID"
-            label-width="130px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="ZoneID" label-width="130px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               :placeholder="$t('page.install.config.zoneId')"
@@ -613,11 +523,7 @@
         <!-- ceph rbd -->
         <div v-if="ruleForm.activeBlockStorageType == 3" class="boxs">
           <span class="desc">{{ $t("page.install.config.rbdDesc") }}</span>
-          <el-form-item
-            label="Provisioner"
-            label-width="170px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="Provisioner" label-width="170px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               v-model="storage.RWO.provisioner"
@@ -626,11 +532,7 @@
               value="kubernetes.io/rbd"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="Monitors"
-            label-width="170px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="Monitors" label-width="170px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               :placeholder="$t('page.install.config.rbdmonitors')"
@@ -640,22 +542,14 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="AdminID"
-            label-width="170px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="AdminID" label-width="170px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               v-model="storage.RWO.storageClassParameters.rbdParameters.adminId"
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="AdminSecretName"
-            label-width="170px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="AdminSecretName" label-width="170px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               v-model="
@@ -664,11 +558,7 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="AdminSecretNamespace"
-            label-width="170px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="AdminSecretNamespace" label-width="170px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               v-model="
@@ -678,33 +568,21 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="Pool"
-            label-width="170px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="Pool" label-width="170px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               v-model="storage.RWO.storageClassParameters.rbdParameters.pool"
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="User ID"
-            label-width="170px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="User ID" label-width="170px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               v-model="storage.RWO.storageClassParameters.rbdParameters.userId"
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="UserSecretName"
-            label-width="170px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="UserSecretName" label-width="170px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               v-model="
@@ -713,11 +591,7 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="UserSecretNamespace"
-            label-width="170px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="UserSecretNamespace" label-width="170px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               v-model="
@@ -727,22 +601,14 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="FSType"
-            label-width="170px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="FSType" label-width="170px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               v-model="storage.RWO.storageClassParameters.rbdParameters.fsType"
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="ImageFormat"
-            label-width="170px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="ImageFormat" label-width="170px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               v-model="
@@ -751,11 +617,7 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item
-            label="ImageFeatures"
-            label-width="170px"
-            class="d2-mt d2-form-item"
-          >
+          <el-form-item label="ImageFeatures" label-width="170px" class="d2-mt d2-form-item">
             <el-input
               @change="validBlockStorage"
               v-model="
@@ -765,14 +627,14 @@
             ></el-input>
           </el-form-item>
         </div>
-        <div class="clues">
-          {{ $t("page.install.config.blockStorageDesc") }}
-        </div>
+        <div class="clues">{{ $t("page.install.config.blockStorageDesc") }}</div>
       </el-form-item>
       <div style="width:1100px;text-align:center;">
-        <el-button type="primary" @click="submitForm('ruleForm')">{{
+        <el-button type="primary" @click="submitForm('ruleForm')">
+          {{
           $t("page.install.config.startInstall")
-        }}</el-button>
+          }}
+        </el-button>
       </div>
     </el-form>
   </div>
@@ -780,151 +642,145 @@
 
 <script>
 export default {
-  name: 'clusterConfiguration',
+  name: "clusterConfiguration",
   props: {
     clusterInfo: {
       type: Object,
       default: () => {}
     }
   },
-  data () {
+  data() {
     let validateGatewayNodes = (rule, value, callback) => {
       if (this.setgatewayNodes.length === 0) {
-        callback(new Error('请至少选择一个网关安装节点'))
+        callback(new Error("请至少选择一个网关安装节点"));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
     let validateChaosNodes = (rule, value, callback) => {
       if (this.setChaosNodes.length === 0) {
-        callback(new Error('请至少选择一个构建服务安装节点'))
+        callback(new Error("请至少选择一个构建服务安装节点"));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
 
     let validateIPs = (rule, value, callback) => {
-      let regIp = /^(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])$/
-      let gatewayIngressIPs = this.ruleForm.gatewayIngressIPs
+      let regIp = /^(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])$/;
+      let gatewayIngressIPs = this.ruleForm.gatewayIngressIPs;
       let arr = gatewayIngressIPs.filter(item => {
-        return !regIp.test(item)
-      })
+        return !regIp.test(item);
+      });
 
       if (gatewayIngressIPs.length > 0) {
-        if (gatewayIngressIPs.length === 1 && gatewayIngressIPs[0] === '') {
-          callback()
+        if (gatewayIngressIPs.length === 1 && gatewayIngressIPs[0] === "") {
+          callback();
         } else if (arr.length >= 1) {
-          callback(new Error('格式不对，请重新输入'))
+          callback(new Error("格式不对，请重新输入"));
         } else {
-          callback()
+          callback();
         }
       } else {
-        callback()
+        callback();
       }
-    }
-    let reg = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/
+    };
+    let reg = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/;
 
     let validateAddress = (rule, value, callback) => {
-      let str = this.ruleForm.regionDatabase.port
-      let ress = reg.test(str)
+      let str = this.ruleForm.regionDatabase.port;
+      let ress = reg.test(str);
 
-      if (!ress && str !== '') {
-        callback(new Error(this.$t('page.install.config.invalidValidation')))
+      if (!ress && str !== "") {
+        callback(new Error(this.$t("page.install.config.invalidValidation")));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
     let validateDomain = (rule, value, callback) => {
-      if (value.substr(0, 4) === 'http') {
-        callback(new Error(this.$t('page.install.config.nohttpValidation')))
-        return
+      if (value.substr(0, 4) === "http") {
+        callback(new Error(this.$t("page.install.config.nohttpValidation")));
+        return;
       }
-      callback()
-    }
+      callback();
+    };
     let validUiDateBase = (rule, value, callback) => {
-      let str = this.ruleForm.uiDatabase.port
-      let ress = reg.test(str)
+      let str = this.ruleForm.uiDatabase.port;
+      let ress = reg.test(str);
 
-      if (!ress && str !== '') {
-        callback(new Error(this.$t('page.install.config.invalidValidation')))
+      if (!ress && str !== "") {
+        callback(new Error(this.$t("page.install.config.invalidValidation")));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
     let validateHTTPDomain = (rule, value, callback) => {
       if (value.length < 1 && !this.ruleForm.HTTPDomainSwitch) {
-        callback(new Error(this.$t('page.install.config.domainValidation')))
-        return
+        callback(new Error(this.$t("page.install.config.domainValidation")));
+        return;
       }
-      callback()
-    }
+      callback();
+    };
     let validateShareStorage = (rule, value, callback) => {
-      if (value === 2 && this.ruleForm.shareStorageClassName === '') {
+      if (value === 2 && this.ruleForm.shareStorageClassName === "") {
         callback(
-          new Error(this.$t('page.install.config.storageClassValidation'))
-        )
-        return
+          new Error(this.$t("page.install.config.storageClassValidation"))
+        );
+        return;
       }
       if (value === 3) {
-        const nas = this.storage.RWX.csiPlugin.aliyunNas
+        const nas = this.storage.RWX.csiPlugin.aliyunNas;
         if (
-          nas.zoneId === '' ||
-          nas.vpcId === '' ||
-          nas.vSwitchId === '' ||
-          nas.accessKeyID === '' ||
-          nas.accessKeySecret === ''
+          nas.zoneId === "" ||
+          nas.vpcId === "" ||
+          nas.vSwitchId === "" ||
+          nas.accessKeyID === "" ||
+          nas.accessKeySecret === ""
         ) {
-          callback(
-            new Error(this.$t('page.install.config.nasValidation'))
-          )
-          return
+          callback(new Error(this.$t("page.install.config.nasValidation")));
+          return;
         }
       }
-      callback()
-    }
+      callback();
+    };
     let validateBlockStorage = (rule, value, callback) => {
-      if (value === 1 && this.ruleForm.blockStorageClassName === '') {
+      if (value === 1 && this.ruleForm.blockStorageClassName === "") {
         callback(
-          new Error(this.$t('page.install.config.storageClassValidation'))
-        )
+          new Error(this.$t("page.install.config.storageClassValidation"))
+        );
       }
       if (value === 2) {
-        const disk = this.storage.RWO.csiPlugin.aliyunCloudDisk
+        const disk = this.storage.RWO.csiPlugin.aliyunCloudDisk;
         if (
-          disk.region_id === '' ||
-          disk.zoneId === '' ||
-          disk.accessKeyID === '' ||
-          disk.accessKeySecret === ''
+          disk.region_id === "" ||
+          disk.zoneId === "" ||
+          disk.accessKeyID === "" ||
+          disk.accessKeySecret === ""
         ) {
-          callback(
-            new Error(this.$t('page.install.config.diskValidation'))
-          )
-          return
+          callback(new Error(this.$t("page.install.config.diskValidation")));
+          return;
         }
       }
       if (value === 3) {
-        const rbd = this.storage.RWO.storageClassParameters.rbdParameters
+        const rbd = this.storage.RWO.storageClassParameters.rbdParameters;
         if (
-          rbd.monitors === '' ||
-          rbd.adminId === '' ||
-          rbd.adminSecretName === '' ||
-          rbd.adminSecretNamespace === '' ||
-          rbd.pool === '' ||
-          rbd.userId === '' ||
-          rbd.userSecretName === '' ||
-          rbd.userSecretNamespace === '' ||
-          rbd.fsType === '' ||
-          rbd.imageFormat === '' ||
-          rbd.imageFeatures === ''
+          rbd.monitors === "" ||
+          rbd.adminId === "" ||
+          rbd.adminSecretName === "" ||
+          rbd.adminSecretNamespace === "" ||
+          rbd.pool === "" ||
+          rbd.userId === "" ||
+          rbd.userSecretName === "" ||
+          rbd.userSecretNamespace === "" ||
+          rbd.fsType === "" ||
+          rbd.imageFormat === "" ||
+          rbd.imageFeatures === ""
         ) {
-          callback(
-            new Error(this.$t('page.install.config.rbdValidation'))
-          )
-          return
+          callback(new Error(this.$t("page.install.config.rbdValidation")));
+          return;
         }
       }
-      callback()
-    }
+      callback();
+    };
     return {
       queryGatewayNodeloading: false,
       queryChaosNodeloading: false,
@@ -937,74 +793,74 @@ export default {
         RWX: {
           csiPlugin: {
             aliyunNas: {
-              accessKeyID: '',
-              accessKeySecret: '',
-              volumeAs: 'filesystem',
-              zoneId: '',
-              vpcId: '',
-              vSwitchId: ''
+              accessKeyID: "",
+              accessKeySecret: "",
+              volumeAs: "filesystem",
+              zoneId: "",
+              vpcId: "",
+              vSwitchId: ""
             }
           }
         },
         RWO: {
-          provisioner: 'kubernetes.io/rbd',
+          provisioner: "kubernetes.io/rbd",
           storageClassParameters: {
             rbdParameters: {
-              monitors: '',
-              adminId: 'kube',
-              adminSecretName: 'ceph-secret',
-              adminSecretNamespace: 'kube-system',
-              pool: 'kube',
-              userId: 'kube',
-              userSecretName: 'ceph-secret-user',
-              userSecretNamespace: 'default',
-              fsType: 'ext4',
-              imageFormat: '2',
-              imageFeatures: 'layering'
+              monitors: "",
+              adminId: "kube",
+              adminSecretName: "ceph-secret",
+              adminSecretNamespace: "kube-system",
+              pool: "kube",
+              userId: "kube",
+              userSecretName: "ceph-secret-user",
+              userSecretNamespace: "default",
+              fsType: "ext4",
+              imageFormat: "2",
+              imageFeatures: "layering"
             }
           },
           csiPlugin: {
             aliyunCloudDisk: {
-              accessKeyID: '',
-              accessKeySecret: '',
+              accessKeyID: "",
+              accessKeySecret: "",
               maxVolumePerNode: 15,
-              type: 'cloud_ssd',
-              zoneId: '',
-              region_id: ''
+              type: "cloud_ssd",
+              zoneId: "",
+              region_id: ""
             }
           }
         }
       },
       ruleForm: {
         enableHA: false,
-        labelPosition: 'left',
+        labelPosition: "left",
         imageHubInstall: true,
-        imageHubDomain: '',
-        imageHubNamespace: '',
-        imageHubUsername: '',
-        imageHubPassword: '',
+        imageHubDomain: "",
+        imageHubNamespace: "",
+        imageHubUsername: "",
+        imageHubPassword: "",
         installRegionDB: true,
-        regionDatabaseHost: '',
+        regionDatabaseHost: "",
         regionDatabasePort: 3306,
-        regionDatabaseUsername: '',
-        regionDatabasePassword: '',
+        regionDatabaseUsername: "",
+        regionDatabasePassword: "",
         installUIDB: true,
-        uiDatabaseHost: '',
+        uiDatabaseHost: "",
         uiDatabasePort: 3306,
-        uiDatabaseUsername: '',
-        uiDatabasePassword: '',
+        uiDatabaseUsername: "",
+        uiDatabasePassword: "",
         installETCD: true,
         etcdConfig: {
-          endpoints: [''],
-          certInfo: { caFile: '', certFile: '', keyFile: '' }
+          endpoints: [""],
+          certInfo: { caFile: "", certFile: "", keyFile: "" }
         },
-        HTTPDomain: '',
+        HTTPDomain: "",
         HTTPDomainSwitch: true,
-        gatewayIngressIPs: [''],
+        gatewayIngressIPs: [""],
         activeStorageType: 1,
-        shareStorageClassName: '',
+        shareStorageClassName: "",
         activeBlockStorageType: 0,
-        blockStorageClassName: ''
+        blockStorageClassName: ""
       },
       setgatewayNodes: [],
       optionGatewayNodes: [],
@@ -1015,303 +871,327 @@ export default {
         imageHubInstall: [
           {
             required: true,
-            message: this.$t('page.install.config.hubInstallValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.hubInstallValidation"),
+            trigger: "blur"
           }
         ],
         installRegionDB: [
           {
             required: true,
-            message: this.$t('page.install.config.dbValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbValidation"),
+            trigger: "blur"
           }
         ],
         installUIDB: [
           {
             required: true,
-            message: this.$t('page.install.config.dbValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbValidation"),
+            trigger: "blur"
           }
         ],
         installETCD: [
           {
             required: true,
-            message: this.$t('page.install.config.etcdValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.etcdValidation"),
+            trigger: "blur"
           }
         ],
         imageHubDomain: [
           {
             required: true,
-            message: this.$t('page.install.config.hubDomainValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.hubDomainValidation"),
+            trigger: "blur"
           },
           {
             validator: validateDomain,
             required: true,
-            trigger: 'blur'
+            trigger: "blur"
           }
         ],
         regionDatabaseHost: [
           {
             required: true,
-            message: this.$t('page.install.config.dbAddrValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbAddrValidation"),
+            trigger: "blur"
           }
         ],
         regionDatabasePort: [
           {
             required: true,
-            message: this.$t('page.install.config.dbPortValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbPortValidation"),
+            trigger: "blur"
           }
         ],
         regionDatabaseUsername: [
           {
             required: true,
-            message: this.$t('page.install.config.dbUserValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbUserValidation"),
+            trigger: "blur"
           }
         ],
         regionDatabasePassword: [
           {
             required: true,
-            message: this.$t('page.install.config.dbPasswordValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbPasswordValidation"),
+            trigger: "blur"
           }
         ],
         uiDatabaseHost: [
           {
             required: true,
-            message: this.$t('page.install.config.dbAddrValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbAddrValidation"),
+            trigger: "blur"
           }
         ],
         uiDatabasePort: [
           {
             required: true,
-            message: this.$t('page.install.config.dbPortValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbPortValidation"),
+            trigger: "blur"
           }
         ],
         uiDatabaseUsername: [
           {
             required: true,
-            message: this.$t('page.install.config.dbUserValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbUserValidation"),
+            trigger: "blur"
           }
         ],
         uiDatabasePassword: [
           {
             required: true,
-            message: this.$t('page.install.config.dbPasswordValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbPasswordValidation"),
+            trigger: "blur"
           }
         ],
         activeStorageType: [
           {
             validator: validateShareStorage,
             required: true,
-            trigger: 'blur'
+            trigger: "blur"
           }
         ],
         activeBlockStorageType: [
           {
             validator: validateBlockStorage,
             required: true,
-            trigger: 'blur'
+            trigger: "blur"
           }
         ],
         enableHA: [
           {
-            message: this.$t('page.install.config.installModeValidation'),
+            message: this.$t("page.install.config.installModeValidation"),
             required: true,
-            trigger: 'blur'
+            trigger: "blur"
           }
         ],
         nodes: [
           {
             validator: validateGatewayNodes,
-            type: 'array',
+            type: "array",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ],
         chaosNodes: [
           {
             validator: validateChaosNodes,
-            type: 'array',
+            type: "array",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ],
         HTTPDomain: [
           {
             required: true,
             validator: validateHTTPDomain,
-            trigger: 'blur'
+            trigger: "blur"
           }
         ],
         address: [
           {
             validator: validateAddress,
-            type: 'string',
+            type: "string",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ],
         uiDatabase: [
           {
             validator: validUiDateBase,
-            type: 'string',
+            type: "string",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ],
         ips: [
           {
             validator: validateIPs,
-            type: 'array',
+            type: "array",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ]
       }
-    }
+    };
   },
-  created () {
-    this.fetchClusterInfo()
-    this.fetchClusterInitConfig()
+  created() {
+    this.fetchClusterInfo();
+    this.fetchClusterInitConfig();
   },
   methods: {
-    validShareStorage () {
-      this.$refs.ruleForm.validateField('activeStorageType')
-    },
-    validBlockStorage () {
-      this.$refs.ruleForm.validateField('activeBlockStorageType')
-    },
-    installModeChange (value) {
-      if (value && this.ruleForm.activeStorageType === 1) {
-        this.ruleForm.activeStorageType = 2
+    validShareStorage(value) {
+      if (value === "nfs-provisioner") {
+        this.openNfsMessage("ReadWriteMany", "activeStorageType","shareStorageClassName");
+      } else {
+        this.$refs.ruleForm.validateField("activeStorageType");
       }
     },
-    removeIP (index) {
-      this.ruleForm.gatewayIngressIPs.splice(index, 1)
+    validBlockStorage(value) {
+      if (value === "nfs-provisioner") {
+        this.openNfsMessage("ReadWriteOnce", "activeBlockStorageType","blockStorageClassName");
+      } else {
+        this.$refs.ruleForm.validateField("activeBlockStorageType");
+      }
     },
-    addIP () {
-      this.ruleForm.gatewayIngressIPs.push('')
+    openNfsMessage(text, checkName,formName) {
+      this.$confirm(`请务必确认该存储的读写模式支持 ${text}"?`, "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+        center: true
+      })
+        .then(() => {
+          this.$refs.ruleForm.validateField(checkName);
+        })
+        .catch(() => {
+          this.ruleForm[formName] = "";
+          this.$refs.ruleForm.validateField(checkName);
+        });
     },
-    addEndpoints () {
-      this.ruleForm.etcdConfig.endpoints.push('')
+
+    installModeChange(value) {
+      if (value && this.ruleForm.activeStorageType === 1) {
+        this.ruleForm.activeStorageType = 2;
+      }
     },
-    removeEndpoints (index) {
-      this.ruleForm.etcdConfig.endpoints.splice(index, 1)
+    removeIP(index) {
+      this.ruleForm.gatewayIngressIPs.splice(index, 1);
     },
-    fetchClusterInfo () {
+    addIP() {
+      this.ruleForm.gatewayIngressIPs.push("");
+    },
+    addEndpoints() {
+      this.ruleForm.etcdConfig.endpoints.push("");
+    },
+    removeEndpoints(index) {
+      this.ruleForm.etcdConfig.endpoints.splice(index, 1);
+    },
+    fetchClusterInfo() {
       this.$store
-        .dispatch('fetchClusterInfo')
+        .dispatch("fetchClusterInfo")
         .then(res => {
           if (res && res.data) {
-            if (res.data.HTTPDomain && res.data.HTTPDomain !== '') {
-              this.ruleForm.HTTPDomainSwitch = false
-              this.ruleForm.HTTPDomain = res.data.HTTPDomain
+            if (res.data.HTTPDomain && res.data.HTTPDomain !== "") {
+              this.ruleForm.HTTPDomainSwitch = false;
+              this.ruleForm.HTTPDomain = res.data.HTTPDomain;
             }
             if (
               res.data.gatewayIngressIPs &&
               res.data.gatewayIngressIPs.length > 0
             ) {
-              this.ruleForm.gatewayIngressIPs = res.data.gatewayIngressIPs
+              this.ruleForm.gatewayIngressIPs = res.data.gatewayIngressIPs;
             }
           }
         })
         .catch(err => {
-          this.$emit('onhandleErrorRecord')
-          console.log(err)
-        })
+          this.$emit("onhandleErrorRecord");
+          console.log(err);
+        });
     },
-    fetchClusterInitConfig () {
-      this.$store.dispatch('getClusterInitConfig').then(res => {
+    fetchClusterInitConfig() {
+      this.$store.dispatch("getClusterInitConfig").then(res => {
         if (res && res.code === 200) {
-          this.clusterInitInfo = res.data
+          this.clusterInitInfo = res.data;
           if (
             res.data.gatewayAvailableNodes &&
             res.data.gatewayAvailableNodes.masterNodes
           ) {
-            let valueOp = []
-            let valueSet = []
+            let valueOp = [];
+            let valueSet = [];
             res.data.gatewayAvailableNodes.masterNodes.map(item => {
-              valueOp.push(item.internalIP)
-              valueSet.push(item.internalIP)
-            })
-            this.optionGatewayNodes = valueOp
-            this.setgatewayNodes = valueSet
+              valueOp.push(item.internalIP);
+              valueSet.push(item.internalIP);
+            });
+            this.optionGatewayNodes = valueOp;
+            this.setgatewayNodes = valueSet;
           }
           if (
             res.data.gatewayAvailableNodes &&
             res.data.gatewayAvailableNodes.specifiedNodes
           ) {
-            let values = []
-            let op = this.optionGatewayNodes
+            let values = [];
+            let op = this.optionGatewayNodes;
             res.data.gatewayAvailableNodes.specifiedNodes.map(item => {
-              values.push(item.internalIP)
-              op.push(item.internalIP)
-            })
-            this.setgatewayNodes = values
-            this.optionGatewayNodes = this.unique(op)
+              values.push(item.internalIP);
+              op.push(item.internalIP);
+            });
+            this.setgatewayNodes = values;
+            this.optionGatewayNodes = this.unique(op);
           }
           if (
             res.data.chaosAvailableNodes &&
             res.data.chaosAvailableNodes.masterNodes
           ) {
-            let valueOp = []
-            let valueSet = []
+            let valueOp = [];
+            let valueSet = [];
             res.data.chaosAvailableNodes.masterNodes.map(item => {
-              valueOp.push(item.internalIP)
-              valueSet.push(item.internalIP)
-            })
-            this.setChaosNodes = valueSet
-            this.optionChaosNodes = valueOp
+              valueOp.push(item.internalIP);
+              valueSet.push(item.internalIP);
+            });
+            this.setChaosNodes = valueSet;
+            this.optionChaosNodes = valueOp;
           }
           if (
             res.data.chaosAvailableNodes &&
             res.data.chaosAvailableNodes.specifiedNodes
           ) {
-            let values = []
-            let op = this.optionChaosNodes
+            let values = [];
+            let op = this.optionChaosNodes;
             res.data.chaosAvailableNodes.specifiedNodes.map(item => {
-              values.push(item.internalIP)
-              op.push(item.internalIP)
-            })
-            this.setChaosNodes = values
-            this.optionChaosNodes = this.unique(op)
+              values.push(item.internalIP);
+              op.push(item.internalIP);
+            });
+            this.setChaosNodes = values;
+            this.optionChaosNodes = this.unique(op);
           }
-          this.loading = false
+          this.loading = false;
         }
-      })
+      });
     },
-    unique (arr) {
-      return Array.from(new Set(arr))
+    unique(arr) {
+      return Array.from(new Set(arr));
     },
-    submitForm (formName) {
+    submitForm(formName) {
       this.$refs[formName].validate(valid => {
         if (valid) {
           this.loading = true
-          let obj = {}
+          let obj = {};
           if (!this.ruleForm.imageHubInstall) {
             obj.imageHub = {
               domain: this.ruleForm.imageHubDomain,
               namespace: this.ruleForm.imageHubNamespace,
               username: this.ruleForm.imageHubUsername,
               password: this.ruleForm.imageHubPassword
-            }
+            };
           }
           if (!this.ruleForm.installRegionDB) {
             obj.regionDatabase = {
               host: this.ruleForm.regionDatabaseHost,
-              port: Number (this.ruleForm.regionDatabasePort),
+              port: Number(this.ruleForm.regionDatabasePort),
               username: this.ruleForm.regionDatabaseUsername,
               password: this.ruleForm.regionDatabasePassword
-            }
+            };
           }
           if (!this.ruleForm.installUIDB) {
             obj.uiDatabase = {
@@ -1319,74 +1199,75 @@ export default {
               port: Number(this.ruleForm.uiDatabasePort),
               username: this.ruleForm.uiDatabaseUsername,
               password: this.ruleForm.uiDatabasePassword
-            }
+            };
           }
           if (!this.ruleForm.installETCD) {
-            obj.etcdConfig = this.ruleForm.etcdConfig
+            obj.etcdConfig = this.ruleForm.etcdConfig;
           }
           if (!this.ruleForm.HTTPDomainSwitch) {
-            obj.HTTPDomain = this.ruleForm.HTTPDomain
+            obj.HTTPDomain = this.ruleForm.HTTPDomain;
           }
-          let ips = []
+          let ips = [];
           this.ruleForm.gatewayIngressIPs.map(item => {
-            if (item !== '') {
-              ips.push(item)
+            if (item !== "") {
+              ips.push(item);
             }
-          })
-          obj.gatewayIngressIPs = this.unique(ips)
-          let gatewayNodes = []
+          });
+          obj.gatewayIngressIPs = this.unique(ips);
+          let gatewayNodes = [];
           this.setgatewayNodes.map(item => {
-            gatewayNodes.push({ internalIP: item })
-          })
-          obj.nodesForGateway = gatewayNodes
-          let chaosNodes = []
+            gatewayNodes.push({ internalIP: item });
+          });
+          obj.nodesForGateway = gatewayNodes;
+          let chaosNodes = [];
           this.setChaosNodes.map(item => {
-            chaosNodes.push({ internalIP: item })
-          })
-          obj.nodesForChaos = chaosNodes
-          obj.enableHA = this.ruleForm.enableHA
-          console.log(obj)
+            chaosNodes.push({ internalIP: item });
+          });
+          obj.nodesForChaos = chaosNodes;
+          obj.enableHA = this.ruleForm.enableHA;
+          console.log(obj);
+          this.installCluster();
           this.$store
-            .dispatch('putClusterInfo', obj)
+            .dispatch("putClusterInfo", obj)
             .then(res => {
               if (res && res.code === 200) {
-                this.$emit('onhandleStartRecord')
-                this.installCluster()
+                this.$emit("onhandleStartRecord");
+                this.installCluster();
               } else {
-                this.handleCancelLoading()
+                this.handleCancelLoading();
               }
             })
             .catch(err => {
-              this.handleCancelLoading()
-              this.$emit('onhandleErrorRecord')
-              console.log(err)
-            })
+              this.handleCancelLoading();
+              this.$emit("onhandleErrorRecord");
+              console.log(err);
+            });
         } else {
-          this.handleCancelLoading()
+          this.handleCancelLoading();
           this.$message({
-            message: this.$t('page.install.config.formInvalid'),
-            type: 'warning'
-          })
-          return false
+            message: this.$t("page.install.config.formInvalid"),
+            type: "warning"
+          });
+          return false;
         }
-      })
+      });
     },
-    installCluster () {
-      let obj = {}
-      obj.rainbondvolumes = {}
+    installCluster() {
+      let obj = {};
+      obj.rainbondvolumes = {};
       // share storage nfs
       if (this.ruleForm.activeStorageType === 1) {
         obj.rainbondvolumes.RWX = {
           csiPlugin: {
             nfs: {}
           }
-        }
+        };
       }
       // share storage class
       if (this.ruleForm.activeStorageType === 2) {
         obj.rainbondvolumes.RWX = {
           storageClassName: this.ruleForm.shareStorageClassName
-        }
+        };
       }
       // share nas
       if (this.ruleForm.activeStorageType === 3) {
@@ -1406,13 +1287,13 @@ export default {
                 .accessKeySecret
             }
           }
-        }
+        };
       }
       // block storage class
       if (this.ruleForm.activeBlockStorageType === 1) {
         obj.rainbondvolumes.RWO = {
           storageClassName: this.ruleForm.shareStorageClassName
-        }
+        };
       }
       // ali disk
       if (this.ruleForm.activeBlockStorageType === 2) {
@@ -1434,7 +1315,7 @@ export default {
                 .maxVolumePerNode
             }
           }
-        }
+        };
       }
       // rbd
       if (this.ruleForm.activeBlockStorageType === 3) {
@@ -1443,73 +1324,73 @@ export default {
           storageClassParameters: {
             parameters: this.storage.RWO.storageClassParameters.rbdParameters
           }
-        }
+        };
       }
-      console.log(obj)
+      console.log(obj);
       this.$store
-        .dispatch('installCluster', obj)
+        .dispatch("installCluster", obj)
         .then(en => {
           if (en && en.code === 200) {
-            this.$emit('onResults')
+            this.$emit("onResults");
           } else {
-            this.$emit('onhandleErrorRecord')
-            this.handleCancelLoading()
+            this.$emit("onhandleErrorRecord");
+            this.handleCancelLoading();
           }
         })
         .catch(_ => {
-          this.handleCancelLoading()
-          this.$emit('onhandleErrorRecord')
-        })
+          this.handleCancelLoading();
+          this.$emit("onhandleErrorRecord");
+        });
     },
-    handleCancelLoading () {
-      this.loading = false
+    handleCancelLoading() {
+      this.loading = false;
     },
-    queryGatewayNode (query) {
+    queryGatewayNode(query) {
       if (query.length > 2) {
-        this.queryGatewayNodeloading = true
+        this.queryGatewayNodeloading = true;
         this.$store
-          .dispatch('queryNode', { query, rungateway: true })
+          .dispatch("queryNode", { query, rungateway: true })
           .then(res => {
             if (res && res.data) {
-              let values = this.optionGatewayNodes
+              let values = this.optionGatewayNodes;
               res.data.map(item => {
-                values.push(item.internalIP)
-              })
-              this.optionGatewayNodes = this.unique(values)
+                values.push(item.internalIP);
+              });
+              this.optionGatewayNodes = this.unique(values);
             }
-            this.queryGatewayNodeloading = false
+            this.queryGatewayNodeloading = false;
           })
           .catch(err => {
-            this.queryGatewayNodeloading = false
-            this.$emit('onhandleErrorRecord')
-            console.log(err)
-          })
+            this.queryGatewayNodeloading = false;
+            this.$emit("onhandleErrorRecord");
+            console.log(err);
+          });
       }
     },
-    queryChaosNode (query) {
+    queryChaosNode(query) {
       if (query.length > 2) {
-        this.queryChaosNodeloading = true
+        this.queryChaosNodeloading = true;
         this.$store
-          .dispatch('queryNode', { query })
+          .dispatch("queryNode", { query })
           .then(res => {
             if (res && res.data) {
-              let values = this.optionChaosNodes
+              let values = this.optionChaosNodes;
               res.data.map(item => {
-                values.push(item.internalIP)
-              })
-              this.optionChaosNodes = this.unique(values)
+                values.push(item.internalIP);
+              });
+              this.optionChaosNodes = this.unique(values);
             }
-            this.queryChaosNodeloading = false
+            this.queryChaosNodeloading = false;
           })
           .catch(err => {
-            this.queryChaosNodeloading = false
-            this.$emit('onhandleErrorRecord')
-            console.log(err)
-          })
+            this.queryChaosNodeloading = false;
+            this.$emit("onhandleErrorRecord");
+            console.log(err);
+          });
       }
     }
   }
-}
+};
 </script>
 
 <style rel="stylesheet/scss" lang="scss" scoped>
@@ -1569,6 +1450,12 @@ export default {
 }
 </style>
 <style lang="scss">
+.d2-mt-form {
+  margin-top: 20px;
+  .el-form-item__label {
+    margin-top: 8px;
+  }
+}
 .d2-form-item {
   .el-form-item__label {
     line-height: 25px;
