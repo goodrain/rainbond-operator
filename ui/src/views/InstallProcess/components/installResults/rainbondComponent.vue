@@ -26,7 +26,7 @@
               <el-col :span="20" class="d2-f-14 descColor">{{items.name}}</el-col>
             </div>
             <div class="componentBox">
-              <el-col :span="4" class="d2-f-14 minComponentColor">阶段</el-col>
+              <el-col :span="4" class="d2-f-14 minComponentColor">状态</el-col>
               <el-col
                 :span="20"
                 class="d2-f-14 descColor"
@@ -40,6 +40,12 @@
               <el-col :span="4" class="d2-f-14 minComponentColor">原因</el-col>
               <el-col :span="20" class="d2-f-14 descColor">{{items.reason}}</el-col>
             </div>
+
+              <div class="componentBox" v-show="items.message">
+              <el-col :span="4" class="d2-f-14 minComponentColor">消息</el-col>
+              <el-col :span="20" class="d2-f-14 descColor">{{items.message}}</el-col>
+            </div>
+
           </div>
         </div>
       </el-collapse-item>
