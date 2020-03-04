@@ -197,14 +197,13 @@ func (cc *componentUsecase) convertPodStatues(pods []*corev1.Pod) []v1.PodStatus
 			Reason:  pod.Status.Reason,
 			Message: pod.Status.Message,
 		}
-		ready := false
 		for _, condition := range pod.Status.Conditions {
 			if condition.Type == corev1.PodReady && condition.Status == "True" {
 				podStatus.Phase = "Ready"
 				break
 			}
 		}
-		if !ready {
+		if podStatus.Phase != "Ready" {
 			events, err := cc.cfg.KubeClient.CoreV1().Events(cc.cfg.Namespace).List(metav1.ListOptions{})
 			if err != nil {
 				log.V(3).Info("get pod[%s] event list failed: %s", pod.Name, err.Error())
