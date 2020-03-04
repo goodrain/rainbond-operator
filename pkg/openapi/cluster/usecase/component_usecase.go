@@ -209,7 +209,7 @@ func (cc *componentUsecase) convertPodStatues(pods []*corev1.Pod) []v1.PodStatus
 				log.V(3).Info("get pod[%s] event list failed: %s", pod.Name, err.Error())
 			}
 			if events != nil && len(events.Items) > 0 {
-				podStatus.Message = cc.convertEventMessage(events.Items)
+				podStatus.Reason, podStatus.Message = cc.convertEventMessage(events.Items)
 			}
 		}
 		podStatuses = append(podStatuses, podStatus)
@@ -218,16 +218,24 @@ func (cc *componentUsecase) convertPodStatues(pods []*corev1.Pod) []v1.PodStatus
 	return podStatuses
 }
 
-func (cc *componentUsecase) convertEventMessage(events []corev1.Event) string {
-	message := ""
+func (cc *componentUsecase) convertEventMessage(events []corev1.Event) (string, string) {
 	if len(events) == 0 {
-		return message
+		return "", ""
 	}
 	for _, event := range events {
 		switch event.Type {
 		case corev1.EventTypeWarning:
-			message = fmt.Sprintf("%s%s\n", message, event.Message)
+			// return event message order by failedschedule、failed、backoff
+			if event.Reason == v1.FailedSchedulingEventReason {
+				return event.Reason, event.Message
+			}
+			if event.Reason == v1.FailedEventReason {
+				return event.Reason, event.Message
+			}
+			if event.Reason == v1.BackOffEventReason {
+				return event.Reason, event.Message
+			}
 		}
 	}
-	return message
+	return "", ""
 }
