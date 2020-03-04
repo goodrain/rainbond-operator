@@ -20,7 +20,7 @@ var _ ComponentHandler = &aliyunCSINasProvisioner{}
 
 // NewAliyunCSINasProvisioner creates a new aliyun csi nas provisioner handler.
 func NewAliyunCSINasProvisioner(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
-	return &nfs{
+	return &aliyunCSINasProvisioner{
 		ctx:       ctx,
 		client:    client,
 		component: component,

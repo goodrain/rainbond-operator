@@ -20,7 +20,7 @@ var _ ComponentHandler = &aliyunCSIDiskProvisioner{}
 
 // NewaliyunCSIDiskProvisioner creates a new aliyun csi disk provisioner handler.
 func NewaliyunCSIDiskProvisioner(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
-	return &nfs{
+	return &aliyunCSIDiskProvisioner{
 		ctx:       ctx,
 		client:    client,
 		component: component,

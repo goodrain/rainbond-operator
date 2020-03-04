@@ -302,6 +302,7 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 			name2Claim[constants.AliyunCSINasPlugin].isInit = isInit
 			name2Claim[constants.AliyunCSINasProvisioner] = newClaim(constants.AliyunCSINasProvisioner)
 			name2Claim[constants.AliyunCSINasProvisioner].isInit = isInit
+			name2Claim[constants.AliyunCSINasProvisioner].replicas = commonutil.Int32(1)
 		}
 	}
 	if req.RainbondVolumes.RWO != nil && req.RainbondVolumes.RWO.CSIPlugin != nil {
@@ -310,6 +311,7 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 			name2Claim[constants.AliyunCSIDiskPlugin].isInit = isInit
 			name2Claim[constants.AliyunCSIDiskProvisioner] = newClaim(constants.AliyunCSIDiskProvisioner)
 			name2Claim[constants.AliyunCSIDiskProvisioner].isInit = isInit
+			name2Claim[constants.AliyunCSIDiskProvisioner].replicas = commonutil.Int32(1)
 		}
 	}
 
