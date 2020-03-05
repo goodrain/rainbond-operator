@@ -100,7 +100,7 @@
             <el-input
               v-model="ruleForm.regionDatabaseHost"
               class="d2-input_inner_url"
-              style="width:200px"
+              style="width:240px"
             ></el-input>
             <span class="d2-w-20">:</span>
 
@@ -108,7 +108,7 @@
               <el-input
                 v-model="ruleForm.regionDatabasePort"
                 class="d2-input_inner_url"
-                style="width:80px"
+                style="width:140px"
                 type="number"
               ></el-input>
             </el-form-item>
@@ -162,7 +162,7 @@
             <el-input
               v-model="ruleForm.uiDatabaseHost"
               class="d2-input_inner_url"
-              style="width:200px"
+              style="width:240px"
             ></el-input>
             <span class="d2-w-20">:</span>
 
@@ -170,7 +170,7 @@
               <el-input
                 v-model="ruleForm.uiDatabasePort"
                 class="d2-input_inner_url"
-                style="width:80px"
+                style="width:140px"
                 type="number"
               ></el-input>
             </el-form-item>
@@ -386,7 +386,7 @@
             <el-radio-group @change="validShareStorage" v-model="ruleForm.shareStorageClassName">
               <el-radio
                 border
-                style="margin-bottom: 1rem"
+                style="margin-bottom: 1rem;margin-left:10px"
                 size="medium"
                 :title="item.accessMode==='Unknown'&&'无法识别读写模式'"
                 v-for="item in clusterInitInfo.storageClasses"
@@ -481,7 +481,7 @@
             <el-radio-group @change="validBlockStorage" v-model="ruleForm.blockStorageClassName">
               <el-radio
                 border
-                style="margin-bottom: 1rem"
+                style="margin-bottom: 1rem;margin-left:10px"
                 v-for="item in clusterInitInfo.storageClasses"
                 :title="item.accessMode==='Unknown'&&'无法识别读写模式'"
                 v-show="item.accessMode!=='ReadWriteMany'"
@@ -1063,21 +1063,49 @@ export default {
     this.fetchClusterInitConfig();
   },
   methods: {
-    validShareStorage(value) {
-      if (value === "nfs-provisioner") {
-        this.openNfsMessage("ReadWriteMany", "activeStorageType","shareStorageClassName");
+    validShareStorage(value, item) {
+      const info = this.clusterInitInfo;
+      const arr =
+        info &&
+        info.storageClasses &&
+        info.storageClasses.length > 0 &&
+        info.storageClasses;
+      if (arr) {
+        arr.map(item => {
+          if (item.name === value && item.accessMode === "Unknown") {
+            this.openNfsMessage(
+              "ReadWriteMany",
+              "activeStorageType",
+              "shareStorageClassName"
+            );
+          }
+        });
       } else {
         this.$refs.ruleForm.validateField("activeStorageType");
       }
     },
     validBlockStorage(value) {
-      if (value === "nfs-provisioner") {
-        this.openNfsMessage("ReadWriteOnce", "activeBlockStorageType","blockStorageClassName");
+      const info = this.clusterInitInfo;
+      const arr =
+        info &&
+        info.storageClasses &&
+        info.storageClasses.length > 0 &&
+        info.storageClasses;
+      if (arr) {
+        arr.map(item => {
+          if (item.name === value && item.accessMode === "Unknown") {
+            this.openNfsMessage(
+              "ReadWriteOnce",
+              "activeBlockStorageType",
+              "blockStorageClassName"
+            );
+          }
+        });
       } else {
         this.$refs.ruleForm.validateField("activeBlockStorageType");
       }
     },
-    openNfsMessage(text, checkName,formName) {
+    openNfsMessage(text, checkName, formName) {
       this.$confirm(`请务必确认该存储的读写模式支持 ${text}"?`, "提示", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
@@ -1198,7 +1226,7 @@ export default {
     submitForm(formName) {
       this.$refs[formName].validate(valid => {
         if (valid) {
-          this.loading = true
+          this.loading = true;
           let obj = {};
           if (!this.ruleForm.imageHubInstall) {
             obj.imageHub = {
@@ -1314,7 +1342,7 @@ export default {
       // block storage class
       if (this.ruleForm.activeBlockStorageType === 1) {
         obj.rainbondvolumes.RWO = {
-          storageClassName: this.ruleForm.shareStorageClassName
+          storageClassName: this.ruleForm.blockStorageClassName
         };
       }
       // ali disk
@@ -1487,7 +1515,7 @@ export default {
   }
 }
 .d2-input_inner {
-  width: 300px;
+  width: 400px;
   .el-input__inner {
     height: 25px;
     line-height: 25px;
