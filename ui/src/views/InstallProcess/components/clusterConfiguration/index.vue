@@ -380,7 +380,7 @@
           <el-form-item
             label="StorageClass"
             label-width="120px"
-            class="d2-mt d2-form-item"
+            class="d2-mt-form d2-form-item"
             v-if="clusterInitInfo.storageClasses"
           >
             <el-radio-group @change="validShareStorage" v-model="ruleForm.shareStorageClassName">
@@ -388,7 +388,9 @@
                 border
                 style="margin-bottom: 1rem"
                 size="medium"
+                :title="item.accessMode==='Unknown'&&'无法识别读写模式'"
                 v-for="item in clusterInitInfo.storageClasses"
+                v-show="item.accessMode!=='ReadWriteOnce'"
                 :key="item.name"
                 :label="item.name"
               ></el-radio>
@@ -474,13 +476,15 @@
             label="StorageClass"
             label-width="120px"
             v-if="clusterInitInfo.storageClasses"
-            class="d2-mt d2-form-item"
+            class="d2-mt-form d2-form-item"
           >
             <el-radio-group @change="validBlockStorage" v-model="ruleForm.blockStorageClassName">
               <el-radio
                 border
                 style="margin-bottom: 1rem"
                 v-for="item in clusterInitInfo.storageClasses"
+                :title="item.accessMode==='Unknown'&&'无法识别读写模式'"
+                v-show="item.accessMode!=='ReadWriteMany'"
                 :key="item.name"
                 :label="item.name"
               ></el-radio>
@@ -687,6 +691,7 @@ export default {
         callback();
       }
     };
+
 
     let validateport = (rule, value, callback) => {
       let regPort = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-5]{2}[0-3][0-5])$/;
@@ -1058,12 +1063,36 @@ export default {
     this.fetchClusterInitConfig();
   },
   methods: {
-    validShareStorage() {
-      this.$refs.ruleForm.validateField("activeStorageType");
+    validShareStorage(value) {
+      if (value === "nfs-provisioner") {
+        this.openNfsMessage("ReadWriteMany", "activeStorageType","shareStorageClassName");
+      } else {
+        this.$refs.ruleForm.validateField("activeStorageType");
+      }
     },
-    validBlockStorage() {
-      this.$refs.ruleForm.validateField("activeBlockStorageType");
+    validBlockStorage(value) {
+      if (value === "nfs-provisioner") {
+        this.openNfsMessage("ReadWriteOnce", "activeBlockStorageType","blockStorageClassName");
+      } else {
+        this.$refs.ruleForm.validateField("activeBlockStorageType");
+      }
     },
+    openNfsMessage(text, checkName,formName) {
+      this.$confirm(`请务必确认该存储的读写模式支持 ${text}"?`, "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+        center: true
+      })
+        .then(() => {
+          this.$refs.ruleForm.validateField(checkName);
+        })
+        .catch(() => {
+          this.ruleForm[formName] = "";
+          this.$refs.ruleForm.validateField(checkName);
+        });
+    },
+
     installModeChange(value) {
       if (value && this.ruleForm.activeStorageType === 1) {
         this.ruleForm.activeStorageType = 2;
@@ -1169,7 +1198,7 @@ export default {
     submitForm(formName) {
       this.$refs[formName].validate(valid => {
         if (valid) {
-          this.loading = true;
+          this.loading = true
           let obj = {};
           if (!this.ruleForm.imageHubInstall) {
             obj.imageHub = {
@@ -1443,6 +1472,12 @@ export default {
 }
 </style>
 <style lang="scss">
+.d2-mt-form {
+  margin-top: 20px;
+  .el-form-item__label {
+    margin-top: 8px;
+  }
+}
 .d2-form-item {
   .el-form-item__label {
     line-height: 25px;
