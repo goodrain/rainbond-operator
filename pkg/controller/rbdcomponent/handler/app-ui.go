@@ -49,7 +49,7 @@ func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1al
 }
 
 func (a *appui) Before() error {
-	db, err := getDefaultDBInfo(a.ctx, a.client, a.cluster.Spec.RegionDatabase, a.component.Namespace, DBName)
+	db, err := getDefaultDBInfo(a.ctx, a.client, a.cluster.Spec.UIDatabase, a.component.Namespace, DBName)
 	if err != nil {
 		return fmt.Errorf("get db info: %v", err)
 	}
