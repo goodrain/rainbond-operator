@@ -6,6 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/store"
+
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -65,6 +67,10 @@ func main() {
 	rainbondKubeClient := versioned.NewForConfigOrDie(restConfig)
 	cfg.RainbondKubeClient = rainbondKubeClient
 
+	storer := store.NewStore(cfg.Namespace, rainbondKubeClient, clientset)
+	_ = storer.Start()
+	defer storer.Stop()
+
 	nodestorer := nodestore.New(ctx, clientset)
 	if err := nodestorer.Start(); err != nil {
 		log.Error(err, "start node storer")
@@ -81,7 +87,7 @@ func main() {
 	userUcase := uucase.NewUserUsecase(nil, "my-secret-key")
 	uctrl.NewUserController(r, userUcase)
 
-	clusterUcase := cucase.NewClusterCase(cfg, repo, rainbondKubeClient, nodestorer)
+	clusterUcase := cucase.NewClusterCase(cfg, repo, rainbondKubeClient, nodestorer, storer)
 	clusterCtrl.NewClusterController(r, clusterUcase)
 
 	upload.NewUploadController(r, archiveFilePath)

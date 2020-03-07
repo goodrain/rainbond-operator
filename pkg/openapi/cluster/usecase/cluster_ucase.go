@@ -89,12 +89,12 @@ func (c *clusterUsecase) UnInstall() error {
 
 // Status status
 func (c *clusterUsecase) Status() (*model.ClusterStatus, error) {
-	cluster, err := c.getCluster()
+	rainbondCluster, err := c.getCluster()
 	if err != nil {
 		if !k8sErrors.IsNotFound(err) {
 			return nil, fmt.Errorf("get rainbond clsuter: %v", err)
 		}
-		cluster = nil
+		rainbondCluster = nil
 	}
 	rainbondPackage, err := c.getRainbondPackage()
 	if err != nil {
@@ -105,8 +105,8 @@ func (c *clusterUsecase) Status() (*model.ClusterStatus, error) {
 		return nil, fmt.Errorf("list rainobnd components: %v", err)
 	}
 
-	status := c.handleStatus(cluster, rainbondPackage, components)
-	c.hackClusterInfo(cluster, &status)
+	status := c.handleStatus(rainbondCluster, rainbondPackage, components)
+	c.hackClusterInfo(rainbondCluster, &status)
 	return &status, nil
 }
 
