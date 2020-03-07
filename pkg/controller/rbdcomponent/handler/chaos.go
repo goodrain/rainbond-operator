@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
@@ -165,6 +166,39 @@ func (c *chaos) deployment() interface{} {
 		affinity = affinityForRequiredNodes(nodeNames)
 	}
 
+	env := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{
+			Name:  "SOURCE_DIR",
+			Value: "/cache/source",
+		},
+		{
+			Name:  "CACHE_DIR",
+			Value: "/cache",
+		},
+	}
+	if imageHub := c.cluster.Spec.ImageHub; imageHub != nil {
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_DOMAIN",
+			Value: path.Join(imageHub.Domain, imageHub.Namespace),
+		})
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_USER",
+			Value: imageHub.Username,
+		})
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_PASS",
+			Value: imageHub.Password,
+		})
+	}
+
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ChaosName,
@@ -195,26 +229,9 @@ func (c *chaos) deployment() interface{} {
 							Name:            ChaosName,
 							Image:           c.component.Spec.Image,
 							ImagePullPolicy: c.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
-								},
-								{
-									Name:  "SOURCE_DIR",
-									Value: "/cache/source",
-								},
-								{
-									Name:  "CACHE_DIR",
-									Value: "/cache",
-								},
-							},
-							Args:         args,
-							VolumeMounts: volumeMounts,
+							Env:             env,
+							Args:            args,
+							VolumeMounts:    volumeMounts,
 						},
 					},
 					Volumes: volumes,

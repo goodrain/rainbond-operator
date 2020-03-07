@@ -151,6 +151,10 @@ func (a *appui) deploymentForAppUI() interface{} {
 									Name:  "REGION_TCP_DOMAIN",
 									Value: a.cluster.GatewayIngressIP(),
 								},
+								{
+									Name:  "IMAGE_REPO",
+									Value: a.cluster.Spec.ImageHub.Domain,
+								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
