@@ -44,7 +44,7 @@ func (cc *componentUsecase) Get(name string) (*v1.RbdComponentStatus, error) {
 		return nil, fmt.Errorf("list pods: %v", err)
 	}
 
-	status := cc.convertRbdComponent(cpn, pods, nil) // TODO
+	status := cc.convertRbdComponent(cpn, pods, nil) // TODO prepare singleton pod's events
 
 	return status, nil
 }

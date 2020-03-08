@@ -124,7 +124,7 @@ func (s *componentRuntimeStore) ListEvent() []*corev1.Event {
 	var events []*corev1.Event
 	for _, obj := range s.listers.Event.List() {
 		event := obj.(*corev1.Event)
-		if event.Type == corev1.EventTypeWarning && (event.InvolvedObject.Kind == "Pod" || event.InvolvedObject.Kind == "RbdComponent") {
+		if event.Type == corev1.EventTypeWarning && event.InvolvedObject.Kind == "Pod" {
 			events = append(events, event)
 		}
 	}
