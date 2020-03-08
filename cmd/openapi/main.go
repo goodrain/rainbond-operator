@@ -68,7 +68,10 @@ func main() {
 	cfg.RainbondKubeClient = rainbondKubeClient
 
 	storer := store.NewStore(cfg.Namespace, rainbondKubeClient, clientset)
-	_ = storer.Start()
+	if err := storer.Start(); err != nil {
+		log.Error(err, "start component storer")
+		os.Exit(1)
+	}
 	defer storer.Stop()
 
 	nodestorer := nodestore.New(ctx, clientset)

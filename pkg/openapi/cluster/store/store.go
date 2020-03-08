@@ -1,10 +1,12 @@
 package store
 
 import (
+	"fmt"
 	"os"
 	"strconv"
-	"sync"
 	"time"
+
+	"k8s.io/client-go/tools/cache"
 
 	rainboondInformers "github.com/goodrain/rainbond-operator/pkg/generated/informers/externalversions"
 
@@ -21,8 +23,7 @@ import (
 // Storer rainbond component store interface
 type Storer interface {
 	Start() error
-	Stop() error
-	Ready() bool
+	Stop()
 	ListRbdComponent(isInit bool) []*v1alpha1.RbdComponent
 	ListPod() []*corev1.Pod
 	ListEvent() []*corev1.Event
@@ -34,7 +35,6 @@ type componentRuntimeStore struct {
 	k8sClient           *kubernetes.Clientset
 	informers           *Informer
 	listers             *Lister
-	appServices         sync.Map
 	stopch              chan struct{}
 	enableEtcdOperator  bool
 	enableMysqlOperator bool
@@ -48,7 +48,7 @@ func NewStore(namespace string, rainbondClient *versioned.Clientset, k8sClient *
 		k8sClient:      k8sClient,
 		informers:      &Informer{},
 		listers:        &Lister{},
-		appServices:    sync.Map{},
+		stopch:         make(chan struct{}),
 	}
 	if enableEtcdOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_ETCD_OPERATOR")); enableEtcdOperator {
 		store.enableEtcdOperator = true
@@ -74,23 +74,16 @@ func NewStore(namespace string, rainbondClient *versioned.Clientset, k8sClient *
 
 // Start start store
 func (s *componentRuntimeStore) Start() error {
-	stopch := make(chan struct{})
-	s.informers.Start(stopch)
-	s.stopch = stopch
-	for !s.Ready() {
+	s.informers.Start(s.stopch)
+	if ready := cache.WaitForCacheSync(s.stopch, s.informers.Pod.HasSynced, s.informers.Event.HasSynced, s.informers.RbdComponent.HasSynced); ready {
+		return fmt.Errorf("wait sync component timeout")
 	}
 	return nil
 }
 
 // Stop to do
-func (s *componentRuntimeStore) Stop() error {
-	s.stopch <- struct{}{}
-	return nil
-}
-
-// store is ready or not
-func (s *componentRuntimeStore) Ready() bool {
-	return s.informers.Ready()
+func (s *componentRuntimeStore) Stop() {
+	close(s.stopch)
 }
 
 // ListRbdComponent list rbdcomponent
@@ -98,12 +91,10 @@ func (s *componentRuntimeStore) ListRbdComponent(isInit bool) []*v1alpha1.RbdCom
 	var components []*v1alpha1.RbdComponent
 	for _, obj := range s.listers.RbdComponent.List() {
 		component := obj.(*v1alpha1.RbdComponent)
-		if component.Namespace == s.namespace {
-			if !component.Spec.PriorityComponent && isInit {
-				continue
-			}
-			components = append(components, component)
+		if !component.Spec.PriorityComponent && isInit {
+			continue
 		}
+		components = append(components, component)
 	}
 	return components
 }
@@ -113,19 +104,17 @@ func (s *componentRuntimeStore) ListPod() []*corev1.Pod {
 	var pods []*corev1.Pod
 	for _, obj := range s.listers.Pod.List() {
 		pod := obj.(*corev1.Pod)
-		if pod.Namespace == s.namespace {
-			if s.enableEtcdOperator { // hack etcd name
-				if name, ok := pod.Labels["etcd_cluster"]; ok && name != "" {
-					pod.Labels["name"] = name
-				}
+		if s.enableEtcdOperator { // hack etcd name
+			if name, ok := pod.Labels["etcd_cluster"]; ok && name != "" {
+				pod.Labels["name"] = name
 			}
-			if s.enableMysqlOperator { // hack db name
-				if name, ok := pod.Labels["v1alpha1.mysql.oracle.com/cluster"]; ok && name != "" {
-					pod.Labels["name"] = name
-				}
-			}
-			pods = append(pods, pod)
 		}
+		if s.enableMysqlOperator { // hack db name
+			if name, ok := pod.Labels["v1alpha1.mysql.oracle.com/cluster"]; ok && name != "" {
+				pod.Labels["name"] = name
+			}
+		}
+		pods = append(pods, pod)
 	}
 	return pods
 }
@@ -135,7 +124,7 @@ func (s *componentRuntimeStore) ListEvent() []*corev1.Event {
 	var events []*corev1.Event
 	for _, obj := range s.listers.Event.List() {
 		event := obj.(*corev1.Event)
-		if event.Namespace == s.namespace && event.Type == corev1.EventTypeWarning && (event.InvolvedObject.Kind == "Pod" || event.InvolvedObject.Kind == "RbdComponent") {
+		if event.Type == corev1.EventTypeWarning && (event.InvolvedObject.Kind == "Pod" || event.InvolvedObject.Kind == "RbdComponent") {
 			events = append(events, event)
 		}
 	}

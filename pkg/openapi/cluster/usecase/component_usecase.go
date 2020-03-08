@@ -2,16 +2,13 @@ package usecase
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/store"
-
-	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
-	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	v1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -21,8 +18,6 @@ import (
 )
 
 var log = logf.Log.WithName("usecase_cluster")
-
-type rbdComponentStatusFromSubObject func(cpn *rainbondv1alpha1.RbdComponent) (*v1.RbdComponentStatus, error)
 
 type componentUsecase struct {
 	cfg    *option.Config
@@ -75,8 +70,6 @@ func (cc *componentUsecase) listPods(cpn *rainbondv1alpha1.RbdComponent) ([]*cor
 
 // List list
 func (cc *componentUsecase) List(isInit bool) ([]*v1.RbdComponentStatus, error) {
-	defer commonutil.TimeConsume(time.Now())
-
 	type componentWithPodsWithEvents struct {
 		component *v1alpha1.RbdComponent
 		Pods      []*corev1.Pod
@@ -119,7 +112,6 @@ func (cc *componentUsecase) List(isInit bool) ([]*v1.RbdComponentStatus, error) 
 }
 
 func (cc *componentUsecase) convertRbdComponent(cpn *rainbondv1alpha1.RbdComponent, pods []*corev1.Pod, events []*corev1.Event) *v1.RbdComponentStatus {
-	defer commonutil.TimeConsume(time.Now())
 	var replicas int32 = 1 // defualt replicas is 1
 	if cpn.Status != nil {
 		replicas = cpn.Status.Replicas
@@ -152,7 +144,6 @@ func (cc *componentUsecase) convertRbdComponent(cpn *rainbondv1alpha1.RbdCompone
 }
 
 func (cc *componentUsecase) convertPodStatues(pods []*corev1.Pod, events []*corev1.Event) []v1.PodStatus {
-	defer commonutil.TimeConsume(time.Now())
 	var podStatuses []v1.PodStatus
 	podEvents := make(map[string][]*corev1.Event)
 	for _, event := range events {
@@ -182,7 +173,6 @@ func (cc *componentUsecase) convertPodStatues(pods []*corev1.Pod, events []*core
 }
 
 func (cc *componentUsecase) convertEventMessage(events []*corev1.Event) (string, string) {
-	defer commonutil.TimeConsume(time.Now())
 	if len(events) == 0 {
 		return "", ""
 	}
