@@ -90,7 +90,7 @@ func (cc *componentUsecase) List(isInit bool) ([]*v1.RbdComponentStatus, error) 
 		cwpes[component.Name] = &componentWithPodsWithEvents{component: component}
 	}
 
-	podAndComponent := make(map[string]string)
+	podAndComponent := make(map[string]string) // key is pod's name, value is component name
 	pods := cc.storer.ListPod()
 	for _, pod := range pods {
 		componentName := pod.Labels["name"]

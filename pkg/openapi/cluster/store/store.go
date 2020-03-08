@@ -120,7 +120,9 @@ func (s *componentRuntimeStore) ListPod() []*corev1.Pod {
 				}
 			}
 			if s.enableMysqlOperator { // hack db name
-				// TODO hack db name
+				if name, ok := pod.Labels["v1alpha1.mysql.oracle.com/cluster"]; ok && name != "" {
+					pod.Labels["name"] = name
+				}
 			}
 			pods = append(pods, pod)
 		}
