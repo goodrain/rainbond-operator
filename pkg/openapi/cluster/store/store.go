@@ -1,6 +1,8 @@
 package store
 
 import (
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -27,23 +29,32 @@ type Storer interface {
 }
 
 type componentRuntimeStore struct {
-	namespace      string
-	rainbondClient *versioned.Clientset
-	k8sClient      *kubernetes.Clientset
-	informers      *Informer
-	listers        *Lister
-	appServices    sync.Map
-	stopch         chan struct{}
+	namespace           string
+	rainbondClient      *versioned.Clientset
+	k8sClient           *kubernetes.Clientset
+	informers           *Informer
+	listers             *Lister
+	appServices         sync.Map
+	stopch              chan struct{}
+	enableEtcdOperator  bool
+	enableMysqlOperator bool
 }
 
 // NewStore TODO close it
 func NewStore(namespace string, rainbondClient *versioned.Clientset, k8sClient *kubernetes.Clientset) Storer {
 	store := &componentRuntimeStore{
+		namespace:      namespace,
 		rainbondClient: rainbondClient,
 		k8sClient:      k8sClient,
 		informers:      &Informer{},
 		listers:        &Lister{},
 		appServices:    sync.Map{},
+	}
+	if enableEtcdOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_ETCD_OPERATOR")); enableEtcdOperator {
+		store.enableEtcdOperator = true
+	}
+	if enableMysqlOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_MYSQL_OPERATOR")); enableMysqlOperator {
+		store.enableMysqlOperator = true
 	}
 	// create informers factory, enable and assign required informers
 	infFactory := informers.NewSharedInformerFactoryWithOptions(k8sClient, time.Second, informers.WithNamespace(namespace))
@@ -103,18 +114,26 @@ func (s *componentRuntimeStore) ListPod() []*corev1.Pod {
 	for _, obj := range s.listers.Pod.List() {
 		pod := obj.(*corev1.Pod)
 		if pod.Namespace == s.namespace {
+			if s.enableEtcdOperator { // hack etcd name
+				if name, ok := pod.Labels["etcd_cluster"]; ok && name != "" {
+					pod.Labels["name"] = name
+				}
+			}
+			if s.enableMysqlOperator { // hack db name
+				// TODO hack db name
+			}
 			pods = append(pods, pod)
 		}
 	}
 	return pods
 }
 
-// ListEvent list events
+// ListEvent list pod and rbdcomponent events
 func (s *componentRuntimeStore) ListEvent() []*corev1.Event {
 	var events []*corev1.Event
 	for _, obj := range s.listers.Event.List() {
 		event := obj.(*corev1.Event)
-		if event.Namespace == s.namespace {
+		if event.Namespace == s.namespace && event.Type == corev1.EventTypeWarning && (event.InvolvedObject.Kind == "Pod" || event.InvolvedObject.Kind == "RbdComponent") {
 			events = append(events, event)
 		}
 	}

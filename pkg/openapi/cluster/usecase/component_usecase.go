@@ -102,11 +102,9 @@ func (cc *componentUsecase) List(isInit bool) ([]*v1.RbdComponentStatus, error) 
 
 	events := cc.storer.ListEvent()
 	for _, event := range events {
-		if event.InvolvedObject.Kind == "pod" && event.Type == corev1.EventTypeWarning {
-			componentName := podAndComponent[event.InvolvedObject.Name]
-			if _, ok := cwpes[componentName]; ok {
-				cwpes[componentName].Events = append(cwpes[componentName].Events, event)
-			}
+		componentName := podAndComponent[event.InvolvedObject.Name]
+		if _, ok := cwpes[componentName]; ok {
+			cwpes[componentName].Events = append(cwpes[componentName].Events, event)
 		}
 	}
 
