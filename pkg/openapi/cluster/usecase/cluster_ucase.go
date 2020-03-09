@@ -76,12 +76,12 @@ func (c *clusterUsecase) UnInstall() error {
 		return fmt.Errorf("delete storageclass: %v", err)
 	}
 	if err := c.clientset.StorageV1().StorageClasses().Delete("rainbondslsc", &metav1.DeleteOptions{}); err != nil {
-		if errors.IsNotFound(err) {
+		if !errors.IsNotFound(err) {
 			return fmt.Errorf("delete storageclass rainbondslsc: %v", err)
 		}
 	}
 	if err := c.clientset.StorageV1().StorageClasses().Delete("rainbondsssc", &metav1.DeleteOptions{}); err != nil {
-		if errors.IsNotFound(err) {
+		if !errors.IsNotFound(err) {
 			return fmt.Errorf("delete storageclass rainbondsssc: %v", err)
 		}
 	}
