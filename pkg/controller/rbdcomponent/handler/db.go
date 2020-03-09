@@ -367,6 +367,7 @@ func (d *db) mysqlCluster() *mysqlv1alpha1.Cluster {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
 			Namespace: d.component.Namespace,
+			Labels:    d.labels,
 		},
 		Spec: mysqlv1alpha1.ClusterSpec{
 			Members:     defaultSize,

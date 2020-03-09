@@ -14,7 +14,7 @@ func Test_componentUsecase_convertEventMessage(t *testing.T) {
 		cfg *option.Config
 	}
 	type args struct {
-		events []corev1.Event
+		events []*corev1.Event
 	}
 	tests := []struct {
 		name    string
@@ -26,7 +26,7 @@ func Test_componentUsecase_convertEventMessage(t *testing.T) {
 		{
 			name: "test1",
 			args: args{
-				events: []corev1.Event{
+				events: []*corev1.Event{
 					{
 						Type:          corev1.EventTypeWarning,
 						Reason:        "filed shedule",
