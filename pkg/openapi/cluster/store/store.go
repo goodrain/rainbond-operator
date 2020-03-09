@@ -1,12 +1,9 @@
 package store
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"time"
-
-	"k8s.io/client-go/tools/cache"
 
 	rainboondInformers "github.com/goodrain/rainbond-operator/pkg/generated/informers/externalversions"
 
@@ -75,9 +72,6 @@ func NewStore(namespace string, rainbondClient *versioned.Clientset, k8sClient *
 // Start start store
 func (s *componentRuntimeStore) Start() error {
 	s.informers.Start(s.stopch)
-	if ready := cache.WaitForCacheSync(s.stopch, s.informers.Pod.HasSynced, s.informers.Event.HasSynced, s.informers.RbdComponent.HasSynced); ready {
-		return fmt.Errorf("wait sync component timeout")
-	}
 	return nil
 }
 
