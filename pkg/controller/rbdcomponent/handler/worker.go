@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
@@ -123,6 +124,39 @@ func (w *worker) deployment() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
+	env := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{
+			Name: "HOST_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		},
+	}
+	if imageHub := w.cluster.Spec.ImageHub; imageHub != nil {
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_DOMAIN",
+			Value: path.Join(imageHub.Domain, imageHub.Namespace),
+		})
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_USER",
+			Value: imageHub.Username,
+		})
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_PASS",
+			Value: imageHub.Password,
+		})
+	}
+
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      WorkerName,
@@ -147,26 +181,9 @@ func (w *worker) deployment() interface{} {
 							Name:            WorkerName,
 							Image:           w.component.Spec.Image,
 							ImagePullPolicy: w.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
-								},
-								{
-									Name: "HOST_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.hostIP",
-										},
-									},
-								},
-							},
-							Args:         args,
-							VolumeMounts: volumeMounts,
+							Env:             env,
+							Args:            args,
+							VolumeMounts:    volumeMounts,
 						},
 					},
 					Volumes: volumes,
