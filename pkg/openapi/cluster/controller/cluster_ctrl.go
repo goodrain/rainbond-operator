@@ -165,7 +165,7 @@ func (cc *ClusterController) Uninstall(c *gin.Context) {
 	if err != nil {
 		reqLogger := log.WithName("uninstall")
 		reqLogger.V(4).Info(err.Error())
-		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		ginutil.JSON(c, nil, err)
 		return
 	}
 	ginutil.JSON(c, nil, nil)
