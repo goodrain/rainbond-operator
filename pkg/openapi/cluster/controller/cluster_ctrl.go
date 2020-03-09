@@ -163,8 +163,9 @@ func (cc *ClusterController) Address(c *gin.Context) {
 func (cc *ClusterController) Uninstall(c *gin.Context) {
 	err := cc.clusterUcase.Cluster().UnInstall()
 	if err != nil {
-		log.Error(err, "uninstall cluster")
-		ginutil.JSON(c, nil, err)
+		reqLogger := log.WithName("uninstall")
+		reqLogger.V(4).Info(err.Error())
+		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
 		return
 	}
 	ginutil.JSON(c, nil, nil)
