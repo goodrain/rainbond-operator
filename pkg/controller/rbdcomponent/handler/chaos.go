@@ -110,9 +110,15 @@ func (c *chaos) deployment() interface{} {
 		{
 			Name:      "dockersock",
 			MountPath: "/var/run/docker.sock",
-		}, {
+		},
+		{
 			Name:      "cache",
 			MountPath: "/cache",
+		},
+		{
+			Name:      "grdata",
+			MountPath: "/root/.ssh",
+			SubPath:   "services/ssh",
 		},
 	}
 	volumes := []corev1.Volume{
