@@ -166,6 +166,14 @@ func (a *appui) deploymentForAppUI() interface{} {
 									MountPath: "/app/logs/",
 								},
 							},
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{Port: intstr.FromInt(7070)},
+								},
+								InitialDelaySeconds: 30,
+								PeriodSeconds:       10,
+								TimeoutSeconds:      5,
+							},
 						},
 					},
 					Volumes: []corev1.Volume{

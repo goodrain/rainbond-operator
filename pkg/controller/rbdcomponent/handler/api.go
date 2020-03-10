@@ -136,7 +136,7 @@ func (a *api) deployment() interface{} {
 		},
 	}
 	args := []string{
-		"--api-addr=127.0.0.1:8888",
+		"--api-addr=0.0.0.0:8888",
 		"--enable-feature=privileged",
 		fmt.Sprintf("--log-level=%s", a.component.LogLevel()),
 		a.db.RegionDataSource(),
@@ -199,8 +199,17 @@ func (a *api) deployment() interface{} {
 							},
 							Args:         args,
 							VolumeMounts: volumeMounts,
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{Path: "/v2/health", Port: intstr.FromInt(8888)},
+								},
+								InitialDelaySeconds: 30,
+								PeriodSeconds:       10,
+								TimeoutSeconds:      5,
+							},
 						},
 					},
+
 					Volumes: volumes,
 				},
 			},

@@ -216,6 +216,31 @@ func (e *etcd) etcdCluster() *etcdv1beta2.EtcdCluster {
 	if e.component.Spec.Replicas != nil {
 		defaultSize = int(*e.component.Spec.Replicas)
 	}
+
+	affinity := &corev1.Affinity{
+		PodAntiAffinity: &corev1.PodAntiAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+				{
+					Weight: 100,
+					PodAffinityTerm: corev1.PodAffinityTerm{
+						LabelSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "app",
+									Operator: metav1.LabelSelectorOpIn,
+									Values: []string{
+										"etcd",
+									},
+								},
+							},
+						},
+						TopologyKey: "kubernetes.io/hostname",
+					},
+				},
+			},
+		},
+	}
+
 	ec := &etcdv1beta2.EtcdCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EtcdName,
@@ -227,6 +252,7 @@ func (e *etcd) etcdCluster() *etcdv1beta2.EtcdCluster {
 			Repository: named.Name(),
 			Version:    tag,
 			Pod: &etcdv1beta2.PodPolicy{
+				Affinity:                  affinity,
 				PersistentVolumeClaimSpec: &pvc.Spec,
 			},
 		},

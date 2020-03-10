@@ -14,6 +14,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -184,6 +185,14 @@ func (w *worker) deployment() interface{} {
 							Env:             env,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{Path: "/worker/health", Port: intstr.FromInt(6369)},
+								},
+								InitialDelaySeconds: 30,
+								PeriodSeconds:       10,
+								TimeoutSeconds:      5,
+							},
 						},
 					},
 					Volumes: volumes,

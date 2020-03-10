@@ -285,7 +285,7 @@ func storageClassForRainbondVolume(volume *rainbondv1alpha1.RainbondVolume) *sto
 		},
 		Provisioner:   volume.Spec.StorageClassParameters.Provisioner,
 		Parameters:    volume.Spec.StorageClassParameters.Parameters,
-		ReclaimPolicy: k8sutil.PersistentVolumeReclaimPolicy(corev1.PersistentVolumeReclaimDelete),
+		ReclaimPolicy: k8sutil.PersistentVolumeReclaimPolicy(corev1.PersistentVolumeReclaimRetain),
 	}
 	return class
 }
