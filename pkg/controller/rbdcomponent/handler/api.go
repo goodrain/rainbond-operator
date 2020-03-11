@@ -153,6 +153,7 @@ func (a *api) deployment() interface{} {
 		volumeMounts = append(volumeMounts, mount)
 		volumes = append(volumes, volume)
 		args = append(args, "--api-ssl-enable=true",
+			"--builder-api="+ChaosName+":3228",
 			"--api-addr-ssl=0.0.0.0:8443",
 			"--api-ssl-certfile=/etc/goodrain/region.goodrain.me/ssl/server.pem",
 			"--api-ssl-keyfile=/etc/goodrain/region.goodrain.me/ssl/server.key.pem",
