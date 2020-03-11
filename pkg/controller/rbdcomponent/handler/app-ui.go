@@ -162,8 +162,14 @@ func (a *appui) deploymentForAppUI() interface{} {
 									MountPath: "/app/region/ssl",
 								},
 								{
-									Name:      "logs",
+									Name:      "app",
 									MountPath: "/app/logs/",
+									SubPath:   "logs",
+								},
+								{
+									Name:      "app",
+									MountPath: "/app/lock",
+									SubPath:   "lock",
 								},
 							},
 							LivenessProbe: &corev1.Probe{
@@ -186,7 +192,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 							},
 						},
 						{
-							Name: "logs",
+							Name: "app",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: a.pvcName,
