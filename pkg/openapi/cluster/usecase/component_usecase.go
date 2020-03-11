@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/store"
 
@@ -101,14 +102,18 @@ func (cc *componentUsecase) List(isInit bool) ([]*v1.RbdComponentStatus, error) 
 		}
 	}
 
-	var statues []*v1.RbdComponentStatus
+	//var statues []*v1.RbdComponentStatus
+	var statuses v1.RbdComponentStatusList
 	for _, cwpe := range cwpes {
 		status := cc.convertRbdComponent(cwpe.component, cwpe.Pods, cwpe.Events)
 
-		statues = append(statues, status)
+		statuses = append(statuses, status)
 	}
 
-	return statues, nil
+	// sort by component name
+	sort.Sort(statuses)
+
+	return statuses, nil
 }
 
 func (cc *componentUsecase) convertRbdComponent(cpn *rainbondv1alpha1.RbdComponent, pods []*corev1.Pod, events []*corev1.Event) *v1.RbdComponentStatus {
