@@ -99,5 +99,5 @@ push-operator: build-operator
 push: docker-login push-ui push-api push-operator
 
 charts:
-	tar -cvf rainbond-operator-chart-$(VERSION).tgz ./chart
+	tar -cvf rainbond-operator-chart-v5.2.0-beta2.tgz ./chart
 	
