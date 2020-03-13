@@ -357,6 +357,7 @@ func (p *nfsPlugin) pv() *corev1.PersistentVolume {
 		Capacity: corev1.ResourceList{
 			corev1.ResourceStorage: *size,
 		},
+		StorageClassName: "manual",
 	}
 	if affnity != nil {
 		spec.NodeAffinity = affnity
@@ -389,7 +390,8 @@ func (p *nfsPlugin) pvc() *corev1.PersistentVolumeClaim {
 					corev1.ResourceStorage: *size,
 				},
 			},
-			VolumeName: p.name,
+			VolumeName:       p.name,
+			StorageClassName: commonutil.String("manual"),
 		},
 	}
 	return pvc
