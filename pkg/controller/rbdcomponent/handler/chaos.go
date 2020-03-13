@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
@@ -14,6 +15,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -74,6 +76,7 @@ func (c *chaos) Before() error {
 func (c *chaos) Resources() []interface{} {
 	return []interface{}{
 		c.deployment(),
+		c.service(),
 	}
 }
 
@@ -91,6 +94,7 @@ func (c *chaos) SetStorageClassNameRWX(pvcParametersRWX *pvcParameters) {
 func (c *chaos) ResourcesCreateIfNotExists() []interface{} {
 	return []interface{}{
 		createPersistentVolumeClaimRWX(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX, c.labels),
+		createPersistentVolumeClaimRWX(c.component.Namespace, constants.GrShareDataPVC, c.pvcParametersRWX, c.labels),
 		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels),
 	}
 }
@@ -108,9 +112,15 @@ func (c *chaos) deployment() interface{} {
 		{
 			Name:      "dockersock",
 			MountPath: "/var/run/docker.sock",
-		}, {
+		},
+		{
 			Name:      "cache",
 			MountPath: "/cache",
+		},
+		{
+			Name:      "grdata",
+			MountPath: "/root/.ssh",
+			SubPath:   "services/ssh",
 		},
 	}
 	volumes := []corev1.Volume{
@@ -165,6 +175,39 @@ func (c *chaos) deployment() interface{} {
 		affinity = affinityForRequiredNodes(nodeNames)
 	}
 
+	env := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{
+			Name:  "SOURCE_DIR",
+			Value: "/cache/source",
+		},
+		{
+			Name:  "CACHE_DIR",
+			Value: "/cache",
+		},
+	}
+	if imageHub := c.cluster.Spec.ImageHub; imageHub != nil {
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_DOMAIN",
+			Value: path.Join(imageHub.Domain, imageHub.Namespace),
+		})
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_USER",
+			Value: imageHub.Username,
+		})
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_PASS",
+			Value: imageHub.Password,
+		})
+	}
+
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ChaosName,
@@ -195,26 +238,9 @@ func (c *chaos) deployment() interface{} {
 							Name:            ChaosName,
 							Image:           c.component.Spec.Image,
 							ImagePullPolicy: c.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
-								},
-								{
-									Name:  "SOURCE_DIR",
-									Value: "/cache/source",
-								},
-								{
-									Name:  "CACHE_DIR",
-									Value: "/cache",
-								},
-							},
-							Args:         args,
-							VolumeMounts: volumeMounts,
+							Env:             env,
+							Args:            args,
+							VolumeMounts:    volumeMounts,
 						},
 					},
 					Volumes: volumes,
@@ -224,4 +250,27 @@ func (c *chaos) deployment() interface{} {
 	}
 
 	return ds
+}
+
+func (c *chaos) service() *corev1.Service {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ChaosName,
+			Namespace: c.component.Namespace,
+			Labels:    c.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "api",
+					Port: 3228,
+					TargetPort: intstr.IntOrString{
+						IntVal: 3228,
+					},
+				},
+			},
+			Selector: c.labels,
+		},
+	}
+	return svc
 }

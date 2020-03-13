@@ -151,6 +151,10 @@ func (a *appui) deploymentForAppUI() interface{} {
 									Name:  "REGION_TCP_DOMAIN",
 									Value: a.cluster.GatewayIngressIP(),
 								},
+								{
+									Name:  "IMAGE_REPO",
+									Value: a.cluster.Spec.ImageHub.Domain,
+								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
@@ -158,9 +162,23 @@ func (a *appui) deploymentForAppUI() interface{} {
 									MountPath: "/app/region/ssl",
 								},
 								{
-									Name:      "logs",
+									Name:      "app",
 									MountPath: "/app/logs/",
+									SubPath:   "logs",
 								},
+								{
+									Name:      "app",
+									MountPath: "/app/lock",
+									SubPath:   "lock",
+								},
+							},
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{Port: intstr.FromInt(7070)},
+								},
+								InitialDelaySeconds: 30,
+								PeriodSeconds:       10,
+								TimeoutSeconds:      5,
 							},
 						},
 					},
@@ -174,7 +192,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 							},
 						},
 						{
-							Name: "logs",
+							Name: "app",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: a.pvcName,

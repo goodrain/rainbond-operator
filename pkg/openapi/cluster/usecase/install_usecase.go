@@ -279,6 +279,7 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 	name2Claim["rbd-gateway"].isInit = isInit
 	name2Claim["rbd-node"] = newClaim("rbd-node")
 	name2Claim["rbd-node"].isInit = isInit
+	name2Claim["rbd-node"].logLevel = "debug"
 
 	if cluster.Spec.EtcdConfig == nil {
 		claim := newClaim("rbd-etcd")

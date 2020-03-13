@@ -1,5 +1,7 @@
 package v1
 
+import "strings"
+
 // ComponentStatus component status
 type ComponentStatus string
 
@@ -34,6 +36,24 @@ type RbdComponentStatus struct {
 	ISInitComponent bool            `json:"isInitComponent"`
 
 	PodStatuses []PodStatus `json:"podStatus"`
+}
+
+//RbdComponentStatusList list of rbdComponentStatus implement sort
+type RbdComponentStatusList []*RbdComponentStatus
+
+// Len len of rbdComponentStatusList
+func (l RbdComponentStatusList) Len() int {
+	return len(l)
+}
+
+// Swap swap list i and j
+func (l RbdComponentStatusList) Swap(i, j int) {
+	l[i], l[j] = l[j], l[i]
+}
+
+// Less list i is less list j or not
+func (l RbdComponentStatusList) Less(i, j int) bool {
+	return strings.Compare(l[i].Name, l[j].Name) == -1
 }
 
 // PodStatus represents information about the status of a pod, which belongs to RbdComponent.

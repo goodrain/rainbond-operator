@@ -3,8 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-	"os"
-	"strconv"
 
 	etcdv1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	"github.com/docker/distribution/reference"
@@ -28,12 +26,11 @@ type etcd struct {
 
 	pvcParametersRWO *pvcParameters
 	storageRequest   int64
-
-	enableEtcdOperator bool
 }
 
 var _ ComponentHandler = &etcd{}
 var _ StorageClassRWOer = &etcd{}
+var _ Replicaser = &etcd{}
 
 // NewETCD creates a new rbd-etcd handler.
 func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -53,9 +50,6 @@ func (e *etcd) Before() error {
 	if e.cluster.Spec.EtcdConfig != nil {
 		return NewIgnoreError(fmt.Sprintf("specified etcd configuration"))
 	}
-	if enableEtcdOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_ETCD_OPERATOR")); enableEtcdOperator {
-		e.enableEtcdOperator = true
-	}
 	if err := setStorageCassName(e.ctx, e.client, e.component.Namespace, e); err != nil {
 		return err
 	}
@@ -64,9 +58,10 @@ func (e *etcd) Before() error {
 }
 
 func (e *etcd) Resources() []interface{} {
-	if e.enableEtcdOperator {
+	if e.cluster.Spec.EnableHA {
 		return []interface{}{
-			e.etcdCluster(),
+			e.statefulsetForEtcdCluster(),
+			e.serviceForEtcd(),
 		}
 	}
 
@@ -81,15 +76,7 @@ func (e *etcd) After() error {
 }
 
 func (e *etcd) ListPods() ([]corev1.Pod, error) {
-	labels := e.labels
-	if e.enableEtcdOperator {
-		labels = map[string]string{
-			// app=etcd,etcd_cluster=example-etcd-cluster
-			"app":          "etcd",
-			"etcd_cluster": EtcdName,
-		}
-	}
-	return listPods(e.ctx, e.client, e.component.Namespace, labels)
+	return listPods(e.ctx, e.client, e.component.Namespace, e.labels)
 }
 
 func (e *etcd) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
@@ -97,10 +84,10 @@ func (e *etcd) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 }
 
 func (e *etcd) Replicas() *int32 {
-	if !e.enableEtcdOperator {
-		commonutil.Int32(1)
+	if e.cluster.Spec.EnableHA {
+		return commonutil.Int32(3)
 	}
-	return nil
+	return commonutil.Int32(1)
 }
 
 func (e *etcd) statefulsetForEtcd() interface{} {
@@ -113,7 +100,7 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 			Labels:    e.labels,
 		},
 		Spec: appsv1.StatefulSetSpec{
-			Replicas:    commonutil.Int32(1),
+			Replicas:    e.Replicas(),
 			ServiceName: EtcdName,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: e.labels,
@@ -147,6 +134,234 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 								fmt.Sprintf("%s=http://%s:2380", EtcdName, EtcdName),
 								"--initial-cluster-state",
 								"new",
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          "client",
+									ContainerPort: 2379,
+								},
+								{
+									Name:          "server",
+									ContainerPort: 2380,
+								},
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      claimName,
+									MountPath: "/var/lib/etcd",
+								},
+							},
+						},
+					},
+				},
+			},
+			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*pvc},
+		},
+	}
+	return sts
+}
+
+func (e *etcd) statefulsetForEtcdCluster() *appsv1.StatefulSet {
+	claimName := "data"
+	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO, e.labels, e.storageRequest)
+
+	sts := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      EtcdName,
+			Namespace: e.component.Namespace,
+			Labels:    e.labels,
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas:    e.Replicas(),
+			ServiceName: EtcdName,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: e.labels,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      EtcdName,
+					Namespace: e.component.Namespace,
+					Labels:    e.labels,
+				},
+				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					Containers: []corev1.Container{
+						{
+							Name:            EtcdName,
+							Image:           e.component.Spec.Image,
+							ImagePullPolicy: e.component.ImagePullPolicy(),
+							Command: []string{
+								"/bin/sh",
+								"-ec",
+								`
+HOSTNAME=$(hostname)
+          echo "etcd api version is ${ETCDAPI_VERSION}"
+
+          eps() {
+              EPS=""
+              for i in $(seq 0 $((${INITIAL_CLUSTER_SIZE} - 1))); do
+                  EPS="${EPS}${EPS:+,}http://${SET_NAME}-${i}.${SET_NAME}.${CLUSTER_NAMESPACE}:2379"
+              done
+              echo ${EPS}
+          }
+
+          member_hash() {
+              etcdctl member list | grep http://${HOSTNAME}.${SET_NAME}.${CLUSTER_NAMESPACE}:2380 | cut -d':' -f1 | cut -d'[' -f1
+          }
+
+          initial_peers() {
+                PEERS=""
+                for i in $(seq 0 $((${INITIAL_CLUSTER_SIZE} - 1))); do
+                PEERS="${PEERS}${PEERS:+,}${SET_NAME}-${i}=http://${SET_NAME}-${i}.${SET_NAME}.${CLUSTER_NAMESPACE}:2380"
+                done
+                echo ${PEERS}
+          }
+
+          # etcd-SET_ID
+          SET_ID=${HOSTNAME##*-}
+          # adding a new member to existing cluster (assuming all initial pods are available)
+          if [ "${SET_ID}" -ge ${INITIAL_CLUSTER_SIZE} ]; then
+              export ETCDCTL_ENDPOINTS=$(eps)
+
+              # member already added?
+              MEMBER_HASH=$(member_hash)
+              if [ -n "${MEMBER_HASH}" ]; then
+                  # the member hash exists but for some reason etcd failed
+                  # as the datadir has not be created, we can remove the member
+                  # and retrieve new hash
+                  if [ "${ETCDAPI_VERSION}" -eq 3 ]; then
+                      ETCDCTL_API=3 etcdctl --user=root:${ROOT_PASSWORD} member remove ${MEMBER_HASH}
+                  else
+                      etcdctl --username=root:${ROOT_PASSWORD} member remove ${MEMBER_HASH}
+                  fi
+              fi
+              echo "Adding new member"
+              rm -rf /var/run/etcd/*
+              # ensure etcd dir exist
+              mkdir -p /var/run/etcd/
+              # sleep 60s wait endpoint become ready
+              echo "sleep 60s wait endpoint become ready,sleeping..."
+              sleep 60
+
+              if [ "${ETCDAPI_VERSION}" -eq 3 ]; then
+                  ETCDCTL_API=3 etcdctl --user=root:${ROOT_PASSWORD} member add ${HOSTNAME} --peer-urls=http://${HOSTNAME}.${SET_NAME}.${CLUSTER_NAMESPACE}:2380 | grep "^ETCD_" > /var/run/etcd/new_member_envs
+              else
+                  etcdctl --username=root:${ROOT_PASSWORD} member add ${HOSTNAME} http://${HOSTNAME}.${SET_NAME}.${CLUSTER_NAMESPACE}:2380 | grep "^ETCD_" > /var/run/etcd/new_member_envs
+              fi
+              
+              
+
+              if [ $? -ne 0 ]; then
+                  echo "member add ${HOSTNAME} error."
+                  rm -f /var/run/etcd/new_member_envs
+                  exit 1
+              fi
+
+              cat /var/run/etcd/new_member_envs
+              source /var/run/etcd/new_member_envs
+
+              exec etcd --name ${HOSTNAME} \
+                  --initial-advertise-peer-urls http://${HOSTNAME}.${SET_NAME}.${CLUSTER_NAMESPACE}:2380 \
+                  --listen-peer-urls http://0.0.0.0:2380 \
+                  --listen-client-urls http://0.0.0.0:2379 \
+                  --advertise-client-urls http://${HOSTNAME}.${SET_NAME}.${CLUSTER_NAMESPACE}:2379 \
+                  --data-dir /var/run/etcd/default.etcd \
+                  --initial-cluster ${ETCD_INITIAL_CLUSTER} \
+                  --initial-cluster-state ${ETCD_INITIAL_CLUSTER_STATE}
+          fi
+
+          for i in $(seq 0 $((${INITIAL_CLUSTER_SIZE} - 1))); do
+              while true; do
+                  echo "Waiting for ${SET_NAME}-${i}.${SET_NAME}.${CLUSTER_NAMESPACE} to come up"
+                  ping -W 1 -c 1 ${SET_NAME}-${i}.${SET_NAME}.${CLUSTER_NAMESPACE} > /dev/null && break
+                  sleep 1s
+              done
+          done
+
+          echo "join member ${HOSTNAME}"
+          # join member
+          exec etcd --name ${HOSTNAME} \
+              --initial-advertise-peer-urls http://${HOSTNAME}.${SET_NAME}.${CLUSTER_NAMESPACE}:2380 \
+              --listen-peer-urls http://0.0.0.0:2380 \
+              --listen-client-urls http://0.0.0.0:2379 \
+              --advertise-client-urls http://${HOSTNAME}.${SET_NAME}.${CLUSTER_NAMESPACE}:2379 \
+              --initial-cluster-token etcd-cluster-1 \
+              --data-dir /var/run/etcd/default.etcd \
+              --initial-cluster $(initial_peers) \
+              --initial-cluster-state new
+`,
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "INITIAL_CLUSTER_SIZE",
+									Value: "3",
+								},
+								{
+									Name: "CLUSTER_NAMESPACE",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.namespace",
+										},
+									},
+								},
+								{
+									Name:  "ETCDAPI_VERSION",
+									Value: "3",
+								},
+								{
+									Name:  "ROOT_PASSWORD",
+									Value: "@123#",
+								},
+								{
+									Name:  "SET_NAME",
+									Value: EtcdName,
+								},
+								{
+									Name:  "GOMAXPROCS",
+									Value: "4",
+								},
+							},
+							Lifecycle: &corev1.Lifecycle{
+								PreStop: &corev1.Handler{
+									Exec: &corev1.ExecAction{
+										Command: []string{
+											"/bin/sh",
+											"-ec",
+											`
+HOSTNAME=$(hostname)
+
+member_hash() {
+	etcdctl member list | grep http://${HOSTNAME}.${SET_NAME}.${CLUSTER_NAMESPACE}:2380 | cut -d':' -f1 | cut -d'[' -f1
+}
+
+eps() {
+	EPS=""
+	for i in $(seq 0 $((${INITIAL_CLUSTER_SIZE} - 1))); do
+		EPS="${EPS}${EPS:+,}http://${SET_NAME}-${i}.${SET_NAME}.${CLUSTER_NAMESPACE}:2379"
+	done
+	echo ${EPS}
+}
+
+export ETCDCTL_ENDPOINTS=$(eps)
+
+SET_ID=${HOSTNAME##*-}
+# Removing member from cluster
+if [ "${SET_ID}" -ge ${INITIAL_CLUSTER_SIZE} ]; then
+	echo "Removing ${HOSTNAME} from etcd cluster"
+	if [ "${ETCDAPI_VERSION}" -eq 3 ]; then
+		ETCDCTL_API=3 etcdctl --user=root:${ROOT_PASSWORD} member remove $(member_hash)
+	else
+		etcdctl --username=root:${ROOT_PASSWORD} member remove $(member_hash)
+	fi
+	if [ $? -eq 0 ]; then
+		# Remove everything otherwise the cluster will no longer scale-up
+		rm -rf /var/run/etcd/*
+	fi
+fi
+`,
+										},
+									},
+								},
 							},
 							Ports: []corev1.ContainerPort{
 								{
@@ -216,6 +431,31 @@ func (e *etcd) etcdCluster() *etcdv1beta2.EtcdCluster {
 	if e.component.Spec.Replicas != nil {
 		defaultSize = int(*e.component.Spec.Replicas)
 	}
+
+	affinity := &corev1.Affinity{
+		PodAntiAffinity: &corev1.PodAntiAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+				{
+					Weight: 100,
+					PodAffinityTerm: corev1.PodAffinityTerm{
+						LabelSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "app",
+									Operator: metav1.LabelSelectorOpIn,
+									Values: []string{
+										"etcd",
+									},
+								},
+							},
+						},
+						TopologyKey: "kubernetes.io/hostname",
+					},
+				},
+			},
+		},
+	}
+
 	ec := &etcdv1beta2.EtcdCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EtcdName,
@@ -227,6 +467,7 @@ func (e *etcd) etcdCluster() *etcdv1beta2.EtcdCluster {
 			Repository: named.Name(),
 			Version:    tag,
 			Pod: &etcdv1beta2.PodPolicy{
+				Affinity:                  affinity,
 				PersistentVolumeClaimSpec: &pvc.Spec,
 			},
 		},

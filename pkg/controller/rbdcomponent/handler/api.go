@@ -136,7 +136,7 @@ func (a *api) deployment() interface{} {
 		},
 	}
 	args := []string{
-		"--api-addr=127.0.0.1:8888",
+		"--api-addr=0.0.0.0:8888",
 		"--enable-feature=privileged",
 		fmt.Sprintf("--log-level=%s", a.component.LogLevel()),
 		a.db.RegionDataSource(),
@@ -153,6 +153,7 @@ func (a *api) deployment() interface{} {
 		volumeMounts = append(volumeMounts, mount)
 		volumes = append(volumes, volume)
 		args = append(args, "--api-ssl-enable=true",
+			"--builder-api="+ChaosName+":3228",
 			"--api-addr-ssl=0.0.0.0:8443",
 			"--api-ssl-certfile=/etc/goodrain/region.goodrain.me/ssl/server.pem",
 			"--api-ssl-keyfile=/etc/goodrain/region.goodrain.me/ssl/server.key.pem",
@@ -199,8 +200,17 @@ func (a *api) deployment() interface{} {
 							},
 							Args:         args,
 							VolumeMounts: volumeMounts,
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{Path: "/v2/health", Port: intstr.FromInt(8888)},
+								},
+								InitialDelaySeconds: 30,
+								PeriodSeconds:       10,
+								TimeoutSeconds:      5,
+							},
 						},
 					},
+
 					Volumes: volumes,
 				},
 			},

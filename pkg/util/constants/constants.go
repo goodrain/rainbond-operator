@@ -15,6 +15,8 @@ const (
 	DefImageRepository = "goodrain.me"
 	//GrDataPVC -
 	GrDataPVC = "rbd-cpt-grdata"
+	// GrShareDataPVC -
+	GrShareDataPVC = "rbd-share-grdata"
 	// CachePVC -
 	CachePVC = "rbd-chaos-cache"
 	// SpecialGatewayLabelKey is a special node label, used to specify where to install the rbd-gateway

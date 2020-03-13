@@ -362,15 +362,37 @@ func (d *db) mysqlCluster() *mysqlv1alpha1.Cluster {
 	if t, ok := repo.(reference.Tagged); ok {
 		tag = t.Tag()
 	}
+	affinity := &corev1.Affinity{
+		PodAntiAffinity: &corev1.PodAntiAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+				{
+					Weight: 100,
+					PodAffinityTerm: corev1.PodAffinityTerm{
+						LabelSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "v1alpha1.mysql.oracle.com/cluster",
+									Operator: metav1.LabelSelectorOpIn,
+									Values:   []string{DBName},
+								},
+							},
+						},
+						TopologyKey: "kubernetes.io/hostname",
+					},
+				},
+			},
+		},
+	}
 
 	mc := &mysqlv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
 			Namespace: d.component.Namespace,
+			Labels:    d.labels,
 		},
 		Spec: mysqlv1alpha1.ClusterSpec{
+			MultiMaster: true,
 			Members:     defaultSize,
-			MultiMaster: false,
 			RootPasswordSecret: &corev1.LocalObjectReference{
 				Name: DBName,
 			},
@@ -380,13 +402,14 @@ func (d *db) mysqlCluster() *mysqlv1alpha1.Cluster {
 			Config: &corev1.LocalObjectReference{
 				Name: mycnf,
 			},
+			Affinity: affinity,
 		},
 	}
 	return mc
 }
 
 func (d *db) serviceForMysqlCluster() interface{} {
-	labels := d.labels
+	labels := copyLabels(d.labels)
 	labels["v1alpha1.mysql.oracle.com/cluster"] = DBName
 	selector := map[string]string{
 		"v1alpha1.mysql.oracle.com/cluster": DBName,

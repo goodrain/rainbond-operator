@@ -67,6 +67,15 @@ spec:
             - --rbd-download-md5={{ .Values.openapi.downloadMD5 }}
             - --image-repository={{ .Values.openapi.imageRepository }}
             - --install-mode={{ .Values.openapi.installMode }}
+          env:
+            {{- if .Values.enableEtcdOperator }}
+            - name: ENABLE_ETCD_OPERATOR
+              value: "{{ .Values.enableEtcdOperator }}"
+            {{- end }}
+            {{- if .Values.enableMySQLOperator }}
+            - name: ENABLE_MYSQL_OPERATOR
+              value: "{{ .Values.enableMySQLOperator }}"
+            {{- end }}
           volumeMounts:
             - mountPath: /opt/rainbond/pkg
               name: rbd-pkg
