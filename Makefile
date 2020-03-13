@@ -98,6 +98,6 @@ push-operator: build-operator
 	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)
 push: docker-login push-ui push-api push-operator
 
-chart:
-	tar -cvf rainbond-operator-chart.tar ./mychart
+charts:
+	tar -cvf rainbond-operator-chart-v5.2.0-beta2.tgz ./chart
 	
