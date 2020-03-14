@@ -12,28 +12,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/goodrain/rainbond-operator/pkg/util/downloadutil"
-
-	"github.com/go-logr/logr"
-
 	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/tarutil"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/downloadutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/retryutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/tarutil"
 
 	"github.com/docker/distribution/reference"
 	dtype "github.com/docker/docker/api/types"
 	dtypes "github.com/docker/docker/api/types"
 	dclient "github.com/docker/docker/client"
+	"github.com/go-logr/logr"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -300,8 +297,10 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 }
 
 func (p *pkg) updateCRStatus() error {
-	if err := updateCRStatus(p.client, p.pkg); err != nil {
-		log.Error(err, "update rainbondpackage status failure")
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return updateCRStatus(p.client, p.pkg)
+	}); err != nil {
+		log.Error(err, "update rainbondpackage")
 		return err
 	}
 	return nil
@@ -310,12 +309,13 @@ func (p *pkg) updateCRStatus() error {
 func updateCRStatus(client client.Client, pkg *rainbondv1alpha1.RainbondPackage) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	err := client.Status().Update(ctx, pkg)
-	if err != nil {
-		err = client.Status().Update(ctx, pkg)
-		if err != nil {
-			return fmt.Errorf("failed to update rainbondpackage status: %v", err)
-		}
+	retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return client.Status().Update(ctx, pkg)
+	})
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return client.Status().Update(ctx, pkg)
+	}); err != nil {
+		return fmt.Errorf("failed to update rainbondpackage status: %v", err)
 	}
 	return nil
 }
