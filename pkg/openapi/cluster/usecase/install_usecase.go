@@ -325,7 +325,9 @@ func (ic *InstallUseCaseImpl) createComponents(req *v1.ClusterInstallReq, cluste
 	for _, claim := range claims {
 		reqLogger := log.WithValues("Namespace", claim.namespace, "Name", claim.name)
 		// update image repository for priority components
-		claim.imageRepository = cluster.Spec.RainbondImageRepository
+		if claim.isInit {
+			claim.imageRepository = cluster.Spec.RainbondImageRepository
+		}
 		data := parseComponentClaim(claim)
 		// init component
 		data.Namespace = ic.cfg.Namespace
