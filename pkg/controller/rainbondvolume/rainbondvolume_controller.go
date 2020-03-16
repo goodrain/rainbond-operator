@@ -180,7 +180,7 @@ func (r *ReconcileRainbondVolume) applyCSIPlugin(ctx context.Context, plugin plu
 		if res == nil {
 			continue
 		}
-		if err := r.updateOrCreateResource(ctx, res.(runtime.Object), res.(metav1.Object)); err != nil {
+		if err := r.createIfNotExists(ctx, res.(runtime.Object), res.(metav1.Object)); err != nil {
 			return err
 		}
 	}
@@ -226,6 +226,24 @@ func (r *ReconcileRainbondVolume) updateOrCreateResource(ctx context.Context, ob
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		return r.client.Status().Update(ctx, obj)
 	})
+}
+
+func (r *ReconcileRainbondVolume) createIfNotExists(ctx context.Context, obj runtime.Object, meta metav1.Object) error {
+	reqLogger := log.WithValues("Namespace", meta.GetNamespace(), "Name", meta.GetName())
+
+	err := r.client.Get(ctx, types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
+	if err != nil && !k8sErrors.IsNotFound(err) {
+		return err
+	}
+
+	reqLogger.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+	err = r.client.Create(ctx, obj)
+	if err != nil {
+		reqLogger.Error(err, "Failed to create new", obj.GetObjectKind(), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+		return err
+	}
+
+	return nil
 }
 
 func (r *ReconcileRainbondVolume) updateVolumeStatus(ctx context.Context, volume *rainbondv1alpha1.RainbondVolume) error {
