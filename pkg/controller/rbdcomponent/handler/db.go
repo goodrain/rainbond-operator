@@ -447,20 +447,20 @@ func (d *db) configMapForMyCnf() interface{} {
 			"my.cnf": `
 [client]
 # Default is Latin1, if you need UTF-8 set this (also in server section)
-default-character-set = utf8
+default-character-set = utf8mb4
 
 [mysqld]
-user=root
+user=mysql
 
 #
 # * Character sets
 #
 # Default is Latin1, if you need UTF-8 set all this (also in client section)
 #
-character-set-server  = utf8
-collation-server      = utf8_general_ci
-character_set_server   = utf8
-collation_server       = utf8_general_ci
+character-set-server  = utf8mb4
+collation-server      = utf8mb4_unicode_ci
+character_set_server   = utf8mb4
+collation_server       = utf8mb4_unicode_ci
 
 # Compatible with versions before 8.0
 default_authentication_plugin=mysql_native_password

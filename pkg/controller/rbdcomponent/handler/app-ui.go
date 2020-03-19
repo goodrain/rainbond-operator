@@ -9,6 +9,7 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,6 +68,7 @@ func (a *appui) Resources() []interface{} {
 		a.deploymentForAppUI(),
 		a.serviceForAppUI(),
 		a.ingressForAppUI(),
+		a.migrationsJob(),
 	}
 }
 
@@ -258,4 +260,97 @@ func (a *appui) ingressForAppUI() interface{} {
 		},
 	}
 	return ing
+}
+
+func (a *appui) migrationsJob() *batchv1.Job {
+	name := "rbd-app-ui-migrations"
+	labels := copyLabels(a.labels)
+	labels["name"] = name
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: a.component.Namespace,
+			Labels:    labels,
+		},
+		Spec: batchv1.JobSpec{
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   name,
+					Labels: labels,
+				},
+				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					RestartPolicy:                 corev1.RestartPolicyOnFailure,
+					Containers: []corev1.Container{
+						{
+							Name:            name,
+							Image:           a.component.Spec.Image,
+							ImagePullPolicy: a.component.ImagePullPolicy(),
+							Command:         []string{"./entrypoint.sh", "init"},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "MYSQL_HOST",
+									Value: a.db.Host,
+								},
+								{
+									Name:  "MYSQL_PORT",
+									Value: strconv.Itoa(a.db.Port),
+								},
+								{
+									Name:  "MYSQL_USER",
+									Value: a.db.Username,
+								},
+								{
+									Name:  "MYSQL_PASS",
+									Value: a.db.Password,
+								},
+								{
+									Name:  "MYSQL_DB",
+									Value: "console",
+								},
+								{
+									Name:  "REGION_URL",
+									Value: "https://rbd-api-api:8443",
+								},
+								{
+									Name:  "REGION_WS_URL",
+									Value: fmt.Sprintf("ws://%s:6060", a.cluster.GatewayIngressIP()),
+								},
+								{
+									Name:  "REGION_HTTP_DOMAIN",
+									Value: a.cluster.Spec.SuffixHTTPHost,
+								},
+								{
+									Name:  "REGION_TCP_DOMAIN",
+									Value: a.cluster.GatewayIngressIP(),
+								},
+								{
+									Name:  "IMAGE_REPO",
+									Value: a.cluster.Spec.ImageHub.Domain,
+								},
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "ssl",
+									MountPath: "/app/region/ssl",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "ssl",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: apiClientSecretName,
+								},
+							},
+						},
+					},
+				},
+			},
+			BackoffLimit: commonutil.Int32(3),
+		},
+	}
+	return job
 }
