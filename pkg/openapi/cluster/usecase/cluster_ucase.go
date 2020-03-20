@@ -385,6 +385,7 @@ func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, err
 
 	annotations := make(map[string]string)
 	annotations["install_id"] = uuidutil.NewUUID()
+	annotations["enterprise_id"] = c.repo.EnterpriseID()
 	cluster.Annotations = annotations
 
 	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)
