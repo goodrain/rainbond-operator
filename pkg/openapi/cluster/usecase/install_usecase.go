@@ -251,8 +251,6 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 		"rbd-worker":   newClaim("rbd-worker"),
 		"rbd-webcli":   newClaim("rbd-webcli"),
 	}
-	name2Claim["rbd-dns"] = newClaim("rbd-dns")
-	name2Claim["rbd-dns"].version = "latest"
 	name2Claim["metrics-server"] = newClaim("metrics-server")
 	name2Claim["metrics-server"].version = "v0.3.6"
 	name2Claim["rbd-repo"] = newClaim("rbd-repo")

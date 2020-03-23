@@ -280,7 +280,6 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 		"/rbd-node:" + p.version:            "/rbd-node:" + p.version,
 		"/rbd-gateway:" + p.version:         "/rbd-gateway:" + p.version,
 		"/builder:5.2.0":                    "/builder",
-		"/rbd-dns":                          "/rbd-dns",
 		"/runner":                           "/runner",
 		"/kube-state-metrics":               "/kube-state-metrics",
 		"/mysqld-exporter":                  "/mysqld-exporter",

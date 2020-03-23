@@ -20,6 +20,7 @@ require (
 	github.com/klauspost/compress v1.9.7
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.10 // indirect
+	github.com/mibk/dupl v1.0.0 // indirect
 	github.com/myesui/uuid v1.0.0 // indirect
 	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/oracle/mysql-operator v0.0.0-20190515081336-9aebcc37a080
