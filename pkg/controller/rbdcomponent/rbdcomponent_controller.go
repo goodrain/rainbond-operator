@@ -403,7 +403,7 @@ func (r *ReconcileRbdComponent) updateOrCreateResource(reqLogger logr.Logger, ob
 	}
 
 	// obj exsits, update
-	reqLogger.Info("Object exists.", "Kind", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+	reqLogger.V(5).Info("Object exists.", "Kind", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
 	if err := r.client.Update(context.TODO(), obj); err != nil {
 		reqLogger.Error(err, "Failed to update", "Kind", obj.GetObjectKind())
 		return reconcile.Result{}, err

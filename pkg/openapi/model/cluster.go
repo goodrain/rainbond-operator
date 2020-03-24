@@ -8,6 +8,7 @@ type GlobalConfigs struct {
 	EtcdConfig        EtcdConfig `json:"etcdConfig"`
 	HTTPDomain        string     `json:"HTTPDomain"`
 	GatewayIngressIPs []string   `json:"gatewayIngressIPs"`
+	OnlyInstallRegion bool       `json:"only_install_region"`
 }
 
 // RbdComponent rbd component
