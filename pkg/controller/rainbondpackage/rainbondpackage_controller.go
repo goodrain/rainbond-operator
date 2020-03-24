@@ -682,13 +682,13 @@ func (p *pkg) imagePullAndPush() error {
 	var count int32
 	handleImgae := func(remoteImage, localImage string) error {
 		if err := p.imagePull(remoteImage); err != nil {
-			return fmt.Errorf("pull image %s falire %s", remoteImage, err.Error())
+			return fmt.Errorf("pull image %s failure %s", remoteImage, err.Error())
 		}
 		if err := p.dcli.ImageTag(p.ctx, remoteImage, localImage); err != nil {
 			return fmt.Errorf("change image tag(%s => %s) failure: %v", remoteImage, localImage, err)
 		}
 		if err := p.imagePush(localImage); err != nil {
-			return fmt.Errorf("push image %s falire %s", localImage, err.Error())
+			return fmt.Errorf("push image %s failure %s", localImage, err.Error())
 		}
 		return nil
 	}
@@ -835,10 +835,18 @@ func (p *pkg) imagePush(image string) error {
 	opts.RegistryAuth = registryAuth
 	ctx, cancel := context.WithCancel(p.ctx)
 	defer cancel()
-	res, err := p.dcli.ImagePush(ctx, image, opts)
+	var res io.ReadCloser
+	for i := 0; i < 2; i++ {
+		res, err = p.dcli.ImagePush(ctx, image, opts)
+		if err != nil {
+			p.log.Error(err, "failed to push image, retry after 5 second", "image", image)
+			//retry after 5 second
+			time.Sleep(time.Second * 5)
+			continue
+		}
+	}
 	if err != nil {
-		log.Error(err, "failed to push image", "image", image)
-		return fmt.Errorf("push image %s: %v", image, err)
+		return err
 	}
 	if res != nil {
 		defer res.Close()

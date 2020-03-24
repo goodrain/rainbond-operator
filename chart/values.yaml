@@ -38,3 +38,4 @@ openapi:
   downloadMD5: c3abca388820c575b95cb337d2f53fd07e8958b3246ab02b8ba38a35517799a4
   installMode: WithPackage
   imageRepository: registry.cn-hangzhou.aliyuncs.com/goodrain
+  onlyRegion: false

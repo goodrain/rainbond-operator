@@ -67,6 +67,7 @@ spec:
             - --rbd-download-md5={{ .Values.openapi.downloadMD5 }}
             - --image-repository={{ .Values.openapi.imageRepository }}
             - --install-mode={{ .Values.openapi.installMode }}
+            - --only-region={{ .Values.openapi.onlyRegion }}
           env:
             {{- if .Values.enableEtcdOperator }}
             - name: ENABLE_ETCD_OPERATOR

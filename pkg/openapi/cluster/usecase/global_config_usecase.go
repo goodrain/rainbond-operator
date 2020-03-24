@@ -95,7 +95,9 @@ func generateSuffixConfigMap(name, namespace string) *corev1.ConfigMap {
 }
 
 func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.RainbondCluster) (*model.GlobalConfigs, error) {
-	clusterInfo := &model.GlobalConfigs{}
+	clusterInfo := &model.GlobalConfigs{
+		OnlyInstallRegion: cc.cfg.OnlyInstallRegion,
+	}
 	if source.Spec.ImageHub != nil {
 		clusterInfo.ImageHub = model.ImageHub{
 			Domain:    source.Spec.ImageHub.Domain,

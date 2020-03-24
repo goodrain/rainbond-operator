@@ -223,7 +223,7 @@ func (ic *InstallUseCaseImpl) initRainbondPackage() error {
 }
 
 func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, cluster *v1alpha1.RainbondCluster) map[string]*componentClaim {
-	var defReplicas *int32 = commonutil.Int32(1)
+	var defReplicas = commonutil.Int32(1)
 	if cluster.Spec.EnableHA {
 		defReplicas = commonutil.Int32(2)
 	}
@@ -243,13 +243,15 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 	}
 	name2Claim := map[string]*componentClaim{
 		"rbd-api":      newClaim("rbd-api"),
-		"rbd-app-ui":   newClaim("rbd-app-ui"),
 		"rbd-chaos":    newClaim("rbd-chaos"),
 		"rbd-eventlog": newClaim("rbd-eventlog"),
 		"rbd-monitor":  newClaim("rbd-monitor"),
 		"rbd-mq":       newClaim("rbd-mq"),
 		"rbd-worker":   newClaim("rbd-worker"),
 		"rbd-webcli":   newClaim("rbd-webcli"),
+	}
+	if !ic.cfg.OnlyInstallRegion {
+		name2Claim["rbd-app-ui"] = newClaim("rbd-app-ui")
 	}
 	name2Claim["rbd-dns"] = newClaim("rbd-dns")
 	name2Claim["rbd-dns"].version = "latest"
