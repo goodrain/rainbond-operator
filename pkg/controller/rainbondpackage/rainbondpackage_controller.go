@@ -308,9 +308,6 @@ func (p *pkg) updateCRStatus() error {
 func updateCRStatus(client client.Client, pkg *rainbondv1alpha1.RainbondPackage) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		return client.Status().Update(ctx, pkg)
-	})
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		return client.Status().Update(ctx, pkg)
 	}); err != nil {
