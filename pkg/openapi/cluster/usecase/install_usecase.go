@@ -258,7 +258,7 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 	name2Claim["rbd-repo"] = newClaim("rbd-repo")
 	name2Claim["rbd-repo"].version = "6.16.0"
 
-	if cluster.Spec.RegionDatabase == nil || cluster.Spec.UIDatabase == nil {
+	if cluster.Spec.RegionDatabase == nil || (cluster.Spec.UIDatabase == nil && !ic.cfg.OnlyInstallRegion) {
 		claim := newClaim("rbd-db")
 		claim.version = "8.0.12"
 		if cluster.Spec.EnableHA {
