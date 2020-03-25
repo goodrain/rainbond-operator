@@ -59,6 +59,10 @@ func (c *clusterUsecase) UnInstall() error {
 		return fmt.Errorf("list pv: %v", err)
 	}
 	for _, claim := range claims.Items {
+		if claim.Spec.VolumeName == "" {
+			// unbound pvc
+			continue
+		}
 		if err := c.cfg.KubeClient.CoreV1().PersistentVolumes().Delete(claim.Spec.VolumeName, &metav1.DeleteOptions{}); err != nil {
 			return fmt.Errorf("delete persistent volume claims: %v", err)
 		}
