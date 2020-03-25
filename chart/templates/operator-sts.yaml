@@ -53,6 +53,8 @@ spec:
             - name: ENABLE_MYSQL_OPERATOR
               value: "{{ .Values.enableMySQLOperator }}"
 {{- end }}
+            - name: REGION_DB_NAME
+              value: "{{ .Values.rainbondOperator.regionDBName }}"
           volumeMounts:
             - mountPath: /opt/rainbond/pkg
               name: rbd-pkg

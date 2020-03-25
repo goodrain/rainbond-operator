@@ -24,6 +24,7 @@ rainbondOperator:
     repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator
     tag: v0.0.1-beta2
     pullPolicy: IfNotPresent
+  regionDBName: region
 
 # openapi
 openapi:
