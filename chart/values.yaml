@@ -35,8 +35,8 @@ openapi:
     pullPolicy: IfNotPresent
   port: 8080
   nodePort: 30008
-  downloadURL: https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/offline/5.2/rainbond.images.2020-03-15-V5.2.0-beta2.tgz
-  downloadMD5: c3abca388820c575b95cb337d2f53fd07e8958b3246ab02b8ba38a35517799a4
+  downloadURL: https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/offline/5.2/rainbond.images.2020-03-25-V5.2.0-beta2.tgz
+  downloadMD5: 0b97553a9dd54c6ecafcfbd851df79cf45085eca060dbd0e6a8fd3682ac6e8a3
   installMode: WithPackage
   imageRepository: registry.cn-hangzhou.aliyuncs.com/goodrain
   onlyRegion: false
