@@ -21,8 +21,24 @@ func NewUserController(g *gin.Engine, userUcase user.Usecase) {
 
 	userEngine := g.Group("/user")
 	userEngine.POST("/login", u.Login)
+	userEngine.POST("/generate", u.Generate)
 }
 
+// Generate -
+func (u *UserController) Generate(c *gin.Context) {
+	user, err := u.userUcase.GenerateUser()
+	if err != nil {
+		if err == usecase.NotAllow {
+			c.JSON(http.StatusBadRequest, err.Error())
+			return
+		}
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, user)
+}
+
+// Login -
 func (u *UserController) Login(c *gin.Context) {
 	var req model.User
 	if err := c.ShouldBind(&req); err != nil {

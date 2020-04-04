@@ -31,3 +31,12 @@ func (s *sqlite3UserRepo) GetByUsername(username string) (*model.User, error) {
 	}
 	return &user, nil
 }
+
+// Listusers return users list
+func (s *sqlite3UserRepo) Listusers() ([]*model.User, error) {
+	var users []*model.User
+	if err := s.db.Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
+}

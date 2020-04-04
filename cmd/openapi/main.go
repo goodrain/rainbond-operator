@@ -6,28 +6,34 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/store"
-
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
+
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
-	clusterCtrl "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/controller"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/repository"
-	cucase "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/usecase"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/store"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/middleware"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/nodestore"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/upload"
-	uctrl "github.com/goodrain/rainbond-operator/pkg/openapi/user/controller"
-	uucase "github.com/goodrain/rainbond-operator/pkg/openapi/user/usecase"
 	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+
+	clusterCtrl "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/controller"
+	repoCluster "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/repository"
+	cucase "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/usecase"
+	uctrl "github.com/goodrain/rainbond-operator/pkg/openapi/user/controller"
+	repoUser "github.com/goodrain/rainbond-operator/pkg/openapi/user/repositry"
+	uucase "github.com/goodrain/rainbond-operator/pkg/openapi/user/usecase"
+
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 var log = logf.Log.WithName("main")
@@ -60,6 +66,11 @@ func main() {
 	// uniform and structured logs.
 	logf.SetLogger(zap.Logger())
 
+	db, _ := gorm.Open("sqlite3", "/tmp/gorm.db") // TODO hrh: data path and handle error
+	defer db.Close()
+
+	db.AutoMigrate(&model.User{})
+
 	restConfig := k8sutil.MustNewKubeConfig(cfg.KubeconfigPath)
 	cfg.RestConfig = restConfig
 	clientset := kubernetes.NewForConfigOrDie(restConfig)
@@ -81,17 +92,19 @@ func main() {
 	}
 	defer nodestorer.Stop()
 
-	repo := repository.NewClusterRepo(cfg.InitPath)
+	repo := repoCluster.NewClusterRepo(cfg.InitPath)
+	userRepo := repoUser.NewSqlite3UserRepository(db)
 
 	r := gin.Default()
 	r.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
 	r.Use(static.Serve("/", static.LocalFile("/app/ui", true)))
+	r.Use(middleware.Authenticate(cfg.JWTSecretKey, cfg.JWTExpTime, userRepo))
 
-	userUcase := uucase.NewUserUsecase(nil, "my-secret-key")
+	userUcase := uucase.NewUserUsecase(userRepo, cfg.JWTSecretKey)
 	uctrl.NewUserController(r, userUcase)
 
 	clusterUcase := cucase.NewClusterCase(cfg, repo, rainbondKubeClient, nodestorer, storer)
-	clusterCtrl.NewClusterController(r, clusterUcase)
+	clusterCtrl.NewClusterController(r, cfg, clusterUcase, userRepo)
 
 	upload.NewUploadController(r, archiveFilePath)
 

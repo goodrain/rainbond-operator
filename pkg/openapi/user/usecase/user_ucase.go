@@ -2,9 +2,11 @@ package usecase
 
 import (
 	"errors"
+	"time"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
-	"time"
+	"github.com/sethvargo/go-password/password"
 
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/user"
@@ -13,6 +15,7 @@ import (
 var (
 	UserNotFound  = errors.New("user not found")
 	WrongPassword = errors.New("wrong password")
+	NotAllow      = errors.New("do not allow more than one administrator")
 )
 
 type userUsecase struct {
@@ -28,6 +31,29 @@ func NewUserUsecase(userRepo user.Repository, secretKey string) user.Usecase {
 	}
 
 	return ucase
+}
+
+// GenerateUser -
+func (u userUsecase) GenerateUser() (*model.User, error) {
+	users, err := u.userRepo.Listusers()
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	if len(users) > 0 {
+		return nil, NotAllow
+	}
+
+	// generate password len is 8 and all digital of password is number, such as 38726051
+	pass, _ := password.Generate(8, 8, 0, false, false)
+	userInfo := model.User{
+		Username: "admin",
+		Password: pass,
+	}
+	err = u.userRepo.CreateIfNotExist(&userInfo)
+	if err != nil {
+		return nil, err
+	}
+	return &userInfo, nil
 }
 
 func (u *userUsecase) Login(username, password string) (string, error) {

@@ -35,7 +35,6 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 
 // CreateIfNotExist mocks base method
 func (m *MockRepository) CreateIfNotExist(user *model.User) error {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateIfNotExist", user)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -43,13 +42,11 @@ func (m *MockRepository) CreateIfNotExist(user *model.User) error {
 
 // CreateIfNotExist indicates an expected call of CreateIfNotExist
 func (mr *MockRepositoryMockRecorder) CreateIfNotExist(user interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateIfNotExist", reflect.TypeOf((*MockRepository)(nil).CreateIfNotExist), user)
 }
 
 // GetByUsername mocks base method
 func (m *MockRepository) GetByUsername(username string) (*model.User, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByUsername", username)
 	ret0, _ := ret[0].(*model.User)
 	ret1, _ := ret[1].(error)
@@ -58,6 +55,18 @@ func (m *MockRepository) GetByUsername(username string) (*model.User, error) {
 
 // GetByUsername indicates an expected call of GetByUsername
 func (mr *MockRepositoryMockRecorder) GetByUsername(username interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByUsername", reflect.TypeOf((*MockRepository)(nil).GetByUsername), username)
+}
+
+// Listusers mocks base method
+func (m *MockRepository) Listusers() ([]*model.User, error) {
+	ret := m.ctrl.Call(m, "Listusers")
+	ret0, _ := ret[0].([]*model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Listusers indicates an expected call of Listusers
+func (mr *MockRepositoryMockRecorder) Listusers() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Listusers", reflect.TypeOf((*MockRepository)(nil).Listusers))
 }

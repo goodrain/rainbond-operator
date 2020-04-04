@@ -2,6 +2,7 @@ package option
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/sirupsen/logrus"
@@ -30,6 +31,8 @@ type Config struct {
 	InstallMode             string
 	RainbondImageRepository string
 	InitPath                string
+	JWTSecretKey            string
+	JWTExpTime              time.Duration
 }
 
 // AddFlags add flag
@@ -49,6 +52,8 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.InstallMode, "install-mode", "WithPackage", "Rainbond installation mode, install with package, or not.")
 	fs.StringVar(&c.RainbondImageRepository, "image-repository", "registry.cn-hangzhou.aliyuncs.com/goodrain", "Image repository for Rainbond components.")
 	fs.StringVar(&c.InitPath, "init-path", "/opt/rainbond/.init", "rainbond init file path")
+	fs.StringVar(&c.JWTSecretKey, "jwt.secret.key", "123", "secret key for signing jwt token")
+	fs.DurationVar(&c.JWTExpTime, "jwt.exp.time", time.Minute*30, "expired time for jwt token")
 }
 
 // SetLog set log

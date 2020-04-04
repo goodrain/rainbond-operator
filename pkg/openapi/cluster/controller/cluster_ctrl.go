@@ -5,15 +5,19 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
-	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
+	"github.com/gin-gonic/gin"
 
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/middleware"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/user"
 	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/ginutil"
 
-	"github.com/gin-gonic/gin"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 )
 
 var log = logf.Log.WithName("cluster_controller")
@@ -31,10 +35,12 @@ var corsMidle = func(f gin.HandlerFunc) gin.HandlerFunc {
 }
 
 // NewClusterController creates a new k8s controller
-func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterUcase) {
+func NewClusterController(g *gin.Engine, cfg *option.Config, clusterCase cluster.IClusterUcase, userRepo user.Repository) {
 	u := &ClusterController{clusterUcase: clusterCase}
 
 	clusterEngine := g.Group("/cluster")
+	clusterEngine.Use(middleware.Authenticate(cfg.JWTSecretKey, cfg.JWTExpTime, userRepo))
+
 	clusterEngine.GET("/status", corsMidle(u.ClusterStatus))
 	clusterEngine.GET("/status-info", corsMidle(u.ClusterStatusInfo))
 	clusterEngine.POST("/init", corsMidle(u.ClusterInit))
