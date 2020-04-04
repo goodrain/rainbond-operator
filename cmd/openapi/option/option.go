@@ -33,6 +33,7 @@ type Config struct {
 	InitPath                string
 	JWTSecretKey            string
 	JWTExpTime              time.Duration
+	DBPath                  string
 }
 
 // AddFlags add flag
@@ -54,6 +55,7 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.InitPath, "init-path", "/opt/rainbond/.init", "rainbond init file path")
 	fs.StringVar(&c.JWTSecretKey, "jwt.secret.key", "123", "secret key for signing jwt token")
 	fs.DurationVar(&c.JWTExpTime, "jwt.exp.time", time.Minute*30, "expired time for jwt token")
+	fs.StringVar(&c.DBPath, "db.path", "/opt/rainbond/data/.init/operator.db", "sqlite path of operator")
 }
 
 // SetLog set log
