@@ -213,16 +213,16 @@ func (r *ReconcileRainbondVolume) updateOrCreateResource(ctx context.Context, ob
 			return err
 		}
 
-		reqLogger.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+		reqLogger.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind))
 		err = r.client.Create(ctx, obj)
 		if err != nil {
-			reqLogger.Error(err, "Failed to create new", obj.GetObjectKind(), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+			reqLogger.Error(err, "Failed to create new", obj.GetObjectKind())
 			return err
 		}
 		return nil
 	}
 
-	reqLogger.Info("Object exists.", "Kind", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+	reqLogger.V(5).Info("Object exists.", "Kind", obj.GetObjectKind().GroupVersionKind().Kind)
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		return r.client.Status().Update(ctx, obj)
 	})
@@ -232,14 +232,19 @@ func (r *ReconcileRainbondVolume) createIfNotExists(ctx context.Context, obj run
 	reqLogger := log.WithValues("Namespace", meta.GetNamespace(), "Name", meta.GetName())
 
 	err := r.client.Get(ctx, types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
-	if err != nil && !k8sErrors.IsNotFound(err) {
-		return err
+	if err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return err
+		}
+	} else {
+		reqLogger.Info(fmt.Sprintf("%s %s is exist", obj.GetObjectKind().GroupVersionKind().Kind, meta.GetName()))
+		return nil
 	}
 
-	reqLogger.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+	reqLogger.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind))
 	err = r.client.Create(ctx, obj)
 	if err != nil {
-		reqLogger.Error(err, "Failed to create new", obj.GetObjectKind(), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+		reqLogger.Error(err, "Failed to create new", obj.GetObjectKind())
 		return err
 	}
 

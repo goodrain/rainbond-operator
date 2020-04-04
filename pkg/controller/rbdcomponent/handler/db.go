@@ -147,6 +147,11 @@ func (d *db) statefulsetForDB() interface{} {
 	claimName := "data"
 	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO, d.labels, d.storageRequest)
 
+	regionDBName := os.Getenv("REGION_DB_NAME")
+	if regionDBName == "" {
+		regionDBName = "region"
+	}
+
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
@@ -193,7 +198,7 @@ func (d *db) statefulsetForDB() interface{} {
 								},
 								{
 									Name:  "MYSQL_DATABASE",
-									Value: "region",
+									Value: regionDBName,
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{

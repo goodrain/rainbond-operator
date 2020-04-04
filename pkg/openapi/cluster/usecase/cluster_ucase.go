@@ -53,25 +53,38 @@ func (c *clusterUsecase) UnInstall() error {
 	deleteOpts := &metav1.DeleteOptions{
 		GracePeriodSeconds: commonutil.Int64(0),
 	}
+	// delete pv based on pvc
+	claims, err := c.cfg.KubeClient.CoreV1().PersistentVolumeClaims(c.namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("list pv: %v", err)
+	}
+	for _, claim := range claims.Items {
+		if claim.Spec.VolumeName == "" {
+			// unbound pvc
+			continue
+		}
+		if err := c.cfg.KubeClient.CoreV1().PersistentVolumes().Delete(claim.Spec.VolumeName, &metav1.DeleteOptions{}); err != nil {
+			return fmt.Errorf("delete persistent volume claims: %v", err)
+		}
+	}
+	// delete pvc
 	if err := c.cfg.KubeClient.CoreV1().PersistentVolumeClaims(c.namespace).DeleteCollection(deleteOpts, metav1.ListOptions{}); err != nil {
 		return fmt.Errorf("delete persistent volume claims: %v", err)
 	}
-
+	// delte rainbond components
 	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(c.cfg.Namespace).DeleteCollection(deleteOpts, metav1.ListOptions{}); err != nil {
 		return fmt.Errorf("delete component: %v", err)
 	}
-
+	// delete rainbond packages
 	if err := c.rainbondClient.RainbondV1alpha1().RainbondPackages(c.namespace).DeleteCollection(deleteOpts, metav1.ListOptions{}); err != nil {
 		return fmt.Errorf("delete rainbond package: %v", err)
 	}
-
 	// delete rainbondvolume
 	if err := c.rainbondClient.RainbondV1alpha1().RainbondVolumes(c.namespace).DeleteCollection(deleteOpts, metav1.ListOptions{}); err != nil {
 		return fmt.Errorf("delete rainbond volume: %v", err)
 	}
-
-	rainbondLabelSelector := fields.SelectorFromSet(rbdutil.LabelsForRainbond(nil)).String()
 	// delete storage class and csidriver
+	rainbondLabelSelector := fields.SelectorFromSet(rbdutil.LabelsForRainbond(nil)).String()
 	if err := c.clientset.StorageV1().StorageClasses().DeleteCollection(deleteOpts, metav1.ListOptions{LabelSelector: rainbondLabelSelector}); err != nil {
 		return fmt.Errorf("delete storageclass: %v", err)
 	}
@@ -88,13 +101,12 @@ func (c *clusterUsecase) UnInstall() error {
 	if err := c.clientset.StorageV1beta1().CSIDrivers().DeleteCollection(deleteOpts, metav1.ListOptions{LabelSelector: rainbondLabelSelector}); err != nil {
 		return fmt.Errorf("delete csidriver: %v", err)
 	}
-
+	// delete rainbond cluster
 	if err := c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Delete(c.cfg.ClusterName, deleteOpts); err != nil {
 		if !k8sErrors.IsNotFound(err) {
 			return fmt.Errorf("delete rainbond cluster: %v", err)
 		}
 	}
-
 	return nil
 }
 

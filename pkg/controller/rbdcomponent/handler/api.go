@@ -78,7 +78,7 @@ func (a *api) Before() error {
 }
 
 func (a *api) Resources() []interface{} {
-	resources := a.secretForAPI()
+	resources := a.secretAndConfigMapForAPI()
 	resources = append(resources, a.deployment())
 	resources = append(resources, a.createService()...)
 	resources = append(resources, a.ingressForAPI())
@@ -267,7 +267,7 @@ func (a *api) createService() []interface{} {
 func (a *api) getSecret(name string) (*corev1.Secret, error) {
 	return getSecret(a.ctx, a.client, a.component.Namespace, name)
 }
-func (a *api) secretForAPI() []interface{} {
+func (a *api) secretAndConfigMapForAPI() []interface{} {
 	var ips = strings.ReplaceAll(strings.Join(a.cluster.GatewayIngressIPs(), "-"), ".", "_")
 	serverSecret, _ := a.getSecret(apiServerSecretName)
 	var ca *commonutil.CA
@@ -334,6 +334,24 @@ func (a *api) secretForAPI() []interface{} {
 			Labels:    labels,
 		},
 		Data: map[string][]byte{
+			"client.pem":     clientPem,
+			"client.key.pem": clientKey,
+			"ca.pem":         caPem,
+		},
+	})
+
+	re = append(re, &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "region-config",
+			Namespace: a.component.Namespace,
+		},
+		Data: map[string]string{
+			"apiAddress":          fmt.Sprintf("https://%s:%d", a.cluster.GatewayIngressIP(), 8443),
+			"websocketAddress":    fmt.Sprintf("ws://%s:%d", a.cluster.GatewayIngressIP(), 6060),
+			"defaultDomainSuffix": a.cluster.Spec.SuffixHTTPHost,
+			"defaultTCPHost":      a.cluster.GatewayIngressIP(),
+		},
+		BinaryData: map[string][]byte{
 			"client.pem":     clientPem,
 			"client.key.pem": clientKey,
 			"ca.pem":         caPem,

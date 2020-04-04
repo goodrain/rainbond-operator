@@ -1,0 +1,9 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RainbondVolume
+metadata:
+  name: rainbondvolumerwx
+  labels:
+    "accessModes": rwx
+spec:
+  csiPlugin:
+    nfs: {}

@@ -223,7 +223,7 @@ func (ic *InstallUseCaseImpl) initRainbondPackage() error {
 }
 
 func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, cluster *v1alpha1.RainbondCluster) map[string]*componentClaim {
-	var defReplicas *int32 = commonutil.Int32(1)
+	var defReplicas = commonutil.Int32(1)
 	if cluster.Spec.EnableHA {
 		defReplicas = commonutil.Int32(2)
 	}
@@ -243,7 +243,6 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 	}
 	name2Claim := map[string]*componentClaim{
 		"rbd-api":      newClaim("rbd-api"),
-		"rbd-app-ui":   newClaim("rbd-app-ui"),
 		"rbd-chaos":    newClaim("rbd-chaos"),
 		"rbd-eventlog": newClaim("rbd-eventlog"),
 		"rbd-monitor":  newClaim("rbd-monitor"),
@@ -251,14 +250,15 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 		"rbd-worker":   newClaim("rbd-worker"),
 		"rbd-webcli":   newClaim("rbd-webcli"),
 	}
-	name2Claim["rbd-dns"] = newClaim("rbd-dns")
-	name2Claim["rbd-dns"].version = "latest"
+	if !ic.cfg.OnlyInstallRegion {
+		name2Claim["rbd-app-ui"] = newClaim("rbd-app-ui")
+	}
 	name2Claim["metrics-server"] = newClaim("metrics-server")
 	name2Claim["metrics-server"].version = "v0.3.6"
 	name2Claim["rbd-repo"] = newClaim("rbd-repo")
 	name2Claim["rbd-repo"].version = "6.16.0"
 
-	if cluster.Spec.RegionDatabase == nil || cluster.Spec.UIDatabase == nil {
+	if cluster.Spec.RegionDatabase == nil || (cluster.Spec.UIDatabase == nil && !ic.cfg.OnlyInstallRegion) {
 		claim := newClaim("rbd-db")
 		claim.version = "8.0.12"
 		if cluster.Spec.EnableHA {

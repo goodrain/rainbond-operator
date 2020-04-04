@@ -32,7 +32,7 @@ module.exports = {
     publicPath, // 和 publicPath 保持一致
     proxy: {
       '/': {
-        target: 'http://39.104.58.169:30008',
+        target: 'http://39.104.127.223:30008',
         ws: true,
         changeOrigin: true
       }
