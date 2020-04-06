@@ -147,6 +147,11 @@ func (d *db) statefulsetForDB() interface{} {
 	claimName := "data"
 	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO, d.labels, d.storageRequest)
 
+	regionDBName := os.Getenv("REGION_DB_NAME")
+	if regionDBName == "" {
+		regionDBName = "region"
+	}
+
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
@@ -193,7 +198,7 @@ func (d *db) statefulsetForDB() interface{} {
 								},
 								{
 									Name:  "MYSQL_DATABASE",
-									Value: "region",
+									Value: regionDBName,
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
@@ -362,15 +367,37 @@ func (d *db) mysqlCluster() *mysqlv1alpha1.Cluster {
 	if t, ok := repo.(reference.Tagged); ok {
 		tag = t.Tag()
 	}
+	affinity := &corev1.Affinity{
+		PodAntiAffinity: &corev1.PodAntiAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+				{
+					Weight: 100,
+					PodAffinityTerm: corev1.PodAffinityTerm{
+						LabelSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "v1alpha1.mysql.oracle.com/cluster",
+									Operator: metav1.LabelSelectorOpIn,
+									Values:   []string{DBName},
+								},
+							},
+						},
+						TopologyKey: "kubernetes.io/hostname",
+					},
+				},
+			},
+		},
+	}
 
 	mc := &mysqlv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
 			Namespace: d.component.Namespace,
+			Labels:    d.labels,
 		},
 		Spec: mysqlv1alpha1.ClusterSpec{
+			MultiMaster: true,
 			Members:     defaultSize,
-			MultiMaster: false,
 			RootPasswordSecret: &corev1.LocalObjectReference{
 				Name: DBName,
 			},
@@ -380,13 +407,14 @@ func (d *db) mysqlCluster() *mysqlv1alpha1.Cluster {
 			Config: &corev1.LocalObjectReference{
 				Name: mycnf,
 			},
+			Affinity: affinity,
 		},
 	}
 	return mc
 }
 
 func (d *db) serviceForMysqlCluster() interface{} {
-	labels := d.labels
+	labels := copyLabels(d.labels)
 	labels["v1alpha1.mysql.oracle.com/cluster"] = DBName
 	selector := map[string]string{
 		"v1alpha1.mysql.oracle.com/cluster": DBName,
@@ -424,20 +452,20 @@ func (d *db) configMapForMyCnf() interface{} {
 			"my.cnf": `
 [client]
 # Default is Latin1, if you need UTF-8 set this (also in server section)
-default-character-set = utf8
+default-character-set = utf8mb4
 
 [mysqld]
-user=root
+user=mysql
 
 #
 # * Character sets
 #
 # Default is Latin1, if you need UTF-8 set all this (also in client section)
 #
-character-set-server  = utf8
-collation-server      = utf8_general_ci
-character_set_server   = utf8
-collation_server       = utf8_general_ci
+character-set-server  = utf8mb4
+collation-server      = utf8mb4_unicode_ci
+character_set_server   = utf8mb4
+collation_server       = utf8mb4_unicode_ci
 
 # Compatible with versions before 8.0
 default_authentication_plugin=mysql_native_password

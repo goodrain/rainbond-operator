@@ -12,12 +12,13 @@ This chart bootstraps an rainbond-operator.
 
 ## Prerequisites
 
-- Kubernetes 1.2+
+- Kubernetes 1.13+
 - Helm 3.0+
+- PV provisioner support in the underlying infrastructure
 
 ## Installing the Chart
 
-To install the chart with the release name `my-release`:
+To install the chart with the release name `rainbond-operator`:
 
 ```bash
 git clone https://github.com/goodrain/rainbond-operator.git
@@ -26,7 +27,7 @@ cd rainbond-operator
 
 kubectl create ns rbd-system
 
-helm install my-release ./mychart --namespace=rbd-system
+helm install rainbond-operator ./chart --namespace=rbd-system
 ```
 
 ## Installing ETCD Operator
@@ -44,10 +45,10 @@ helm install etcd-operator stable/etcd-operator -n rbd-system
 
 ## Uninstalling the Chart
 
-To uninstall/delete the my-release:
+To uninstall/delete the rainbond-operator:
 
 ```bash
-helm delete my-release
+helm delete rainbond-operator
 ```
 
 The command removes all the Kubernetes components EXCEPT the persistent volume.
@@ -59,27 +60,30 @@ The following table lists the configurable parameters of the etcd-operator chart
 | Parameter                           | Description                                   | Default                                                                                                                                                                  |
 |-------------------------------------|-----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `rainbondOperator.name`             | Rainbond Operator name                        | `rainbond-operator`                                                                                                                                                      |
-| `rainbondOperator.image.repository` | rainbond-operator container image             | `abewang/rainbond-operator`                                                                                                                                              |
-| `rainbondOperator.image.tag`        | rainbond-operator container image tag         | `v0.0.1`                                                                                                                                                                 |
+| `rainbondOperator.image.repository` | rainbond-operator container image             | `registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator`                                                                                                                                              |
+| `rainbondOperator.image.tag`        | rainbond-operator container image tag         | `v1.0.0-beta2`                                                                                                                                                                 |
 | `rainbondOperator.image.pullPolicy` | rainbond-operator container image pull policy | `IfNotPresent`                                                                                                                                                           |
 | `openapi.name`                      | openapi name                                  | `openapi`                                                                                                                                                                |
-| `openapi.image.repository`          | openapi container image                       | `abewang/rbd-op-ui`                                                                                                                                                      |
-| `openapi.image.tag`                 | openapi container image tag                   | `v0.0.1`                                                                                                                                                                 |
+| `openapi.image.repository`          | openapi container image                       | `registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui`                                                                                                                                                      |
+| `openapi.image.tag`                 | openapi container image tag                   | `v1.0.0-beta2`                                                                                                                                                                 |
 | `openapi.image.pullPolicy`          | openapi container image pull policy           | `IfNotPresent`                                                                                                                                                           |
 | `openapi.image.port`                | openapi service port                          | `8080`                                                                                                                                                                   |
 | `openapi.image.nodePort`            | openapi service nodePort                      | `30008`                                                                                                                                                                  |
-| `openapi.image.downloadURL`         | rainbond package download url                 | `https://hrhtest.oss-cn-shanghai.aliyuncs.com/rainbond-pkg-V5.2-dev.tgz?OSSAccessKeyId=LTAIVsBmV7qjFJzK&Expires=1579407682&Signature=2Nmf5ZBAGIo%2F05%2BogDyAgSaSJNI%3D` |
+| `openapi.image.downloadURL`         | rainbond package download url                 | `Official download address` |
+| `openapi.image.downloadMD5`         | rainbond package SHA256                 | `Official package SHA256` |
+| `openapi.image.installMode`         | The installation mode, WithPackage or WithoutPackage     | `WithPackage` |
+| `openapi.image.imageRepository`     | The default image address              | `Oregistry.cn-hangzhou.aliyuncs.com/goodrain` |
 
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example:
 
 ```bash
-$ helm install --name my-release --set image.tag=v0.0.1 ./mychart
+$ helm install --name rainbond-operator --set image.tag=v1.0.0-beta2 ./chart
 ```
 
 Alternatively, a YAML file that specifies the values for the parameters can be provided while
 installing the chart. For example:
 
 ```bash
-$ helm install --name my-release --values values.yaml ./mychart
+$ helm install --name rainbond-operator --values values.yaml ./chart
 ```

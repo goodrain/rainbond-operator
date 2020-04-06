@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
@@ -13,6 +14,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -123,6 +125,39 @@ func (w *worker) deployment() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
+	env := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{
+			Name: "HOST_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		},
+	}
+	if imageHub := w.cluster.Spec.ImageHub; imageHub != nil {
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_DOMAIN",
+			Value: path.Join(imageHub.Domain, imageHub.Namespace),
+		})
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_USER",
+			Value: imageHub.Username,
+		})
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_PASS",
+			Value: imageHub.Password,
+		})
+	}
+
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      WorkerName,
@@ -147,26 +182,17 @@ func (w *worker) deployment() interface{} {
 							Name:            WorkerName,
 							Image:           w.component.Spec.Image,
 							ImagePullPolicy: w.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
+							Env:             env,
+							Args:            args,
+							VolumeMounts:    volumeMounts,
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{Path: "/worker/health", Port: intstr.FromInt(6369)},
 								},
-								{
-									Name: "HOST_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.hostIP",
-										},
-									},
-								},
+								InitialDelaySeconds: 30,
+								PeriodSeconds:       10,
+								TimeoutSeconds:      5,
 							},
-							Args:         args,
-							VolumeMounts: volumeMounts,
 						},
 					},
 					Volumes: volumes,

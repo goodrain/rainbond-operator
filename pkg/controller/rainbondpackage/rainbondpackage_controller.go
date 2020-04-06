@@ -12,28 +12,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/goodrain/rainbond-operator/pkg/util/downloadutil"
-
-	"github.com/go-logr/logr"
-
 	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/tarutil"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/downloadutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/retryutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/tarutil"
 
 	"github.com/docker/distribution/reference"
 	dtype "github.com/docker/docker/api/types"
 	dtypes "github.com/docker/docker/api/types"
 	dclient "github.com/docker/docker/client"
+	"github.com/go-logr/logr"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -283,13 +280,12 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 		"/rbd-node:" + p.version:            "/rbd-node:" + p.version,
 		"/rbd-gateway:" + p.version:         "/rbd-gateway:" + p.version,
 		"/builder:5.2.0":                    "/builder",
-		"/rbd-dns":                          "/rbd-dns",
 		"/runner":                           "/runner",
 		"/kube-state-metrics":               "/kube-state-metrics",
 		"/mysqld-exporter":                  "/mysqld-exporter",
 		"/rbd-repo:6.16.0":                  "/rbd-repo:6.16.0",
 		"/rbd-registry:2.6.2":               "/rbd-registry:2.6.2",
-		"/rbd-db:v5.1.9":                    "/rbd-db:v5.1.9",
+		"/rbd-db:8.0.12":                    "/rbd-db:8.0.12",
 		"/metrics-server:v0.3.6":            "/metrics-server:v0.3.6",
 		"/rbd-init-probe:" + p.version:      "/rbd-init-probe",
 		"/rbd-mesh-data-panel:" + p.version: "/rbd-mesh-data-panel",
@@ -300,8 +296,10 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 }
 
 func (p *pkg) updateCRStatus() error {
-	if err := updateCRStatus(p.client, p.pkg); err != nil {
-		log.Error(err, "update rainbondpackage status failure")
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return updateCRStatus(p.client, p.pkg)
+	}); err != nil {
+		log.Error(err, "update rainbondpackage")
 		return err
 	}
 	return nil
@@ -310,12 +308,10 @@ func (p *pkg) updateCRStatus() error {
 func updateCRStatus(client client.Client, pkg *rainbondv1alpha1.RainbondPackage) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	err := client.Status().Update(ctx, pkg)
-	if err != nil {
-		err = client.Status().Update(ctx, pkg)
-		if err != nil {
-			return fmt.Errorf("failed to update rainbondpackage status: %v", err)
-		}
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return client.Status().Update(ctx, pkg)
+	}); err != nil {
+		return fmt.Errorf("failed to update rainbondpackage status: %v", err)
 	}
 	return nil
 }
@@ -682,13 +678,13 @@ func (p *pkg) imagePullAndPush() error {
 	var count int32
 	handleImgae := func(remoteImage, localImage string) error {
 		if err := p.imagePull(remoteImage); err != nil {
-			return fmt.Errorf("pull image %s falire %s", remoteImage, err.Error())
+			return fmt.Errorf("pull image %s failure %s", remoteImage, err.Error())
 		}
 		if err := p.dcli.ImageTag(p.ctx, remoteImage, localImage); err != nil {
 			return fmt.Errorf("change image tag(%s => %s) failure: %v", remoteImage, localImage, err)
 		}
 		if err := p.imagePush(localImage); err != nil {
-			return fmt.Errorf("push image %s falire %s", localImage, err.Error())
+			return fmt.Errorf("push image %s failure %s", localImage, err.Error())
 		}
 		return nil
 	}
@@ -835,10 +831,18 @@ func (p *pkg) imagePush(image string) error {
 	opts.RegistryAuth = registryAuth
 	ctx, cancel := context.WithCancel(p.ctx)
 	defer cancel()
-	res, err := p.dcli.ImagePush(ctx, image, opts)
+	var res io.ReadCloser
+	for i := 0; i < 2; i++ {
+		res, err = p.dcli.ImagePush(ctx, image, opts)
+		if err != nil {
+			p.log.Error(err, "failed to push image, retry after 5 second", "image", image)
+			//retry after 5 second
+			time.Sleep(time.Second * 5)
+			continue
+		}
+	}
 	if err != nil {
-		log.Error(err, "failed to push image", "image", image)
-		return fmt.Errorf("push image %s: %v", image, err)
+		return err
 	}
 	if res != nil {
 		defer res.Close()

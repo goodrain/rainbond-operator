@@ -30,6 +30,7 @@ type Config struct {
 	InstallMode             string
 	RainbondImageRepository string
 	InitPath                string
+	OnlyInstallRegion       bool
 }
 
 // AddFlags add flag
@@ -47,6 +48,7 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.KubeCfgSecretName, "kube-secret", "kube-cfg-secret", "kubernetes account info used for cadvisor through kubelet")
 	fs.StringVar(&c.Rainbondpackage, "rainbond-package-name", "rainbondpackage", "kubernetes rainbondpackage resource name")
 	fs.StringVar(&c.InstallMode, "install-mode", "WithPackage", "Rainbond installation mode, install with package, or not.")
+	fs.BoolVar(&c.OnlyInstallRegion, "only-region", false, "Only install region, if true, can not install ui.")
 	fs.StringVar(&c.RainbondImageRepository, "image-repository", "registry.cn-hangzhou.aliyuncs.com/goodrain", "Image repository for Rainbond components.")
 	fs.StringVar(&c.InitPath, "init-path", "/opt/rainbond/.init", "rainbond init file path")
 }

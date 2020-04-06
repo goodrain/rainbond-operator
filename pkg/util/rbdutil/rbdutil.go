@@ -53,7 +53,7 @@ func LabelsForAccessModeRWO() map[string]string {
 // FilterNodesWithPortConflicts -
 func FilterNodesWithPortConflicts(nodes []*rainbondv1alpha1.K8sNode) []*rainbondv1alpha1.K8sNode {
 	var result []*rainbondv1alpha1.K8sNode
-	gatewayPorts := []int{80, 443, 10254, 18080, 8443, 6060, 7070}
+	gatewayPorts := []int{80, 443, 10254, 18080, 18081, 8443, 6060, 7070}
 	for idx := range nodes {
 		node := nodes[idx]
 		ok := true

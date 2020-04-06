@@ -77,7 +77,6 @@ func (g *gateway) deployment() interface{} {
 	args := []string{
 		fmt.Sprintf("--log-level=%s", g.component.LogLevel()),
 		"--error-log=/dev/stderr error",
-		"--enable-kubeapi=false",
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(g.cluster), ","),
 	}
 	var volumeMounts []corev1.VolumeMount

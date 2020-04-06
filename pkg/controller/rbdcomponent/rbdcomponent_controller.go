@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-logr/logr"
 	appv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -89,6 +90,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		&corev1.Secret{},
 		&corev1.ConfigMap{},
 		&corev1.PersistentVolumeClaim{},
+		&batchv1.Job{},
 	}
 
 	for _, t := range secondaryResourceTypes {
@@ -401,7 +403,7 @@ func (r *ReconcileRbdComponent) updateOrCreateResource(reqLogger logr.Logger, ob
 	}
 
 	// obj exsits, update
-	reqLogger.Info("Object exists.", "Kind", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+	reqLogger.V(5).Info("Object exists.", "Kind", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
 	if err := r.client.Update(context.TODO(), obj); err != nil {
 		reqLogger.Error(err, "Failed to update", "Kind", obj.GetObjectKind())
 		return reconcile.Result{}, err

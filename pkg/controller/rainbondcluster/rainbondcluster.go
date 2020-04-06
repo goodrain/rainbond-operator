@@ -37,7 +37,8 @@ var provisionerAccessModes map[string]corev1.PersistentVolumeAccessMode = map[st
 	// Alibaba csi plugins for kubernetes.
 	// More info: https://github.com/kubernetes-sigs/alibaba-cloud-csi-driver/tree/master/pkg
 	"cpfsplugin.csi.alibabacloud.com": corev1.ReadWriteMany,
-	"diskplugin.csi.alibabacloud.com": corev1.ReadWriteMany,
+	"diskplugin.csi.alibabacloud.com": corev1.ReadWriteOnce,
+	"alicloud/disk":                   corev1.ReadWriteOnce,
 	"lvmplugin.csi.alibabacloud.com":  corev1.ReadWriteMany,
 	"memplugin.csi.alibabacloud.com":  corev1.ReadWriteMany,
 	"nasplugin.csi.alibabacloud.com":  corev1.ReadWriteMany,

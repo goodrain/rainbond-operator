@@ -15,7 +15,7 @@ ifdef VERSION
 else ifdef TRAVIS_COMMIT
 	VERSION ?= v1.0.0-beta2-${TRAVIS_COMMIT}
 else 
-	VERSION ?= v1.0.0-beta2-$(shell git describe --always --dirty)
+	VERSION ?= $(shell git describe --always --dirty)
 endif
 
 
@@ -98,6 +98,6 @@ push-operator: build-operator
 	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)
 push: docker-login push-ui push-api push-operator
 
-chart:
-	tar -cvf rainbond-operator-chart.tar ./mychart
+charts:
+	tar -cvf rainbond-operator-chart-$(VERSION).tgz ./chart
 	
