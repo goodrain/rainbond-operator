@@ -66,7 +66,7 @@
             label-width="85px"
             class="d2-mt d2-form-item"
           >
-            <el-input v-model="ruleForm.imageHubPassword" class="d2-input_inner"></el-input>
+            <el-input v-model="ruleForm.imageHubPassword" show-password class="d2-input_inner"></el-input>
           </el-form-item>
         </div>
         <div class="clues">{{ $t("page.install.config.hubDesc") }}</div>
@@ -128,7 +128,7 @@
             class="d2-mt d2-form-item"
             prop="regionDatabasePassword"
           >
-            <el-input v-model="ruleForm.regionDatabasePassword" class="d2-input_inner"></el-input>
+            <el-input v-model="ruleForm.regionDatabasePassword"  show-password class="d2-input_inner"></el-input>
           </el-form-item>
         </div>
         <div class="clues">{{ $t("page.install.config.regionDBDesc") }}</div>
@@ -189,7 +189,7 @@
             class="d2-mt d2-form-item"
             prop="uiDatabasePassword"
           >
-            <el-input v-model="ruleForm.uiDatabasePassword" class="d2-input_inner"></el-input>
+            <el-input v-model="ruleForm.uiDatabasePassword"  show-password class="d2-input_inner"></el-input>
           </el-form-item>
         </div>
         <div class="clues">{{ $t("page.install.config.uiDBDesc") }}</div>
@@ -1276,7 +1276,6 @@ export default {
           });
           obj.nodesForChaos = chaosNodes;
           obj.enableHA = this.ruleForm.enableHA;
-          console.log(obj);
           this.$store
             .dispatch("putClusterInfo", obj)
             .then(res => {
@@ -1376,7 +1375,6 @@ export default {
           }
         };
       }
-      console.log(obj);
       this.$store
         .dispatch("installCluster", obj)
         .then(en => {
