@@ -1279,18 +1279,10 @@ export default {
           obj.nodesForGateway = gatewayNodes
           let chaosNodes = []
           this.setChaosNodes.map(item => {
-<<<<<<< HEAD
-            chaosNodes.push({ internalIP: item });
-          });
-          obj.nodesForChaos = chaosNodes;
-          obj.enableHA = this.ruleForm.enableHA;
-=======
             chaosNodes.push({ internalIP: item })
           })
           obj.nodesForChaos = chaosNodes
           obj.enableHA = this.ruleForm.enableHA
-          console.log(obj)
->>>>>>> rainbond/master
           this.$store
             .dispatch('putClusterInfo', obj)
             .then(res => {
@@ -1390,10 +1382,6 @@ export default {
           }
         }
       }
-<<<<<<< HEAD
-=======
-      console.log(obj)
->>>>>>> rainbond/master
       this.$store
         .dispatch('installCluster', obj)
         .then(en => {
