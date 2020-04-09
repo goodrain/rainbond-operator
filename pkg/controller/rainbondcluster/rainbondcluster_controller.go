@@ -125,6 +125,14 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		}
 	}
 
+	// create secret for pulling images.
+	if rainbondcluster.Spec.ImageHub != nil {
+		err := mgr.createImagePullSecret()
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	return reconcile.Result{}, nil
 }
 
@@ -163,6 +171,8 @@ func (r *ReconcileRainbondCluster) getImageHub(cluster *rainbondv1alpha1.Rainbon
 	}
 
 	return &rainbondv1alpha1.ImageHub{
-		Domain: constants.DefImageRepository,
+		Domain:   constants.DefImageRepository,
+		Username: cluster.Status.ImagePullUsername,
+		Password: cluster.Status.ImagePullPassword,
 	}, nil
 }

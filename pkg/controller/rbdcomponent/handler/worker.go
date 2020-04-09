@@ -142,20 +142,36 @@ func (w *worker) deployment() interface{} {
 				},
 			},
 		},
+		{
+			Name:  "BUILD_IMAGE_REPOSTORY_USER",
+			Value: "admin",
+		},
+		{
+			Name: "BUILD_IMAGE_REPOSTORY_PASS",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: hubImageRepository,
+					},
+					Key: "password",
+				},
+			},
+		},
 	}
 	if imageHub := w.cluster.Spec.ImageHub; imageHub != nil {
 		env = append(env, corev1.EnvVar{
 			Name:  "BUILD_IMAGE_REPOSTORY_DOMAIN",
 			Value: path.Join(imageHub.Domain, imageHub.Namespace),
 		})
-		env = append(env, corev1.EnvVar{
-			Name:  "BUILD_IMAGE_REPOSTORY_USER",
-			Value: imageHub.Username,
-		})
-		env = append(env, corev1.EnvVar{
-			Name:  "BUILD_IMAGE_REPOSTORY_PASS",
-			Value: imageHub.Password,
-		})
+		// TODO: huangrh
+		// env = append(env, corev1.EnvVar{
+		// 	Name:  "BUILD_IMAGE_REPOSTORY_USER",
+		// 	Value: imageHub.Username,
+		// })
+		// env = append(env, corev1.EnvVar{
+		// 	Name:  "BUILD_IMAGE_REPOSTORY_PASS",
+		// 	Value: imageHub.Password,
+		// })
 	}
 
 	ds := &appsv1.Deployment{
@@ -177,6 +193,7 @@ func (w *worker) deployment() interface{} {
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
+					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
 					Containers: []corev1.Container{
 						{
 							Name:            WorkerName,

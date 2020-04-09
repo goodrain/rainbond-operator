@@ -8,14 +8,18 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/uuidutil"
 
+	"encoding/base64"
 	"github.com/go-logr/logr"
+	"github.com/pquerna/ffjson/ffjson"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var provisionerAccessModes map[string]corev1.PersistentVolumeAccessMode = map[string]corev1.PersistentVolumeAccessMode{
+var provisionerAccessModes = map[string]corev1.PersistentVolumeAccessMode{
 	// Kubernetes Internal Provisioner.
 	// More info: https://github.com/kubernetes/kubernetes/tree/v1.17.3/pkg/volume
 	"kubernetes.io/aws-ebs":         corev1.ReadWriteOnce,
@@ -100,6 +104,16 @@ func (r *rainbondClusteMgr) generateRainbondClusterStatus() (*rainbondv1alpha1.R
 		MasterRoleLabel: masterRoleLabel,
 		StorageClasses:  r.listStorageClasses(),
 	}
+	if r.cluster.Status != nil {
+		if r.cluster.Status.ImagePullUsername == "" || r.cluster.Status.ImagePullPassword == "" {
+			s.ImagePullUsername = "admin"
+			s.ImagePullPassword = uuidutil.NewUUID()[0:8]
+		} else {
+			s.ImagePullUsername = r.cluster.Status.ImagePullUsername
+			s.ImagePullPassword = r.cluster.Status.ImagePullPassword
+		}
+	}
+
 	var masterNodesForGateway []*rainbondv1alpha1.K8sNode
 	var masterNodesForChaos []*rainbondv1alpha1.K8sNode
 	if masterRoleLabel != "" {
@@ -195,4 +209,44 @@ func (r *rainbondClusteMgr) listMasterNodesForGateway(masterLabel string) []*rai
 func (r *rainbondClusteMgr) listMasterNodes(masterRoleLabelKey string) []*rainbondv1alpha1.K8sNode {
 	labels := k8sutil.MaterRoleLabel(masterRoleLabelKey)
 	return r.listNodesByLabels(labels)
+}
+
+func (r *rainbondClusteMgr) createImagePullSecret() error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rbd-hub-credentials",
+			Namespace: r.cluster.Namespace,
+		},
+		StringData: map[string]string{
+			".dockerconfigjson": r.generateDockerConfig(),
+		},
+		Type: corev1.SecretTypeDockerConfigJson,
+	}
+	err := r.client.Create(r.ctx, secret)
+	if err != nil {
+		return fmt.Errorf("create secret for pulling images: %v", err)
+	}
+	return nil
+}
+
+func (r *rainbondClusteMgr) generateDockerConfig() string {
+	type dockerConfig struct {
+		Auths map[string]map[string]string `json:"auths"`
+	}
+
+	username, password := r.cluster.Spec.ImageHub.Username, r.cluster.Spec.ImageHub.Password
+	auth := map[string]string{
+		"username": r.cluster.Spec.ImageHub.Username,
+		"password": r.cluster.Spec.ImageHub.Password,
+		"auth":     base64.StdEncoding.EncodeToString([]byte(username + ":" + password)),
+	}
+
+	dockercfg := dockerConfig{
+		Auths: map[string]map[string]string{
+			r.cluster.Spec.ImageHub.Domain: auth,
+		},
+	}
+
+	bytes, _ := ffjson.Marshal(dockercfg)
+	return base64.StdEncoding.EncodeToString(bytes)
 }

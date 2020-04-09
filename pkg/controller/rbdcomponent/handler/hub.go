@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"fmt"
+	"os/exec"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
@@ -27,6 +29,9 @@ type hub struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
+
+	password string
+	htpasswd []byte
 
 	pvcParametersRWX *pvcParameters
 	storageRequest   int64
@@ -55,6 +60,12 @@ func (h *hub) Before() error {
 	if err := setStorageCassName(h.ctx, h.client, h.component.Namespace, h); err != nil {
 		return err
 	}
+
+	htpasswd, err := h.generateHtpasswd()
+	if err != nil {
+		return fmt.Errorf("generate htpasswd: %v", err)
+	}
+	h.htpasswd = htpasswd
 
 	return nil
 }
@@ -105,10 +116,29 @@ func (h *hub) deployment() interface{} {
 							Name:            "rbd-hub",
 							Image:           h.component.Spec.Image,
 							ImagePullPolicy: h.component.ImagePullPolicy(),
+							Env: []corev1.EnvVar{
+								{
+									Name:  "REGISTRY_AUTH",
+									Value: "htpasswd",
+								},
+								{
+									Name:  "REGISTRY_AUTH_HTPASSWD_REALM",
+									Value: "Registry Realm",
+								},
+								{
+									Name:  "REGISTRY_AUTH_HTPASSWD_PATH",
+									Value: "/auth/htpasswd",
+								},
+							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "hubdata",
 									MountPath: "/var/lib/registry",
+								},
+								{
+									Name:      "htpasswd",
+									MountPath: "/auth",
+									ReadOnly:  true,
 								},
 							},
 						},
@@ -119,6 +149,20 @@ func (h *hub) deployment() interface{} {
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: hubDataPvcName,
+								},
+							},
+						},
+						{
+							Name: "htpasswd",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: "hub-image-repository",
+									Items: []corev1.KeyToPath{
+										{
+											Key:  "HTPASSWD",
+											Path: "htpasswd",
+										},
+									},
 								},
 							},
 						},
@@ -221,9 +265,11 @@ func (h *hub) secretForHub() interface{} {
 			Labels:    labels,
 		},
 		Data: map[string][]byte{
-			"tls.crt": pem,
-			"tls.key": key,
-			"cert":    pem,
+			"tls.crt":  pem,
+			"tls.key":  key,
+			"cert":     pem,
+			"HTPASSWD": h.htpasswd,
+			"password": []byte(h.password),
 		},
 	}
 
@@ -232,4 +278,9 @@ func (h *hub) secretForHub() interface{} {
 
 func (h *hub) getSecret(name string) (*corev1.Secret, error) {
 	return getSecret(h.ctx, h.client, h.component.Namespace, name)
+}
+
+func (h *hub) generateHtpasswd() ([]byte, error) {
+	cmd := exec.Command("htpasswd", "-Bbn", h.cluster.Status.ImagePullUsername, h.cluster.Status.ImagePullPassword)
+	return cmd.CombinedOutput()
 }
