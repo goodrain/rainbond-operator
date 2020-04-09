@@ -76,8 +76,7 @@ module.exports = {
      */
     config.plugin('html').tap(args => {
       if (process.env.NODE_ENV === 'production') {
-        // args[0].cdn = cdn
-        args[0].cdn = []
+        args[0].cdn = cdn
       } else {
         args[0].cdn = []
       }
