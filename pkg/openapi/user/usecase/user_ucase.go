@@ -8,6 +8,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/sethvargo/go-password/password"
 
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/user"
 )
@@ -15,7 +16,6 @@ import (
 var (
 	UserNotFound  = errors.New("user not found")
 	WrongPassword = errors.New("wrong password")
-	NotAllow      = errors.New("do not allow more than one administrator")
 )
 
 type userUsecase struct {
@@ -35,12 +35,12 @@ func NewUserUsecase(userRepo user.Repository, secretKey string) user.Usecase {
 
 // GenerateUser -
 func (u userUsecase) GenerateUser() (*model.User, error) {
-	users, err := u.userRepo.Listusers()
-	if err != nil && err != gorm.ErrRecordNotFound {
+	users, err := u.userRepo.ListUsers()
+	if err != nil {
 		return nil, err
 	}
 	if len(users) > 0 {
-		return nil, NotAllow
+		return nil, bcode.DoNotAllowGenerateAdmin
 	}
 
 	// generate password len is 8 and all digital of password is number, such as 38726051

@@ -6,5 +6,6 @@ import "github.com/goodrain/rainbond-operator/pkg/openapi/model"
 type Repository interface {
 	CreateIfNotExist(user *model.User) error
 	GetByUsername(username string) (*model.User, error)
-	Listusers() ([]*model.User, error)
+	ListUsers() ([]*model.User, error)
+	GetUserCount() (count int, err error)
 }

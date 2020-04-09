@@ -18,7 +18,6 @@ import (
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/store"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/middleware"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/nodestore"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/upload"
@@ -102,7 +101,6 @@ func main() {
 	r := gin.Default()
 	r.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
 	r.Use(static.Serve("/", static.LocalFile("/app/ui", true)))
-	r.Use(middleware.Authenticate(cfg.JWTSecretKey, cfg.JWTExpTime, userRepo))
 
 	userUcase := uucase.NewUserUsecase(userRepo, cfg.JWTSecretKey)
 	uctrl.NewUserController(r, userUcase)

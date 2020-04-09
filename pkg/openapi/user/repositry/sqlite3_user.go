@@ -32,11 +32,19 @@ func (s *sqlite3UserRepo) GetByUsername(username string) (*model.User, error) {
 	return &user, nil
 }
 
-// Listusers return users list
-func (s *sqlite3UserRepo) Listusers() ([]*model.User, error) {
+// ListUsers return users list
+func (s *sqlite3UserRepo) ListUsers() ([]*model.User, error) {
 	var users []*model.User
 	if err := s.db.Find(&users).Error; err != nil {
 		return nil, err
 	}
 	return users, nil
+}
+
+// GetUserCount get user counts
+func (s *sqlite3UserRepo) GetUserCount() (count int, err error) {
+	if err := s.db.Table("users").Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return
 }

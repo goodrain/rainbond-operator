@@ -58,15 +58,28 @@ func (mr *MockRepositoryMockRecorder) GetByUsername(username interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByUsername", reflect.TypeOf((*MockRepository)(nil).GetByUsername), username)
 }
 
-// Listusers mocks base method
-func (m *MockRepository) Listusers() ([]*model.User, error) {
-	ret := m.ctrl.Call(m, "Listusers")
+// ListUsers mocks base method
+func (m *MockRepository) ListUsers() ([]*model.User, error) {
+	ret := m.ctrl.Call(m, "ListUsers")
 	ret0, _ := ret[0].([]*model.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Listusers indicates an expected call of Listusers
-func (mr *MockRepositoryMockRecorder) Listusers() *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Listusers", reflect.TypeOf((*MockRepository)(nil).Listusers))
+// ListUsers indicates an expected call of ListUsers
+func (mr *MockRepositoryMockRecorder) ListUsers() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUsers", reflect.TypeOf((*MockRepository)(nil).ListUsers))
+}
+
+// GetUserCount mocks base method
+func (m *MockRepository) GetUserCount() (int, error) {
+	ret := m.ctrl.Call(m, "GetUserCount")
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserCount indicates an expected call of GetUserCount
+func (mr *MockRepositoryMockRecorder) GetUserCount() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserCount", reflect.TypeOf((*MockRepository)(nil).GetUserCount))
 }

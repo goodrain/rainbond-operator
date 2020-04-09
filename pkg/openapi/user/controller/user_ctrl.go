@@ -4,6 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/user"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/user/usecase"
@@ -26,16 +29,17 @@ func NewUserController(g *gin.Engine, userUcase user.Usecase) {
 
 // Generate -
 func (u *UserController) Generate(c *gin.Context) {
-	user, err := u.userUcase.GenerateUser()
+	userInfo, err := u.userUcase.GenerateUser()
 	if err != nil {
-		if err == usecase.NotAllow {
-			c.JSON(http.StatusBadRequest, err.Error())
+		if err == bcode.DoNotAllowGenerateAdmin {
+			c.JSON(http.StatusBadRequest, bcode.DoNotAllowGenerateAdmin)
 			return
 		}
-		c.JSON(http.StatusInternalServerError, err.Error())
+		logrus.Debugf("generate administrator error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, bcode.ErrGenerateAdmin)
 		return
 	}
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, userInfo)
 }
 
 // Login -
@@ -56,5 +60,5 @@ func (u *UserController) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, token)
+	c.JSON(200, map[string]interface{}{"token": token})
 }

@@ -1,15 +1,13 @@
 package usecase
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/user"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/user/mock"
-	"github.com/jinzhu/gorm"
-	"github.com/sethvargo/go-password/password"
 )
 
 func TestUserUsecase_Login(t *testing.T) {
@@ -84,7 +82,7 @@ func Test_userUsecase_GenerateUser(t *testing.T) {
 			fields: fields{secretKey: ""},
 			want:   &model.User{Username: "", Password: ""},
 			mockFunc: func(mockRepo mock.MockRepository) {
-				mockRepo.EXPECT().Listusers().Return(nil, gorm.ErrRecordNotFound)
+				mockRepo.EXPECT().ListUsers().Return(nil, nil)
 				mockRepo.EXPECT().CreateIfNotExist(gomock.Any()).Return(nil)
 			},
 			wantErr: false,
@@ -94,7 +92,7 @@ func Test_userUsecase_GenerateUser(t *testing.T) {
 			fields: fields{secretKey: ""},
 			want:   &model.User{Username: "", Password: ""},
 			mockFunc: func(mockRepo mock.MockRepository) {
-				mockRepo.EXPECT().Listusers().Return([]*model.User{{Username: ""}}, nil)
+				mockRepo.EXPECT().ListUsers().Return([]*model.User{{Username: ""}}, nil)
 			},
 			wantErr: true,
 		},
@@ -119,8 +117,4 @@ func Test_userUsecase_GenerateUser(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestGeneratePassword(t *testing.T) {
-	fmt.Println(password.Generate(8, 8, 0, false, false))
 }

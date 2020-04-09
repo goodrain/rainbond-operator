@@ -17,18 +17,14 @@ import (
 func Authenticate(secretKey string, exptime time.Duration, userRepo user.Repository) gin.HandlerFunc {
 	// TODO use code instead of map[string]interface{} for return
 	return func(c *gin.Context) {
-		users, err := userRepo.Listusers()
-		if err != nil && err != gorm.ErrRecordNotFound {
+		userCount, err := userRepo.GetUserCount()
+		if err != nil {
 			c.AbortWithStatusJSON(500, map[string]interface{}{"msg": "get user failed"})
 			return
 		}
 
-		if len(users) == 0 {
+		if userCount == 0 {
 			logrus.Info("do not generate user now, do not need authenticate")
-			return
-		}
-
-		if c.Request.RequestURI == "/user/login" {
 			return
 		}
 
