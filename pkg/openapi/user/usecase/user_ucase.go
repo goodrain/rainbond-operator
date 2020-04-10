@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/goodrain/rainbond-operator/pkg/util/passwordutil"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
 	"github.com/sethvargo/go-password/password"
@@ -16,6 +18,8 @@ import (
 var (
 	UserNotFound  = errors.New("user not found")
 	WrongPassword = errors.New("wrong password")
+	// TempMail temp email for encrypt and verify password
+	TempMail = "operator@goodrain.com"
 )
 
 type userUsecase struct {
@@ -49,15 +53,24 @@ func (u userUsecase) GenerateUser() (*model.User, error) {
 		Username: "admin",
 		Password: pass,
 	}
+
+	encryPass, err := passwordutil.EncryptionPassword(pass, TempMail)
+	if err != nil {
+		return nil, err
+	}
+
+	userInfo.Password = encryPass
+
 	err = u.userRepo.CreateIfNotExist(&userInfo)
 	if err != nil {
 		return nil, err
 	}
-	return &userInfo, nil
+	return &model.User{Username: "admin", Password: pass}, nil
 }
 
+// Login -
 func (u *userUsecase) Login(username, password string) (string, error) {
-	user, err := u.userRepo.GetByUsername(username)
+	userInfo, err := u.userRepo.GetByUsername(username)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return "", UserNotFound
@@ -65,11 +78,11 @@ func (u *userUsecase) Login(username, password string) (string, error) {
 		return "", err
 	}
 
-	if user.Password != password {
-		return "", WrongPassword
+	if !passwordutil.CheckPassword(password, userInfo.Password, TempMail) {
+		return "", bcode.UserPasswordInCorrect
 	}
 
-	token, err := GenerateToken(user, u.secretKey)
+	token, err := GenerateToken(userInfo, u.secretKey)
 	if err != nil {
 		return "", err
 	}

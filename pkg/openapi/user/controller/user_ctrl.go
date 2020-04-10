@@ -56,6 +56,10 @@ func (u *UserController) Login(c *gin.Context) {
 			c.JSON(http.StatusNotFound, err.Error())
 			return
 		}
+		if err == bcode.UserPasswordInCorrect {
+			c.JSON(http.StatusBadRequest, bcode.UserPasswordInCorrect.Msg())
+			return
+		}
 		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
