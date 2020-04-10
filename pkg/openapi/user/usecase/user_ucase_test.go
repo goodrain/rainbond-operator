@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/user"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/user/mock"
@@ -30,7 +31,7 @@ func TestUserUsecase_Login(t *testing.T) {
 				Username: "admin",
 				Password: "admin",
 			},
-			wantErr: WrongPassword,
+			wantErr: bcode.UserPasswordInCorrect,
 		},
 		{
 			name:     "ok",
@@ -38,7 +39,7 @@ func TestUserUsecase_Login(t *testing.T) {
 			password: "admin",
 			ret: &model.User{
 				Username: "admin",
-				Password: "admin",
+				Password: "c08ebc17065f261c",
 			},
 		},
 	}
