@@ -4,8 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/goodrain/rainbond-operator/pkg/util/passwordutil"
-
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
 	"github.com/sethvargo/go-password/password"
@@ -13,6 +11,7 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/user"
+	"github.com/goodrain/rainbond-operator/pkg/util/passwordutil"
 )
 
 var (

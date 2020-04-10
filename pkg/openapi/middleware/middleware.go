@@ -17,7 +17,6 @@ import (
 
 // Authenticate -
 func Authenticate(secretKey string, exptime time.Duration, userRepo user.Repository) gin.HandlerFunc {
-	// TODO use code instead of map[string]interface{} for return
 	return func(c *gin.Context) {
 		userCount, err := userRepo.GetUserCount()
 		if err != nil {

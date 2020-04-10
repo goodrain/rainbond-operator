@@ -43,7 +43,7 @@ func (s *sqlite3UserRepo) ListUsers() ([]*model.User, error) {
 
 // GetUserCount get user counts
 func (s *sqlite3UserRepo) GetUserCount() (count int, err error) {
-	if err := s.db.Table("users").Count(&count).Error; err != nil {
+	if err := s.db.Model(&model.User{}).Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return
