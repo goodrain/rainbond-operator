@@ -142,6 +142,7 @@ func (e *eventlog) deployment() interface{} {
 					Labels: e.labels,
 				},
 				Spec: corev1.PodSpec{
+					ImagePullSecrets:              imagePullSecrets(e.component, e.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{

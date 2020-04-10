@@ -191,36 +191,20 @@ func (c *chaos) deployment() interface{} {
 			Name:  "CACHE_DIR",
 			Value: "/cache",
 		},
-		{
-			Name:  "BUILD_IMAGE_REPOSTORY_USER",
-			Value: "admin",
-		},
-		{
-			Name: "BUILD_IMAGE_REPOSTORY_PASS",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: hubImageRepository,
-					},
-					Key: "password",
-				},
-			},
-		},
 	}
 	if imageHub := c.cluster.Spec.ImageHub; imageHub != nil {
 		env = append(env, corev1.EnvVar{
 			Name:  "BUILD_IMAGE_REPOSTORY_DOMAIN",
 			Value: path.Join(imageHub.Domain, imageHub.Namespace),
 		})
-		// TODO: huangrh
-		// env = append(env, corev1.EnvVar{
-		// 	Name:  "BUILD_IMAGE_REPOSTORY_USER",
-		// 	Value: imageHub.Username,
-		// })
-		// env = append(env, corev1.EnvVar{
-		// 	Name:  "BUILD_IMAGE_REPOSTORY_PASS",
-		// 	Value: imageHub.Password,
-		// })
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_USER",
+			Value: imageHub.Username,
+		})
+		env = append(env, corev1.EnvVar{
+			Name:  "BUILD_IMAGE_REPOSTORY_PASS",
+			Value: imageHub.Password,
+		})
 	}
 
 	ds := &appsv1.DaemonSet{

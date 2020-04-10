@@ -271,6 +271,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 					Labels: n.labels,
 				},
 				Spec: corev1.PodSpec{
+					ImagePullSecrets:              imagePullSecrets(n.component, n.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
 					HostAliases:                   hostsAliases(n.cluster),

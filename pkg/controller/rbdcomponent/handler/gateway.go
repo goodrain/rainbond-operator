@@ -117,6 +117,7 @@ func (g *gateway) deployment() interface{} {
 					Labels: g.labels,
 				},
 				Spec: corev1.PodSpec{
+					ImagePullSecrets:              imagePullSecrets(g.component, g.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
 					HostNetwork:                   true,

@@ -64,6 +64,9 @@ func (c *clusterUsecase) UnInstall() error {
 			continue
 		}
 		if err := c.cfg.KubeClient.CoreV1().PersistentVolumes().Delete(claim.Spec.VolumeName, &metav1.DeleteOptions{}); err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
 			return fmt.Errorf("delete persistent volume claims: %v", err)
 		}
 	}

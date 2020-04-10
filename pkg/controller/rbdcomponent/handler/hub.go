@@ -110,6 +110,7 @@ func (h *hub) deployment() interface{} {
 					Labels: h.labels,
 				},
 				Spec: corev1.PodSpec{
+					ImagePullSecrets:              imagePullSecrets(h.component, h.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{
