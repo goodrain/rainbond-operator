@@ -124,6 +124,7 @@ func (m *monitor) statefulset() interface{} {
 					Labels: m.labels,
 				},
 				Spec: corev1.PodSpec{
+					ImagePullSecrets:              imagePullSecrets(m.component, m.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
 					Containers: []corev1.Container{

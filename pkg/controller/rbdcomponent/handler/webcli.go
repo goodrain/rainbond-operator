@@ -95,6 +95,7 @@ func (w *webcli) deployment() interface{} {
 					Labels: w.labels,
 				},
 				Spec: corev1.PodSpec{
+					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
 					ServiceAccountName:            "rainbond-operator",
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{

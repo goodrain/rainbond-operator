@@ -169,6 +169,7 @@ func (d *db) statefulsetForDB() interface{} {
 					Labels: d.labels,
 				},
 				Spec: corev1.PodSpec{
+					ImagePullSecrets:              imagePullSecrets(d.component, d.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{
