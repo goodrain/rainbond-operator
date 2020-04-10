@@ -306,9 +306,24 @@ func storageClassForRainbondVolume(volume *rainbondv1alpha1.RainbondVolume) *sto
 			Name:   volume.Name,
 			Labels: rbdutil.LabelsForRainbond(nil),
 		},
+		MountOptions:  volume.Spec.StorageClassParameters.MountOptions,
 		Provisioner:   volume.Spec.StorageClassParameters.Provisioner,
 		Parameters:    volume.Spec.StorageClassParameters.Parameters,
 		ReclaimPolicy: k8sutil.PersistentVolumeReclaimPolicy(corev1.PersistentVolumeReclaimRetain),
 	}
+
+	if volume.Spec.CSIPlugin != nil && volume.Spec.CSIPlugin.AliyunNas != nil && class.MountOptions == nil {
+		class.MountOptions = []string{
+			"nolock,tcp,noresvport",
+			"vers=4",
+			"minorversion=0",
+			"rsize=1048576",
+			"wsize=1048576",
+			"timeo=600",
+			"retrans=2",
+			"hard",
+		}
+	}
+
 	return class
 }

@@ -33,6 +33,12 @@ type NFSCSIPluginSource struct {
 // StorageClassParameters describes the parameters for a class of storage for
 // which PersistentVolumes can be dynamically provisioned.
 type StorageClassParameters struct {
+	// Dynamically provisioned PersistentVolumes of this storage class are
+	// created with these mountOptions, e.g. ["ro", "soft"]. Not validated -
+	// mount of the PVs will simply fail if one is invalid.
+	// +optional
+	MountOptions []string `json:"mountOptions,omitempty" protobuf:"bytes,5,opt,name=mountOptions"`
+
 	// Provisioner indicates the type of the provisioner.
 	Provisioner string `json:"provisioner,omitempty" protobuf:"bytes,2,opt,name=provisioner"`
 

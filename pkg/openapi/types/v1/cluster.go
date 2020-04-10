@@ -197,6 +197,8 @@ type CSIPluginSource struct {
 // StorageClassParameters describes the parameters for a class of storage for
 // which PersistentVolumes can be dynamically provisioned.
 type StorageClassParameters struct {
+	MountOptions []string `json:"mountOptions"`
+
 	// Provisioner indicates the type of the provisioner.
 	Provisioner string `json:"provisioner"`
 	// Parameters holds the parameters for the provisioner that should
