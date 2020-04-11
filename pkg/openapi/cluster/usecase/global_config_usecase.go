@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
@@ -57,9 +56,6 @@ func (cc *GlobalConfigUseCaseImpl) genSuffixHTTPHost(ip string) (domain string, 
 	domain, err = suffixdomain.GenerateDomain(ip, id, auth)
 	if err != nil {
 		return "", err
-	}
-	if !strings.HasSuffix(domain, "grapps.cn") {
-		return "", fmt.Errorf("get suffix http host failure") // TODO 不能这样做
 	}
 	return domain, nil
 }
