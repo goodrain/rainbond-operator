@@ -8,7 +8,7 @@ COPY cmd cmd
 COPY vendor vendor
 
 ARG GOARCH
-ARG LDFLAGS
+ARG LDFLAGS="-extldflags -static"
 RUN go build -ldflags "$LDFLAGS" -o /openapi $PWD/cmd/openapi
 
 FROM registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui-base:v0.0.1-beta2

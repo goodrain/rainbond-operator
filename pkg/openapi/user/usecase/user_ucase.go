@@ -36,8 +36,22 @@ func NewUserUsecase(userRepo user.Repository, secretKey string) user.Usecase {
 	return ucase
 }
 
+// IsGenerated -
+func (u *userUsecase) IsGenerated() (bool, error) {
+	users, err := u.userRepo.ListUsers()
+	if err != nil {
+		return false, err
+	}
+	if len(users) > 0 {
+		// means has generated administrator
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // GenerateUser -
-func (u userUsecase) GenerateUser() (*model.User, error) {
+func (u *userUsecase) GenerateUser() (*model.User, error) {
 	users, err := u.userRepo.ListUsers()
 	if err != nil {
 		return nil, err

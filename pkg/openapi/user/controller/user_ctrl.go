@@ -25,6 +25,19 @@ func NewUserController(g *gin.Engine, userUcase user.Usecase) {
 	userEngine := g.Group("/user")
 	userEngine.POST("/login", u.Login)
 	userEngine.POST("/generate", u.Generate)
+	userEngine.GET("/generate", u.IsGenerated)
+}
+
+// IsGenerated -
+func (u *UserController) IsGenerated(c *gin.Context) {
+	ok, err := u.userUcase.IsGenerated()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, bcode.ErrGenerateAdmin)
+		return
+	}
+
+	// just only the first time show admin username and password
+	c.JSON(http.StatusOK, map[string]interface{}{"answer": ok})
 }
 
 // Generate -

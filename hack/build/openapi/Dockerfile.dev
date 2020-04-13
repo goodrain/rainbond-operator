@@ -1,5 +1,5 @@
 FROM golang:1.13 as builder
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED=1
 ENV GOPATH=/go
 
 WORKDIR /go/src/github.com/goodrain/rainbond-operator
@@ -8,7 +8,7 @@ COPY cmd cmd
 COPY vendor vendor
 
 ARG GOARCH
-ARG LDFLAGS
+ARG LDFLAGS="-extldflags -static"
 RUN go build -ldflags "$LDFLAGS" -o /openapi $PWD/cmd/openapi
 
 FROM registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui-base:v0.0.1
