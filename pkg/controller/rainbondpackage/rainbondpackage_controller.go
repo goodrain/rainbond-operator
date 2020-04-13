@@ -285,7 +285,7 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 		"/mysqld-exporter":                  "/mysqld-exporter",
 		"/rbd-repo:6.16.0":                  "/rbd-repo:6.16.0",
 		"/rbd-registry:2.6.2":               "/rbd-registry:2.6.2",
-		"/rbd-db:8.0.12":                    "/rbd-db:8.0.12",
+		"/rbd-db:8.0.19":                    "/rbd-db:8.0.19",
 		"/metrics-server:v0.3.6":            "/metrics-server:v0.3.6",
 		"/rbd-init-probe:" + p.version:      "/rbd-init-probe",
 		"/rbd-mesh-data-panel:" + p.version: "/rbd-mesh-data-panel",
