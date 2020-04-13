@@ -2,7 +2,6 @@ const CompressionWebpackPlugin = require('compression-webpack-plugin')
 const VueFilenameInjector = require('@d2-projects/vue-filename-injector')
 const ThemeColorReplacer = require('webpack-theme-color-replacer')
 const forElementUI = require('webpack-theme-color-replacer/forElementUI')
-const cdnDependencies = require('./dependencies-cdn')
 
 // 拼接路径
 const resolve = dir => require('path').join(__dirname, dir)
@@ -16,13 +15,7 @@ let publicPath = process.env.VUE_APP_PUBLIC_PATH || '/'
 
 // 设置不参与构建的库
 let externals = {}
-cdnDependencies.forEach(packages => { externals[packages.name] = packages.library })
 
-// 引入文件的 cdn 链接
-const cdn = {
-  css: cdnDependencies.map(e => e.css).filter(e => e),
-  js: cdnDependencies.map(e => e.js).filter(e => e)
-}
 
 module.exports = {
   // 根据你的实际情况更改这里
@@ -71,17 +64,6 @@ module.exports = {
   },
   // 默认设置: https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-service/lib/config/base.js
   chainWebpack: config => {
-    /**
-     * 添加 CDN 参数到 htmlWebpackPlugin 配置中
-     */
-    config.plugin('html').tap(args => {
-      if (process.env.NODE_ENV === 'production') {
-        args[0].cdn = cdn
-      } else {
-        args[0].cdn = []
-      }
-      return args
-    })
     /**
      * 删除懒加载模块的 prefetch preload，降低带宽压力
      * https://cli.vuejs.org/zh/guide/html-and-static-assets.html#prefetch
