@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.5+incompatible
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
+	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 	github.com/coreos/etcd v3.3.15+incompatible
 	github.com/coreos/etcd-operator v0.9.4
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -31,6 +32,7 @@ require (
 	github.com/twinj/uuid v1.0.0
 	golang.org/x/sys v0.0.0-20191128015809-6d18c012aee9 // indirect
 	gopkg.in/stretchr/testify.v1 v1.2.2
+	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v12.0.0+incompatible

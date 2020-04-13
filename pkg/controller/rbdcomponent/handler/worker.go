@@ -177,6 +177,7 @@ func (w *worker) deployment() interface{} {
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
+					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
 					Containers: []corev1.Container{
 						{
 							Name:            WorkerName,

@@ -161,6 +161,7 @@ func (m *metricsServer) deployment() interface{} {
 					Labels: m.labels,
 				},
 				Spec: corev1.PodSpec{
+					ImagePullSecrets:              imagePullSecrets(m.component, m.cluster),
 					ServiceAccountName:            "rainbond-operator",
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					NodeSelector: map[string]string{

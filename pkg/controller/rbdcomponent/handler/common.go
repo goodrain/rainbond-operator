@@ -345,3 +345,14 @@ func getStorageRequest(env string, defSize int64) int64 {
 	}
 	return storageRequest
 }
+
+func imagePullSecrets(cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) []corev1.LocalObjectReference {
+	// pirority component does not support pulling images with credentials
+	if cpt.Spec.PriorityComponent {
+		return nil
+	}
+
+	return []corev1.LocalObjectReference{
+		cluster.Status.ImagePullSecret,
+	}
+}

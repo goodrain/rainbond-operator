@@ -13,7 +13,10 @@ ARG LDFLAGS
 RUN go build -ldflags "$LDFLAGS" -o /opeator $PWD/cmd/manager
 
 FROM alpine:3.11.2
-RUN apk add --update tzdata && mkdir /app
+RUN apk add --update tzdata \
+    && mkdir /app \
+    && apk add --update apache2-utils \
+    && rm -rf /var/cache/apk/*
 ENV TZ=Asia/Shanghai
 COPY --from=builder opeator /app
 

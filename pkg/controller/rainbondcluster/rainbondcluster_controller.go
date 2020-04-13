@@ -96,7 +96,7 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	mgr := newRbdcomponentMgr(ctx, r.client, reqLogger, rainbondcluster)
+	mgr := newRbdcomponentMgr(ctx, r.client, reqLogger, rainbondcluster, r.scheme)
 
 	status, err := mgr.generateRainbondClusterStatus()
 	if err != nil {
@@ -122,6 +122,14 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		}); err != nil {
 			reqLogger.Error(err, "update rainbondcluster")
 			return reconcile.Result{RequeueAfter: time.Second * 1}, err
+		}
+	}
+
+	// create secret for pulling images.
+	if rainbondcluster.Spec.ImageHub != nil && rainbondcluster.Spec.ImageHub.Username != "" && rainbondcluster.Spec.ImageHub.Password != "" {
+		err := mgr.createImagePullSecret()
+		if err != nil {
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -163,6 +171,8 @@ func (r *ReconcileRainbondCluster) getImageHub(cluster *rainbondv1alpha1.Rainbon
 	}
 
 	return &rainbondv1alpha1.ImageHub{
-		Domain: constants.DefImageRepository,
+		Domain:   constants.DefImageRepository,
+		Username: cluster.Status.ImagePullUsername,
+		Password: cluster.Status.ImagePullPassword,
 	}, nil
 }
