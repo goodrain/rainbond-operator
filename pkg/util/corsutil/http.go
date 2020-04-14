@@ -31,7 +31,7 @@ func SetCORS(ctx *gin.Context) {
 	ctx.Writer.Header().Add("Access-Control-Allow-Origin", origin)
 	ctx.Writer.Header().Add("Access-Control-Allow-Methods", "POST,GET,OPTIONS,DELETE,PUT")
 	ctx.Writer.Header().Add("Access-Control-Allow-Credentials", "true")
-	ctx.Writer.Header().Add("Access-Control-Allow-Headers", "x-requested-with,content-type,Authorization")
+	ctx.Writer.Header().Add("Access-Control-Allow-Headers", "x-requested-with,content-type,Authorization,access-control-allow-origin")
 }
 
 //GetDomain get host domain

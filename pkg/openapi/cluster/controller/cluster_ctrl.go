@@ -39,27 +39,27 @@ func NewClusterController(g *gin.Engine, cfg *option.Config, clusterCase cluster
 	u := &ClusterController{clusterUcase: clusterCase}
 
 	clusterEngine := g.Group("/cluster")
-	clusterEngine.Use(middleware.Authenticate(cfg.JWTSecretKey, cfg.JWTExpTime, userRepo))
+	clusterEngine.Use(corsMidle(middleware.Authenticate(cfg.JWTSecretKey, cfg.JWTExpTime, userRepo)))
 
-	clusterEngine.GET("/status", corsMidle(u.ClusterStatus))
-	clusterEngine.GET("/status-info", corsMidle(u.ClusterStatusInfo))
-	clusterEngine.POST("/init", corsMidle(u.ClusterInit))
-	clusterEngine.GET("/nodes", corsMidle(u.ClusterNodes))
+	clusterEngine.GET("/status", u.ClusterStatus)
+	clusterEngine.GET("/status-info", u.ClusterStatusInfo)
+	clusterEngine.POST("/init", u.ClusterInit)
+	clusterEngine.GET("/nodes", u.ClusterNodes)
 
-	clusterEngine.GET("/configs", corsMidle(u.Configs))
-	clusterEngine.PUT("/configs", corsMidle(u.UpdateConfig))
+	clusterEngine.GET("/configs", u.Configs)
+	clusterEngine.PUT("/configs", u.UpdateConfig)
 
-	clusterEngine.GET("/address", corsMidle(u.Address))
+	clusterEngine.GET("/address", u.Address)
 
-	clusterEngine.DELETE("/uninstall", corsMidle(u.Uninstall))
+	clusterEngine.DELETE("/uninstall", u.Uninstall)
 
 	// install
-	clusterEngine.POST("/install", corsMidle(u.Install))
-	clusterEngine.GET("/install/status", corsMidle(u.InstallStatus))
+	clusterEngine.POST("/install", u.Install)
+	clusterEngine.GET("/install/status", u.InstallStatus)
 
 	// componse
-	clusterEngine.GET("/components", corsMidle(u.Components))
-	clusterEngine.GET("/components/:name", corsMidle(u.SingleComponent))
+	clusterEngine.GET("/components", u.Components)
+	clusterEngine.GET("/components/:name", u.SingleComponent)
 }
 
 // ClusterStatus cluster status

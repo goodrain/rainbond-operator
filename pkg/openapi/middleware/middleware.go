@@ -20,7 +20,8 @@ func Authenticate(secretKey string, exptime time.Duration, userRepo user.Reposit
 	return func(c *gin.Context) {
 		userCount, err := userRepo.GetUserCount()
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, bcode.ServerErr)
+			data := map[string]interface{}{"code": bcode.ServerErr.Code(), "msg": bcode.ServerErr.Msg()}
+			c.AbortWithStatusJSON(http.StatusInternalServerError, data)
 			return
 		}
 
@@ -32,8 +33,10 @@ func Authenticate(secretKey string, exptime time.Duration, userRepo user.Reposit
 		logrus.Info("generated user, do authenticate")
 
 		tokenStr := c.GetHeader("Authorization")
+		logrus.Debugf("token str is: %s", tokenStr)
 		if strings.TrimSpace(tokenStr) == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, bcode.EmptyToken)
+			data := map[string]interface{}{"code": bcode.EmptyToken.Code(), "msg": bcode.EmptyToken.Msg()}
+			c.AbortWithStatusJSON(http.StatusUnauthorized, data)
 			return
 		}
 
@@ -46,32 +49,37 @@ func Authenticate(secretKey string, exptime time.Duration, userRepo user.Reposit
 			return []byte(secretKey), nil
 		})
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusForbidden, bcode.InvalidToken)
+			data := map[string]interface{}{"code": bcode.InvalidToken.Code(), "msg": bcode.InvalidToken.Msg()}
+			c.AbortWithStatusJSON(http.StatusForbidden, data)
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusForbidden, bcode.InvalidToken)
+			data := map[string]interface{}{"code": bcode.InvalidToken.Code(), "msg": bcode.InvalidToken.Msg()}
+			c.AbortWithStatusJSON(http.StatusForbidden, data)
 			return
 		}
 		nbf := claims["nbf"].(float64)
 		nbftime := time.Unix(int64(nbf), 0)
 		if time.Since(nbftime) > exptime {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, bcode.ExpiredToken)
+			data := map[string]interface{}{"code": bcode.ExpiredToken.Code(), "msg": bcode.ExpiredToken.Msg()}
+			c.AbortWithStatusJSON(http.StatusUnauthorized, data)
 			return
 		}
 		// TODO: thread safe
 		username := claims["username"]
-		user, err := userRepo.GetByUsername(username.(string))
+		userInfo, err := userRepo.GetByUsername(username.(string))
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
-				c.AbortWithStatusJSON(http.StatusBadRequest, bcode.UserNotFound)
+				data := map[string]interface{}{"code": bcode.UserNotFound.Code(), "msg": bcode.UserNotFound.Msg()}
+				c.AbortWithStatusJSON(http.StatusBadRequest, data)
 				return
 			}
-			c.AbortWithStatusJSON(http.StatusInternalServerError, bcode.ServerErr)
+			data := map[string]interface{}{"code": bcode.ServerErr.Code(), "msg": bcode.ServerErr.Msg()}
+			c.AbortWithStatusJSON(http.StatusInternalServerError, data)
 			return
 		}
-		c.Set("user", user)
+		c.Set("user", userInfo)
 	}
 }
