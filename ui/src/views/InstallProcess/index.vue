@@ -63,43 +63,50 @@ export default {
   },
   methods: {
     handleState () {
-      this.$store.dispatch('fetchState').then(res => {
-        if (res && res.code === 200 && res.data.final_status) {
-          if (res.data.clusterInfo) {
-            this.recordInfo.install_id = res.data.clusterInfo.installID
-            this.recordInfo.version = res.data.clusterInfo.installVersion
-            this.recordInfo.eid = res.data.clusterInfo.enterpriseID
-          }
+      this.$store
+        .dispatch('fetchState')
+        .then(res => {
+          if (res && res.code === 200 && res.data.final_status) {
+            if (res.data.clusterInfo) {
+              this.recordInfo.install_id = res.data.clusterInfo.installID
+              this.recordInfo.version = res.data.clusterInfo.installVersion
+              this.recordInfo.eid = res.data.clusterInfo.enterpriseID
+            }
 
-          switch (res.data.final_status) {
-            case 'Initing':
-              this.handleRouter('index')
-              break
-            case 'Waiting':
-              this.handleRouter('index')
-              break
-            case 'Installing':
-              this.handlePerform('startrRsults')
-              break
-            case 'Setting':
-              this.handlePerform('cluster')
-              break
-            case 'Running':
-              this.handleRouter('successfulInstallation')
-              break
-            case 'UnInstalling':
-              this.handleRouter('index')
-              break
-            default:
-              break
+            switch (res.data.final_status) {
+              case 'Initing':
+                this.handleRouter('index')
+                break
+              case 'Waiting':
+                this.handleRouter('index')
+                break
+              case 'Installing':
+                this.handlePerform('startrRsults')
+                break
+              case 'Setting':
+                this.handlePerform('cluster')
+                break
+              case 'Running':
+                this.handleRouter('successfulInstallation')
+                break
+              case 'UnInstalling':
+                this.handleRouter('index')
+                break
+              default:
+                break
+            }
+            this.timer = setTimeout(() => {
+              this.handleState()
+            }, 10000)
+          } else {
+            this.handleRouter('index')
           }
-          this.timer = setTimeout(() => {
-            this.handleState()
-          }, 10000)
-        } else {
-          this.handleRouter('index')
-        }
-      })
+        })
+        .catch(err => {
+          if (err && (err === 50004 || err === 50005 || err === 50006)) {
+            this.handleRouter('successfulLogin')
+          }
+        })
     },
     handleRecord (states) {
       this.recordInfo.status = states

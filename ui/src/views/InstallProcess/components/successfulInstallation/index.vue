@@ -12,6 +12,22 @@
           </el-col>
         </div>
       </el-card>
+      <el-alert
+        v-if="username"
+        class="d2-mb"
+        title="请记录保存该用户名、密码、只能显示一次，所以需谨慎，账户密码生成之后不会再生成，也不会在展示"
+        type="warning"
+        :closable="false"
+      ></el-alert>
+      <el-card class="d2-mb" v-if="username">
+        <div class="d2-h-30">
+          <el-col :span="10">账户 : {{username}}</el-col>
+          <el-col :span="10">密码 : {{password}}</el-col>
+          <el-col :span="4">
+            <el-button type="primary" @click.native.prevent="handleRouter('successfulLogin')">登录</el-button>
+          </el-col>
+        </div>
+      </el-card>
 
       <el-card shadow="hover" v-show="componentList">
         <span>
@@ -24,7 +40,7 @@
 
 <script>
 import RainbondComponent from '../installResults/rainbondComponent'
-
+import util from '@/libs/util'
 export default {
   name: 'successfulInstallation',
   components: {
@@ -35,6 +51,8 @@ export default {
       activeName: 'rsultSucess',
       componentList: [],
       loading: true,
+      username: '',
+      password: '',
       accessAddress: '',
       recordInfo: {
         install_id: '',
@@ -46,6 +64,7 @@ export default {
   },
   created () {
     this.handleState()
+    this.handleIsAdmin()
     this.fetchAccessAddress()
     this.fetchClusterInstallResultsState(true)
   },
@@ -53,40 +72,68 @@ export default {
     this.timers && clearInterval(this.timers)
   },
   methods: {
-    handleState () {
-      this.$store.dispatch('fetchState').then(res => {
-        if (res && res.code === 200 && res.data.final_status) {
-          if (res.data.clusterInfo) {
-            this.recordInfo.install_id = res.data.clusterInfo.installID
-            this.recordInfo.version = res.data.clusterInfo.installVersion
-            this.recordInfo.eid = res.data.clusterInfo.enterpriseID
+    handleIsAdmin () {
+      const token = util.cookies.get('token')
+      this.$store.dispatch('fetchIsAdmin').then(res => {
+        if (res && res.code === 200 && res.data && res.data.answer) {
+          if (token) {
+            return null
           }
-
-          switch (res.data.final_status) {
-            case 'Initing':
-              this.handleRouter('index')
-              break
-            case 'Waiting':
-              this.handleRouter('index')
-              break
-            case 'Installing':
-              this.handleRouter('InstallProcess')
-              break
-            case 'Setting':
-              this.handleRouter('InstallProcess')
-              break
-            case 'UnInstalling':
-              this.handleRouter('index')
-              break
-            case 'Running':
-              this.recordInfo.status = 'complete'
-              this.handleRecord()
-              break
-            default:
-              break
-          }
+          this.handleRouter('successfulLogin')
+        } else {
+          this.handleGenerateAdmin()
         }
       })
+    },
+    handleGenerateAdmin () {
+      this.$store.dispatch('fetchGenerateAdmin').then(res => {
+        if (res && res.code === 200 && res.data) {
+          this.username = res.data.username
+          this.password = res.data.password
+        }
+      })
+    },
+    handleState () {
+      this.$store
+        .dispatch('fetchState')
+        .then(res => {
+          if (res && res.code === 200 && res.data.final_status) {
+            if (res.data.clusterInfo) {
+              this.recordInfo.install_id = res.data.clusterInfo.installID
+              this.recordInfo.version = res.data.clusterInfo.installVersion
+              this.recordInfo.eid = res.data.clusterInfo.enterpriseID
+            }
+
+            switch (res.data.final_status) {
+              case 'Initing':
+                this.handleRouter('index')
+                break
+              case 'Waiting':
+                this.handleRouter('index')
+                break
+              case 'Installing':
+                this.handleRouter('InstallProcess')
+                break
+              case 'Setting':
+                this.handleRouter('InstallProcess')
+                break
+              case 'UnInstalling':
+                this.handleRouter('index')
+                break
+              case 'Running':
+                this.recordInfo.status = 'complete'
+                this.handleRecord()
+                break
+              default:
+                break
+            }
+          }
+        })
+        .catch(err => {
+          if (err && (err === 50004 || err === 50005 || err === 50006)) {
+            this.handleRouter('successfulLogin')
+          }
+        })
     },
     handleRouter (name) {
       this.$router.push({
@@ -99,6 +146,7 @@ export default {
       })
     },
     onhandleDelete () {
+      this.handleRecord()
       this.$confirm('确定要卸载吗？')
         .then(_ => {
           this.$store.dispatch('deleteUnloadingPlatform').then(res => {

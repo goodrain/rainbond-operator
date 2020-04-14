@@ -7,6 +7,22 @@ export function getState () {
     method: 'get'
   })
 }
+//  获取判断是否初始化管理员
+export function getIsAdmin () {
+  return request({
+    url: `/user/generate`,
+    method: 'get'
+  })
+}
+
+//  用户登录
+export function Login (data) {
+  return request({
+    url: `/user/login`,
+    method: 'post',
+    data
+  })
+}
 
 export function getClusterInitConfig () {
   return request({
@@ -15,6 +31,13 @@ export function getClusterInitConfig () {
   })
 }
 
+//  初始化管理员
+export function putGenerateAdmin () {
+  return request({
+    url: '/user/generate',
+    method: 'post'
+  })
+}
 //  获取全局状态
 export function putInit () {
   return request({

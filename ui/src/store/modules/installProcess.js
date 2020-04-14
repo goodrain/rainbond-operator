@@ -1,6 +1,7 @@
 import {
   getClusterInfo,
   getState,
+  getIsAdmin,
   getClusterInitConfig,
   putClusterConfig,
   installCluster,
@@ -11,13 +12,29 @@ import {
   deleteUnloadingPlatform,
   putInit,
   putRecord,
-  queryNode
+  queryNode,
+  putGenerateAdmin,
+  Login
 } from '@/api/installProcess'
+import util from '@/libs/util.js'
 
 const installProcess = {
   state: {},
   mutations: {},
   actions: {
+    Login ({ commit }, resdata) {
+      return new Promise((resolve, reject) => {
+        Login(resdata)
+          .then(response => {
+            const tokenStr = response.data.token
+            util.cookies.set('token', tokenStr)
+            resolve(response)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
     putInit ({ commit }, resdata) {
       return new Promise((resolve, reject) => {
         putInit(resdata)
@@ -44,6 +61,29 @@ const installProcess = {
     fetchState ({ commit }, resdata) {
       return new Promise((resolve, reject) => {
         getState(resdata)
+          .then(response => {
+            resolve(response)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
+    fetchIsAdmin ({ commit }, resdata) {
+      return new Promise((resolve, reject) => {
+        getIsAdmin(resdata)
+          .then(response => {
+            resolve(response)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
+
+    fetchGenerateAdmin ({ commit }, resdata) {
+      return new Promise((resolve, reject) => {
+        putGenerateAdmin(resdata)
           .then(response => {
             resolve(response)
           })
@@ -147,6 +187,8 @@ const installProcess = {
       return new Promise((resolve, reject) => {
         deleteUnloadingPlatform(resdata)
           .then(response => {
+            localStorage.clear()
+            util.cookies.remove('token')
             resolve(response)
           })
           .catch(error => {

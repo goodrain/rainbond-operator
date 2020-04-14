@@ -1,7 +1,7 @@
 // import store from '@/store'
 import axios from 'axios'
 import { Message } from 'element-ui'
-// import util from '@/libs/util'
+import util from '@/libs/util'
 import qs from 'qs'
 
 function handleResponseCode (res) {
@@ -53,17 +53,17 @@ axios.defaults.withCredentials = true
 service.interceptors.request.use(
   config => {
     // 在请求发送之前做一些处理
-    // const token = util.cookies.get('token')
-    // if (token) {
-    // 让每个请求携带token-- ['X-Token']为自定义key 请根据实际情况自行修改
-
-    // config.headers = {
-    //   Accept: 'application/json',
-    //   'Content-Type': 'application/json; charset=utf-8',
-    //   'Access-Control-Allow-Origin':'*',
-    //   ...config.headers
-    // }
-    // config.headers['Authorization'] = token
+    const token = util.cookies.get('token')
+    if (token) {
+      // 让每个请求携带token-- ['X-Token']为自定义key 请根据实际情况自行修改
+      config.headers = {
+        Accept: 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        ...config.headers
+      }
+      config.headers['Authorization'] = token
+    }
     if (config.method === 'PUT') {
       // const qs = requrie('qs')
       config.data = qs.stringify(config.data)
@@ -74,7 +74,7 @@ service.interceptors.request.use(
   },
   error => {
     // 发送失败
-    console.log(error)
+    console.log('发送失败', error)
     return Promise.reject(error)
   }
 )
@@ -100,9 +100,13 @@ service.interceptors.response.use(
     }
   },
   error => {
-    console.log('error', error)
-
     if (error.response && error.response.data) {
+      if (
+        error.response.data.code &&
+        error.response.data.code >= 5000 && error.response.data.code <= 50007
+      ) {
+        return Promise.reject(error.response.data.code)
+      }
       const dataAxios = error.response.data
       return handleResponseCode(dataAxios)
     }

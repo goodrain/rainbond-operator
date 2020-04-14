@@ -41,6 +41,16 @@ const frameIn = [
         },
         component: _import('InstallProcess/components/successfulInstallation/index')
       },
+      // 集群状态页面
+      {
+        path: 'clusterLogin',
+        name: 'successfulLogin',
+        meta: {
+          title: '集群登录',
+          auth: true
+        },
+        component: _import('InstallProcess/components/login/index')
+      },
       // 系统 前端日志
       {
         path: 'log',

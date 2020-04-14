@@ -30,41 +30,48 @@ export default {
   },
   methods: {
     handleState () {
-      this.$store.dispatch('fetchState').then(res => {
-        if (res && res.code === 200 && res.data.final_status) {
-          switch (res.data.final_status) {
-            case 'Initing':
-              this.text = this.$t('page.overview.init')
-              this.loading = true
-              this.timers = setTimeout(() => {
-                this.handleState()
-              }, 5000)
-              break
-            case 'Setting':
-              this.handleRouter('InstallProcess')
-              break
-            case 'Installing':
-              this.handleRouter('InstallProcess')
-              break
-            case 'Running':
-              this.handleRouter('successfulInstallation')
-              break
-            case 'UnInstalling':
-              this.timers = setTimeout(() => {
-                this.handleState()
-              }, 5000)
-              this.recordInfo.status = 'uninstall'
-              this.loading = true
-              this.text = this.$t('page.overview.uninstall')
-              break
-            default:
-              this.text = this.$t('page.overview.install')
-              this.loading = false
-              this.timers && clearInterval(this.timers)
-              break
+      this.$store
+        .dispatch('fetchState')
+        .then(res => {
+          if (res && res.code === 200 && res.data.final_status) {
+            switch (res.data.final_status) {
+              case 'Initing':
+                this.text = this.$t('page.overview.init')
+                this.loading = true
+                this.timers = setTimeout(() => {
+                  this.handleState()
+                }, 5000)
+                break
+              case 'Setting':
+                this.handleRouter('InstallProcess')
+                break
+              case 'Installing':
+                this.handleRouter('InstallProcess')
+                break
+              case 'Running':
+                this.handleRouter('successfulInstallation')
+                break
+              case 'UnInstalling':
+                this.timers = setTimeout(() => {
+                  this.handleState()
+                }, 5000)
+                this.recordInfo.status = 'uninstall'
+                this.loading = true
+                this.text = this.$t('page.overview.uninstall')
+                break
+              default:
+                this.text = this.$t('page.overview.install')
+                this.loading = false
+                this.timers && clearInterval(this.timers)
+                break
+            }
           }
-        }
-      })
+        })
+        .catch(err => {
+          if (err && (err === 50004 || err === 50005 || err === 50006)) {
+            this.handleRouter('successfulLogin')
+          }
+        })
     },
     handleInit () {
       this.$store.dispatch('putInit').then(res => {
