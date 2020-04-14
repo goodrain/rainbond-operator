@@ -24,7 +24,7 @@
           <el-col :span="10">账户 : {{username}}</el-col>
           <el-col :span="10">密码 : {{password}}</el-col>
           <el-col :span="4">
-            <el-button type="primary" @click.native.prevent="handleRouter('successfulLogin')">登录</el-button>
+            <el-button size="small" type="primary" @click.native.prevent="handleRouter('successfulLogin')">登录</el-button>
           </el-col>
         </div>
       </el-card>
