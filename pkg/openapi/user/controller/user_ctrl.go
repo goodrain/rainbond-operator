@@ -72,7 +72,7 @@ func (u *UserController) Generate(c *gin.Context) {
 func (u *UserController) Login(c *gin.Context) {
 	var req model.User
 	if err := c.ShouldBind(&req); err != nil {
-		logrus.Errorf("parameter error: ", err.Error())
+		logrus.Errorf("parameter error: %s", err.Error())
 		c.JSON(http.StatusBadRequest, map[string]interface{}{"code": http.StatusBadRequest, "msg": "用户名或密码错误"})
 		return
 	}
@@ -80,7 +80,7 @@ func (u *UserController) Login(c *gin.Context) {
 	token, err := u.userUcase.Login(req.Username, req.Password)
 	if err != nil {
 		if err == usecase.UserNotFound {
-			logrus.Errorf("user not found: ", err.Error())
+			logrus.Errorf("user not found: %s", err.Error())
 			c.JSON(http.StatusNotFound, map[string]interface{}{"code": bcode.UserNotFound.Code(), "msg": "用户名或密码错误"})
 			return
 		}
@@ -88,7 +88,7 @@ func (u *UserController) Login(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, map[string]interface{}{"code": bcode.UserPasswordInCorrect.Code(), "msg": bcode.UserPasswordInCorrect.Msg()})
 			return
 		}
-		logrus.Errorf("login failed: ", err.Error())
+		logrus.Errorf("login failed: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": bcode.ServerErr.Code(), "msg": bcode.ServerErr.Msg()})
 		return
 	}
