@@ -133,7 +133,7 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		}
 	}
 
-	return reconcile.Result{}, nil
+	return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 }
 
 func (r *ReconcileRainbondCluster) getImageHub(cluster *rainbondv1alpha1.RainbondCluster) (*rainbondv1alpha1.ImageHub, error) {
