@@ -142,6 +142,10 @@ func (w *worker) deployment() interface{} {
 				},
 			},
 		},
+		{
+			Name:  "IMAGE_PULL_SECRET",
+			Value: w.cluster.Status.ImagePullSecret.Name,
+		},
 	}
 	if imageHub := w.cluster.Spec.ImageHub; imageHub != nil {
 		env = append(env, corev1.EnvVar{
