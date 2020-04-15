@@ -37,7 +37,7 @@
       </el-row>
     </div>
     <el-col :span="24" class="d2-f-16 d2-text-cen d2-mt">
-      <el-button type="primary" @click="onhandleDelete">卸载</el-button>
+      <el-button type="primary" @click="dialogVisibles = true">卸载</el-button>
     </el-col>
     <Uploads
       :nextLoading="nextLoading"
@@ -45,6 +45,40 @@
       @onSubmitLoads="onSubmitLoads"
       @onhandleClone="dialogVisible=false"
     />
+
+    <el-dialog title="你卸载Rainbond的原因" :visible.sync="dialogVisibles" width="30%">
+      <el-form
+        :inline="true"
+        @submit.native.prevent
+        :model="uninstallForm"
+        ref="uninstallForm"
+        size="small"
+        label-width="88px"
+      >
+        <el-row :gutter="20">
+          <el-col :span="24" class="table-cell-title">
+            <el-form-item class="bor" label prop="checkList">
+              <el-checkbox-group v-model="uninstallForm.checkList" style="width:390px">
+                <el-checkbox label="安装复杂"></el-checkbox>
+                <el-checkbox label="上手困难"></el-checkbox>
+                <el-checkbox label="界面不美观"></el-checkbox>
+                <el-checkbox label="找不到想要的功能"></el-checkbox>
+                <el-checkbox label="没有理由"></el-checkbox>
+              </el-checkbox-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24" class="table-cell-title">
+            <el-form-item label="其他原因" class="d2-mt d2-form-item">
+              <el-input type="textarea" v-model="uninstallForm.otherReasons" style="width:290px"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="dialogVisibles = false">取 消</el-button>
+        <el-button type="primary" @click="onhandleDelete">卸 载</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 <script>
@@ -63,6 +97,7 @@ export default {
     return {
       nextLoading: false,
       dialogVisible: false,
+      dialogVisibles: false,
       dialogVisibleNum: 0,
       installList: [],
       loading: true,
@@ -72,7 +107,11 @@ export default {
         Terminated: '停止'
       },
       componentList: [],
-      mirrorComponentList: []
+      mirrorComponentList: [],
+      uninstallForm: {
+        checkList: [],
+        otherReasons: ''
+      }
     }
   },
   created () {
@@ -86,27 +125,35 @@ export default {
   },
   methods: {
     onhandleDelete () {
-      this.$confirm('确定要卸载吗？')
-        .then(_ => {
-          this.$store.dispatch('deleteUnloadingPlatform').then(res => {
-            if (res && res.code === 200) {
-              this.$notify({
-                type: 'success',
-                title: '卸载',
-                message: '卸载成功'
-              })
-              this.$emit('onhandleUninstallRecord')
-              this.$router.push({
-                name: 'index'
+      this.$store
+        .dispatch('deleteUnloadingPlatform')
+        .then(res => {
+          if (res && res.code === 200) {
+            this.dialogVisibles = false
+            let message = this.uninstallForm.otherReasons
+              ? this.uninstallForm.otherReasons + ','
+              : ''
+            if (this.uninstallForm.checkList.length > 0) {
+              this.uninstallForm.checkList.map(item => {
+                message += item + ','
               })
             }
-          })
+            this.$emit('onhandleUninstallRecord', 'uninstall', message)
+            this.$notify({
+              type: 'success',
+              title: '卸载',
+              message: '卸载成功'
+            })
+            this.$router.push({
+              name: 'index'
+            })
+          }
         })
         .catch(_ => {
+          this.dialogVisibles = false
           this.$emit('onhandleErrorRecord')
         })
     },
-
     loadData () {
       this.fetchClusterInstallResults()
       this.fetchClusterInstallResultsState()

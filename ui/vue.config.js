@@ -16,7 +16,6 @@ let publicPath = process.env.VUE_APP_PUBLIC_PATH || '/'
 // 设置不参与构建的库
 let externals = {}
 
-
 module.exports = {
   // 根据你的实际情况更改这里
   publicPath,
