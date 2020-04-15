@@ -7,4 +7,5 @@ type Usecase interface {
 	Login(username, password string) (string, error)
 	GenerateUser() (*model.User, error)
 	IsGenerated() (bool, error)
+	UpdateAdminPassword(pass string) error
 }

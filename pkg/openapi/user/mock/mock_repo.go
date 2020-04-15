@@ -83,3 +83,15 @@ func (m *MockRepository) GetUserCount() (int, error) {
 func (mr *MockRepositoryMockRecorder) GetUserCount() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserCount", reflect.TypeOf((*MockRepository)(nil).GetUserCount))
 }
+
+// UpdateModel mocks base method
+func (m *MockRepository) UpdateModel(data model.User) error {
+	ret := m.ctrl.Call(m, "UpdateModel", data)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateModel indicates an expected call of UpdateModel
+func (mr *MockRepositoryMockRecorder) UpdateModel(data interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateModel", reflect.TypeOf((*MockRepository)(nil).UpdateModel), data)
+}

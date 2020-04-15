@@ -36,6 +36,27 @@ func NewUserUsecase(userRepo user.Repository, secretKey string) user.Usecase {
 	return ucase
 }
 
+// UpdateAdminPassword -
+func (u *userUsecase) UpdateAdminPassword(pass string) error {
+	exists, err := u.IsGenerated()
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return bcode.UserNotFound
+	}
+	encryptPass, err := passwordutil.EncryptionPassword(pass, TempMail)
+	if err != nil {
+		return err
+	}
+
+	admin := model.User{Username: "admin", Password: encryptPass}
+	if err := u.userRepo.UpdateModel(admin); err != nil {
+		return err
+	}
+	return nil
+}
+
 // IsGenerated -
 func (u *userUsecase) IsGenerated() (bool, error) {
 	users, err := u.userRepo.ListUsers()
@@ -67,12 +88,12 @@ func (u *userUsecase) GenerateUser() (*model.User, error) {
 		Password: pass,
 	}
 
-	encryPass, err := passwordutil.EncryptionPassword(pass, TempMail)
+	encryptPass, err := passwordutil.EncryptionPassword(pass, TempMail)
 	if err != nil {
 		return nil, err
 	}
 
-	userInfo.Password = encryPass
+	userInfo.Password = encryptPass
 
 	err = u.userRepo.CreateIfNotExist(&userInfo)
 	if err != nil {

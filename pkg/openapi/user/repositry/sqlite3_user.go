@@ -48,3 +48,11 @@ func (s *sqlite3UserRepo) GetUserCount() (count int, err error) {
 	}
 	return
 }
+
+// UpdateModel -
+func (s *sqlite3UserRepo) UpdateModel(data model.User) error {
+	if err := s.db.Table(data.TableName()).Update(data).Error; err != nil {
+		return err
+	}
+	return nil
+}

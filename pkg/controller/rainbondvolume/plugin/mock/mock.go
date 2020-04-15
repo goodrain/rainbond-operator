@@ -34,7 +34,6 @@ func (m *MockCSIPlugin) EXPECT() *MockCSIPluginMockRecorder {
 
 // IsPluginReady mocks base method
 func (m *MockCSIPlugin) IsPluginReady() bool {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsPluginReady")
 	ret0, _ := ret[0].(bool)
 	return ret0
@@ -42,13 +41,11 @@ func (m *MockCSIPlugin) IsPluginReady() bool {
 
 // IsPluginReady indicates an expected call of IsPluginReady
 func (mr *MockCSIPluginMockRecorder) IsPluginReady() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPluginReady", reflect.TypeOf((*MockCSIPlugin)(nil).IsPluginReady))
 }
 
 // GetProvisioner mocks base method
 func (m *MockCSIPlugin) GetProvisioner() string {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProvisioner")
 	ret0, _ := ret[0].(string)
 	return ret0
@@ -56,13 +53,11 @@ func (m *MockCSIPlugin) GetProvisioner() string {
 
 // GetProvisioner indicates an expected call of GetProvisioner
 func (mr *MockCSIPluginMockRecorder) GetProvisioner() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProvisioner", reflect.TypeOf((*MockCSIPlugin)(nil).GetProvisioner))
 }
 
 // GetClusterScopedResources mocks base method
 func (m *MockCSIPlugin) GetClusterScopedResources() []interface{} {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClusterScopedResources")
 	ret0, _ := ret[0].([]interface{})
 	return ret0
@@ -70,13 +65,11 @@ func (m *MockCSIPlugin) GetClusterScopedResources() []interface{} {
 
 // GetClusterScopedResources indicates an expected call of GetClusterScopedResources
 func (mr *MockCSIPluginMockRecorder) GetClusterScopedResources() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterScopedResources", reflect.TypeOf((*MockCSIPlugin)(nil).GetClusterScopedResources))
 }
 
 // GetSubResources mocks base method
 func (m *MockCSIPlugin) GetSubResources() []interface{} {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSubResources")
 	ret0, _ := ret[0].([]interface{})
 	return ret0
@@ -84,6 +77,5 @@ func (m *MockCSIPlugin) GetSubResources() []interface{} {
 
 // GetSubResources indicates an expected call of GetSubResources
 func (mr *MockCSIPluginMockRecorder) GetSubResources() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubResources", reflect.TypeOf((*MockCSIPlugin)(nil).GetSubResources))
 }

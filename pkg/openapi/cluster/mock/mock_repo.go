@@ -34,7 +34,6 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 
 // EnterpriseID mocks base method
 func (m *MockRepository) EnterpriseID() string {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnterpriseID")
 	ret0, _ := ret[0].(string)
 	return ret0
@@ -42,6 +41,5 @@ func (m *MockRepository) EnterpriseID() string {
 
 // EnterpriseID indicates an expected call of EnterpriseID
 func (mr *MockRepositoryMockRecorder) EnterpriseID() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnterpriseID", reflect.TypeOf((*MockRepository)(nil).EnterpriseID))
 }

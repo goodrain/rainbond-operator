@@ -8,3 +8,8 @@ type User struct {
 	Username string `json:"username" gorm:"username" `
 	Password string `json:"password" gorm:"password"`
 }
+
+// TableName -
+func (u *User) TableName() string {
+	return "users"
+}

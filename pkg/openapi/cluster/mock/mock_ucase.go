@@ -37,7 +37,6 @@ func (m *MockIClusterUcase) EXPECT() *MockIClusterUcaseMockRecorder {
 
 // GlobalConfigs mocks base method
 func (m *MockIClusterUcase) GlobalConfigs() cluster.GlobalConfigUseCase {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GlobalConfigs")
 	ret0, _ := ret[0].(cluster.GlobalConfigUseCase)
 	return ret0
@@ -45,13 +44,11 @@ func (m *MockIClusterUcase) GlobalConfigs() cluster.GlobalConfigUseCase {
 
 // GlobalConfigs indicates an expected call of GlobalConfigs
 func (mr *MockIClusterUcaseMockRecorder) GlobalConfigs() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GlobalConfigs", reflect.TypeOf((*MockIClusterUcase)(nil).GlobalConfigs))
 }
 
 // Components mocks base method
 func (m *MockIClusterUcase) Components() cluster.ComponentUsecase {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Components")
 	ret0, _ := ret[0].(cluster.ComponentUsecase)
 	return ret0
@@ -59,13 +56,11 @@ func (m *MockIClusterUcase) Components() cluster.ComponentUsecase {
 
 // Components indicates an expected call of Components
 func (mr *MockIClusterUcaseMockRecorder) Components() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Components", reflect.TypeOf((*MockIClusterUcase)(nil).Components))
 }
 
 // Install mocks base method
 func (m *MockIClusterUcase) Install() cluster.InstallUseCase {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Install")
 	ret0, _ := ret[0].(cluster.InstallUseCase)
 	return ret0
@@ -73,13 +68,11 @@ func (m *MockIClusterUcase) Install() cluster.InstallUseCase {
 
 // Install indicates an expected call of Install
 func (mr *MockIClusterUcaseMockRecorder) Install() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockIClusterUcase)(nil).Install))
 }
 
 // Cluster mocks base method
 func (m *MockIClusterUcase) Cluster() cluster.Usecase {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Cluster")
 	ret0, _ := ret[0].(cluster.Usecase)
 	return ret0
@@ -87,7 +80,6 @@ func (m *MockIClusterUcase) Cluster() cluster.Usecase {
 
 // Cluster indicates an expected call of Cluster
 func (mr *MockIClusterUcaseMockRecorder) Cluster() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cluster", reflect.TypeOf((*MockIClusterUcase)(nil).Cluster))
 }
 
@@ -116,7 +108,6 @@ func (m *MockUsecase) EXPECT() *MockUsecaseMockRecorder {
 
 // Status mocks base method
 func (m *MockUsecase) Status() (*model.ClusterStatus, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Status")
 	ret0, _ := ret[0].(*model.ClusterStatus)
 	ret1, _ := ret[1].(error)
@@ -125,13 +116,11 @@ func (m *MockUsecase) Status() (*model.ClusterStatus, error) {
 
 // Status indicates an expected call of Status
 func (mr *MockUsecaseMockRecorder) Status() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Status", reflect.TypeOf((*MockUsecase)(nil).Status))
 }
 
 // Init mocks base method
 func (m *MockUsecase) Init() error {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Init")
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -139,13 +128,11 @@ func (m *MockUsecase) Init() error {
 
 // Init indicates an expected call of Init
 func (mr *MockUsecaseMockRecorder) Init() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Init", reflect.TypeOf((*MockUsecase)(nil).Init))
 }
 
 // UnInstall mocks base method
 func (m *MockUsecase) UnInstall() error {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UnInstall")
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -153,13 +140,11 @@ func (m *MockUsecase) UnInstall() error {
 
 // UnInstall indicates an expected call of UnInstall
 func (mr *MockUsecaseMockRecorder) UnInstall() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnInstall", reflect.TypeOf((*MockUsecase)(nil).UnInstall))
 }
 
 // StatusInfo mocks base method
 func (m *MockUsecase) StatusInfo() (*v1.ClusterStatusInfo, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StatusInfo")
 	ret0, _ := ret[0].(*v1.ClusterStatusInfo)
 	ret1, _ := ret[1].(error)
@@ -168,13 +153,11 @@ func (m *MockUsecase) StatusInfo() (*v1.ClusterStatusInfo, error) {
 
 // StatusInfo indicates an expected call of StatusInfo
 func (mr *MockUsecaseMockRecorder) StatusInfo() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StatusInfo", reflect.TypeOf((*MockUsecase)(nil).StatusInfo))
 }
 
 // ClusterNodes mocks base method
 func (m *MockUsecase) ClusterNodes(query string, runGateway bool) []*v1.K8sNode {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ClusterNodes", query, runGateway)
 	ret0, _ := ret[0].([]*v1.K8sNode)
 	return ret0
@@ -182,13 +165,11 @@ func (m *MockUsecase) ClusterNodes(query string, runGateway bool) []*v1.K8sNode 
 
 // ClusterNodes indicates an expected call of ClusterNodes
 func (mr *MockUsecaseMockRecorder) ClusterNodes(query, runGateway interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterNodes", reflect.TypeOf((*MockUsecase)(nil).ClusterNodes), query, runGateway)
 }
 
 // CompleteNodes mocks base method
 func (m *MockUsecase) CompleteNodes(nodes []*v1.K8sNode, runGateway bool) ([]*v1.K8sNode, []*v1.K8sNode) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CompleteNodes", nodes, runGateway)
 	ret0, _ := ret[0].([]*v1.K8sNode)
 	ret1, _ := ret[1].([]*v1.K8sNode)
@@ -197,7 +178,6 @@ func (m *MockUsecase) CompleteNodes(nodes []*v1.K8sNode, runGateway bool) ([]*v1
 
 // CompleteNodes indicates an expected call of CompleteNodes
 func (mr *MockUsecaseMockRecorder) CompleteNodes(nodes, runGateway interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteNodes", reflect.TypeOf((*MockUsecase)(nil).CompleteNodes), nodes, runGateway)
 }
 
@@ -226,7 +206,6 @@ func (m *MockGlobalConfigUseCase) EXPECT() *MockGlobalConfigUseCaseMockRecorder 
 
 // GlobalConfigs mocks base method
 func (m *MockGlobalConfigUseCase) GlobalConfigs() (*model.GlobalConfigs, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GlobalConfigs")
 	ret0, _ := ret[0].(*model.GlobalConfigs)
 	ret1, _ := ret[1].(error)
@@ -235,13 +214,11 @@ func (m *MockGlobalConfigUseCase) GlobalConfigs() (*model.GlobalConfigs, error) 
 
 // GlobalConfigs indicates an expected call of GlobalConfigs
 func (mr *MockGlobalConfigUseCaseMockRecorder) GlobalConfigs() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GlobalConfigs", reflect.TypeOf((*MockGlobalConfigUseCase)(nil).GlobalConfigs))
 }
 
 // UpdateGlobalConfig mocks base method
 func (m *MockGlobalConfigUseCase) UpdateGlobalConfig(config *v1.GlobalConfigs) error {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateGlobalConfig", config)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -249,13 +226,11 @@ func (m *MockGlobalConfigUseCase) UpdateGlobalConfig(config *v1.GlobalConfigs) e
 
 // UpdateGlobalConfig indicates an expected call of UpdateGlobalConfig
 func (mr *MockGlobalConfigUseCaseMockRecorder) UpdateGlobalConfig(config interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGlobalConfig", reflect.TypeOf((*MockGlobalConfigUseCase)(nil).UpdateGlobalConfig), config)
 }
 
 // Address mocks base method
 func (m *MockGlobalConfigUseCase) Address() (string, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Address")
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
@@ -264,7 +239,6 @@ func (m *MockGlobalConfigUseCase) Address() (string, error) {
 
 // Address indicates an expected call of Address
 func (mr *MockGlobalConfigUseCaseMockRecorder) Address() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Address", reflect.TypeOf((*MockGlobalConfigUseCase)(nil).Address))
 }
 
@@ -293,7 +267,6 @@ func (m *MockComponentUsecase) EXPECT() *MockComponentUsecaseMockRecorder {
 
 // Get mocks base method
 func (m *MockComponentUsecase) Get(name string) (*v1.RbdComponentStatus, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", name)
 	ret0, _ := ret[0].(*v1.RbdComponentStatus)
 	ret1, _ := ret[1].(error)
@@ -302,13 +275,11 @@ func (m *MockComponentUsecase) Get(name string) (*v1.RbdComponentStatus, error) 
 
 // Get indicates an expected call of Get
 func (mr *MockComponentUsecaseMockRecorder) Get(name interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockComponentUsecase)(nil).Get), name)
 }
 
 // List mocks base method
 func (m *MockComponentUsecase) List(isInit bool) ([]*v1.RbdComponentStatus, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", isInit)
 	ret0, _ := ret[0].([]*v1.RbdComponentStatus)
 	ret1, _ := ret[1].(error)
@@ -317,7 +288,6 @@ func (m *MockComponentUsecase) List(isInit bool) ([]*v1.RbdComponentStatus, erro
 
 // List indicates an expected call of List
 func (mr *MockComponentUsecaseMockRecorder) List(isInit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockComponentUsecase)(nil).List), isInit)
 }
 
@@ -346,7 +316,6 @@ func (m *MockInstallUseCase) EXPECT() *MockInstallUseCaseMockRecorder {
 
 // Install mocks base method
 func (m *MockInstallUseCase) Install(req *v1.ClusterInstallReq) error {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Install", req)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -354,13 +323,11 @@ func (m *MockInstallUseCase) Install(req *v1.ClusterInstallReq) error {
 
 // Install indicates an expected call of Install
 func (mr *MockInstallUseCaseMockRecorder) Install(req interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockInstallUseCase)(nil).Install), req)
 }
 
 // InstallStatus mocks base method
 func (m *MockInstallUseCase) InstallStatus() (model.StatusRes, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InstallStatus")
 	ret0, _ := ret[0].(model.StatusRes)
 	ret1, _ := ret[1].(error)
@@ -369,6 +336,5 @@ func (m *MockInstallUseCase) InstallStatus() (model.StatusRes, error) {
 
 // InstallStatus indicates an expected call of InstallStatus
 func (mr *MockInstallUseCaseMockRecorder) InstallStatus() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallStatus", reflect.TypeOf((*MockInstallUseCase)(nil).InstallStatus))
 }

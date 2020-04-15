@@ -34,6 +34,32 @@ func NewUserController(g *gin.Engine, userUcase user.Usecase) {
 	userEngine.POST("/login", corsMidle(u.Login))
 	userEngine.POST("/generate", corsMidle(u.Generate))
 	userEngine.GET("/generate", corsMidle(u.IsGenerated))
+	userEngine.PUT("/reset-password", u.ResetPassword)
+}
+
+// ResetPassword -
+func (u *UserController) ResetPassword(c *gin.Context) {
+	type reqStruct struct {
+		Password string `json:"password" binding:"required"`
+	}
+	var req reqStruct
+	if err := c.BindJSON(&req); err != nil {
+		logrus.Errorf("parameter error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, map[string]interface{}{"code": http.StatusBadRequest, "msg": "请提供参数password"})
+		return
+	}
+	logrus.Debugf("new pass is : %s", req.Password)
+	if err := u.userUcase.UpdateAdminPassword(req.Password); err != nil {
+		if err == bcode.UserNotFound {
+			logrus.Errorf("user not found: %s", err.Error())
+			c.JSON(http.StatusNotFound, map[string]interface{}{"code": bcode.UserNotFound.Code(), "msg": "用户不存在"})
+			return
+		}
+		logrus.Errorf("reset passwrod failed: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": bcode.ServerErr.Code(), "msg": bcode.ServerErr.Msg()})
+		return
+	}
+	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
 }
 
 // IsGenerated -
@@ -81,7 +107,7 @@ func (u *UserController) Login(c *gin.Context) {
 	if err != nil {
 		if err == usecase.UserNotFound {
 			logrus.Errorf("user not found: %s", err.Error())
-			c.JSON(http.StatusNotFound, map[string]interface{}{"code": bcode.UserNotFound.Code(), "msg": "用户名或密码错误"})
+			c.JSON(http.StatusNotFound, map[string]interface{}{"code": bcode.UserNotFound.Code(), "msg": "用户不存在"})
 			return
 		}
 		if err == bcode.UserPasswordInCorrect {

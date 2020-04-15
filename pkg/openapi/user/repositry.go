@@ -8,4 +8,5 @@ type Repository interface {
 	GetByUsername(username string) (*model.User, error)
 	ListUsers() ([]*model.User, error)
 	GetUserCount() (count int, err error)
+	UpdateModel(data model.User) error
 }
