@@ -23,7 +23,7 @@
         >
           <install-results
             @onhandleErrorRecord="handleRecord('failure')"
-            @onhandleUninstallRecord="handleRecord('uninstall')"
+            @onhandleUninstallRecord="handleRecord"
           ></install-results>
         </el-collapse-item>
       </el-collapse>
@@ -49,7 +49,8 @@ export default {
         install_id: '',
         version: '',
         status: 'uninstall',
-        eid: ''
+        eid: '',
+        message: ''
       },
       clusterInitInfo: {}
     }
@@ -69,6 +70,7 @@ export default {
             this.recordInfo.install_id = res.data.clusterInfo.installID
             this.recordInfo.version = res.data.clusterInfo.installVersion
             this.recordInfo.eid = res.data.clusterInfo.enterpriseID
+            this.recordInfo.message = ''
           }
 
           switch (res.data.final_status) {
@@ -101,8 +103,9 @@ export default {
         }
       })
     },
-    handleRecord (states) {
+    handleRecord (states, message) {
       this.recordInfo.status = states
+      this.recordInfo.message = message || ''
       this.$store.dispatch('putRecord', this.recordInfo).then(res => {
         console.log('res', res)
       })
