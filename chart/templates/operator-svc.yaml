@@ -17,3 +17,24 @@ spec:
     name: {{ template "rainbond-operator.name" . }}
     release: {{ .Release.Name }}
   type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rainbond-openapi-admin
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    name: {{ template "rainbond-operator.name" . }}
+    key: rainbond-openapi-admin
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+spec:
+  ports:
+    - protocol: TCP
+      name: http
+      port: 1234
+  selector:
+    name: {{ template "rainbond-operator.name" . }}
+    release: {{ .Release.Name }}
+  type: ClusterIP

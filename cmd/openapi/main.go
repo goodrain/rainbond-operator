@@ -118,6 +118,12 @@ func main() {
 	}())
 	go func() { _ = r.Run() }() // listen and serve on 0.0.0.0:8080
 
+	adminRoute := gin.Default()
+	uctrl.NewAdminController(adminRoute, userUcase)
+	go func() {
+		_ = adminRoute.Run(":1234")
+	}()
+
 	term := make(chan os.Signal, 1)
 	signal.Notify(term, os.Interrupt, syscall.SIGTERM)
 	s := <-term

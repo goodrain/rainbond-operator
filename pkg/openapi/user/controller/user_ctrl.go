@@ -34,7 +34,16 @@ func NewUserController(g *gin.Engine, userUcase user.Usecase) {
 	userEngine.POST("/login", corsMidle(u.Login))
 	userEngine.POST("/generate", corsMidle(u.Generate))
 	userEngine.GET("/generate", corsMidle(u.IsGenerated))
-	userEngine.PUT("/reset-password", u.ResetPassword)
+}
+
+// NewAdminController -
+func NewAdminController(g *gin.Engine, userUcase user.Usecase) {
+	u := &UserController{
+		userUcase: userUcase,
+	}
+
+	adminEngine := g.Group("/admin")
+	adminEngine.PUT("/reset-password", u.ResetPassword)
 }
 
 // ResetPassword -
