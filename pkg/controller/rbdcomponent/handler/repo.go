@@ -87,6 +87,7 @@ func (r *repo) statefulset() interface{} {
 					Labels: r.labels,
 				},
 				Spec: corev1.PodSpec{
+					ImagePullSecrets:              imagePullSecrets(r.component, r.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{

@@ -121,9 +121,6 @@ type AvailableNodes struct {
 
 // RainbondClusterStatus defines the observed state of RainbondCluster
 type RainbondClusterStatus struct {
-	// Master node name list
-	// Deprecated: should be deleted
-	MasterNodeNames []string `json:"nodeNames,omitempty"`
 	// List of existing StorageClasses in the cluster
 	// +optional
 	StorageClasses []*StorageClass `json:"storageClasses,omitempty"`
@@ -133,6 +130,12 @@ type RainbondClusterStatus struct {
 	GatewayAvailableNodes *AvailableNodes `json:"gatewayAvailableNodes,omitempty"`
 	// holds some recommend nodes available for rbd-chaos to run.
 	ChaosAvailableNodes *AvailableNodes `json:"chaosAvailableNodes,omitempty"`
+	// ImagePullUsername is the username to pull any of images used by PodSpec
+	ImagePullUsername string `json:"imagePullUsername,omitempty"`
+	// ImagePullPassword is the password to pull any of images used by PodSpec
+	ImagePullPassword string `json:"imagePullPassword,omitempty"`
+	// ImagePullSecret is an optional references to secret in the same namespace to use for pulling any of the images used by PodSpec.
+	ImagePullSecret corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 }
 
 // +genclient
@@ -197,14 +200,4 @@ func (in *Database) RegionDataSource() string {
 		name = "region"
 	}
 	return fmt.Sprintf("--mysql=%s:%s@tcp(%s:%d)/%s", in.Username, in.Password, in.Host, in.Port, name)
-}
-
-// FirstMasterNodeLabel returns master node label of first master node.
-func (in *RainbondClusterStatus) FirstMasterNodeLabel() map[string]string {
-	if len(in.MasterNodeNames) == 0 {
-		return nil
-	}
-	return map[string]string{
-		"kubernetes.io/hostname": in.MasterNodeNames[0],
-	}
 }

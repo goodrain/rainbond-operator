@@ -191,6 +191,10 @@ func (c *chaos) deployment() interface{} {
 			Name:  "CACHE_DIR",
 			Value: "/cache",
 		},
+		{
+			Name:  "IMAGE_PULL_SECRET",
+			Value: c.cluster.Status.ImagePullSecret.Name,
+		},
 	}
 	if imageHub := c.cluster.Spec.ImageHub; imageHub != nil {
 		env = append(env, corev1.EnvVar{
@@ -225,6 +229,7 @@ func (c *chaos) deployment() interface{} {
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
+					ImagePullSecrets:              imagePullSecrets(c.component, c.cluster),
 					Tolerations: []corev1.Toleration{
 						{
 							Operator: corev1.TolerationOpExists, // tolerate everything.

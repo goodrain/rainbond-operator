@@ -142,6 +142,10 @@ func (w *worker) deployment() interface{} {
 				},
 			},
 		},
+		{
+			Name:  "IMAGE_PULL_SECRET",
+			Value: w.cluster.Status.ImagePullSecret.Name,
+		},
 	}
 	if imageHub := w.cluster.Spec.ImageHub; imageHub != nil {
 		env = append(env, corev1.EnvVar{
@@ -177,6 +181,7 @@ func (w *worker) deployment() interface{} {
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
+					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
 					Containers: []corev1.Container{
 						{
 							Name:            WorkerName,

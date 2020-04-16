@@ -178,6 +178,7 @@ func (a *api) deployment() interface{} {
 					Labels: a.labels,
 				},
 				Spec: corev1.PodSpec{
+					ImagePullSecrets:              imagePullSecrets(a.component, a.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{

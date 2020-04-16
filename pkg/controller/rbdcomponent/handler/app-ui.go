@@ -110,6 +110,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 					Labels: a.labels,
 				},
 				Spec: corev1.PodSpec{
+					ImagePullSecrets:              imagePullSecrets(a.component, a.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{
@@ -279,6 +280,7 @@ func (a *appui) migrationsJob() *batchv1.Job {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					ImagePullSecrets:              imagePullSecrets(a.component, a.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					RestartPolicy:                 corev1.RestartPolicyOnFailure,
 					Containers: []corev1.Container{

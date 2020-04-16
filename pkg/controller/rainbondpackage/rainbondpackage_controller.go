@@ -285,12 +285,13 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 		"/mysqld-exporter":                  "/mysqld-exporter",
 		"/rbd-repo:6.16.0":                  "/rbd-repo:6.16.0",
 		"/rbd-registry:2.6.2":               "/rbd-registry:2.6.2",
-		"/rbd-db:8.0.12":                    "/rbd-db:8.0.12",
+		"/rbd-db:8.0.19":                    "/rbd-db:8.0.19",
 		"/metrics-server:v0.3.6":            "/metrics-server:v0.3.6",
 		"/rbd-init-probe:" + p.version:      "/rbd-init-probe",
 		"/rbd-mesh-data-panel:" + p.version: "/rbd-mesh-data-panel",
 		"/plugins-tcm:5.1.7":                "/tcm",
-		"/nfs-provisioner:v2.2.1-k8s1.12":   "/nfs-provisioner:v2.2.1-k8s1.12",
+		"/nfs-provisioner:v2.3.0":           "/nfs-provisioner:v2.3.0",
+		"/etcd:v3.3.18":                     "/etcd:v3.3.18",
 	}
 	return nil
 }
@@ -671,32 +672,30 @@ func (p *pkg) untartar() error {
 	stop <- struct{}{}
 	return nil
 }
-
 func (p *pkg) imagePullAndPush() error {
 	p.pkg.Status.ImagesNumber = int32(len(p.images))
 	p.pkg.Status.ImagesPushed = nil
 	var count int32
 	handleImgae := func(remoteImage, localImage string) error {
-		if err := p.imagePull(remoteImage); err != nil {
-			return fmt.Errorf("pull image %s failure %s", remoteImage, err.Error())
-		}
-		if err := p.dcli.ImageTag(p.ctx, remoteImage, localImage); err != nil {
-			return fmt.Errorf("change image tag(%s => %s) failure: %v", remoteImage, localImage, err)
-		}
-		if err := p.imagePush(localImage); err != nil {
-			return fmt.Errorf("push image %s failure %s", localImage, err.Error())
-		}
-		return nil
+		return retryutil.Retry(time.Second*2, 3, func() (bool, error) {
+			if err := p.imagePull(remoteImage); err != nil {
+				return false, fmt.Errorf("pull image %s failure %s", remoteImage, err.Error())
+			}
+			if err := p.dcli.ImageTag(p.ctx, remoteImage, localImage); err != nil {
+				return false, fmt.Errorf("change image tag(%s => %s) failure: %v", remoteImage, localImage, err)
+			}
+			if err := p.imagePush(localImage); err != nil {
+				return false, fmt.Errorf("push image %s failure %s", localImage, err.Error())
+			}
+			return true, nil
+		})
 	}
 
 	for old, new := range p.images {
 		remoteImage := path.Join(p.downloadImageDomain, old)
 		localImage := path.Join(p.pushImageDomain, new)
 		if err := handleImgae(remoteImage, localImage); err != nil {
-			err = handleImgae(remoteImage, localImage)
-			if err != nil {
-				return err
-			}
+			return err
 		}
 		count++
 		p.pkg.Status.ImagesPushed = append(p.pkg.Status.ImagesPushed, rainbondv1alpha1.RainbondPackageImage{Name: localImage})
@@ -832,16 +831,9 @@ func (p *pkg) imagePush(image string) error {
 	ctx, cancel := context.WithCancel(p.ctx)
 	defer cancel()
 	var res io.ReadCloser
-	for i := 0; i < 2; i++ {
-		res, err = p.dcli.ImagePush(ctx, image, opts)
-		if err != nil {
-			p.log.Error(err, "failed to push image, retry after 5 second", "image", image)
-			//retry after 5 second
-			time.Sleep(time.Second * 5)
-			continue
-		}
-	}
+	res, err = p.dcli.ImagePush(ctx, image, opts)
 	if err != nil {
+		p.log.Error(err, "failed to push image", "image", image)
 		return err
 	}
 	if res != nil {

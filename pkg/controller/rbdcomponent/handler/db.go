@@ -169,6 +169,7 @@ func (d *db) statefulsetForDB() interface{} {
 					Labels: d.labels,
 				},
 				Spec: corev1.PodSpec{
+					ImagePullSecrets:              imagePullSecrets(d.component, d.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{
@@ -396,8 +397,9 @@ func (d *db) mysqlCluster() *mysqlv1alpha1.Cluster {
 			Labels:    d.labels,
 		},
 		Spec: mysqlv1alpha1.ClusterSpec{
-			MultiMaster: true,
-			Members:     defaultSize,
+			MultiMaster:      true,
+			Members:          defaultSize,
+			ImagePullSecrets: imagePullSecrets(d.component, d.cluster),
 			RootPasswordSecret: &corev1.LocalObjectReference{
 				Name: DBName,
 			},

@@ -95,6 +95,7 @@ func (m *mq) deployment() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					ImagePullSecrets:              imagePullSecrets(m.component, m.cluster),
 					Containers: []corev1.Container{
 						{
 							Name:            MQName,

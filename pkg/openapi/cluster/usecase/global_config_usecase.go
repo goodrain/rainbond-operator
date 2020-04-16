@@ -2,21 +2,21 @@ package usecase
 
 import (
 	"fmt"
-	"strings"
-
-	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
-	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	v1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
+	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	"github.com/goodrain/rainbond-operator/pkg/util/suffixdomain"
+
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/util/retry"
 )
 
 // GlobalConfigUseCaseImpl case
@@ -45,8 +45,14 @@ func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *v1.GlobalConfigs) er
 	if err != nil {
 		return err
 	}
-	_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(clusterInfo)
-	return err
+
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(clusterInfo)
+		if err != nil {
+			return fmt.Errorf("update rainbondcluster: %v", err)
+		}
+		return nil
+	})
 }
 
 func (cc *GlobalConfigUseCaseImpl) genSuffixHTTPHost(ip string) (domain string, err error) {
@@ -57,9 +63,6 @@ func (cc *GlobalConfigUseCaseImpl) genSuffixHTTPHost(ip string) (domain string, 
 	domain, err = suffixdomain.GenerateDomain(ip, id, auth)
 	if err != nil {
 		return "", err
-	}
-	if !strings.HasSuffix(domain, "grapps.cn") {
-		return "", fmt.Errorf("get suffix http host failure") // TODO 不能这样做
 	}
 	return domain, nil
 }
