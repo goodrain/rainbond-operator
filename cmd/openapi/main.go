@@ -121,7 +121,7 @@ func main() {
 	adminRoute := gin.Default()
 	uctrl.NewAdminController(adminRoute, userUcase)
 	go func() {
-		_ = adminRoute.Run(":1234")
+		_ = adminRoute.Run(":1234") // if change this port and template, should change grctl admin too
 	}()
 
 	term := make(chan os.Signal, 1)
