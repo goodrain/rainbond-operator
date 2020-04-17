@@ -22,7 +22,7 @@ rainbondOperator:
   name: rainbond-operator
   image:
     repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator
-    tag: v1.0.0-release
+    tag: v1.0.0
     pullPolicy: IfNotPresent
   regionDBName: region
 
@@ -31,7 +31,7 @@ openapi:
   name: openapi
   image:
     repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui
-    tag: v1.0.0-release
+    tag: v1.0.0
     pullPolicy: IfNotPresent
   port: 8080
   nodePort: 30008
