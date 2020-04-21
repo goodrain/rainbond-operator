@@ -21,9 +21,9 @@ enableMySQLOperator: false
 rainbondOperator:
   name: rainbond-operator
   image:
-    repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator
+    repository: registry.cn-hangzhou.aliyuncs.com/abewang/rainbond-operator
     tag: v1.0.0
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   regionDBName: region
 
 # openapi

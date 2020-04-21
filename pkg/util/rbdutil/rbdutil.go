@@ -5,8 +5,6 @@ import (
 	"net"
 	"path"
 
-	"k8s.io/klog"
-
 	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -59,7 +57,6 @@ func FilterNodesWithPortConflicts(nodes []*rainbondv1alpha1.K8sNode) []*rainbond
 		ok := true
 		for _, port := range gatewayPorts {
 			if isPortOccupied(fmt.Sprintf("%s:%d", node.InternalIP, port)) {
-				klog.V(6).Info("The port is occupied", "InternalIP", node.InternalIP, "Port", port)
 				ok = false
 				break
 			}
