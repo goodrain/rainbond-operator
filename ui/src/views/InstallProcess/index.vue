@@ -73,35 +73,35 @@ export default {
             this.recordInfo.message = ''
           }
 
-            switch (res.data.final_status) {
-              case 'Initing':
-                this.handleRouter('index')
-                break
-              case 'Waiting':
-                this.handleRouter('index')
-                break
-              case 'Installing':
-                this.handlePerform('startrRsults')
-                break
-              case 'Setting':
-                this.handlePerform('cluster')
-                break
-              case 'Running':
-                this.handleRouter('successfulInstallation')
-                break
-              case 'UnInstalling':
-                this.handleRouter('index')
-                break
-              default:
-                break
-            }
-            this.timer = setTimeout(() => {
-              this.handleState()
-            }, 10000)
-          } else {
-            this.handleRouter('index')
+          switch (res.data.final_status) {
+            case 'Initing':
+              this.handleRouter('index')
+              break
+            case 'Waiting':
+              this.handleRouter('index')
+              break
+            case 'Installing':
+              this.handlePerform('startrRsults')
+              break
+            case 'Setting':
+              this.handlePerform('cluster')
+              break
+            case 'Running':
+              this.handleRouter('successfulInstallation')
+              break
+            case 'UnInstalling':
+              this.handleRouter('index')
+              break
+            default:
+              break
           }
-        })
+          this.timer = setTimeout(() => {
+            this.handleState()
+          }, 10000)
+        } else {
+          this.handleRouter('index')
+        }
+      })
         .catch(err => {
           if (err && (err === 50004 || err === 50005 || err === 50006)) {
             this.handleRouter('successfulLogin')
