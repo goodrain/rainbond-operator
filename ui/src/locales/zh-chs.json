@@ -6,7 +6,7 @@
             "language": "切换语言"
         },
         "overview": {
-            "title": "Rainbond V5.2.0-beta2 集群安装控制器",
+            "title": "Rainbond V5.2.0-release 集群安装控制器",
             "description": "企业技术中台解决方案",
             "install": "开始安装",
             "init": "集群初始化中",
@@ -67,7 +67,9 @@
                 "shareStorage": "共享存储",
                 "newNFSServer": "新部署NFS-Server",
                 "selectStorage": "选择集群已有存储驱动",
-                "useAliNas": "使用阿里云NAS",
+                "useAliNasSubpath": "使用阿里云NAS ( subpath 模式)",
+                "useAliNasFilesystem": "使用阿里云NAS ( filesystem 模式)",
+                "Server" : "填写服务地址",
                 "useGlusterFS": "使用GlusterFS",
                 "accessKeyID": "填写具有权限创建NAS账号的AccessKeyID",
                 "accessKeySecret": "填写具有权限创建NAS账号的AccessKeySecret",

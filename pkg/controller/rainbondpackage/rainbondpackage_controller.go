@@ -114,6 +114,7 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+
 	updateStatus, re := checkStatusCanReturn(pkg)
 	if updateStatus {
 		if err := updateCRStatus(r.client, pkg); err != nil {
@@ -125,6 +126,7 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 	if re != nil {
 		return *re, nil
 	}
+
 	//need handle condition
 	p, err := newpkg(ctx, r.client, pkg, reqLogger)
 	if err != nil {
@@ -285,7 +287,7 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 		"/mysqld-exporter":                  "/mysqld-exporter",
 		"/rbd-repo:6.16.0":                  "/rbd-repo:6.16.0",
 		"/rbd-registry:2.6.2":               "/rbd-registry:2.6.2",
-		"/rbd-db:8.0.12":                    "/rbd-db:8.0.12",
+		"/rbd-db:8.0.19":                    "/rbd-db:8.0.19",
 		"/metrics-server:v0.3.6":            "/metrics-server:v0.3.6",
 		"/rbd-init-probe:" + p.version:      "/rbd-init-probe",
 		"/rbd-mesh-data-panel:" + p.version: "/rbd-mesh-data-panel",
@@ -297,19 +299,18 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 }
 
 func (p *pkg) updateCRStatus() error {
-	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		return updateCRStatus(p.client, p.pkg)
-	}); err != nil {
-		log.Error(err, "update rainbondpackage")
-		return err
-	}
-	return nil
+	return updateCRStatus(p.client, p.pkg)
 }
 
 func updateCRStatus(client client.Client, pkg *rainbondv1alpha1.RainbondPackage) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latest := &rainbondv1alpha1.RainbondPackage{}
+		if err := client.Get(ctx, types.NamespacedName{Namespace: pkg.Namespace, Name: pkg.Name}, latest); err != nil {
+			return fmt.Errorf("getting latest rainbond package: %v", err)
+		}
+		pkg.ResourceVersion = latest.ResourceVersion
 		return client.Status().Update(ctx, pkg)
 	}); err != nil {
 		return fmt.Errorf("failed to update rainbondpackage status: %v", err)

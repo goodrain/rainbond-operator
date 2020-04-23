@@ -5,8 +5,8 @@
       title="安装提示"
       type="info"
       description="当前集群不会安装控制台,集群安装完成后需要对接到已有控制台，此安装模式适用于对接Rainbond Cloud服务，或扩充多集群。"
-      show-icon>
-    </el-alert>
+      show-icon
+    ></el-alert>
     <el-form
       :model="ruleForm"
       :rules="rules"
@@ -135,7 +135,11 @@
             class="d2-mt d2-form-item"
             prop="regionDatabasePassword"
           >
-            <el-input v-model="ruleForm.regionDatabasePassword"  show-password class="d2-input_inner"></el-input>
+            <el-input
+              v-model="ruleForm.regionDatabasePassword"
+              show-password
+              class="d2-input_inner"
+            ></el-input>
           </el-form-item>
         </div>
         <div class="clues">{{ $t("page.install.config.regionDBDesc") }}</div>
@@ -196,7 +200,7 @@
             class="d2-mt d2-form-item"
             prop="uiDatabasePassword"
           >
-            <el-input v-model="ruleForm.uiDatabasePassword"  show-password class="d2-input_inner"></el-input>
+            <el-input v-model="ruleForm.uiDatabasePassword" show-password class="d2-input_inner"></el-input>
           </el-form-item>
         </div>
         <div class="clues">{{ $t("page.install.config.uiDBDesc") }}</div>
@@ -373,7 +377,8 @@
             :label="1"
           >{{ $t("page.install.config.newNFSServer") }}</el-radio>
           <el-radio :label="2">{{ $t("page.install.config.selectStorage") }}</el-radio>
-          <el-radio :label="3">{{ $t("page.install.config.useAliNas") }}</el-radio>
+          <el-radio :label="3">{{ $t("page.install.config.useAliNasFilesystem") }}</el-radio>
+          <el-radio :label="4">{{ $t("page.install.config.useAliNasSubpath") }}</el-radio>
         </el-radio-group>
         <!-- storage class -->
         <div v-show="ruleForm.activeStorageType == 2" class="boxs">
@@ -404,7 +409,8 @@
             </el-radio-group>
           </el-form-item>
         </div>
-        <!-- nas -->
+
+        <!-- useAliNasFilesystem-->
         <div v-show="ruleForm.activeStorageType == 3" class="boxs">
           <span class="desc">{{ $t("page.install.config.nasDesc") }}</span>
           <el-form-item label="AccessKeyID" label-width="130px" class="d2-mt d2-form-item">
@@ -450,6 +456,33 @@
               v-model="storage.RWX.csiPlugin.aliyunNas.vSwitchId"
               class="d2-input_inner"
             ></el-input>
+          </el-form-item>
+        </div>
+
+        <!-- useAliNasSubpath -->
+        <div v-show="ruleForm.activeStorageType == 4" class="boxs">
+          <span class="desc">{{ $t("page.install.config.nasDesc") }}</span>
+          <el-form-item
+            label="Server"
+            label-width="85px"
+            class="d2-mt d2-form-item"
+          >
+            <el-input
+              v-model="Server"
+              @change="validShareStorage"
+              :placeholder="$t('page.install.config.Server')"
+              class="d2-input_inner_url"
+              style="width:240px"
+            ></el-input>
+            <span class="d2-w-20">:</span>
+            <el-form-item label="" style="width:300px;display: inline-block">
+              <el-input
+                @change="validShareStorage"
+                v-model="Path"
+                class="d2-input_inner_url"
+                style="width:140px"
+              ></el-input>
+            </el-form-item>
           </el-form-item>
         </div>
         <div class="clues">{{ $t("page.install.config.shareStorageDesc") }}</div>
@@ -656,158 +689,164 @@
 
 <script>
 export default {
-  name: 'clusterConfiguration',
+  name: "clusterConfiguration",
   props: {
     clusterInfo: {
       type: Object,
       default: () => {}
     }
   },
-  data () {
+  data() {
     let validateGatewayNodes = (rule, value, callback) => {
       if (this.setgatewayNodes.length === 0) {
-        callback(new Error('请至少选择一个网关安装节点'))
+        callback(new Error("请至少选择一个网关安装节点"));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
     let validateChaosNodes = (rule, value, callback) => {
       if (this.setChaosNodes.length === 0) {
-        callback(new Error('请至少选择一个构建服务安装节点'))
+        callback(new Error("请至少选择一个构建服务安装节点"));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
 
     let validateIPs = (rule, value, callback) => {
-      let regIp = /^(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])$/
-      let gatewayIngressIPs = this.ruleForm.gatewayIngressIPs
+      let regIp = /^(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])$/;
+      let gatewayIngressIPs = this.ruleForm.gatewayIngressIPs;
       let arr = gatewayIngressIPs.filter(item => {
-        return !regIp.test(item)
-      })
+        return !regIp.test(item);
+      });
 
       if (gatewayIngressIPs.length > 0) {
-        if (gatewayIngressIPs.length === 1 && gatewayIngressIPs[0] === '') {
-          callback()
+        if (gatewayIngressIPs.length === 1 && gatewayIngressIPs[0] === "") {
+          callback();
         } else if (arr.length >= 1) {
-          callback(new Error(this.$t('page.install.config.portValidation')))
+          callback(new Error(this.$t("page.install.config.portValidation")));
         } else {
-          callback()
+          callback();
         }
       } else {
-        callback()
+        callback();
       }
-    }
+    };
 
     let validateport = (rule, value, callback) => {
-      let regPort = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-5]{2}[0-3][0-5])$/
-      let isRegPort = regPort.test(value)
-      if (value === '') {
-        callback(new Error(this.$t('page.install.config.dbPortValidation')))
+      let regPort = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-5]{2}[0-3][0-5])$/;
+      let isRegPort = regPort.test(value);
+      if (value === "") {
+        callback(new Error(this.$t("page.install.config.dbPortValidation")));
       } else if (!isRegPort) {
-        callback(new Error(this.$t('page.install.config.portValidation')))
+        callback(new Error(this.$t("page.install.config.portValidation")));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
 
-    let reg = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/
+    let reg = /^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/;
 
     let validateAddress = (rule, value, callback) => {
-      let str = this.ruleForm.regionDatabase.port
-      let ress = reg.test(str)
+      let str = this.ruleForm.regionDatabase.port;
+      let ress = reg.test(str);
 
-      if (!ress && str !== '') {
-        callback(new Error(this.$t('page.install.config.invalidValidation')))
+      if (!ress && str !== "") {
+        callback(new Error(this.$t("page.install.config.invalidValidation")));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
     let validateDomain = (rule, value, callback) => {
-      if (value.substr(0, 4) === 'http') {
-        callback(new Error(this.$t('page.install.config.nohttpValidation')))
-        return
+      if (value.substr(0, 4) === "http") {
+        callback(new Error(this.$t("page.install.config.nohttpValidation")));
+        return;
       }
-      callback()
-    }
+      callback();
+    };
     let validUiDateBase = (rule, value, callback) => {
-      let str = this.ruleForm.uiDatabase.port
-      let ress = reg.test(str)
+      let str = this.ruleForm.uiDatabase.port;
+      let ress = reg.test(str);
 
-      if (!ress && str !== '') {
-        callback(new Error(this.$t('page.install.config.invalidValidation')))
+      if (!ress && str !== "") {
+        callback(new Error(this.$t("page.install.config.invalidValidation")));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
     let validateHTTPDomain = (rule, value, callback) => {
       if (value.length < 1 && !this.ruleForm.HTTPDomainSwitch) {
-        callback(new Error(this.$t('page.install.config.domainValidation')))
-        return
+        callback(new Error(this.$t("page.install.config.domainValidation")));
+        return;
       }
-      callback()
-    }
+      callback();
+    };
     let validateShareStorage = (rule, value, callback) => {
-      if (value === 2 && this.ruleForm.shareStorageClassName === '') {
+      if (value === 2 && this.ruleForm.shareStorageClassName === "") {
         callback(
-          new Error(this.$t('page.install.config.storageClassValidation'))
-        )
-        return
+          new Error(this.$t("page.install.config.storageClassValidation"))
+        );
+        return;
       }
       if (value === 3) {
-        const nas = this.storage.RWX.csiPlugin.aliyunNas
+        const nas = this.storage.RWX.csiPlugin.aliyunNas;
         if (
-          nas.zoneId === '' ||
-          nas.vpcId === '' ||
-          nas.vSwitchId === '' ||
-          nas.accessKeyID === '' ||
-          nas.accessKeySecret === ''
+          nas.zoneId === "" ||
+          nas.vpcId === "" ||
+          nas.vSwitchId === "" ||
+          nas.accessKeyID === "" ||
+          nas.accessKeySecret === ""
         ) {
-          callback(new Error(this.$t('page.install.config.nasValidation')))
-          return
+          callback(new Error(this.$t("page.install.config.nasValidation")));
+          return;
         }
       }
-      callback()
-    }
+      if (value === 4) {
+        if (this.Server === "" || this.Path === "") {
+          callback(new Error(this.$t("page.install.config.nasValidation")));
+          return;
+        }
+      }
+      callback();
+    };
     let validateBlockStorage = (rule, value, callback) => {
-      if (value === 1 && this.ruleForm.blockStorageClassName === '') {
+      if (value === 1 && this.ruleForm.blockStorageClassName === "") {
         callback(
-          new Error(this.$t('page.install.config.storageClassValidation'))
-        )
+          new Error(this.$t("page.install.config.storageClassValidation"))
+        );
       }
       if (value === 2) {
-        const disk = this.storage.RWO.csiPlugin.aliyunCloudDisk
+        const disk = this.storage.RWO.csiPlugin.aliyunCloudDisk;
         if (
-          disk.region_id === '' ||
-          disk.zoneId === '' ||
-          disk.accessKeyID === '' ||
-          disk.accessKeySecret === ''
+          disk.region_id === "" ||
+          disk.zoneId === "" ||
+          disk.accessKeyID === "" ||
+          disk.accessKeySecret === ""
         ) {
-          callback(new Error(this.$t('page.install.config.diskValidation')))
-          return
+          callback(new Error(this.$t("page.install.config.diskValidation")));
+          return;
         }
       }
       if (value === 3) {
-        const rbd = this.storage.RWO.storageClassParameters.rbdParameters
+        const rbd = this.storage.RWO.storageClassParameters.rbdParameters;
         if (
-          rbd.monitors === '' ||
-          rbd.adminId === '' ||
-          rbd.adminSecretName === '' ||
-          rbd.adminSecretNamespace === '' ||
-          rbd.pool === '' ||
-          rbd.userId === '' ||
-          rbd.userSecretName === '' ||
-          rbd.userSecretNamespace === '' ||
-          rbd.fsType === '' ||
-          rbd.imageFormat === '' ||
-          rbd.imageFeatures === ''
+          rbd.monitors === "" ||
+          rbd.adminId === "" ||
+          rbd.adminSecretName === "" ||
+          rbd.adminSecretNamespace === "" ||
+          rbd.pool === "" ||
+          rbd.userId === "" ||
+          rbd.userSecretName === "" ||
+          rbd.userSecretNamespace === "" ||
+          rbd.fsType === "" ||
+          rbd.imageFormat === "" ||
+          rbd.imageFeatures === ""
         ) {
-          callback(new Error(this.$t('page.install.config.rbdValidation')))
-          return
+          callback(new Error(this.$t("page.install.config.rbdValidation")));
+          return;
         }
       }
-      callback()
-    }
+      callback();
+    };
     return {
       queryGatewayNodeloading: false,
       queryChaosNodeloading: false,
@@ -817,78 +856,81 @@ export default {
       clusterInitInfo: {
         storageClasses: []
       },
+      Server: "",
+      Path: "",
       storage: {
         RWX: {
           csiPlugin: {
             aliyunNas: {
-              accessKeyID: '',
-              accessKeySecret: '',
-              volumeAs: 'filesystem',
-              zoneId: '',
-              vpcId: '',
-              vSwitchId: ''
+              accessKeyID: "",
+              accessKeySecret: "",
+              volumeAs: "filesystem",
+              zoneId: "",
+              vpcId: "",
+              vSwitchId: "",
+              server: ""
             }
           }
         },
         RWO: {
-          provisioner: 'kubernetes.io/rbd',
+          provisioner: "kubernetes.io/rbd",
           storageClassParameters: {
             rbdParameters: {
-              monitors: '',
-              adminId: 'kube',
-              adminSecretName: 'ceph-secret',
-              adminSecretNamespace: 'kube-system',
-              pool: 'kube',
-              userId: 'kube',
-              userSecretName: 'ceph-secret-user',
-              userSecretNamespace: 'default',
-              fsType: 'ext4',
-              imageFormat: '2',
-              imageFeatures: 'layering'
+              monitors: "",
+              adminId: "kube",
+              adminSecretName: "ceph-secret",
+              adminSecretNamespace: "kube-system",
+              pool: "kube",
+              userId: "kube",
+              userSecretName: "ceph-secret-user",
+              userSecretNamespace: "default",
+              fsType: "ext4",
+              imageFormat: "2",
+              imageFeatures: "layering"
             }
           },
           csiPlugin: {
             aliyunCloudDisk: {
-              accessKeyID: '',
-              accessKeySecret: '',
+              accessKeyID: "",
+              accessKeySecret: "",
               maxVolumePerNode: 15,
-              type: 'cloud_ssd',
-              zoneId: '',
-              region_id: ''
+              type: "cloud_ssd",
+              zoneId: "",
+              region_id: ""
             }
           }
         }
       },
       ruleForm: {
         enableHA: false,
-        labelPosition: 'left',
+        labelPosition: "left",
         imageHubInstall: true,
-        imageHubDomain: '',
-        imageHubNamespace: '',
-        imageHubUsername: '',
-        imageHubPassword: '',
+        imageHubDomain: "",
+        imageHubNamespace: "",
+        imageHubUsername: "",
+        imageHubPassword: "",
         installRegionDB: true,
-        regionDatabaseHost: '',
+        regionDatabaseHost: "",
         regionDatabasePort: 3306,
-        regionDatabaseUsername: '',
-        regionDatabasePassword: '',
+        regionDatabaseUsername: "",
+        regionDatabasePassword: "",
         installUIDB: true,
-        uiDatabaseHost: '',
+        uiDatabaseHost: "",
         uiDatabasePort: 3306,
-        uiDatabaseUsername: '',
-        uiDatabasePassword: '',
+        uiDatabaseUsername: "",
+        uiDatabasePassword: "",
         installETCD: true,
         etcdConfig: {
-          endpoints: [''],
-          certInfo: { caFile: '', certFile: '', keyFile: '' }
+          endpoints: [""],
+          certInfo: { caFile: "", certFile: "", keyFile: "" }
         },
-        HTTPDomain: '',
+        HTTPDomain: "",
         HTTPDomainSwitch: true,
-        gatewayIngressIPs: [''],
+        gatewayIngressIPs: [""],
         activeStorageType: 1,
-        shareStorageClassName: '',
+        shareStorageClassName: "",
         activeBlockStorageType: 0,
-        blockStorageClassName: ''
+        blockStorageClassName: ""
       },
       setgatewayNodes: [],
       optionGatewayNodes: [],
@@ -899,349 +941,349 @@ export default {
         imageHubInstall: [
           {
             required: true,
-            message: this.$t('page.install.config.hubInstallValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.hubInstallValidation"),
+            trigger: "blur"
           }
         ],
         installRegionDB: [
           {
             required: true,
-            message: this.$t('page.install.config.dbValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbValidation"),
+            trigger: "blur"
           }
         ],
         installUIDB: [
           {
             required: true,
-            message: this.$t('page.install.config.dbValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbValidation"),
+            trigger: "blur"
           }
         ],
         installETCD: [
           {
             required: true,
-            message: this.$t('page.install.config.etcdValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.etcdValidation"),
+            trigger: "blur"
           }
         ],
         imageHubDomain: [
           {
             required: true,
-            message: this.$t('page.install.config.hubDomainValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.hubDomainValidation"),
+            trigger: "blur"
           },
           {
             validator: validateDomain,
             required: true,
-            trigger: 'blur'
+            trigger: "blur"
           }
         ],
         regionDatabaseHost: [
           {
             required: true,
-            message: this.$t('page.install.config.dbAddrValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbAddrValidation"),
+            trigger: "blur"
           }
         ],
         regionDatabasePort: [
           {
             validator: validateport,
-            type: 'Number',
+            type: "Number",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ],
         regionDatabaseUsername: [
           {
             required: true,
-            message: this.$t('page.install.config.dbUserValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbUserValidation"),
+            trigger: "blur"
           }
         ],
         regionDatabasePassword: [
           {
             required: true,
-            message: this.$t('page.install.config.dbPasswordValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbPasswordValidation"),
+            trigger: "blur"
           }
         ],
         uiDatabaseHost: [
           {
             required: true,
-            message: this.$t('page.install.config.dbAddrValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbAddrValidation"),
+            trigger: "blur"
           }
         ],
         uiDatabasePort: [
           {
             validator: validateport,
-            type: 'Number',
+            type: "Number",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ],
         uiDatabaseUsername: [
           {
             required: true,
-            message: this.$t('page.install.config.dbUserValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbUserValidation"),
+            trigger: "blur"
           }
         ],
         uiDatabasePassword: [
           {
             required: true,
-            message: this.$t('page.install.config.dbPasswordValidation'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.dbPasswordValidation"),
+            trigger: "blur"
           }
         ],
         activeStorageType: [
           {
             validator: validateShareStorage,
             required: true,
-            trigger: 'blur'
+            trigger: "blur"
           }
         ],
         activeBlockStorageType: [
           {
             validator: validateBlockStorage,
             required: true,
-            trigger: 'blur'
+            trigger: "blur"
           }
         ],
         enableHA: [
           {
-            message: this.$t('page.install.config.installModeValidation'),
+            message: this.$t("page.install.config.installModeValidation"),
             required: true,
-            trigger: 'blur'
+            trigger: "blur"
           }
         ],
         nodes: [
           {
             validator: validateGatewayNodes,
-            type: 'array',
+            type: "array",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ],
         chaosNodes: [
           {
             validator: validateChaosNodes,
-            type: 'array',
+            type: "array",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ],
         HTTPDomain: [
           {
             required: true,
             validator: validateHTTPDomain,
-            trigger: 'blur'
+            trigger: "blur"
           }
         ],
         address: [
           {
             validator: validateAddress,
-            type: 'string',
+            type: "string",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ],
         uiDatabase: [
           {
             validator: validUiDateBase,
-            type: 'string',
+            type: "string",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ],
         ips: [
           {
             validator: validateIPs,
-            type: 'array',
+            type: "array",
             required: true,
-            trigger: 'change'
+            trigger: "change"
           }
         ]
       }
-    }
+    };
   },
-  created () {
-    this.fetchClusterInfo()
-    this.fetchClusterInitConfig()
+  created() {
+    this.fetchClusterInfo();
+    this.fetchClusterInitConfig();
   },
   methods: {
-    validShareStorage (value, item) {
-      const info = this.clusterInitInfo
+    validShareStorage(value, item) {
+      const info = this.clusterInitInfo;
       const arr =
         info &&
         info.storageClasses &&
         info.storageClasses.length > 0 &&
-        info.storageClasses
+        info.storageClasses;
       if (arr) {
         arr.map(item => {
-          if (item.name === value && item.accessMode === 'Unknown') {
+          if (item.name === value && item.accessMode === "Unknown") {
             this.openNfsMessage(
-              'ReadWriteMany',
-              'activeStorageType',
-              'shareStorageClassName'
-            )
+              "ReadWriteMany",
+              "activeStorageType",
+              "shareStorageClassName"
+            );
           }
-        })
+        });
       } else {
-        this.$refs.ruleForm.validateField('activeStorageType')
+        this.$refs.ruleForm.validateField("activeStorageType");
       }
     },
-    validBlockStorage (value) {
-      const info = this.clusterInitInfo
+    validBlockStorage(value) {
+      const info = this.clusterInitInfo;
       const arr =
         info &&
         info.storageClasses &&
         info.storageClasses.length > 0 &&
-        info.storageClasses
+        info.storageClasses;
       if (arr) {
         arr.map(item => {
-          if (item.name === value && item.accessMode === 'Unknown') {
+          if (item.name === value && item.accessMode === "Unknown") {
             this.openNfsMessage(
-              'ReadWriteOnce',
-              'activeBlockStorageType',
-              'blockStorageClassName'
-            )
+              "ReadWriteOnce",
+              "activeBlockStorageType",
+              "blockStorageClassName"
+            );
           }
-        })
+        });
       } else {
-        this.$refs.ruleForm.validateField('activeBlockStorageType')
+        this.$refs.ruleForm.validateField("activeBlockStorageType");
       }
     },
-    openNfsMessage (text, checkName, formName) {
-      this.$confirm(`请务必确认该存储的读写模式支持 ${text}"?`, '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
+    openNfsMessage(text, checkName, formName) {
+      this.$confirm(`请务必确认该存储的读写模式支持 ${text}"?`, "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
         center: true
       })
         .then(() => {
-          this.$refs.ruleForm.validateField(checkName)
+          this.$refs.ruleForm.validateField(checkName);
         })
         .catch(() => {
-          this.ruleForm[formName] = ''
-          this.$refs.ruleForm.validateField(checkName)
-        })
+          this.ruleForm[formName] = "";
+          this.$refs.ruleForm.validateField(checkName);
+        });
     },
-    installModeChange (value) {
+    installModeChange(value) {
       if (value && this.ruleForm.activeStorageType === 1) {
-        this.ruleForm.activeStorageType = 2
+        this.ruleForm.activeStorageType = 2;
       }
     },
-    removeIP (index) {
-      this.ruleForm.gatewayIngressIPs.splice(index, 1)
+    removeIP(index) {
+      this.ruleForm.gatewayIngressIPs.splice(index, 1);
     },
-    addIP () {
-      this.ruleForm.gatewayIngressIPs.push('')
+    addIP() {
+      this.ruleForm.gatewayIngressIPs.push("");
     },
-    addEndpoints () {
-      this.ruleForm.etcdConfig.endpoints.push('')
+    addEndpoints() {
+      this.ruleForm.etcdConfig.endpoints.push("");
     },
-    removeEndpoints (index) {
-      this.ruleForm.etcdConfig.endpoints.splice(index, 1)
+    removeEndpoints(index) {
+      this.ruleForm.etcdConfig.endpoints.splice(index, 1);
     },
-    fetchClusterInfo () {
+    fetchClusterInfo() {
       this.$store
-        .dispatch('fetchClusterInfo')
+        .dispatch("fetchClusterInfo")
         .then(res => {
           if (res && res.data) {
-            if (res.data.HTTPDomain && res.data.HTTPDomain !== '') {
-              this.ruleForm.HTTPDomainSwitch = false
-              this.ruleForm.HTTPDomain = res.data.HTTPDomain
+            if (res.data.HTTPDomain && res.data.HTTPDomain !== "") {
+              this.ruleForm.HTTPDomainSwitch = false;
+              this.ruleForm.HTTPDomain = res.data.HTTPDomain;
             }
             if (
               res.data.gatewayIngressIPs &&
               res.data.gatewayIngressIPs.length > 0
             ) {
-              this.ruleForm.gatewayIngressIPs = res.data.gatewayIngressIPs
+              this.ruleForm.gatewayIngressIPs = res.data.gatewayIngressIPs;
             }
-            this.onlyRegion = res.data.only_install_region
+            this.onlyRegion = res.data.only_install_region;
           }
         })
         .catch(err => {
-          this.$emit('onhandleErrorRecord')
-          console.log(err)
-        })
+          this.$emit("onhandleErrorRecord");
+          console.log(err);
+        });
     },
-    fetchClusterInitConfig () {
-      this.$store.dispatch('getClusterInitConfig').then(res => {
+    fetchClusterInitConfig() {
+      this.$store.dispatch("getClusterInitConfig").then(res => {
         if (res && res.code === 200) {
-          this.clusterInitInfo = res.data
+          this.clusterInitInfo = res.data;
           if (
             res.data.gatewayAvailableNodes &&
             res.data.gatewayAvailableNodes.masterNodes
           ) {
-            let valueOp = []
-            let valueSet = []
+            let valueOp = [];
+            let valueSet = [];
             res.data.gatewayAvailableNodes.masterNodes.map(item => {
-              valueOp.push(item.internalIP)
-              valueSet.push(item.internalIP)
-            })
-            this.optionGatewayNodes = valueOp
-            this.setgatewayNodes = valueSet
+              valueOp.push(item.internalIP);
+              valueSet.push(item.internalIP);
+            });
+            this.optionGatewayNodes = valueOp;
+            this.setgatewayNodes = valueSet;
           }
           if (
             res.data.gatewayAvailableNodes &&
             res.data.gatewayAvailableNodes.specifiedNodes
           ) {
-            let values = []
-            let op = this.optionGatewayNodes
+            let values = [];
+            let op = this.optionGatewayNodes;
             res.data.gatewayAvailableNodes.specifiedNodes.map(item => {
-              values.push(item.internalIP)
-              op.push(item.internalIP)
-            })
-            this.setgatewayNodes = values
-            this.optionGatewayNodes = this.unique(op)
+              values.push(item.internalIP);
+              op.push(item.internalIP);
+            });
+            this.setgatewayNodes = values;
+            this.optionGatewayNodes = this.unique(op);
           }
           if (
             res.data.chaosAvailableNodes &&
             res.data.chaosAvailableNodes.masterNodes
           ) {
-            let valueOp = []
-            let valueSet = []
+            let valueOp = [];
+            let valueSet = [];
             res.data.chaosAvailableNodes.masterNodes.map(item => {
-              valueOp.push(item.internalIP)
-              valueSet.push(item.internalIP)
-            })
-            this.setChaosNodes = valueSet
-            this.optionChaosNodes = valueOp
+              valueOp.push(item.internalIP);
+              valueSet.push(item.internalIP);
+            });
+            this.setChaosNodes = valueSet;
+            this.optionChaosNodes = valueOp;
           }
           if (
             res.data.chaosAvailableNodes &&
             res.data.chaosAvailableNodes.specifiedNodes
           ) {
-            let values = []
-            let op = this.optionChaosNodes
+            let values = [];
+            let op = this.optionChaosNodes;
             res.data.chaosAvailableNodes.specifiedNodes.map(item => {
-              values.push(item.internalIP)
-              op.push(item.internalIP)
-            })
-            this.setChaosNodes = values
-            this.optionChaosNodes = this.unique(op)
+              values.push(item.internalIP);
+              op.push(item.internalIP);
+            });
+            this.setChaosNodes = values;
+            this.optionChaosNodes = this.unique(op);
           }
-          this.loading = false
+          this.loading = false;
         }
-      })
+      });
     },
-    unique (arr) {
-      return Array.from(new Set(arr))
+    unique(arr) {
+      return Array.from(new Set(arr));
     },
-    submitForm (formName) {
+    submitForm(formName) {
       this.$refs[formName].validate(valid => {
         if (valid) {
-          this.loading = true
-          let obj = {}
+          this.loading = true;
+          let obj = {};
           if (!this.ruleForm.imageHubInstall) {
             obj.imageHub = {
               domain: this.ruleForm.imageHubDomain,
               namespace: this.ruleForm.imageHubNamespace,
               username: this.ruleForm.imageHubUsername,
               password: this.ruleForm.imageHubPassword
-            }
+            };
           }
           if (!this.ruleForm.installRegionDB) {
             obj.regionDatabase = {
@@ -1249,7 +1291,7 @@ export default {
               port: Number(this.ruleForm.regionDatabasePort),
               username: this.ruleForm.regionDatabaseUsername,
               password: this.ruleForm.regionDatabasePassword
-            }
+            };
           }
           if (!this.ruleForm.installUIDB) {
             obj.uiDatabase = {
@@ -1257,75 +1299,76 @@ export default {
               port: Number(this.ruleForm.uiDatabasePort),
               username: this.ruleForm.uiDatabaseUsername,
               password: this.ruleForm.uiDatabasePassword
-            }
+            };
           }
           if (!this.ruleForm.installETCD) {
-            obj.etcdConfig = this.ruleForm.etcdConfig
+            obj.etcdConfig = this.ruleForm.etcdConfig;
           }
           if (!this.ruleForm.HTTPDomainSwitch) {
-            obj.HTTPDomain = this.ruleForm.HTTPDomain
+            obj.HTTPDomain = this.ruleForm.HTTPDomain;
           }
-          let ips = []
+          let ips = [];
           this.ruleForm.gatewayIngressIPs.map(item => {
-            if (item !== '') {
-              ips.push(item)
+            if (item !== "") {
+              ips.push(item);
             }
-          })
-          obj.gatewayIngressIPs = this.unique(ips)
-          let gatewayNodes = []
+          });
+          obj.gatewayIngressIPs = this.unique(ips);
+          let gatewayNodes = [];
           this.setgatewayNodes.map(item => {
-            gatewayNodes.push({ internalIP: item })
-          })
-          obj.nodesForGateway = gatewayNodes
-          let chaosNodes = []
+            gatewayNodes.push({ internalIP: item });
+          });
+          obj.nodesForGateway = gatewayNodes;
+          let chaosNodes = [];
           this.setChaosNodes.map(item => {
-            chaosNodes.push({ internalIP: item })
-          })
-          obj.nodesForChaos = chaosNodes
-          obj.enableHA = this.ruleForm.enableHA
+            chaosNodes.push({ internalIP: item });
+          });
+          obj.nodesForChaos = chaosNodes;
+          obj.enableHA = this.ruleForm.enableHA;
+
           this.$store
-            .dispatch('putClusterInfo', obj)
+            .dispatch("putClusterInfo", obj)
             .then(res => {
               if (res && res.code === 200) {
-                this.$emit('onhandleStartRecord')
-                this.installCluster()
+                this.$emit("onhandleStartRecord");
+                this.installCluster();
               } else {
-                this.handleCancelLoading()
+                this.handleCancelLoading();
               }
             })
             .catch(err => {
-              this.handleCancelLoading()
-              this.$emit('onhandleErrorRecord')
-              console.log(err)
-            })
+              this.handleCancelLoading();
+              this.$emit("onhandleErrorRecord");
+              console.log(err);
+            });
         } else {
-          this.handleCancelLoading()
+          this.handleCancelLoading();
           this.$message({
-            message: this.$t('page.install.config.formInvalid'),
-            type: 'warning'
-          })
-          return false
+            message: this.$t("page.install.config.formInvalid"),
+            type: "warning"
+          });
+          return false;
         }
-      })
+      });
     },
-    installCluster () {
-      let obj = {}
-      obj.rainbondvolumes = {}
+    installCluster() {
+      let obj = {};
+      obj.rainbondvolumes = {};
       // share storage nfs
       if (this.ruleForm.activeStorageType === 1) {
         obj.rainbondvolumes.RWX = {
           csiPlugin: {
             nfs: {}
           }
-        }
+        };
       }
       // share storage class
       if (this.ruleForm.activeStorageType === 2) {
         obj.rainbondvolumes.RWX = {
           storageClassName: this.ruleForm.shareStorageClassName
-        }
+        };
       }
-      // share nas
+      // share nas filesystem
       if (this.ruleForm.activeStorageType === 3) {
         obj.rainbondvolumes.RWX = {
           storageClassParameters: {
@@ -1343,13 +1386,31 @@ export default {
                 .accessKeySecret
             }
           }
-        }
+        };
+      }
+      // share nas subpath
+      if (this.ruleForm.activeStorageType === 4) {
+        obj.rainbondvolumes.RWX = {
+          storageClassParameters: {
+            parameters: {
+              server:
+                this.Server && this.Path ? this.Server + ":" + this.Path : "",
+              volumeAs: "subpath"
+            }
+          },
+          csiPlugin: {
+            aliyunNas: {
+              accessKeyID: "",
+              accessKeySecret: ""
+            }
+          }
+        };
       }
       // block storage class
       if (this.ruleForm.activeBlockStorageType === 1) {
         obj.rainbondvolumes.RWO = {
           storageClassName: this.ruleForm.blockStorageClassName
-        }
+        };
       }
       // ali disk
       if (this.ruleForm.activeBlockStorageType === 2) {
@@ -1371,7 +1432,7 @@ export default {
                 .maxVolumePerNode
             }
           }
-        }
+        };
       }
       // rbd
       if (this.ruleForm.activeBlockStorageType === 3) {
@@ -1380,72 +1441,73 @@ export default {
           storageClassParameters: {
             parameters: this.storage.RWO.storageClassParameters.rbdParameters
           }
-        }
+        };
       }
+
       this.$store
-        .dispatch('installCluster', obj)
+        .dispatch("installCluster", obj)
         .then(en => {
           if (en && en.code === 200) {
-            this.$emit('onResults')
+            this.$emit("onResults");
           } else {
-            this.$emit('onhandleErrorRecord')
-            this.handleCancelLoading()
+            this.$emit("onhandleErrorRecord");
+            this.handleCancelLoading();
           }
         })
         .catch(_ => {
-          this.handleCancelLoading()
-          this.$emit('onhandleErrorRecord')
-        })
+          this.handleCancelLoading();
+          this.$emit("onhandleErrorRecord");
+        });
     },
-    handleCancelLoading () {
-      this.loading = false
+    handleCancelLoading() {
+      this.loading = false;
     },
-    queryGatewayNode (query) {
+    queryGatewayNode(query) {
       if (query.length > 2) {
-        this.queryGatewayNodeloading = true
+        this.queryGatewayNodeloading = true;
         this.$store
-          .dispatch('queryNode', { query, rungateway: true })
+          .dispatch("queryNode", { query, rungateway: true })
           .then(res => {
             if (res && res.data) {
-              let values = this.optionGatewayNodes
+              let values = this.optionGatewayNodes;
               res.data.map(item => {
-                values.push(item.internalIP)
-              })
-              this.optionGatewayNodes = this.unique(values)
+                values.push(item.internalIP);
+              });
+              this.optionGatewayNodes = this.unique(values);
             }
-            this.queryGatewayNodeloading = false
+            this.queryGatewayNodeloading = false;
           })
           .catch(err => {
-            this.queryGatewayNodeloading = false
-            this.$emit('onhandleErrorRecord')
-            console.log(err)
-          })
+            this.queryGatewayNodeloading = false;
+            this.$emit("onhandleErrorRecord");
+            console.log(err);
+          });
       }
     },
-    queryChaosNode (query) {
+    queryChaosNode(query) {
       if (query.length > 2) {
-        this.queryChaosNodeloading = true
+        this.queryChaosNodeloading = true;
         this.$store
-          .dispatch('queryNode', { query })
+          .dispatch("queryNode", { query })
           .then(res => {
             if (res && res.data) {
-              let values = this.optionChaosNodes
+              let values = this.optionChaosNodes;
               res.data.map(item => {
-                values.push(item.internalIP)
-              })
-              this.optionChaosNodes = this.unique(values)
+                values.push(item.internalIP);
+              });
+              this.optionChaosNodes = this.unique(values);
             }
-            this.queryChaosNodeloading = false
+            this.queryChaosNodeloading = false;
           })
           .catch(err => {
-            this.queryChaosNodeloading = false
-            this.$emit('onhandleErrorRecord')
-            console.log(err)
-          })
+            this.queryChaosNodeloading = false;
+            this.$emit("onhandleErrorRecord");
+            console.log(err);
+          });
       }
     }
   }
-}
+};
 </script>
 
 <style rel="stylesheet/scss" lang="scss" scoped>

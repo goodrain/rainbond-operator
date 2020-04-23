@@ -191,6 +191,10 @@ func (c *chaos) deployment() interface{} {
 			Name:  "CACHE_DIR",
 			Value: "/cache",
 		},
+		{
+			Name:  "IMAGE_PULL_SECRET",
+			Value: c.cluster.Status.ImagePullSecret.Name,
+		},
 	}
 	if imageHub := c.cluster.Spec.ImageHub; imageHub != nil {
 		env = append(env, corev1.EnvVar{

@@ -23,7 +23,7 @@
         >
           <install-results
             @onhandleErrorRecord="handleRecord('failure')"
-            @onhandleUninstallRecord="handleRecord('uninstall')"
+            @onhandleUninstallRecord="handleRecord"
           ></install-results>
         </el-collapse-item>
       </el-collapse>
@@ -49,7 +49,8 @@ export default {
         install_id: '',
         version: '',
         status: 'uninstall',
-        eid: ''
+        eid: '',
+        message: ''
       },
       clusterInitInfo: {}
     }
@@ -63,15 +64,14 @@ export default {
   },
   methods: {
     handleState () {
-      this.$store
-        .dispatch('fetchState')
-        .then(res => {
-          if (res && res.code === 200 && res.data.final_status) {
-            if (res.data.clusterInfo) {
-              this.recordInfo.install_id = res.data.clusterInfo.installID
-              this.recordInfo.version = res.data.clusterInfo.installVersion
-              this.recordInfo.eid = res.data.clusterInfo.enterpriseID
-            }
+      this.$store.dispatch('fetchState').then(res => {
+        if (res && res.code === 200 && res.data.final_status) {
+          if (res.data.clusterInfo) {
+            this.recordInfo.install_id = res.data.clusterInfo.installID
+            this.recordInfo.version = res.data.clusterInfo.installVersion
+            this.recordInfo.eid = res.data.clusterInfo.enterpriseID
+            this.recordInfo.message = ''
+          }
 
             switch (res.data.final_status) {
               case 'Initing':
@@ -108,8 +108,9 @@ export default {
           }
         })
     },
-    handleRecord (states) {
+    handleRecord (states, message) {
       this.recordInfo.status = states
+      this.recordInfo.message = message || ''
       this.$store.dispatch('putRecord', this.recordInfo).then(res => {
         console.log('res', res)
       })

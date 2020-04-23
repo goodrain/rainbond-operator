@@ -8,7 +8,7 @@
             <a :href="accessAddress" target="_blank" class="successLink">{{accessAddress}}</a>
           </el-col>
           <el-col :span="4" class="d2-text-center">
-            <el-button size="small" type="primary" @click="onhandleDelete">卸载</el-button>
+            <el-button size="small" type="primary" @click="dialogVisibles = true">卸载</el-button>
           </el-col>
         </div>
       </el-card>
@@ -35,6 +35,40 @@
         </span>
       </el-card>
     </div>
+
+    <el-dialog title="你卸载Rainbond的原因" :visible.sync="dialogVisibles" width="30%">
+      <el-form
+        :inline="true"
+        @submit.native.prevent
+        :model="uninstallForm"
+        ref="uninstallForm"
+        size="small"
+        label-width="88px"
+      >
+        <el-row :gutter="20">
+          <el-col :span="24" class="table-cell-title">
+            <el-form-item class="bor" label prop="checkList">
+              <el-checkbox-group v-model="uninstallForm.checkList" style="width:390px">
+                <el-checkbox label="安装复杂"></el-checkbox>
+                <el-checkbox label="上手困难"></el-checkbox>
+                <el-checkbox label="界面不美观"></el-checkbox>
+                <el-checkbox label="找不到想要的功能"></el-checkbox>
+                <el-checkbox label="没有理由"></el-checkbox>
+              </el-checkbox-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24" class="table-cell-title">
+            <el-form-item label="其他原因" class="d2-mt d2-form-item">
+              <el-input type="textarea" v-model="uninstallForm.otherReasons" style="width:290px"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="dialogVisibles = false">取 消</el-button>
+        <el-button type="primary" @click="onhandleDelete">卸 载</el-button>
+      </span>
+    </el-dialog>
   </d2-container>
 </template>
 
@@ -48,6 +82,11 @@ export default {
   },
   data () {
     return {
+      dialogVisibles: false,
+      uninstallForm: {
+        checkList: [],
+        otherReasons: ''
+      },
       activeName: 'rsultSucess',
       componentList: [],
       loading: true,
@@ -58,7 +97,8 @@ export default {
         install_id: '',
         version: '',
         status: 'complete',
-        eid: ''
+        eid: '',
+        message: ''
       }
     }
   },
@@ -102,6 +142,7 @@ export default {
               this.recordInfo.install_id = res.data.clusterInfo.installID
               this.recordInfo.version = res.data.clusterInfo.installVersion
               this.recordInfo.eid = res.data.clusterInfo.enterpriseID
+              this.recordInfo.message = ''
             }
 
             switch (res.data.final_status) {
@@ -146,23 +187,33 @@ export default {
       })
     },
     onhandleDelete () {
-      this.handleRecord()
-      this.$confirm('确定要卸载吗？')
-        .then(_ => {
-          this.$store.dispatch('deleteUnloadingPlatform').then(res => {
-            if (res && res.code === 200) {
-              this.recordInfo.status = 'uninstall'
-              this.handleRecord()
-              this.$notify({
-                type: 'success',
-                title: '卸载',
-                message: '卸载成功'
+      this.$store
+        .dispatch('deleteUnloadingPlatform')
+        .then(res => {
+          if (res && res.code === 200) {
+            this.dialogVisibles = false
+            let message = this.uninstallForm.otherReasons
+              ? this.uninstallForm.otherReasons + ','
+              : ''
+            if (this.uninstallForm.checkList.length > 0) {
+              this.uninstallForm.checkList.map(item => {
+                message += ',' + item
               })
-              this.handleRouter('index')
             }
-          })
+            this.recordInfo.message = message
+            this.recordInfo.status = 'uninstall'
+            this.handleRecord()
+            this.$notify({
+              type: 'success',
+              title: '卸载',
+              message: '卸载成功'
+            })
+            this.handleRouter('index')
+          }
         })
         .catch(_ => {
+          this.dialogVisibles = false
+          this.recordInfo.message = ''
           this.recordInfo.status = 'failure'
           this.handleRecord()
         })

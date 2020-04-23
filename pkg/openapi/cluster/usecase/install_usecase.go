@@ -233,7 +233,7 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 	if cluster.Spec.ImageHub == nil {
 		isInit = true
 	} else {
-		imageRepository = cluster.Spec.ImageHub.Domain
+		imageRepository = path.Join(cluster.Spec.ImageHub.Domain, cluster.Spec.ImageHub.Namespace)
 	}
 
 	newClaim := func(name string) *componentClaim {
@@ -260,7 +260,7 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 
 	if cluster.Spec.RegionDatabase == nil || (cluster.Spec.UIDatabase == nil && !ic.cfg.OnlyInstallRegion) {
 		claim := newClaim("rbd-db")
-		claim.version = "8.0.12"
+		claim.version = "8.0.19"
 		if cluster.Spec.EnableHA {
 			claim.replicas = commonutil.Int32(3)
 		}
