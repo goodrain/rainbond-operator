@@ -123,6 +123,7 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 								"/usr/local/bin/etcd",
 								"--name",
 								EtcdName,
+								"--data-dir /var/run/etcd/default.etcd",
 								"--initial-advertise-peer-urls",
 								fmt.Sprintf("http://%s:2380", EtcdName),
 								"--listen-peer-urls",
@@ -149,7 +150,7 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      claimName,
-									MountPath: "/var/lib/etcd",
+									MountPath: "/var/run/etcd",
 								},
 							},
 						},
@@ -377,7 +378,7 @@ fi
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      claimName,
-									MountPath: "/var/lib/etcd",
+									MountPath: "/var/run/etcd",
 								},
 							},
 						},
