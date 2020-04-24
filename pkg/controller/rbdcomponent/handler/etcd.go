@@ -137,6 +137,12 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 								"--initial-cluster-state",
 								"new",
 							},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "ETCD_QUOTA_BACKEND_BYTES",
+									Value: "4294967296", // 4 Gi
+								},
+							},
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "client",
@@ -294,6 +300,10 @@ HOSTNAME=$(hostname)
 `,
 							},
 							Env: []corev1.EnvVar{
+								{
+									Name:  "ETCD_QUOTA_BACKEND_BYTES",
+									Value: "4294967296", // 4 Gi
+								},
 								{
 									Name:  "INITIAL_CLUSTER_SIZE",
 									Value: "3",
