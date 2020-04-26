@@ -137,6 +137,8 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 								fmt.Sprintf("%s=http://%s:2380", EtcdName, EtcdName),
 								"--initial-cluster-state",
 								"new",
+								"--auto-compaction-retention",
+								"1",
 							},
 							Env: []corev1.EnvVar{
 								{
@@ -276,7 +278,8 @@ HOSTNAME=$(hostname)
                   --advertise-client-urls http://${HOSTNAME}.${SET_NAME}.${CLUSTER_NAMESPACE}:2379 \
                   --data-dir /var/run/etcd/default.etcd \
                   --initial-cluster ${ETCD_INITIAL_CLUSTER} \
-                  --initial-cluster-state ${ETCD_INITIAL_CLUSTER_STATE}
+				  --initial-cluster-state ${ETCD_INITIAL_CLUSTER_STATE} \
+				  --auto-compaction-retention 1
           fi
 
           for i in $(seq 0 $((${INITIAL_CLUSTER_SIZE} - 1))); do
@@ -297,7 +300,8 @@ HOSTNAME=$(hostname)
               --initial-cluster-token etcd-cluster-1 \
               --data-dir /var/run/etcd/default.etcd \
               --initial-cluster $(initial_peers) \
-              --initial-cluster-state new
+			  --initial-cluster-state new \
+			  --auto-compaction-retention 1
 `,
 							},
 							Env: []corev1.EnvVar{
