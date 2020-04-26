@@ -55,7 +55,6 @@ export default {
                 this.timers = setTimeout(() => {
                   this.handleState()
                 }, 5000)
-                this.recordInfo.status = 'uninstall'
                 this.loading = true
                 this.text = this.$t('page.overview.uninstall')
                 break

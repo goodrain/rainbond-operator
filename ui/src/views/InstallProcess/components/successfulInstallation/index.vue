@@ -24,7 +24,11 @@
           <el-col :span="10">账户 : {{username}}</el-col>
           <el-col :span="10">密码 : {{password}}</el-col>
           <el-col :span="4">
-            <el-button size="small" type="primary" @click.native.prevent="handleRouter('successfulLogin')">登录</el-button>
+            <el-button
+              size="small"
+              type="primary"
+              @click.native.prevent="handleRouter('successfulLogin')"
+            >登录</el-button>
           </el-col>
         </div>
       </el-card>
@@ -40,6 +44,7 @@
       <el-form
         :inline="true"
         @submit.native.prevent
+        :rules="uninstallRules"
         :model="uninstallForm"
         ref="uninstallForm"
         size="small"
@@ -81,7 +86,27 @@ export default {
     RainbondComponent
   },
   data () {
+    let validateGatewayNodes = (rule, value, callback) => {
+      if (this.uninstallForm.checkList.length === 0) {
+        callback(new Error('请选择卸载原因'))
+      } else {
+        callback()
+      }
+    }
+
     return {
+      uninstallRules: {
+        checkList: [
+          {
+            required: true,
+            type: 'array',
+            trigger: 'change',
+            validator: validateGatewayNodes
+          }
+        ],
+        otherReasons: [{ required: false }]
+      },
+
       dialogVisibles: false,
       uninstallForm: {
         checkList: [],
@@ -187,36 +212,40 @@ export default {
       })
     },
     onhandleDelete () {
-      this.$store
-        .dispatch('deleteUnloadingPlatform')
-        .then(res => {
-          if (res && res.code === 200) {
-            this.dialogVisibles = false
-            let message = this.uninstallForm.otherReasons
-              ? this.uninstallForm.otherReasons + ','
-              : ''
-            if (this.uninstallForm.checkList.length > 0) {
-              this.uninstallForm.checkList.map(item => {
-                message += ',' + item
-              })
-            }
-            this.recordInfo.message = message
-            this.recordInfo.status = 'uninstall'
-            this.handleRecord()
-            this.$notify({
-              type: 'success',
-              title: '卸载',
-              message: '卸载成功'
+      this.$refs.uninstallForm.validate(valid => {
+        if (valid) {
+          this.$store
+            .dispatch('deleteUnloadingPlatform')
+            .then(res => {
+              if (res && res.code === 200) {
+                this.dialogVisibles = false
+                let message = this.uninstallForm.otherReasons
+                  ? this.uninstallForm.otherReasons + ','
+                  : ''
+                if (this.uninstallForm.checkList.length > 0) {
+                  this.uninstallForm.checkList.map(item => {
+                    message += ',' + item
+                  })
+                }
+                this.recordInfo.message = message
+                this.recordInfo.status = 'uninstall'
+                this.handleRecord()
+                this.$notify({
+                  type: 'success',
+                  title: '卸载',
+                  message: '卸载成功'
+                })
+                this.handleRouter('index')
+              }
             })
-            this.handleRouter('index')
-          }
-        })
-        .catch(_ => {
-          this.dialogVisibles = false
-          this.recordInfo.message = ''
-          this.recordInfo.status = 'failure'
-          this.handleRecord()
-        })
+            .catch(_ => {
+              this.dialogVisibles = false
+              this.recordInfo.message = ''
+              this.recordInfo.status = 'failure'
+              this.handleRecord()
+            })
+        }
+      })
     },
     fetchAccessAddress () {
       this.$store.dispatch('fetchAccessAddress').then(res => {
