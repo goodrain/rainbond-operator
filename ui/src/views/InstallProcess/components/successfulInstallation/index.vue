@@ -15,7 +15,7 @@
       <el-alert
         v-if="username"
         class="d2-mb"
-        title="请记录保存该用户名、密码、只能显示一次，所以需谨慎，账户密码生成之后不会再生成，也不会在展示"
+        title="下次访问进行登录校验、请记录保存该用户名、密码、只能显示一次，所以需谨慎，账户密码生成之后不会再生成，也不会在展示"
         type="warning"
         :closable="false"
       ></el-alert>
