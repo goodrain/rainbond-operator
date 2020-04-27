@@ -356,3 +356,33 @@ func imagePullSecrets(cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alp
 		cluster.Status.ImagePullSecret,
 	}
 }
+
+func getServiceResource(ctx context.Context, cli client.Client, ns, name string) (*corev1.Service, error) {
+	svc := &corev1.Service{}
+	if err := cli.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, svc); err != nil {
+		return nil, err
+	}
+	return svc, nil
+}
+
+func formatServiceAddress(svc *corev1.Service) string {
+	if svc == nil {
+		return ""
+	}
+	if len(svc.Spec.Ports) == 0 {
+		fmt.Print("mysqld exporter service is not ready, can't get service port")
+		return ""
+	}
+	return fmt.Sprintf("%s.%s:%d", svc.Name, svc.Namespace, svc.Spec.Ports[0].Port)
+}
+
+func mysqlDExporterAddr(ctx context.Context, cli client.Client, ns string) string {
+	reqLogger := log.WithValues("Namespace", ns, "Name", "metrics-server")
+	svc, err := getServiceResource(ctx, cli, ns, "rbd-db-exporter")
+	if err != nil {
+		reqLogger.Info(fmt.Sprintf("get mysqld exporter failed: %s", err.Error()))
+		return ""
+	}
+
+	return formatServiceAddress(svc)
+}

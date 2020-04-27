@@ -27,8 +27,9 @@ type monitor struct {
 	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
 
-	pvcParametersRWO *pvcParameters
-	storageRequest   int64
+	pvcParametersRWO   *pvcParameters
+	storageRequest     int64
+	mysqldExporterAddr string
 }
 
 var _ ComponentHandler = &monitor{}
@@ -58,6 +59,7 @@ func (m *monitor) Before() error {
 		return err
 	}
 
+	m.mysqldExporterAddr = mysqlDExporterAddr(m.ctx, m.client, m.cluster.Namespace)
 	return nil
 }
 
@@ -93,6 +95,12 @@ func (m *monitor) statefulset() interface{} {
 		fmt.Sprintf("--log.level=%s", m.component.LogLevel()),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(m.cluster), ","),
 	}
+
+	//add monitor exporter
+	if m.mysqldExporterAddr != "" {
+		args = append(args, fmt.Sprintf("--mysqld-exporter=%s", m.mysqldExporterAddr))
+	}
+
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      claimName,
