@@ -377,7 +377,7 @@ func formatServiceAddress(svc *corev1.Service) string {
 }
 
 func mysqlDExporterAddr(ctx context.Context, cli client.Client, ns string) string {
-	reqLogger := log.WithValues("Namespace", ns, "Name", "metrics-server")
+	reqLogger := log.WithValues("Namespace", ns, "Name", "mysqld exporter")
 	svc, err := getServiceResource(ctx, cli, ns, "rbd-db-exporter")
 	if err != nil {
 		reqLogger.Info(fmt.Sprintf("get mysqld exporter failed: %s", err.Error()))
