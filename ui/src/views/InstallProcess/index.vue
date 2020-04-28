@@ -50,7 +50,8 @@ export default {
         version: '',
         status: 'uninstall',
         eid: '',
-        message: ''
+        message: '',
+        testMode: false
       },
       clusterInitInfo: {}
     }
@@ -64,16 +65,21 @@ export default {
   },
   methods: {
     handleState () {
+      this.timer && clearInterval(this.timer)
       this.$store.dispatch('fetchState').then(res => {
         if (res && res.code === 200 && res.data.final_status) {
-          if (res.data.clusterInfo) {
-            this.recordInfo.install_id = res.data.clusterInfo.installID
-            this.recordInfo.version = res.data.clusterInfo.installVersion
-            this.recordInfo.eid = res.data.clusterInfo.enterpriseID
+          const { clusterInfo, final_status, reasons, testMode } = res.data
+          if (clusterInfo) {
+            this.recordInfo.install_id = clusterInfo.installID
+            this.recordInfo.version = clusterInfo.installVersion
+            this.recordInfo.eid = clusterInfo.enterpriseID
             this.recordInfo.message = ''
+            this.recordInfo.testMode = testMode
           }
-
-          switch (res.data.final_status) {
+          if (reasons) {
+            this.handleRecord(final_status, 'failure')
+          }
+          switch (final_status) {
             case 'Initing':
               this.handleRouter('index')
               break
@@ -95,20 +101,20 @@ export default {
             default:
               break
           }
-          this.timer = setTimeout(() => {
-            this.handleState()
-          }, 10000)
         } else {
           this.handleRouter('index')
         }
       })
+      this.timer = setTimeout(() => {
+        this.handleState()
+      }, 10000)
     },
     handleRecord (states, message) {
-      this.recordInfo.status = states
-      this.recordInfo.message = message || ''
-      this.$store.dispatch('putRecord', this.recordInfo).then(res => {
-        console.log('res', res)
-      })
+      if (!this.recordInfo.testMode) {
+        this.recordInfo.status = states
+        this.recordInfo.message = message || ''
+        this.$store.dispatch('putRecord', this.recordInfo)
+      }
     },
     handlePerform (name) {
       this.activeName = name

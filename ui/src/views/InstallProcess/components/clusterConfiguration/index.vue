@@ -1442,10 +1442,10 @@ export default {
             this.handleCancelLoading();
           }
         })
-        .catch(_ => {
-          this.handleCancelLoading();
-          this.$emit("onhandleErrorRecord");
-        });
+        .catch(err => {
+          this.handleCancelLoading()
+          this.$emit('onhandleErrorRecord')
+        })
     },
     handleCancelLoading() {
       this.loading = false;
