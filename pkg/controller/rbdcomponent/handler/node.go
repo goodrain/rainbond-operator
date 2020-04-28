@@ -108,10 +108,6 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 			MountPath: "/grdata",
 		},
 		{
-			Name:      "proc",
-			MountPath: "/proc",
-		},
-		{
 			Name:      "sys",
 			MountPath: "/sys",
 		},
@@ -142,15 +138,6 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 					ClaimName: constants.GrDataPVC,
-				},
-			},
-		},
-		{
-			Name: "proc",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/proc",
-					Type: k8sutil.HostPath(corev1.HostPathDirectory),
 				},
 			},
 		},

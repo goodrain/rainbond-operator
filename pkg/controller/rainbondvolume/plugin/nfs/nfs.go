@@ -105,6 +105,11 @@ func (p *nfsPlugin) statefulset() interface{} {
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "rainbond-operator", // TODO: do not hard code, get sa from configuration.
+					Tolerations: []corev1.Toleration{
+						{
+							Operator: corev1.TolerationOpExists,
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            p.name,
@@ -314,6 +319,7 @@ func (p *nfsPlugin) pv() *corev1.PersistentVolume {
 	var largeStorageNode *corev1.Node
 	for idx := range nodeList.Items {
 		node := nodeList.Items[idx]
+
 		if largeStorageNode == nil {
 			largeStorageNode = &node
 			continue

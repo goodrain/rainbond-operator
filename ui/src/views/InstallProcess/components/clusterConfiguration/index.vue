@@ -412,7 +412,7 @@
 
         <!-- useAliNasFilesystem-->
         <div v-show="ruleForm.activeStorageType == 3" class="boxs">
-          <span class="desc">{{ $t("page.install.config.nasDesc") }}</span>
+          <span class="desc">{{ $t("page.install.config.nasFilesystem") }}</span>
           <el-form-item label="AccessKeyID" label-width="130px" class="d2-mt d2-form-item">
             <el-input
               @change="validShareStorage"
@@ -461,28 +461,18 @@
 
         <!-- useAliNasSubpath -->
         <div v-show="ruleForm.activeStorageType == 4" class="boxs">
-          <span class="desc">{{ $t("page.install.config.nasDesc") }}</span>
+          <span class="desc">{{ $t("page.install.config.nasSubpath") }}</span>
           <el-form-item
             label="Server"
             label-width="85px"
             class="d2-mt d2-form-item"
           >
             <el-input
-              v-model="Server"
+              v-model="storage.RWX.csiPlugin.aliyunNas.server"
               @change="validShareStorage"
               :placeholder="$t('page.install.config.Server')"
               class="d2-input_inner_url"
-              style="width:240px"
             ></el-input>
-            <span class="d2-w-20">:</span>
-            <el-form-item label="" style="width:300px;display: inline-block">
-              <el-input
-                @change="validShareStorage"
-                v-model="Path"
-                class="d2-input_inner_url"
-                style="width:140px"
-              ></el-input>
-            </el-form-item>
           </el-form-item>
         </div>
         <div class="clues">{{ $t("page.install.config.shareStorageDesc") }}</div>
@@ -801,9 +791,16 @@ export default {
         }
       }
       if (value === 4) {
+<<<<<<< HEAD
         if (this.Server === '' || this.Path === '') {
           callback(new Error(this.$t('page.install.config.nasValidation')))
           return
+=======
+
+        if (this.storage.RWX.csiPlugin.aliyunNas.server === "") {
+          callback(new Error(this.$t("page.install.config.nasValidation")));
+          return;
+>>>>>>> rainbond/master
         }
       }
       callback()
@@ -856,8 +853,11 @@ export default {
       clusterInitInfo: {
         storageClasses: []
       },
+<<<<<<< HEAD
       Server: '',
       Path: '',
+=======
+>>>>>>> rainbond/master
       storage: {
         RWX: {
           csiPlugin: {
@@ -1393,9 +1393,14 @@ export default {
         obj.rainbondvolumes.RWX = {
           storageClassParameters: {
             parameters: {
+<<<<<<< HEAD
               server:
                 this.Server && this.Path ? this.Server + ':' + this.Path : '',
               volumeAs: 'subpath'
+=======
+              server:this.storage.RWX.csiPlugin.aliyunNas.server,
+              volumeAs: "subpath"
+>>>>>>> rainbond/master
             }
           },
           csiPlugin: {
