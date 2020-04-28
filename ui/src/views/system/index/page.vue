@@ -29,7 +29,7 @@ export default {
     }
   },
   created () {
-    console.log('代码版本:4-06:13:40')
+    console.log('代码版本:4-28:13:40')
   }
 }
 </script>
@@ -38,7 +38,6 @@ export default {
 .page {
   .logo {
     width: 120px;
-    // background: #002140;
   }
   .btn-group {
     color: $color-text-placehoder;

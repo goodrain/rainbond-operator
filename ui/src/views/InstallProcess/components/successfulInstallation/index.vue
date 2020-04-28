@@ -80,7 +80,8 @@ export default {
         version: '',
         status: 'complete',
         eid: '',
-        message: ''
+        message: '',
+        testMode: false
       }
     }
   },
@@ -94,16 +95,25 @@ export default {
   },
   methods: {
     handleState () {
+      this.timers && clearInterval(this.timers)
+
       this.$store.dispatch('fetchState').then(res => {
         if (res && res.code === 200 && res.data.final_status) {
-          if (res.data.clusterInfo) {
-            this.recordInfo.install_id = res.data.clusterInfo.installID
-            this.recordInfo.version = res.data.clusterInfo.installVersion
-            this.recordInfo.eid = res.data.clusterInfo.enterpriseID
+          const { clusterInfo, final_status, reasons, testMode } = res.data
+          if (clusterInfo) {
+            this.recordInfo.install_id = clusterInfo.installID
+            this.recordInfo.version = clusterInfo.installVersion
+            this.recordInfo.eid = clusterInfo.enterpriseID
+            this.recordInfo.testMode = testMode
             this.recordInfo.message = ''
           }
+          if (reasons) {
+            this.recordInfo.status = final_status
+            this.recordInfo.message = reasons
+            this.handleRecord()
+          }
 
-          switch (res.data.final_status) {
+          switch (final_status) {
             case 'Initing':
               this.handleRouter('index')
               break
@@ -128,6 +138,9 @@ export default {
           }
         }
       })
+      this.timer = setTimeout(() => {
+        this.handleState()
+      }, 10000)
     },
     handleRouter (name) {
       this.$router.push({
@@ -135,9 +148,9 @@ export default {
       })
     },
     handleRecord () {
-      this.$store.dispatch('putRecord', this.recordInfo).then(res => {
-        console.log('res', res)
-      })
+      if (!this.recordInfo.testMode) {
+        this.$store.dispatch('putRecord', this.recordInfo)
+      }
     },
     onhandleDelete () {
       this.$store

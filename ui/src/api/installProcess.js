@@ -56,7 +56,7 @@ export function putClusterConfig (data) {
     data
   })
 }
-//
+// 集群安装
 export function installCluster (data) {
   return request({
     url: `/cluster/install`,

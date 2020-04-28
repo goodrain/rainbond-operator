@@ -1164,7 +1164,6 @@ export default {
         })
         .catch(err => {
           this.$emit('onhandleErrorRecord')
-          console.log(err)
         })
     },
     fetchClusterInitConfig () {
@@ -1296,7 +1295,6 @@ export default {
             .catch(err => {
               this.handleCancelLoading()
               this.$emit('onhandleErrorRecord')
-              console.log(err)
             })
         } else {
           this.handleCancelLoading()
@@ -1392,7 +1390,7 @@ export default {
             this.handleCancelLoading()
           }
         })
-        .catch(_ => {
+        .catch(err => {
           this.handleCancelLoading()
           this.$emit('onhandleErrorRecord')
         })
@@ -1418,7 +1416,6 @@ export default {
           .catch(err => {
             this.queryGatewayNodeloading = false
             this.$emit('onhandleErrorRecord')
-            console.log(err)
           })
       }
     },
@@ -1440,7 +1437,6 @@ export default {
           .catch(err => {
             this.queryChaosNodeloading = false
             this.$emit('onhandleErrorRecord')
-            console.log(err)
           })
       }
     }
