@@ -19,7 +19,15 @@ export default {
   data () {
     return {
       text: this.$t('page.overview.install'),
-      loading: false
+      loading: false,
+      recordInfo: {
+        install_id: '',
+        version: '',
+        status: 'uninstall',
+        eid: '',
+        message: '',
+        testMode: false
+      }
     }
   },
   created () {
@@ -30,15 +38,25 @@ export default {
   },
   methods: {
     handleState () {
+      this.timers && clearInterval(this.timers)
       this.$store.dispatch('fetchState').then(res => {
         if (res && res.code === 200 && res.data.final_status) {
-          switch (res.data.final_status) {
+          const { clusterInfo, final_status, reasons, testMode } = res.data
+          if (clusterInfo) {
+            this.recordInfo.install_id = clusterInfo.installID
+            this.recordInfo.version = clusterInfo.installVersion
+            this.recordInfo.eid = clusterInfo.enterpriseID
+            this.recordInfo.message = ''
+            this.recordInfo.testMode = testMode
+          }
+          if (reasons) {
+            this.recordInfo.message = reasons
+            this.handleRecord()
+          }
+          switch (final_status) {
             case 'Initing':
               this.text = this.$t('page.overview.init')
               this.loading = true
-              this.timers = setTimeout(() => {
-                this.handleState()
-              }, 5000)
               break
             case 'Setting':
               this.handleRouter('InstallProcess')
@@ -50,10 +68,6 @@ export default {
               this.handleRouter('successfulInstallation')
               break
             case 'UnInstalling':
-              this.timers = setTimeout(() => {
-                this.handleState()
-              }, 5000)
-              this.recordInfo.status = 'uninstall'
               this.loading = true
               this.text = this.$t('page.overview.uninstall')
               break
@@ -65,6 +79,9 @@ export default {
           }
         }
       })
+      this.timer = setTimeout(() => {
+        this.handleState()
+      }, 8000)
     },
     handleInit () {
       this.$store.dispatch('putInit').then(res => {
@@ -78,6 +95,11 @@ export default {
           this.handleState()
         }
       })
+    },
+    handleRecord () {
+      if (!this.recordInfo.testMode) {
+        this.$store.dispatch('putRecord', this.recordInfo)
+      }
     },
     handleRouter (name) {
       this.$router.push({

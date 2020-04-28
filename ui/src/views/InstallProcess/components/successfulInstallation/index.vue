@@ -24,6 +24,7 @@
       <el-form
         :inline="true"
         @submit.native.prevent
+        :rules="uninstallRules"
         :model="uninstallForm"
         ref="uninstallForm"
         size="small"
@@ -57,142 +58,177 @@
 </template>
 
 <script>
-import RainbondComponent from '../installResults/rainbondComponent'
+import RainbondComponent from "../installResults/rainbondComponent";
 
 export default {
-  name: 'successfulInstallation',
+  name: "successfulInstallation",
   components: {
     RainbondComponent
   },
-  data () {
+  data() {
+    let validateCheckList = (rule, value, callback) => {
+      if (this.uninstallForm.checkList.length === 0) {
+        callback(new Error("请选择卸载原因"));
+      } else {
+        callback();
+      }
+    };
     return {
+      uninstallRules: {
+        checkList: [
+          {
+            required: true,
+            type: "array",
+            trigger: "change",
+            validator: validateCheckList
+          }
+        ],
+        otherReasons: [{ required: false }]
+      },
       dialogVisibles: false,
       uninstallForm: {
         checkList: [],
-        otherReasons: ''
+        otherReasons: ""
       },
-      activeName: 'rsultSucess',
+      activeName: "rsultSucess",
       componentList: [],
       loading: true,
-      accessAddress: '',
+      accessAddress: "",
       recordInfo: {
-        install_id: '',
-        version: '',
-        status: 'complete',
-        eid: '',
-        message: ''
+        install_id: "",
+        version: "",
+        status: "complete",
+        eid: "",
+        message: "",
+        testMode: false
       }
-    }
+    };
   },
-  created () {
-    this.handleState()
-    this.fetchAccessAddress()
-    this.fetchClusterInstallResultsState(true)
+  created() {
+    this.handleState();
+    this.fetchAccessAddress();
+    this.fetchClusterInstallResultsState(true);
   },
-  beforeDestroy () {
-    this.timers && clearInterval(this.timers)
+  beforeDestroy() {
+    this.timers && clearInterval(this.timers);
   },
   methods: {
-    handleState () {
-      this.$store.dispatch('fetchState').then(res => {
+    handleState() {
+      this.timers && clearInterval(this.timers);
+
+      this.$store.dispatch("fetchState").then(res => {
         if (res && res.code === 200 && res.data.final_status) {
-          if (res.data.clusterInfo) {
-            this.recordInfo.install_id = res.data.clusterInfo.installID
-            this.recordInfo.version = res.data.clusterInfo.installVersion
-            this.recordInfo.eid = res.data.clusterInfo.enterpriseID
-            this.recordInfo.message = ''
+          const { clusterInfo, final_status, reasons, testMode } = res.data;
+          if (clusterInfo) {
+            this.recordInfo.install_id = clusterInfo.installID;
+            this.recordInfo.version = clusterInfo.installVersion;
+            this.recordInfo.eid = clusterInfo.enterpriseID;
+            this.recordInfo.testMode = testMode;
+            this.recordInfo.message = "";
+          }
+          if (reasons) {
+            this.recordInfo.status = final_status;
+            this.recordInfo.message = reasons;
+            this.handleRecord();
           }
 
-          switch (res.data.final_status) {
-            case 'Initing':
-              this.handleRouter('index')
-              break
-            case 'Waiting':
-              this.handleRouter('index')
-              break
-            case 'Installing':
-              this.handleRouter('InstallProcess')
-              break
-            case 'Setting':
-              this.handleRouter('InstallProcess')
-              break
-            case 'UnInstalling':
-              this.handleRouter('index')
-              break
-            case 'Running':
-              this.recordInfo.status = 'complete'
-              this.handleRecord()
-              break
+          switch (final_status) {
+            case "Initing":
+              this.handleRouter("index");
+              break;
+            case "Waiting":
+              this.handleRouter("index");
+              break;
+            case "Installing":
+              this.handleRouter("InstallProcess");
+              break;
+            case "Setting":
+              this.handleRouter("InstallProcess");
+              break;
+            case "UnInstalling":
+              this.handleRouter("index");
+              break;
+            case "Running":
+              this.recordInfo.status = "complete";
+              this.handleRecord();
+              break;
             default:
-              break
+              break;
           }
         }
-      })
+      });
+      this.timer = setTimeout(() => {
+        this.handleState();
+      }, 10000);
     },
-    handleRouter (name) {
+    handleRouter(name) {
       this.$router.push({
         name
-      })
+      });
     },
-    handleRecord () {
-      this.$store.dispatch('putRecord', this.recordInfo).then(res => {
-        console.log('res', res)
-      })
+    handleRecord() {
+      if (!this.recordInfo.testMode) {
+        this.$store.dispatch("putRecord", this.recordInfo);
+      }
     },
-    onhandleDelete () {
-      this.$store
-        .dispatch('deleteUnloadingPlatform')
-        .then(res => {
-          if (res && res.code === 200) {
-            this.dialogVisibles = false
-            let message = this.uninstallForm.otherReasons
-              ? this.uninstallForm.otherReasons + ','
-              : ''
-            if (this.uninstallForm.checkList.length > 0) {
-              this.uninstallForm.checkList.map(item => {
-                message += ',' + item
-              })
-            }
-            this.recordInfo.message = message
-            this.recordInfo.status = 'uninstall'
-            this.handleRecord()
-            this.$notify({
-              type: 'success',
-              title: '卸载',
-              message: '卸载成功'
+    onhandleDelete() {
+      this.$refs.uninstallForm.validate(valid => {
+        if (valid) {
+          this.$store
+            .dispatch("deleteUnloadingPlatform")
+            .then(res => {
+              if (res && res.code === 200) {
+                this.dialogVisibles = false;
+                let message = this.uninstallForm.otherReasons
+                  ? this.uninstallForm.otherReasons + ","
+                  : "";
+                if (this.uninstallForm.checkList.length > 0) {
+                  this.uninstallForm.checkList.map(item => {
+                    message += "," + item;
+                  });
+                }
+                this.recordInfo.message = message;
+                this.recordInfo.status = "uninstall";
+                this.handleRecord();
+                this.$notify({
+                  type: "success",
+                  title: "卸载",
+                  message: "卸载成功"
+                });
+                this.handleRouter("index");
+              }
             })
-            this.handleRouter('index')
-          }
-        })
-        .catch(_ => {
-          this.dialogVisibles = false
-          this.recordInfo.message = ''
-          this.recordInfo.status = 'failure'
-          this.handleRecord()
-        })
-    },
-    fetchAccessAddress () {
-      this.$store.dispatch('fetchAccessAddress').then(res => {
-        if (res && res.code === 200) {
-          this.accessAddress = res.data
+            .catch(_ => {
+              this.dialogVisibles = false;
+              this.recordInfo.message = "";
+              this.recordInfo.status = "failure";
+              this.handleRecord();
+            });
         }
-      })
+      });
     },
-    fetchClusterInstallResultsState (isloading) {
-      this.$store.dispatch('fetchClusterInstallResultsState').then(res => {
+    fetchAccessAddress() {
+      this.$store.dispatch("fetchAccessAddress").then(res => {
+        if (res && res.code === 200) {
+          this.accessAddress = res.data;
+        }
+      });
+    },
+    fetchClusterInstallResultsState(isloading) {
+      this.$store.dispatch("fetchClusterInstallResultsState").then(res => {
         if (isloading) {
-          this.loading = false
+          this.loading = false;
         }
         if (res && res.code === 200) {
-          this.componentList = res.data
+          this.componentList = res.data;
         }
         this.timers = setTimeout(() => {
-          this.fetchClusterInstallResultsState()
-        }, 8000)
-      })
+          this.fetchClusterInstallResultsState();
+        }, 8000);
+      });
     }
   }
-}
+};
 </script>
 <style lang="scss" scoped>
 .d2-h-30 {
