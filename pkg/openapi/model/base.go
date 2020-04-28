@@ -1,9 +1,10 @@
 package model
 
+// GlobalStatus -
 type GlobalStatus string
 
 const (
-	// waiting waiting status
+	// Waiting waiting waiting status
 	Waiting GlobalStatus = "Waiting"
 	// Initing initing status
 	Initing GlobalStatus = "Initing"

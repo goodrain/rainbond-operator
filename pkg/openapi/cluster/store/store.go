@@ -1,27 +1,34 @@
 package store
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"time"
 
-	rainboondInformers "github.com/goodrain/rainbond-operator/pkg/generated/informers/externalversions"
-
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-
-	"k8s.io/client-go/informers"
-
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
+	rainboondInformers "github.com/goodrain/rainbond-operator/pkg/generated/informers/externalversions"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 )
+
+// NotExistsError is returned when an object does not exist in a local store.
+type NotExistsError string
+
+// Error implements the error interface.
+func (e NotExistsError) Error() string {
+	return fmt.Sprintf("no object matching key %q in local store", string(e))
+}
 
 // Storer rainbond component store interface
 type Storer interface {
 	Start() error
 	Stop()
 	ListRbdComponent(isInit bool) []*v1alpha1.RbdComponent
+	ListRbdComponents() []*v1alpha1.RbdComponent
+	GetPodByKey(key string) (*corev1.Pod, error)
 	ListPod() []*corev1.Pod
 	ListEvent() []*corev1.Event
 }
@@ -80,6 +87,15 @@ func (s *componentRuntimeStore) Stop() {
 	close(s.stopch)
 }
 
+// ListRbdComponents -
+func (s *componentRuntimeStore) ListRbdComponents() []*v1alpha1.RbdComponent {
+	var components []*v1alpha1.RbdComponent
+	for _, obj := range s.listers.RbdComponent.List() {
+		components = append(components, obj.(*v1alpha1.RbdComponent))
+	}
+	return components
+}
+
 // ListRbdComponent list rbdcomponent
 func (s *componentRuntimeStore) ListRbdComponent(isInit bool) []*v1alpha1.RbdComponent {
 	var components []*v1alpha1.RbdComponent
@@ -111,6 +127,17 @@ func (s *componentRuntimeStore) ListPod() []*corev1.Pod {
 		pods = append(pods, pod)
 	}
 	return pods
+}
+
+func (s *componentRuntimeStore) GetPodByKey(key string) (*corev1.Pod, error) {
+	i, exists, err := s.listers.Pod.GetByKey(key)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, NotExistsError(key)
+	}
+	return i.(*corev1.Pod), nil
 }
 
 // ListEvent list pod and rbdcomponent events

@@ -11,14 +11,17 @@ type Lister struct {
 	Event        EventLister
 }
 
+// PodLister -
 type PodLister struct {
 	cache.Store
 }
 
+// RbdComponentLister -
 type RbdComponentLister struct {
 	cache.Store
 }
 
+// EventLister -
 type EventLister struct {
 	cache.Store
 }

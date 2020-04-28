@@ -1,8 +1,10 @@
 package cluster
 
 import (
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // IClusterUcase cluster case
@@ -34,6 +36,8 @@ type GlobalConfigUseCase interface {
 type ComponentUsecase interface { // TODO: loop call
 	Get(name string) (*v1.RbdComponentStatus, error)
 	List(isInit bool) ([]*v1.RbdComponentStatus, error)
+	ListComponents() []*rainbondv1alpha1.RbdComponent
+	ListPodsByComponent(cpn *rainbondv1alpha1.RbdComponent) ([]*corev1.Pod, error)
 }
 
 // InstallUseCase cluster install case

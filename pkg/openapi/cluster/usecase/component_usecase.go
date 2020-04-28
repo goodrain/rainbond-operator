@@ -40,7 +40,7 @@ func (cc *componentUsecase) Get(name string) (*v1.RbdComponentStatus, error) {
 		return nil, err
 	}
 
-	pods, err := cc.listPods(cpn)
+	pods, err := cc.ListPodsByComponent(cpn)
 	if err != nil {
 		return nil, fmt.Errorf("list pods: %v", err)
 	}
@@ -50,23 +50,20 @@ func (cc *componentUsecase) Get(name string) (*v1.RbdComponentStatus, error) {
 	return status, nil
 }
 
-func (cc *componentUsecase) listPods(cpn *rainbondv1alpha1.RbdComponent) ([]*corev1.Pod, error) {
-	if cpn.Status == nil {
-		return nil, nil
-	}
+func (cc *componentUsecase) ListPodsByComponent(cpn *rainbondv1alpha1.RbdComponent) ([]*corev1.Pod, error) {
 	var pods []*corev1.Pod
 	for _, ref := range cpn.Status.Pods {
-		pod, err := cc.cfg.KubeClient.CoreV1().Pods(cc.cfg.Namespace).Get(ref.Name, metav1.GetOptions{})
+		pod, err := cc.storer.GetPodByKey(fmt.Sprintf("%s/%s", cpn.Namespace, ref.Name))
 		if err != nil {
-			if k8sErrors.IsNotFound(err) {
-				log.V(3).Info("pod reated to cpn not found", "namespace", cc.cfg.Namespace, "name", ref.Name)
-				continue
-			}
 			return nil, fmt.Errorf("get pod: %v", err)
 		}
 		pods = append(pods, pod)
 	}
 	return pods, nil
+}
+
+func (cc *componentUsecase) ListComponents() []*rainbondv1alpha1.RbdComponent {
+	return cc.storer.ListRbdComponents()
 }
 
 // List list

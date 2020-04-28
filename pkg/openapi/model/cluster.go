@@ -99,8 +99,10 @@ type StatusRes struct {
 
 // ClusterStatus cluster global status
 type ClusterStatus struct {
+	TestMode    bool         `json:"testMode"`
 	FinalStatus GlobalStatus `json:"final_status"`
 	ClusterInfo ClusterInfo  `json:"clusterInfo"`
+	Reasons     []string     `json:"reasons"`
 }
 
 // ClusterInfo cluster info used for config

@@ -15,6 +15,7 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/uuidutil"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -126,13 +127,17 @@ func (c *clusterUsecase) Status() (*model.ClusterStatus, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get package: %v", err)
 	}
-	components, err := c.cptUcase.List(false)
+	componentStatuses, err := c.cptUcase.List(false)
 	if err != nil {
-		return nil, fmt.Errorf("list rainobnd components: %v", err)
+		return nil, fmt.Errorf("list rainobnd componentStatuses: %v", err)
 	}
+	cpts := c.cptUcase.ListComponents()
 
-	status := c.handleStatus(rainbondCluster, rainbondPackage, components)
+	status := c.handleStatus(rainbondCluster, rainbondPackage, componentStatuses)
 	c.hackClusterInfo(rainbondCluster, &status)
+	c.wrapFailureReason(&status, rainbondPackage, cpts)
+	status.TestMode = c.cfg.TestMode
+
 	return &status, nil
 }
 
@@ -415,4 +420,51 @@ func (c *clusterUsecase) getRainbondPackage() (*rainbondv1alpha1.RainbondPackage
 		return nil, err
 	}
 	return pkg, nil
+}
+
+func (c *clusterUsecase) wrapFailureReason(status *model.ClusterStatus, pkg *rainbondv1alpha1.RainbondPackage, cpts []*rainbondv1alpha1.RbdComponent) {
+	// reason of failure from rainbond package
+	var reasons []string
+	if pkg != nil && pkg.Status != nil {
+		for _, cdt := range pkg.Status.Conditions {
+			if cdt.Status != rainbondv1alpha1.Failed {
+				continue
+			}
+			reasons = append(reasons, cdt.Reason)
+		}
+	}
+
+	// reason of failure from rainbond components
+	for _, cpt := range cpts {
+		// No status has been generated yet
+		if cpt.Status == nil {
+			continue
+		}
+		// component is ready
+		if cpt.Status.Replicas == cpt.Status.ReadyReplicas {
+			continue
+		}
+		// If the number of container restarts in the component exceeds 3 times,
+		// the status of the component is considered failed
+		pods, err := c.cptUcase.ListPodsByComponent(cpt)
+		if err != nil {
+			log.V(4).Info(fmt.Sprintf("list pods by component: %v", err), "component name", cpt.Name)
+			continue
+		}
+		for _, pod := range pods {
+			if containerRestartsTimes(pod) <= 3 {
+				continue
+			}
+			reasons = append(reasons, fmt.Sprintf("%s failed", cpt.Name))
+			break
+		}
+	}
+	status.Reasons = reasons
+}
+
+func containerRestartsTimes(pod *corev1.Pod) int {
+	for _, status := range pod.Status.ContainerStatuses {
+		return int(status.RestartCount)
+	}
+	return 0
 }
