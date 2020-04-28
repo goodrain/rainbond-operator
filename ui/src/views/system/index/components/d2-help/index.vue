@@ -49,8 +49,9 @@ export default {
             this.recordInfo.message = ''
             this.recordInfo.testMode = testMode
           }
+
           if (reasons) {
-            this.recordInfo.message = reasons
+            this.recordInfo.message = reasons.toString()
             this.handleRecord()
           }
           switch (final_status) {

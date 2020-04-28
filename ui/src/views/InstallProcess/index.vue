@@ -77,7 +77,7 @@ export default {
             this.recordInfo.testMode = testMode
           }
           if (reasons) {
-            this.handleRecord(final_status, 'failure')
+            this.handleRecord(final_status, reasons.toString())
           }
           switch (final_status) {
             case 'Initing':
