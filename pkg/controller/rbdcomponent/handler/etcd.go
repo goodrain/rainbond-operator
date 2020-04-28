@@ -123,6 +123,8 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 								"/usr/local/bin/etcd",
 								"--name",
 								EtcdName,
+								"--data-dir",
+								"/var/run/etcd/default.etcd",
 								"--initial-advertise-peer-urls",
 								fmt.Sprintf("http://%s:2380", EtcdName),
 								"--listen-peer-urls",
@@ -135,6 +137,14 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 								fmt.Sprintf("%s=http://%s:2380", EtcdName, EtcdName),
 								"--initial-cluster-state",
 								"new",
+								"--auto-compaction-retention",
+								"1",
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "ETCD_QUOTA_BACKEND_BYTES",
+									Value: "4294967296", // 4 Gi
+								},
 							},
 							Ports: []corev1.ContainerPort{
 								{
@@ -149,7 +159,7 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      claimName,
-									MountPath: "/var/lib/etcd",
+									MountPath: "/var/run/etcd",
 								},
 							},
 						},
@@ -268,7 +278,8 @@ HOSTNAME=$(hostname)
                   --advertise-client-urls http://${HOSTNAME}.${SET_NAME}.${CLUSTER_NAMESPACE}:2379 \
                   --data-dir /var/run/etcd/default.etcd \
                   --initial-cluster ${ETCD_INITIAL_CLUSTER} \
-                  --initial-cluster-state ${ETCD_INITIAL_CLUSTER_STATE}
+				  --initial-cluster-state ${ETCD_INITIAL_CLUSTER_STATE} \
+				  --auto-compaction-retention 1
           fi
 
           for i in $(seq 0 $((${INITIAL_CLUSTER_SIZE} - 1))); do
@@ -289,10 +300,15 @@ HOSTNAME=$(hostname)
               --initial-cluster-token etcd-cluster-1 \
               --data-dir /var/run/etcd/default.etcd \
               --initial-cluster $(initial_peers) \
-              --initial-cluster-state new
+			  --initial-cluster-state new \
+			  --auto-compaction-retention 1
 `,
 							},
 							Env: []corev1.EnvVar{
+								{
+									Name:  "ETCD_QUOTA_BACKEND_BYTES",
+									Value: "4294967296", // 4 Gi
+								},
 								{
 									Name:  "INITIAL_CLUSTER_SIZE",
 									Value: "3",
@@ -377,7 +393,7 @@ fi
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      claimName,
-									MountPath: "/var/lib/etcd",
+									MountPath: "/var/run/etcd",
 								},
 							},
 						},
