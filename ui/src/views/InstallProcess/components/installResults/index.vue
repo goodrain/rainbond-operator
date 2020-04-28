@@ -195,8 +195,7 @@ export default {
             this.loading = false
           }
         })
-        .catch(err => {
-          console.log('err', err)
+        .catch(_ => {
           this.$emit('onhandleErrorRecord')
         })
     },
@@ -209,8 +208,7 @@ export default {
         .then(res => {
           this.componentList = res.data
         })
-        .catch(err => {
-          console.log('err', err)
+        .catch(_ => {
           this.$emit('onhandleErrorRecord')
         })
     },
@@ -225,8 +223,7 @@ export default {
             this.mirrorComponentList = res.data
           }
         })
-        .catch(err => {
-          console.log('err', err)
+        .catch(_ => {
           this.$emit('onhandleErrorRecord')
         })
     }

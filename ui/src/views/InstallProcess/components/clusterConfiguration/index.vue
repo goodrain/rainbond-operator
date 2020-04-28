@@ -791,16 +791,10 @@ export default {
         }
       }
       if (value === 4) {
-<<<<<<< HEAD
-        if (this.Server === '' || this.Path === '') {
-          callback(new Error(this.$t('page.install.config.nasValidation')))
-          return
-=======
 
         if (this.storage.RWX.csiPlugin.aliyunNas.server === "") {
           callback(new Error(this.$t("page.install.config.nasValidation")));
           return;
->>>>>>> rainbond/master
         }
       }
       callback()
@@ -853,11 +847,6 @@ export default {
       clusterInitInfo: {
         storageClasses: []
       },
-<<<<<<< HEAD
-      Server: '',
-      Path: '',
-=======
->>>>>>> rainbond/master
       storage: {
         RWX: {
           csiPlugin: {
@@ -1393,14 +1382,8 @@ export default {
         obj.rainbondvolumes.RWX = {
           storageClassParameters: {
             parameters: {
-<<<<<<< HEAD
-              server:
-                this.Server && this.Path ? this.Server + ':' + this.Path : '',
-              volumeAs: 'subpath'
-=======
               server:this.storage.RWX.csiPlugin.aliyunNas.server,
               volumeAs: "subpath"
->>>>>>> rainbond/master
             }
           },
           csiPlugin: {
