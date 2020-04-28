@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-rainbondVersion: v5.2.0-cloud
+rainbondVersion: v5.2.0-release
 
 ## Install Default RBAC roles and bindings
 rbac:
@@ -39,4 +39,4 @@ openapi:
   downloadMD5: 9ca4afab83272b52b997bcfc2062f1999654c15bbbc2da1fdb1da478fbe77f83
   installMode: WithPackage
   imageRepository: registry.cn-hangzhou.aliyuncs.com/goodrain
-  onlyRegion: true
+  onlyRegion: false
