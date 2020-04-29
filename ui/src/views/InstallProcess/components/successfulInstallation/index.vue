@@ -67,7 +67,7 @@ export default {
   },
   data () {
     let validateCheckList = (rule, value, callback) => {
-      if (this.uninstallForm.checkList.length === 0) {
+      if (this.uninstallForm.otherReasons === '' &&this.uninstallForm.checkList.length === 0) {
         callback(new Error('请选择卸载原因'))
       } else {
         callback()
@@ -169,7 +169,7 @@ export default {
     },
     handleRecord () {
       if (!this.recordInfo.testMode) {
-        this.$store.dispatch('putRecord', this.recordInfo)
+        this.$store.dispatch('putRecord', this.recordInfo).then(() => {})
       }
     },
     onhandleDelete () {
