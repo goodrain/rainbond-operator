@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"sort"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -57,6 +58,12 @@ var provisionerAccessModes = map[string]corev1.PersistentVolumeAccessMode{
 	"nasplugin.csi.alibabacloud.com":  corev1.ReadWriteMany,
 	"ossplugin.csi.alibabacloud.com":  corev1.ReadWriteMany,
 }
+
+type k8sNodesSortByName []*rainbondv1alpha1.K8sNode
+
+func (s k8sNodesSortByName) Len() int           { return len(s) }
+func (s k8sNodesSortByName) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s k8sNodesSortByName) Less(i, j int) bool { return s[i].Name < s[j].Name }
 
 type rainbondClusteMgr struct {
 	ctx    context.Context
@@ -210,6 +217,8 @@ func (r *rainbondClusteMgr) listNodesByLabels(labels map[string]string) []*rainb
 		}
 		k8sNodes = append(k8sNodes, k8sNode)
 	}
+
+	sort.Sort(k8sNodesSortByName(k8sNodes))
 
 	return k8sNodes
 }
