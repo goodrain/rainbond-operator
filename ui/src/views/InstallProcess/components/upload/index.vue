@@ -4,7 +4,7 @@
       安装包下载失败，请下载
       <a
         target="_blank"
-        href="http://192.168.3.8/fanyangyang/Downloads/rainbond-pkg-V5.2-dev.tgz"
+        href="https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/offline/5.2/rainbond.images.2020-04-16-v5.2.0-release.tgz"
         download="filename"
         style="color:#3489ff"
       >安装包</a>
