@@ -99,7 +99,7 @@ export default {
     },
     handleRecord () {
       if (!this.recordInfo.testMode) {
-        this.$store.dispatch('putRecord', this.recordInfo)
+        this.$store.dispatch('putRecord', this.recordInfo).then(() => {})
       }
     },
     handleRouter (name) {

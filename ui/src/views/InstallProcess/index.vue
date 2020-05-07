@@ -113,7 +113,7 @@ export default {
       if (!this.recordInfo.testMode) {
         this.recordInfo.status = states
         this.recordInfo.message = message || ''
-        this.$store.dispatch('putRecord', this.recordInfo)
+        this.$store.dispatch('putRecord', this.recordInfo).then(() => {})
       }
     },
     handlePerform (name) {
