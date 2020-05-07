@@ -658,7 +658,7 @@ func (p *pkg) untartar() error {
 				if p.updateConditionProgress(rainbondv1alpha1.UnpackPackage, progress) {
 					if err := p.updateCRStatus(); err != nil {
 						// ignore error
-						log.Info("update number extracted: %v", err)
+						log.Info(fmt.Sprintf("update number extracted: %v", err))
 					}
 				}
 			case <-stop:
