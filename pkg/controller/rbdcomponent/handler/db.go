@@ -218,14 +218,6 @@ func (d *db) statefulsetForDB() interface{} {
 									SubPath:   "my.cnf",
 								},
 							},
-							LivenessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
-									Exec: &corev1.ExecAction{Command: []string{"mysqladmin", "-u" + d.mysqlUser, "-p" + d.mysqlPassword, "ping"}},
-								},
-								InitialDelaySeconds: 30,
-								PeriodSeconds:       10,
-								TimeoutSeconds:      5,
-							},
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									Exec: &corev1.ExecAction{Command: []string{"mysql", "-u" + d.mysqlUser, "-p" + d.mysqlPassword, "-e", "SELECT 1"}},
