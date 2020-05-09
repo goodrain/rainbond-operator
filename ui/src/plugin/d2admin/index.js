@@ -30,7 +30,13 @@ export default {
     Vue.prototype.$buildTime = process.env.VUE_APP_BUILD_TIME
     // Element
     Vue.use(ElementUI, {
-      i18n: (key, value) => i18n.t(key, value)
+      i18n: (path, options) =>{
+        let value = i18n.t(path, options)
+        if (value !== null && value !== undefined) {
+          return value
+        }
+        return ''
+      }
     })
     // 插件
     Vue.use(pluginError)
