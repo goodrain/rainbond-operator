@@ -139,12 +139,12 @@ func (g *gateway) deployment() interface{} {
 							VolumeMounts:    volumeMounts,
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("512Mi"),
+									corev1.ResourceMemory: resource.MustParse("256Mi"),
 									corev1.ResourceCPU:    resource.MustParse("0m"),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("1536Mi"),
-									corev1.ResourceCPU:    resource.MustParse("400m"),
+									corev1.ResourceMemory: resource.MustParse("2048Mi"),
+									corev1.ResourceCPU:    resource.MustParse("2000m"),
 								},
 							},
 						},

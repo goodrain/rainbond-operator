@@ -173,12 +173,12 @@ func (e *eventlog) deployment() interface{} {
 							VolumeMounts: volumeMounts,
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("128Mi"),
+									corev1.ResourceMemory: resource.MustParse("64Mi"),
 									corev1.ResourceCPU:    resource.MustParse("0m"),
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: resource.MustParse("1536Mi"),
-									corev1.ResourceCPU:    resource.MustParse("200m"),
+									corev1.ResourceCPU:    resource.MustParse("500m"),
 								},
 							},
 						},
