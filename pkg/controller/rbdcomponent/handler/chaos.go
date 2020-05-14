@@ -6,6 +6,8 @@ import (
 	"path"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -245,6 +247,16 @@ func (c *chaos) deployment() interface{} {
 							Env:             env,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("256Mi"),
+									corev1.ResourceCPU:    resource.MustParse("0m"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("1024Mi"),
+									corev1.ResourceCPU:    resource.MustParse("200m"),
+								},
+							},
 						},
 					},
 					Volumes: volumes,

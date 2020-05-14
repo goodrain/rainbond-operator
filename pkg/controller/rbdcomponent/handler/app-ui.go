@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"strconv"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -13,8 +17,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 )
 
 // AppUIName name for rbd-app-ui resources.
@@ -182,6 +186,16 @@ func (a *appui) deploymentForAppUI() interface{} {
 								InitialDelaySeconds: 30,
 								PeriodSeconds:       10,
 								TimeoutSeconds:      5,
+							},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("512Mi"),
+									corev1.ResourceCPU:    resource.MustParse("0m"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("1536Mi"),
+									corev1.ResourceCPU:    resource.MustParse("400m"),
+								},
 							},
 						},
 					},

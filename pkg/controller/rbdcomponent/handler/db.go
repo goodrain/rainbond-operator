@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/docker/distribution/reference"
 	mysqlv1alpha1 "github.com/oracle/mysql-operator/pkg/apis/mysql/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -226,6 +228,16 @@ func (d *db) statefulsetForDB() interface{} {
 								PeriodSeconds:       2,
 								TimeoutSeconds:      1,
 							},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("512Mi"),
+									corev1.ResourceCPU:    resource.MustParse("0m"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("2048Mi"),
+									corev1.ResourceCPU:    resource.MustParse("400m"),
+								},
+							},
 						},
 						{
 							Name:            DBName + "-exporter",
@@ -235,6 +247,16 @@ func (d *db) statefulsetForDB() interface{} {
 								{
 									Name:  "DATA_SOURCE_NAME",
 									Value: fmt.Sprintf("%s:%s@tcp(127.0.0.1:3306)/", d.mysqlUser, d.mysqlPassword),
+								},
+							},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("32Mi"),
+									corev1.ResourceCPU:    resource.MustParse("20m"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("256Mi"),
+									corev1.ResourceCPU:    resource.MustParse("100m"),
 								},
 							},
 						},
