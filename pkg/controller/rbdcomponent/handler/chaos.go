@@ -254,7 +254,7 @@ func (c *chaos) deployment() interface{} {
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: resource.MustParse("1024Mi"),
-									corev1.ResourceCPU:    resource.MustParse("200m"),
+									corev1.ResourceCPU:    resource.MustParse("500m"),
 								},
 							},
 						},
