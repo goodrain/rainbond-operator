@@ -44,24 +44,6 @@
         label-width="88px"
       >
         <el-row :gutter="20">
-          <el-col :span="24" class="table-cell-title cen d2-mb" >
-            <el-popover
-              placement="bottom-start"
-              title="联系管理人员"
-              width="200"
-              trigger="hover"
-            >
-              <img
-                :src="`${$baseUrl}image/contact.jpeg`"
-                style="width:150px;height:150px"
-              />
-
-              <el-link :underline="false" slot="reference" type="primary"
-                >如果安装受阻、请联系管理人员、寻求帮助。</el-link
-              >
-            </el-popover>
-          </el-col>
-
           <el-col :span="24" class="table-cell-title">
             <el-form-item class="bor" label prop="checkList">
               <el-checkbox-group
@@ -82,6 +64,22 @@
                 style="width:290px"
               ></el-input>
             </el-form-item>
+          </el-col>
+          <el-col :span="24" class="table-cell-title cen ">
+            <el-popover
+              placement="bottom-start"
+              title=""
+              width="200"
+              trigger="hover"
+            >
+              <img
+                :src="`${$baseUrl}image/contact.jpeg`"
+                style="width:200px;height:200px"
+              />
+              <el-link :underline="false" slot="reference" type="primary"
+                >如果安装受阻、请联系管理人员、寻求帮助。</el-link
+              >
+            </el-popover>
           </el-col>
         </el-row>
       </el-form>
