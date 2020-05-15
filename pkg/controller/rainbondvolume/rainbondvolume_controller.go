@@ -32,8 +32,8 @@ var log = logf.Log.WithName("controller_rainbondvolume")
 
 // Add creates a new RainbondVolume Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+func Add(mgr manager.Manager, ns string) error {
+	return add(mgr, newReconciler(mgr), ns)
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -42,7 +42,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+func add(mgr manager.Manager, r reconcile.Reconciler, ns string) error {
 	// Create a new controller
 	c, err := controller.New("rainbondvolume-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {

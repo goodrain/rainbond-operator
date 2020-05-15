@@ -71,6 +71,7 @@ func main() {
 
 	printVersion()
 
+	// all resource in this namespace
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
 		log.Error(err, "Failed to get watch namespace")
@@ -124,7 +125,7 @@ func main() {
 	}
 
 	// Setup all Controllers
-	if err := controller.AddToManager(mgr); err != nil {
+	if err := controller.AddToManager(mgr, namespace); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
