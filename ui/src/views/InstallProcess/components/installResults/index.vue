@@ -2,16 +2,24 @@
   <div>
     <div class="result" v-loading="loading">
       <el-row :gutter="12">
-        <el-col :span="24" class="d2-mt" v-for="(item,index) in installList" :key="item.stepName">
+        <el-col
+          :span="24"
+          class="d2-mt"
+          v-for="(item, index) in installList"
+          :key="item.stepName"
+        >
           <el-card
-            v-if="item.stepName!=='step_install_component'&&item.stepName!=='step_prepare_hub'"
+            v-if="
+              item.stepName !== 'step_install_component' &&
+                item.stepName !== 'step_prepare_hub'
+            "
             shadow="hover"
           >
             <install-component
               :item="item"
               :index="index"
               :dialogVisible="dialogVisible"
-              @onhandleDialogVisible="dialogVisible=true"
+              @onhandleDialogVisible="dialogVisible = true"
             ></install-component>
           </el-card>
 
@@ -21,15 +29,25 @@
                 :item="item"
                 :index="index"
                 :dialogVisible="dialogVisible"
-                @onhandleDialogVisible="dialogVisible=true"
+                @onhandleDialogVisible="dialogVisible = true"
               ></install-component>
             </div>
             <rainbond-component
-              v-if="item.stepName==='step_install_component'&&item.status!=='status_waiting'&&componentList&&componentList.length>0"
+              v-if="
+                item.stepName === 'step_install_component' &&
+                  item.status !== 'status_waiting' &&
+                  componentList &&
+                  componentList.length > 0
+              "
               :componentList="componentList"
             ></rainbond-component>
             <rainbond-component
-              v-if="item.stepName==='step_prepare_hub'&&item.status!=='status_waiting'&&mirrorComponentList&&mirrorComponentList.length>0"
+              v-if="
+                item.stepName === 'step_prepare_hub' &&
+                  item.status !== 'status_waiting' &&
+                  mirrorComponentList &&
+                  mirrorComponentList.length > 0
+              "
               :componentList="mirrorComponentList"
             ></rainbond-component>
           </el-card>
@@ -43,10 +61,14 @@
       :nextLoading="nextLoading"
       :dialogVisible="dialogVisible"
       @onSubmitLoads="onSubmitLoads"
-      @onhandleClone="dialogVisible=false"
+      @onhandleClone="dialogVisible = false"
     />
 
-    <el-dialog title="你卸载Rainbond的原因" :visible.sync="dialogVisibles" width="30%">
+    <el-dialog
+      title="你卸载Rainbond的原因"
+      :visible.sync="dialogVisibles"
+      width="30%"
+    >
       <el-form
         :inline="true"
         @submit.native.prevent
@@ -57,20 +79,42 @@
         label-width="88px"
       >
         <el-row :gutter="20">
+          <el-col :span="24" class="table-cell-title cen d2-mb">
+            <el-popover
+              placement="bottom-start"
+              title="联系管理人员"
+              width="200"
+              trigger="hover"
+            >
+              <img
+                :src="`${$baseUrl}image/contact.jpeg`"
+                style="width:150px;height:150px"
+              />
+
+              <el-link :underline="false" slot="reference" type="primary"
+                >如果安装受阻、请联系管理人员、寻求帮助。</el-link
+              >
+            </el-popover>
+          </el-col>
+
           <el-col :span="24" class="table-cell-title">
             <el-form-item class="bor" label prop="checkList">
-              <el-checkbox-group v-model="uninstallForm.checkList" style="width:390px">
-                <el-checkbox label="安装复杂"></el-checkbox>
-                <el-checkbox label="上手困难"></el-checkbox>
-                <el-checkbox label="界面不美观"></el-checkbox>
-                <el-checkbox label="找不到想要的功能"></el-checkbox>
-                <el-checkbox label="没有理由"></el-checkbox>
+              <el-checkbox-group
+                v-model="uninstallForm.checkList"
+                style="width:390px"
+              >
+                <el-checkbox label="安装配置复杂"></el-checkbox>
+                <el-checkbox label="安装受阻, 无法进行"></el-checkbox>
               </el-checkbox-group>
             </el-form-item>
           </el-col>
           <el-col :span="24" class="table-cell-title">
             <el-form-item label="其他原因" class="d2-mt d2-form-item">
-              <el-input type="textarea" v-model="uninstallForm.otherReasons" style="width:290px"></el-input>
+              <el-input
+                type="textarea"
+                v-model="uninstallForm.otherReasons"
+                style="width:290px"
+              ></el-input>
             </el-form-item>
           </el-col>
         </el-row>
@@ -96,7 +140,10 @@ export default {
   },
   data () {
     let validateCheckList = (rule, value, callback) => {
-      if (this.uninstallForm.otherReasons === '' &&this.uninstallForm.checkList.length === 0) {
+      if (
+        this.uninstallForm.otherReasons === '' &&
+        this.uninstallForm.checkList.length === 0
+      ) {
         callback(new Error('请选择卸载原因'))
       } else {
         callback()
@@ -253,7 +300,7 @@ export default {
   }
 }
 </script>
-<style rel="stylesheet/scss" lang="scss" >
+<style rel="stylesheet/scss" lang="scss">
 .clearpadding {
   .el-card__body {
     padding: 0 !important;
