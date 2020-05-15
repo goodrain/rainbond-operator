@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
@@ -93,6 +95,10 @@ func (a *appui) ResourcesCreateIfNotExists() []interface{} {
 
 func (a *appui) deploymentForAppUI() interface{} {
 	cpt := a.component
+
+	// prepare probe
+	livenessProbe := probeutil.MakeLivenessProbeHTTP("", "", 7070)
+	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "", 7070)
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      AppUIName,
@@ -175,14 +181,8 @@ func (a *appui) deploymentForAppUI() interface{} {
 									SubPath:   "lock",
 								},
 							},
-							LivenessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
-									HTTPGet: &corev1.HTTPGetAction{Port: intstr.FromInt(7070)},
-								},
-								InitialDelaySeconds: 30,
-								PeriodSeconds:       10,
-								TimeoutSeconds:      5,
-							},
+							LivenessProbe:  livenessProbe,
+							ReadinessProbe: readinessProbe,
 						},
 					},
 					Volumes: []corev1.Volume{

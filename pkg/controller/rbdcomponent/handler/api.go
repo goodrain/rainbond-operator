@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -161,6 +163,10 @@ func (a *api) deployment() interface{} {
 		)
 	}
 	a.labels["name"] = APIName
+
+	// prepare probe
+	livenessProbe := probeutil.MakeLivenessProbeHTTP("", "/v2/health", 8888)
+	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/health", 8888)
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      APIName,
@@ -199,16 +205,10 @@ func (a *api) deployment() interface{} {
 									Value: a.cluster.Spec.SuffixHTTPHost,
 								},
 							},
-							Args:         args,
-							VolumeMounts: volumeMounts,
-							LivenessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
-									HTTPGet: &corev1.HTTPGetAction{Path: "/v2/health", Port: intstr.FromInt(8888)},
-								},
-								InitialDelaySeconds: 30,
-								PeriodSeconds:       10,
-								TimeoutSeconds:      5,
-							},
+							Args:           args,
+							VolumeMounts:   volumeMounts,
+							LivenessProbe:  livenessProbe,
+							ReadinessProbe: readinessProbe,
 						},
 					},
 

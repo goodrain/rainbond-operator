@@ -6,6 +6,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
+
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -125,6 +127,9 @@ func (e *eventlog) deployment() interface{} {
 		args = append(args, eventLogEtcdArgs()...)
 	}
 
+	// prepare probe
+	livenessProbe := probeutil.MakeLivenessProbeTCP("", 6363)
+	readinessProbe := probeutil.MakeReadinessProbeTCP("", 6363)
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EventLogName,
@@ -167,8 +172,10 @@ func (e *eventlog) deployment() interface{} {
 									Value: "7",
 								},
 							},
-							Args:         args,
-							VolumeMounts: volumeMounts,
+							Args:           args,
+							VolumeMounts:   volumeMounts,
+							LivenessProbe:  livenessProbe,
+							ReadinessProbe: readinessProbe,
 						},
 					},
 					Volumes: volumes,
