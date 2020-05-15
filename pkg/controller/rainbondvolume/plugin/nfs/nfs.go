@@ -113,7 +113,7 @@ func (p *nfsPlugin) statefulset() interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            p.name,
-							Image:           "registry.cn-hangzhou.aliyuncs.com/goodrain/nfs-provisioner:v2.3.0", // TODO: do not hard code, get sa from configuration.
+							Image:           "registry.cn-hangzhou.aliyuncs.com/goodrain/nfs-provisioner",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports: []corev1.ContainerPort{
 								{
