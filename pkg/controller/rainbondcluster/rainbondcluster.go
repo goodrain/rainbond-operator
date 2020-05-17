@@ -151,6 +151,12 @@ func (r *rainbondClusteMgr) generateRainbondClusterStatus() (*rainbondv1alpha1.R
 		MasterNodes:    masterNodesForChaos,
 	}
 
+	k8sVersion, err := r.getKubernetesInfo()
+	if err != nil {
+		return nil, err
+	}
+	s.KubernetesVersoin = k8sVersion
+
 	return s, nil
 }
 
@@ -291,4 +297,28 @@ func (r *rainbondClusteMgr) generateDockerConfig() []byte {
 
 	bytes, _ := ffjson.Marshal(dockercfg)
 	return bytes
+}
+
+func (r *rainbondClusteMgr) getKubernetesInfo() (string, error) {
+	nodeList := &corev1.NodeList{}
+	listOpts := []client.ListOption{}
+	if err := r.client.List(r.ctx, nodeList, listOpts...); err != nil {
+		log.Error(err, "list nodes")
+		return "", fmt.Errorf("list nodes: %v", err)
+	}
+
+	var version string
+	for _, node := range nodeList.Items {
+		if node.Status.NodeInfo.KubeletVersion == "" {
+			continue
+		}
+		version = node.Status.NodeInfo.KubeletVersion
+		break
+	}
+
+	if version == "" {
+		return "", fmt.Errorf("failed to get kubernetes version")
+	}
+
+	return version, nil
 }

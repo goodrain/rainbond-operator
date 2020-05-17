@@ -69,11 +69,7 @@ func (cc *ClusterController) ClusterStatus(c *gin.Context) {
 // ClusterInit cluster init
 func (cc *ClusterController) ClusterInit(c *gin.Context) {
 	err := cc.clusterUcase.Cluster().Init()
-	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "内部错误，请联系社区帮助"})
-		return
-	}
-	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
+	ginutil.JSON(c, err, nil)
 }
 
 // ClusterStatusInfo returns the cluster information from rainbondcluster.

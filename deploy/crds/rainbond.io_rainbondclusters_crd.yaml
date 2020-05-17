@@ -234,6 +234,9 @@ spec:
               description: ImagePullUsername is the username to pull any of images
                 used by PodSpec
               type: string
+            kubernetesVersoin:
+              description: Versoin of Kubernetes
+              type: string
             masterRoleLabel:
               description: Destination path of the installation package extraction.
               type: string

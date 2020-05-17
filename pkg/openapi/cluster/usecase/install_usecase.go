@@ -5,17 +5,15 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
-
-	"github.com/goodrain/rainbond-operator/pkg/util/constants"
-
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
 	"github.com/sirupsen/logrus"
@@ -113,6 +111,11 @@ func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
 			return bcode.ErrClusterNotFound
 		}
 		return err
+	}
+
+	// check cluster
+	if cluster.Status.KubernetesVersoin < "v1.17.0" {
+		return bcode.ErrInvalidKubernetesVersion
 	}
 
 	// create rainbond volume

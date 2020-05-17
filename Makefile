@@ -81,12 +81,8 @@ build-api:
 	sed -i 's/IMAGE_NAMESPACE/$(IMAGE_NAMESPACE)/' hack/build/openapi/Dockerfile
 	sed -i 's/VERSION/$(VERSION)/' hack/build/openapi/Dockerfile
 	docker build . -f hack/build/openapi/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(VERSION)
-build-api-dev:
-	docker build . -f hack/build/openapi/Dockerfile.dev -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(VERSION)
 build-operator:
 	docker build . -f hack/build/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)
-build-operator-dev:
-	docker build . -f hack/build/operator/Dockerfile.dev -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)	
 build: build-ui build-api build-operator
 
 docker-login:
