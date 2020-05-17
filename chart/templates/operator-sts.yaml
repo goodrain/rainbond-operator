@@ -6,7 +6,6 @@ metadata:
   labels:
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     name: {{ template "rainbond-operator.name" . }}
-    namespace: {{ .Release.Namespace }}
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
 spec:
@@ -14,7 +13,6 @@ spec:
   selector:
     matchLabels:
       name: {{ template "rainbond-operator.name" . }}
-      namespace: {{ .Release.Namespace }}
       release: {{ .Release.Name }}
   serviceName: rainbond-operator
   template:
@@ -23,7 +21,6 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         name: {{ template "rainbond-operator.name" . }}
-        namespace: {{ .Release.Namespace }}
         release: {{ .Release.Name }}
     spec:
       serviceAccountName: {{ template "rainbond-operator.serviceAccountName" . }}
