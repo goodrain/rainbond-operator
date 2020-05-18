@@ -97,8 +97,8 @@ func (a *appui) deploymentForAppUI() interface{} {
 	cpt := a.component
 
 	// prepare probe
-	livenessProbe := probeutil.MakeLivenessProbeHTTP("", "", 7070)
-	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "", 7070)
+	livenessProbe := probeutil.MakeLivenessProbeTCP("", 7070)
+	readinessProbe := probeutil.MakeReadinessProbeTCP("", 7070)
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      AppUIName,
