@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ template "rainbond-operator.name" . }}
-  namespace: {{ .Release.Namespace }}
   labels:
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     name: {{ template "rainbond-operator.name" . }}
@@ -18,7 +17,6 @@ spec:
   template:
     metadata:
       name: {{ template "rainbond-operator.name" . }}
-      namespace: {{ .Release.Namespace }}
       labels:
         name: {{ template "rainbond-operator.name" . }}
         release: {{ .Release.Name }}
