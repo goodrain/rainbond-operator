@@ -27,8 +27,8 @@ var log = logf.Log.WithName("controller_rainbondcluster")
 
 // Add creates a new RainbondCluster Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager, ns string) error {
-	return add(mgr, newReconciler(mgr), ns)
+func Add(mgr manager.Manager) error {
+	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -37,7 +37,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler, ns string) error {
+func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("rainbondcluster-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
@@ -48,8 +48,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler, ns string) error {
 	// Only watch rainbondcluster, because only support one rainbond cluster.
 	err = c.Watch(&source.Kind{Type: &rainbondv1alpha1.RainbondCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rainbondcluster",
-			Namespace: ns,
+			Name: "rainbondcluster",
 		},
 	}}, &handler.EnqueueRequestForObject{})
 	if err != nil {

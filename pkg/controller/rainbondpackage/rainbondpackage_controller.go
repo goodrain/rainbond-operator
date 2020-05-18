@@ -47,8 +47,8 @@ var pkgDst = "/opt/rainbond/pkg/files"
 
 // Add creates a new RainbondPackage Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager, ns string) error {
-	return add(mgr, newReconciler(mgr), ns)
+func Add(mgr manager.Manager) error {
+	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -57,7 +57,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler, ns string) error {
+func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("rainbondpackage-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
@@ -67,8 +67,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler, ns string) error {
 	// Watch for changes to primary resource RainbondPackage
 	err = c.Watch(&source.Kind{Type: &rainbondv1alpha1.RainbondPackage{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rainbondpackage",
-			Namespace: ns,
+			Name: "rainbondpackage",
 		},
 	}}, &handler.EnqueueRequestForObject{})
 	if err != nil {

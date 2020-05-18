@@ -5,12 +5,12 @@ import (
 )
 
 // AddToManagerFuncs is a list of functions to add all Controllers to the Manager
-var AddToManagerFuncs []func(m manager.Manager, ns string) error
+var AddToManagerFuncs []func(m manager.Manager) error
 
 // AddToManager adds all Controllers to the Manager
-func AddToManager(m manager.Manager, ns string) error {
+func AddToManager(m manager.Manager) error {
 	for _, f := range AddToManagerFuncs {
-		if err := f(m, ns); err != nil {
+		if err := f(m); err != nil {
 			return err
 		}
 	}
