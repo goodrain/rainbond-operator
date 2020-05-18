@@ -40,8 +40,8 @@ type db struct {
 
 	secret                   *corev1.Secret
 	mysqlUser, mysqlPassword string
-
-	enableMysqlOperator bool
+	enableMysqlOperator      bool
+	databases                []string
 
 	pvcParametersRWO *pvcParameters
 	storageRequest   int64
@@ -60,11 +60,17 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 		labels:         LabelsForRainbondComponent(component),
 		mysqlUser:      "root",
 		mysqlPassword:  string(uuid.NewUUID())[0:8],
+		databases:      []string{"console"},
 		storageRequest: getStorageRequest("DB_DATA_STORAGE_REQUEST", 21),
 	}
 	if enableMysqlOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_MYSQL_OPERATOR")); enableMysqlOperator {
 		d.enableMysqlOperator = true
 	}
+	regionDBName := os.Getenv("REGION_DB_NAME")
+	if regionDBName == "" {
+		regionDBName = "region"
+	}
+	d.databases = append(d.databases, regionDBName)
 	return d
 }
 
@@ -437,19 +443,25 @@ func (d *db) serviceForMysqlCluster() interface{} {
 }
 
 func (d *db) configMapForMyCnf() interface{} {
+	var innodbDirs []string
+	for _, database := range d.databases {
+		innodbDirs = append(innodbDirs, "/var/lib/mysql/"+database)
+	}
+
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mycnf,
 			Namespace: d.component.Namespace,
 		},
 		Data: map[string]string{
-			"my.cnf": `
+			"my.cnf": fmt.Sprintf(`
 [client]
 # Default is Latin1, if you need UTF-8 set this (also in server section)
 default-character-set = utf8mb4
 
 [mysqld]
 user=mysql
+innodb_directories="%s"
 
 #
 # * Character sets
@@ -465,7 +477,7 @@ collation_server       = utf8mb4_unicode_ci
 default_authentication_plugin=mysql_native_password
 skip-host-cache
 skip-name-resolve
-`,
+`, strings.Join(innodbDirs, ";")),
 		},
 	}
 
