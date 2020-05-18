@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"path"
 	"strconv"
 	"time"
@@ -123,7 +124,7 @@ func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
 		return err
 	}
 
-	if err := ic.initRainbondPackage(); err != nil {
+	if err := ic.createRainbondPackage(); err != nil {
 		return err
 	}
 	return ic.createComponents(req, cluster)
@@ -203,7 +204,7 @@ func setRainbondVolume(name, namespace string, labels map[string]string, rv *v1.
 	return volume
 }
 
-func (ic *InstallUseCaseImpl) initRainbondPackage() error {
+func (ic *InstallUseCaseImpl) createRainbondPackage() error {
 	reqLogger := log.WithValues("Namespace", ic.cfg.Namespace, "Name", ic.cfg.Rainbondpackage)
 	pkg := &v1alpha1.RainbondPackage{
 		ObjectMeta: metav1.ObjectMeta{
@@ -222,6 +223,26 @@ func (ic *InstallUseCaseImpl) initRainbondPackage() error {
 		return bcode.ErrCreateRainbondPackage
 	}
 	reqLogger.Info("successfully create rainbondpackage")
+	return nil
+}
+
+func (ic *InstallUseCaseImpl) deleteRainbondPackage() error {
+	reqLogger := log.WithValues("Namespace", ic.cfg.Namespace, "Name", ic.cfg.Rainbondpackage)
+	pkg := &v1alpha1.RainbondPackage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ic.cfg.Rainbondpackage,
+			Namespace: ic.cfg.Namespace,
+		},
+	}
+	if err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(ic.cfg.Namespace).Delete(pkg.Name, &metav1.DeleteOptions{}); err != nil {
+		if errors.IsAlreadyExists(err) {
+			reqLogger.Info("rainbondpackage already exists.")
+			return nil
+		}
+		reqLogger.Error(err, "delete rainbond package")
+		return fmt.Errorf("delete rainbond package: %v", err)
+	}
+	reqLogger.Info("successfully delete rainbondpackage")
 	return nil
 }
 
@@ -372,6 +393,17 @@ func (ic *InstallUseCaseImpl) InstallStatus() (model.StatusRes, error) {
 		logrus.Warn("cluster config has not be created yet, something occured ? ")
 	}
 	return statusres, nil
+}
+
+// RestartPackage -
+func (ic *InstallUseCaseImpl) RestartPackage() error {
+	if err := ic.deleteRainbondPackage(); err != nil {
+		return err
+	}
+	if err := ic.createRainbondPackage(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (ic *InstallUseCaseImpl) parseInstallStatus(clusterInfo *v1alpha1.RainbondCluster, pkgInfo *v1alpha1.RainbondPackage, componentStatues []*v1.RbdComponentStatus) (statusres model.StatusRes) {
