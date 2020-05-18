@@ -27,7 +27,7 @@ spec:
           image: "{{ .Values.rainbondOperator.image.repository }}:{{ .Values.rainbondOperator.image.tag }}"
           imagePullPolicy: {{ .Values.rainbondOperator.image.pullPolicy }}
           args:
-            - --zap-level=4
+            - --zap-level={{ .Values.rainbondOperator.logLevel }}
           env:
             - name: RAINBOND_VERSION
               value: {{ .Values.rainbondVersion }}

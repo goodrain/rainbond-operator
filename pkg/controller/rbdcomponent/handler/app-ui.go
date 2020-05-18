@@ -67,16 +67,27 @@ func (a *appui) Before() error {
 		return err
 	}
 
-	return isUIDBMigrateOK(a.ctx, a.client, a.component)
+	return nil
 }
 
 func (a *appui) Resources() []interface{} {
-	return []interface{}{
-		a.deploymentForAppUI(),
+	res := []interface{}{
 		a.serviceForAppUI(),
 		a.ingressForAppUI(),
 		a.migrationsJob(),
 	}
+
+	if err := isUIDBMigrateOK(a.ctx, a.client, a.component); err != nil {
+		if IsIgnoreError(err) {
+			log.V(6).Info(fmt.Sprintf("check if ui db migrations is ok: %v", err))
+		} else {
+			log.Error(err, "check if ui db migrations is ok")
+		}
+	} else {
+		res = append(res, a.deploymentForAppUI())
+	}
+
+	return res
 }
 
 func (a *appui) After() error {
