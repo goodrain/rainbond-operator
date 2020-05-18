@@ -110,7 +110,6 @@ func (m *monitor) statefulset() interface{} {
 	}
 
 	// prepare probe
-	livenessProbe := probeutil.MakeLivenessProbeHTTP("", "/monitor/health", 3329)
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/monitor/health", 3329)
 	ds := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -149,7 +148,6 @@ func (m *monitor) statefulset() interface{} {
 							},
 							Args:           args,
 							VolumeMounts:   volumeMounts,
-							LivenessProbe:  livenessProbe,
 							ReadinessProbe: readinessProbe,
 						},
 					},

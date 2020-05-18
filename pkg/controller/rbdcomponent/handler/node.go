@@ -245,7 +245,6 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 	}
 
 	// prepare probe
-	livenessProbe := probeutil.MakeLivenessProbeHTTP("", "/v2/ping", 6100)
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/ping", 6100)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -283,7 +282,6 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 							Env:             envs,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
-							LivenessProbe:   livenessProbe,
 							ReadinessProbe:  readinessProbe,
 						},
 					},

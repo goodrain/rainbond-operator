@@ -128,7 +128,6 @@ func (e *eventlog) deployment() interface{} {
 	}
 
 	// prepare probe
-	livenessProbe := probeutil.MakeLivenessProbeTCP("", 6363)
 	readinessProbe := probeutil.MakeReadinessProbeTCP("", 6363)
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -174,7 +173,6 @@ func (e *eventlog) deployment() interface{} {
 							},
 							Args:           args,
 							VolumeMounts:   volumeMounts,
-							LivenessProbe:  livenessProbe,
 							ReadinessProbe: readinessProbe,
 						},
 					},

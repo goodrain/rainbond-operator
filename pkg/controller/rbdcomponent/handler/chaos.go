@@ -214,7 +214,6 @@ func (c *chaos) deployment() interface{} {
 	}
 
 	// prepare probe
-	livenessProbe := probeutil.MakeLivenessProbeHTTP("", "/v2/builder/health", 3228)
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/builder/health", 3228)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -250,7 +249,6 @@ func (c *chaos) deployment() interface{} {
 							Env:             env,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
-							LivenessProbe:   livenessProbe,
 							ReadinessProbe:  readinessProbe,
 						},
 					},

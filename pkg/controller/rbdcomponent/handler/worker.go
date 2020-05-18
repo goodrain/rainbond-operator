@@ -164,7 +164,6 @@ func (w *worker) deployment() interface{} {
 	}
 
 	// prepare probe
-	livenessProbe := probeutil.MakeLivenessProbeHTTP("", "/worker/health", 6369)
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/worker/health", 6369)
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -194,7 +193,6 @@ func (w *worker) deployment() interface{} {
 							Env:             env,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
-							LivenessProbe:   livenessProbe,
 							ReadinessProbe:  readinessProbe,
 						},
 					},

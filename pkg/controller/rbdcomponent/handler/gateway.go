@@ -104,7 +104,6 @@ func (g *gateway) deployment() interface{} {
 	}
 
 	// prepare probe
-	livenessProbe := probeutil.MakeLivenessProbeHTTP("", "/healthz", 10254)
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/healthz", 10254)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -140,7 +139,6 @@ func (g *gateway) deployment() interface{} {
 							ImagePullPolicy: g.component.ImagePullPolicy(),
 							Args:            args,
 							VolumeMounts:    volumeMounts,
-							LivenessProbe:   livenessProbe,
 							ReadinessProbe:  readinessProbe,
 						},
 					},

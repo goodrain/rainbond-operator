@@ -165,7 +165,6 @@ func (a *api) deployment() interface{} {
 	a.labels["name"] = APIName
 
 	// prepare probe
-	livenessProbe := probeutil.MakeLivenessProbeHTTP("", "/v2/health", 8888)
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/health", 8888)
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -207,7 +206,6 @@ func (a *api) deployment() interface{} {
 							},
 							Args:           args,
 							VolumeMounts:   volumeMounts,
-							LivenessProbe:  livenessProbe,
 							ReadinessProbe: readinessProbe,
 						},
 					},
