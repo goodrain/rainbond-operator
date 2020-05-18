@@ -20,6 +20,9 @@ import (
 // AppUIName name for rbd-app-ui resources.
 var AppUIName = "rbd-app-ui"
 
+// AppUIDBMigrationsName -
+var AppUIDBMigrationsName = "rbd-app-ui-migrations"
+
 type appui struct {
 	ctx       context.Context
 	client    client.Client
@@ -60,7 +63,11 @@ func (a *appui) Before() error {
 		return err
 	}
 
-	return isUIDBReady(a.ctx, a.client, a.component, a.cluster)
+	if err := isUIDBReady(a.ctx, a.client, a.component, a.cluster); err != nil {
+		return err
+	}
+
+	return isUIDBMigrateOK(a.ctx, a.client, a.component)
 }
 
 func (a *appui) Resources() []interface{} {
