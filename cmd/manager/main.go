@@ -71,6 +71,7 @@ func main() {
 
 	printVersion()
 
+	// all resource in this namespace
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
 		log.Error(err, "Failed to get watch namespace")
@@ -124,6 +125,9 @@ func main() {
 	}
 
 	// Setup all Controllers
+	// controllers can still Watch for a
+	// cluster-scoped resource (e.g Node).  For namespaced resources the cache
+	// will only hold objects from the desired namespace
 	if err := controller.AddToManager(mgr); err != nil {
 		log.Error(err, "")
 		os.Exit(1)

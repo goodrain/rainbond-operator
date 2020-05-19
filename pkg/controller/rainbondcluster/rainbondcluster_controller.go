@@ -48,8 +48,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Only watch rainbondcluster, because only support one rainbond cluster.
 	err = c.Watch(&source.Kind{Type: &rainbondv1alpha1.RainbondCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rainbondcluster",
-			Namespace: "rbd-system",
+			Name: "rainbondcluster",
 		},
 	}}, &handler.EnqueueRequestForObject{})
 	if err != nil {

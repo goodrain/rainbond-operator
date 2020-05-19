@@ -67,8 +67,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Watch for changes to primary resource RainbondPackage
 	err = c.Watch(&source.Kind{Type: &rainbondv1alpha1.RainbondPackage{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rainbondpackage",
-			Namespace: "rbd-system",
+			Name: "rainbondpackage",
 		},
 	}}, &handler.EnqueueRequestForObject{})
 	if err != nil {

@@ -206,6 +206,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 		"--nodeid=$(NODE_NAME)",
 		"--image-repo-host=" + rbdutil.GetImageRepository(n.cluster),
 		"--hostsfile=/newetc/hosts",
+		"--rbd-ns=" + n.component.Namespace,
 	}
 	if n.etcdSecret != nil {
 		volume, mount := volumeByEtcd(n.etcdSecret)
