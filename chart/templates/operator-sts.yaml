@@ -60,6 +60,8 @@ spec:
               name: rbd-pkg
             - mountPath: /var/run
               name: dockersock
+          securityContext:
+            privileged: true
         - name: openapi
           image: "{{ .Values.openapi.image.repository }}:{{ .Values.openapi.image.tag }}"
           imagePullPolicy: {{ .Values.openapi.image.pullPolicy }}

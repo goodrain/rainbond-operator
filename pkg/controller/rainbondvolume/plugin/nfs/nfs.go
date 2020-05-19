@@ -198,12 +198,7 @@ func (p *nfsPlugin) statefulset() interface{} {
 								"-provisioner=" + provisioner,
 							},
 							SecurityContext: &corev1.SecurityContext{
-								Capabilities: &corev1.Capabilities{
-									Add: []corev1.Capability{
-										"DAC_READ_SEARCH",
-										"SYS_RESOURCE",
-									},
-								},
+								Privileged: commonutil.Bool(true),
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
