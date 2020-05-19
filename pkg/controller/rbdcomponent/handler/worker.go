@@ -117,6 +117,7 @@ func (w *worker) deployment() interface{} {
 		"--node-name=$(HOST_IP)",
 		w.db.RegionDataSource(),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(w.cluster), ","),
+		"--rbd-system-namespace=" + w.component.Namespace,
 	}
 	if w.etcdSecret != nil {
 		volume, mount := volumeByEtcd(w.etcdSecret)

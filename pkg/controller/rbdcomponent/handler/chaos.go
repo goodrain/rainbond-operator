@@ -156,6 +156,7 @@ func (c *chaos) deployment() interface{} {
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(c.cluster), ","),
 		"--pvc-grdata-name=" + constants.GrDataPVC,
 		"--pvc-cache-name=" + constants.CachePVC,
+		"--rbd-namespace=" + c.component.Namespace,
 	}
 
 	if c.etcdSecret != nil {
