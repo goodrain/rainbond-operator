@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned/fake"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
@@ -18,6 +19,9 @@ func TestInstallUseCaseImpl_createRainbondVolumes(t *testing.T) {
 	installUcase := InstallUseCaseImpl{
 		namespace:          "rbd-system",
 		rainbondKubeClient: rainbondClient,
+		cfg: &option.Config{
+			RainbondImageRepository: "foobar",
+		},
 	}
 
 	req := &v1.ClusterInstallReq{
