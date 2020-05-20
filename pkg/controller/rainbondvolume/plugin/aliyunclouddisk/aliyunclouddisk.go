@@ -2,6 +2,7 @@ package aliyunclouddisk
 
 import (
 	"context"
+	"path"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin"
@@ -125,7 +126,7 @@ func (p *aliyunclouddiskPlugin) daemonset() *appsv1.DaemonSet {
 					Containers: []corev1.Container{
 						{
 							Name:            "driver-registrar",
-							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-node-driver-registrar:v1.0.1",
+							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-node-driver-registrar:v1.0.1"),
 							ImagePullPolicy: "IfNotPresent",
 							Lifecycle: &corev1.Lifecycle{
 								PreStop: &corev1.Handler{
@@ -166,7 +167,7 @@ func (p *aliyunclouddiskPlugin) daemonset() *appsv1.DaemonSet {
 						},
 						{
 							Name:            "csi-diskplugin",
-							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-plugin:v1.14.8.32-c77e277b-aliyun",
+							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-plugin:v1.14.8.32-aliyun"),
 							ImagePullPolicy: "IfNotPresent",
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),
@@ -349,7 +350,7 @@ func (p *aliyunclouddiskPlugin) statefulset() interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            "csi-provisioner",
-							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-provisioner:v1.2.2-aliyun",
+							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-provisioner:v1.2.2-aliyun"),
 							ImagePullPolicy: "Always",
 							Args: []string{
 								"--provisioner=diskplugin.csi.alibabacloud.com",
@@ -373,7 +374,7 @@ func (p *aliyunclouddiskPlugin) statefulset() interface{} {
 						},
 						{
 							Name:            "csi-diskplugin",
-							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-plugin:v1.14.8.32-c77e277b-aliyun",
+							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-plugin:v1.14.8.32-aliyun"),
 							ImagePullPolicy: "Always",
 							Args: []string{
 								"--v=5",

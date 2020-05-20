@@ -132,11 +132,13 @@ func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
 
 func (ic *InstallUseCaseImpl) createRainbondVolumes(req *v1.ClusterInstallReq) error {
 	rwx := setRainbondVolume("rainbondvolumerwx", ic.namespace, rbdutil.LabelsForAccessModeRWX(), req.RainbondVolumes.RWX)
+	rwx.Spec.ImageRepository = ic.cfg.RainbondImageRepository
 	if err := ic.createRainbondVolumeIfNotExists(rwx); err != nil {
 		return err
 	}
 	if req.RainbondVolumes.RWO != nil {
 		rwo := setRainbondVolume("rainbondvolumerwo", ic.namespace, rbdutil.LabelsForAccessModeRWO(), req.RainbondVolumes.RWO)
+		rwo.Spec.ImageRepository = ic.cfg.RainbondImageRepository
 		if err := ic.createRainbondVolumeIfNotExists(rwo); err != nil {
 			return err
 		}
@@ -350,6 +352,9 @@ func (ic *InstallUseCaseImpl) createComponents(req *v1.ClusterInstallReq, cluste
 		reqLogger := log.WithValues("Namespace", claim.namespace, "Name", claim.name)
 		// update image repository for priority components
 		if claim.isInit {
+			claim.imageRepository = cluster.Spec.RainbondImageRepository
+		}
+		if ic.cfg.InstallMode == string(v1alpha1.InstallationModeFullOnline) {
 			claim.imageRepository = cluster.Spec.RainbondImageRepository
 		}
 		data := parseComponentClaim(claim)

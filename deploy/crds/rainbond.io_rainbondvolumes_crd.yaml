@@ -75,6 +75,8 @@ spec:
                     info: https://github.com/kubernetes-incubator/external-storage/tree/master/nfs'
                   type: object
               type: object
+            imageRepository:
+              type: string
             storageClassName:
               description: 'The name of StorageClass, which is a kind of kubernetes
                 resource. It will used to create pvc for rainbond components. More
@@ -104,6 +106,8 @@ spec:
             storageRequest:
               format: int32
               type: integer
+          required:
+          - imageRepository
           type: object
         status:
           description: RainbondVolumeStatus defines the observed state of rainbondvolume.

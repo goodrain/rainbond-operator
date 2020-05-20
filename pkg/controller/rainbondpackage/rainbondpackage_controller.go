@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker/pkg/jsonmessage"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/downloadutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/retryutil"
@@ -26,10 +27,13 @@ import (
 	dclient "github.com/docker/docker/client"
 	"github.com/go-logr/logr"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -53,7 +57,8 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileRainbondPackage{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	recorder := mgr.GetEventRecorderFor("rainbondpackage")
+	return &ReconcileRainbondPackage{client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: recorder}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -84,8 +89,9 @@ var _ reconcile.Reconciler = &ReconcileRainbondPackage{}
 type ReconcileRainbondPackage struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	client   client.Client
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // Reconcile reads that state of the cluster for a RainbondPackage object and makes changes based on the state read
@@ -114,6 +120,31 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
+	cluster := &rainbondv1alpha1.RainbondCluster{}
+	if err := r.client.Get(ctx, types.NamespacedName{Namespace: pkg.Namespace, Name: constants.RainbondClusterName}, cluster); err != nil {
+		reason := "ClusterNotFound"
+		msg := "rainbondcluster not found"
+		if !k8sErrors.IsNotFound(err) {
+			reqLogger.Error(err, "get rainbondcluster.")
+			reason = "UnknownErr"
+			msg = fmt.Sprintf("failed to get rainbondcluster: %v", err)
+		}
+
+		r.recorder.Event(pkg, corev1.EventTypeWarning, reason, msg)
+		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
+	}
+
+	// if instsall mode is full online, set package to ready directly
+	if cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeFullOnline {
+		reqLogger.Info("set package to ready directly", "install mode", cluster.Spec.InstallMode)
+		pkg.Status = initPackageStatus(rainbondv1alpha1.Completed)
+		if err := updateCRStatus(r.client, pkg); err != nil {
+			reqLogger.Error(err, "update package status")
+			return reconcile.Result{RequeueAfter: time.Second * 5}, nil
+		}
+		return reconcile.Result{}, nil
+	}
+
 	updateStatus, re := checkStatusCanReturn(pkg)
 	if updateStatus {
 		if err := updateCRStatus(r.client, pkg); err != nil {
@@ -135,6 +166,7 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		reqLogger.Error(err, "create package handle failure ")
 		return reconcile.Result{RequeueAfter: time.Second * 5}, nil
 	}
+
 	// handle package
 	if err = p.handle(); err != nil {
 		if err == errorClusterConfigNoLocalHub {
@@ -149,36 +181,36 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 
 	return reconcile.Result{}, nil
 }
-func initPackageStatus() *rainbondv1alpha1.RainbondPackageStatus {
+func initPackageStatus(status rainbondv1alpha1.PackageConditionStatus) *rainbondv1alpha1.RainbondPackageStatus {
 	return &rainbondv1alpha1.RainbondPackageStatus{
 		Conditions: []rainbondv1alpha1.PackageCondition{
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.Init,
-				Status:             rainbondv1alpha1.Waiting,
+				Status:             status,
 				LastHeartbeatTime:  metav1.Now(),
 				LastTransitionTime: metav1.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.DownloadPackage,
-				Status:             rainbondv1alpha1.Waiting,
+				Status:             status,
 				LastHeartbeatTime:  metav1.Now(),
 				LastTransitionTime: metav1.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.UnpackPackage,
-				Status:             rainbondv1alpha1.Waiting,
+				Status:             status,
 				LastHeartbeatTime:  metav1.Now(),
 				LastTransitionTime: metav1.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.PushImage,
-				Status:             rainbondv1alpha1.Waiting,
+				Status:             status,
 				LastHeartbeatTime:  metav1.Now(),
 				LastTransitionTime: metav1.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.Ready,
-				Status:             rainbondv1alpha1.Waiting,
+				Status:             status,
 				LastHeartbeatTime:  metav1.Now(),
 				LastTransitionTime: metav1.Now(),
 			},
@@ -190,7 +222,7 @@ func initPackageStatus() *rainbondv1alpha1.RainbondPackageStatus {
 //checkStatusCanReturn if pkg status in the working state, straight back
 func checkStatusCanReturn(pkg *rainbondv1alpha1.RainbondPackage) (updateStatus bool, re *reconcile.Result) {
 	if pkg.Status == nil {
-		pkg.Status = initPackageStatus()
+		pkg.Status = initPackageStatus(rainbondv1alpha1.Waiting)
 		return true, &reconcile.Result{}
 	}
 	completedCount := 0

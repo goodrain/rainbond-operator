@@ -2,6 +2,7 @@ package aliyunnas
 
 import (
 	"context"
+	"path"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin"
@@ -125,7 +126,7 @@ func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 					Containers: []corev1.Container{
 						{
 							Name:            "driver-registrar",
-							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-node-driver-registrar:v1.1.0",
+							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-node-driver-registrar:v1.1.0"),
 							ImagePullPolicy: "IfNotPresent",
 							Lifecycle: &corev1.Lifecycle{
 								PreStop: &corev1.Handler{
@@ -166,7 +167,7 @@ func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 						},
 						{
 							Name:            "csi-nasplugin",
-							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-plugin:v1.14.8.32-c77e277b-aliyun",
+							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-plugin:v1.14.8.32-aliyun"),
 							ImagePullPolicy: "IfNotPresent",
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),
@@ -323,7 +324,7 @@ func (p *aliyunnasPlugin) statefulset() interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            "csi-nas-external-provisioner",
-							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-provisioner:v1.2.2-aliyun",
+							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-provisioner:v1.2.2-aliyun"),
 							ImagePullPolicy: "Always",
 							Args: []string{
 								"--provisioner=nasplugin.csi.alibabacloud.com",
@@ -346,7 +347,7 @@ func (p *aliyunnasPlugin) statefulset() interface{} {
 						},
 						{
 							Name:            "csi-nasprovisioner",
-							Image:           "registry.cn-hangzhou.aliyuncs.com/acs/csi-plugin:v1.14.8.32-c77e277b-aliyun",
+							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-plugin:v1.14.8.32-aliyun"),
 							ImagePullPolicy: "Always",
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),

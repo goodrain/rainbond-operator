@@ -387,6 +387,9 @@ func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, err
 	if c.cfg.InstallMode == string(rainbondv1alpha1.InstallationModeWithPackage) {
 		installMode = rainbondv1alpha1.InstallationModeWithPackage
 	}
+	if c.cfg.InstallMode == string(rainbondv1alpha1.InstallationModeFullOnline) {
+		installMode = rainbondv1alpha1.InstallationModeFullOnline
+	}
 
 	cluster := &rainbondv1alpha1.RainbondCluster{
 		ObjectMeta: metav1.ObjectMeta{

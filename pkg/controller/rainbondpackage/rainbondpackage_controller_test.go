@@ -13,7 +13,7 @@ func init() {
 		Spec: rainbondv1alpha1.RainbondPackageSpec{
 			PkgPath: "/tmp/rainbond.tar",
 		},
-		Status: initPackageStatus(),
+		Status: initPackageStatus(rainbondv1alpha1.Waiting),
 	}, log)
 	pkgHandle.setCluster(&rainbondv1alpha1.RainbondCluster{
 		Spec: rainbondv1alpha1.RainbondClusterSpec{
