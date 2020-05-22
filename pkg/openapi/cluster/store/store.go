@@ -40,7 +40,6 @@ type componentRuntimeStore struct {
 	informers           *Informer
 	listers             *Lister
 	stopch              chan struct{}
-	enableEtcdOperator  bool
 	enableMysqlOperator bool
 }
 
@@ -53,9 +52,6 @@ func NewStore(namespace string, rainbondClient *versioned.Clientset, k8sClient *
 		informers:      &Informer{},
 		listers:        &Lister{},
 		stopch:         make(chan struct{}),
-	}
-	if enableEtcdOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_ETCD_OPERATOR")); enableEtcdOperator {
-		store.enableEtcdOperator = true
 	}
 	if enableMysqlOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_MYSQL_OPERATOR")); enableMysqlOperator {
 		store.enableMysqlOperator = true
@@ -114,11 +110,6 @@ func (s *componentRuntimeStore) ListPod() []*corev1.Pod {
 	var pods []*corev1.Pod
 	for _, obj := range s.listers.Pod.List() {
 		pod := obj.(*corev1.Pod)
-		if s.enableEtcdOperator { // hack etcd name
-			if name, ok := pod.Labels["etcd_cluster"]; ok && name != "" {
-				pod.Labels["name"] = name
-			}
-		}
 		if s.enableMysqlOperator { // hack db name
 			if name, ok := pod.Labels["v1alpha1.mysql.oracle.com/cluster"]; ok && name != "" {
 				pod.Labels["name"] = name
