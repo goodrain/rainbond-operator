@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"runtime"
 
@@ -22,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 	kubeaggregatorv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -49,9 +51,14 @@ func printVersion() {
 }
 
 func main() {
+	klog.InitFlags(nil)
+
 	// Add the zap logger flag set to the CLI. The flag set must
 	// be added before calling pflag.Parse().
 	pflag.CommandLine.AddFlagSet(zap.FlagSet())
+
+	flag.Set("logtostderr", "false")
+	flag.Set("alsologtostderr", "false")
 
 	// Add flags registered by imported packages (e.g. glog and
 	// controller-runtime)
@@ -68,6 +75,9 @@ func main() {
 	// be propagated through the whole operator, generating
 	// uniform and structured logs.
 	logf.SetLogger(zap.Logger())
+
+	klog.SetOutput(ioutil.Discard)
+	klog.Flush()
 
 	printVersion()
 
