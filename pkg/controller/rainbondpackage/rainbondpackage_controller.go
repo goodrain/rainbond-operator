@@ -325,6 +325,8 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 		"/plugins-tcm:5.1.7":                "/tcm",
 		"/nfs-provisioner":                  "/nfs-provisioner",
 		"/etcd:v3.3.18":                     "/etcd:v3.3.18",
+		"/plugin-log-filebeat":              "/plugin-log-filebeat",
+		"/plugin-log-logtail":               "/plugin-log-logtail",
 	}
 	return nil
 }
