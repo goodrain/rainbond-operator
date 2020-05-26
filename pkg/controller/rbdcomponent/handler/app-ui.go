@@ -67,6 +67,10 @@ func (a *appui) Before() error {
 		return err
 	}
 
+	if a.cluster.Spec.ImageHub == nil {
+		return NewIgnoreError("image repository not ready")
+	}
+
 	return nil
 }
 

@@ -6,8 +6,8 @@ import (
 
 // RainbondPackageSpec defines the desired state of RainbondPackage
 type RainbondPackageSpec struct {
-	// The path where the rainbond package is located.
-	PkgPath string `json:"pkgPath"`
+	// Deprecated: The path where the rainbond package is located.
+	PkgPath string   `json:"pkgPath"`
 }
 
 // RainbondPackagePhase is a label for the condition of a rainbondcluster at the current time.
