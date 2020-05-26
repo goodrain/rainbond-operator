@@ -170,7 +170,7 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 	// handle package
 	if err = p.handle(); err != nil {
 		if err == errorClusterConfigNoLocalHub {
-			reqLogger.Info("waiting local image hub ready")
+			reqLogger.V(4).Info("waiting local image hub ready")
 		} else if err == errorClusterConfigNotReady {
 			reqLogger.Info("waiting cluster config ready")
 		} else {
@@ -245,19 +245,22 @@ func checkStatusCanReturn(pkg *rainbondv1alpha1.RainbondPackage) (updateStatus b
 }
 
 type pkg struct {
-	ctx                 context.Context
-	client              client.Client
-	dcli                *dclient.Client
-	pkg                 *rainbondv1alpha1.RainbondPackage
-	cluster             *rainbondv1alpha1.RainbondCluster
-	log                 logr.Logger
-	downloadPackage     bool
-	localPackagePath    string
-	downloadPackageURL  string
+	ctx              context.Context
+	client           client.Client
+	dcli             *dclient.Client
+	pkg              *rainbondv1alpha1.RainbondPackage
+	cluster          *rainbondv1alpha1.RainbondCluster
+	log              logr.Logger
+	downloadPackage  bool
+	localPackagePath string
+	// Deprecated: no longer download installation package.
+	downloadPackageURL string
+	// Deprecated: no longer download installation package.
 	downloadPackageMD5  string
 	downloadImageDomain string
 	pushImageDomain     string
-	totalImageNum       int32
+	// Deprecated: no longer download installation package.
+	totalImageNum int32
 	//need download images
 	images  map[string]string
 	version string
@@ -274,10 +277,11 @@ func newpkg(ctx context.Context, client client.Client, p *rainbondv1alpha1.Rainb
 		return nil, fmt.Errorf("RAINBOND_VERSION not found")
 	}
 	pkg := &pkg{
-		ctx:           ctx,
-		client:        client,
-		pkg:           p.DeepCopy(),
-		dcli:          dcli,
+		ctx:    ctx,
+		client: client,
+		pkg:    p.DeepCopy(),
+		dcli:   dcli,
+		// Deprecated: no longer download installation package.
 		totalImageNum: 23,
 		images:        make(map[string]string, 23),
 		log:           reqLogger,
@@ -300,31 +304,13 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 	p.downloadPackageURL = c.Spec.InstallPackageConfig.URL
 	p.downloadPackageMD5 = c.Spec.InstallPackageConfig.MD5
 	p.cluster = c
+	// TODO: Is it possible to handle the tag when packaging
 	p.images = map[string]string{
-		"/rbd-api:" + p.version:             "/rbd-api:" + p.version,
-		"/rbd-app-ui:" + p.version:          "/rbd-app-ui:" + p.version,
-		"/rbd-eventlog:" + p.version:        "/rbd-eventlog:" + p.version,
-		"/rbd-chaos:" + p.version:           "/rbd-chaos:" + p.version,
-		"/rbd-mq:" + p.version:              "/rbd-mq:" + p.version,
-		"/rbd-webcli:" + p.version:          "/rbd-webcli:" + p.version,
-		"/rbd-worker:" + p.version:          "/rbd-worker:" + p.version,
-		"/rbd-monitor:" + p.version:         "/rbd-monitor:" + p.version,
-		"/rbd-grctl:" + p.version:           "/rbd-grctl:" + p.version,
-		"/rbd-node:" + p.version:            "/rbd-node:" + p.version,
-		"/rbd-gateway:" + p.version:         "/rbd-gateway:" + p.version,
 		"/builder:5.2.0":                    "/builder",
 		"/runner":                           "/runner",
-		"/kube-state-metrics":               "/kube-state-metrics",
-		"/mysqld-exporter":                  "/mysqld-exporter",
-		"/rbd-repo:6.16.0":                  "/rbd-repo:6.16.0",
-		"/rbd-registry:2.6.2":               "/rbd-registry:2.6.2",
-		"/rbd-db:8.0.19":                    "/rbd-db:8.0.19",
-		"/metrics-server:v0.3.6":            "/metrics-server:v0.3.6",
-		"/rbd-init-probe:" + p.version:      "/rbd-init-probe",
-		"/rbd-mesh-data-panel:" + p.version: "/rbd-mesh-data-panel",
+		"/rbd-init-probe:" + p.version:      "/rbd-init-probe",      // TODO: delete p.version
+		"/rbd-mesh-data-panel:" + p.version: "/rbd-mesh-data-panel", // TODO: delete p.version
 		"/plugins-tcm:5.1.7":                "/tcm",
-		"/nfs-provisioner":                  "/nfs-provisioner",
-		"/etcd:v3.3.18":                     "/etcd:v3.3.18",
 	}
 	return nil
 }
@@ -583,7 +569,7 @@ func (p *pkg) donwnloadPackage() error {
 
 //handle
 func (p *pkg) handle() error {
-	p.log.Info("start handling rainbond package.")
+	p.log.V(4).Info("start handling rainbond package.")
 	// check prerequisites
 	if err := p.checkClusterConfig(); err != nil {
 		p.log.V(6).Info(fmt.Sprintf("check cluster config: %v", err))
@@ -638,6 +624,7 @@ func (p *pkg) handle() error {
 	if p.canPushImage() {
 		p.updateConditionStatus(rainbondv1alpha1.PushImage, rainbondv1alpha1.Running)
 		p.updateCRStatus()
+		// Deprecated: No longer download the installation package
 		if p.downloadPackage {
 			p.log.Info("start load and push images")
 			if err := p.imagesLoadAndPush(); err != nil {

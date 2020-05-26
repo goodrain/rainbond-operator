@@ -18,6 +18,7 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -72,6 +73,7 @@ func parseComponentClaim(claim *componentClaim) *v1alpha1.RbdComponent {
 	component.Name = claim.name
 	component.Spec.Version = claim.version
 	component.Spec.Image = claim.image()
+	component.Spec.ImagePullPolicy = corev1.PullIfNotPresent
 	component.Spec.Replicas = claim.replicas
 	component.Spec.Configs = claim.Configs
 	component.Spec.LogLevel = v1alpha1.ParseLogLevel(claim.logLevel)
@@ -351,12 +353,7 @@ func (ic *InstallUseCaseImpl) createComponents(req *v1.ClusterInstallReq, cluste
 	for _, claim := range claims {
 		reqLogger := log.WithValues("Namespace", claim.namespace, "Name", claim.name)
 		// update image repository for priority components
-		if claim.isInit {
-			claim.imageRepository = cluster.Spec.RainbondImageRepository
-		}
-		if ic.cfg.InstallMode == string(v1alpha1.InstallationModeFullOnline) {
-			claim.imageRepository = cluster.Spec.RainbondImageRepository
-		}
+		claim.imageRepository = cluster.Spec.RainbondImageRepository
 		data := parseComponentClaim(claim)
 		// init component
 		data.Namespace = ic.cfg.Namespace
