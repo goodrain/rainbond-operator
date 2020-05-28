@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/pkg/jsonmessage"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -24,7 +23,9 @@ import (
 	"github.com/docker/distribution/reference"
 	dtype "github.com/docker/docker/api/types"
 	dtypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	dclient "github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/go-logr/logr"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -697,8 +698,15 @@ func (p *pkg) imagePullAndPush() error {
 	var count int32
 	handleImgae := func(remoteImage, localImage string) error {
 		return retryutil.Retry(time.Second*2, 3, func() (bool, error) {
-			if err := p.imagePull(remoteImage); err != nil {
-				return false, fmt.Errorf("pull image %s failure %s", remoteImage, err.Error())
+			exists, err := p.checkIfImageExists(remoteImage)
+			if err != nil {
+				return false, fmt.Errorf("check if image exists: %v", err)
+			}
+			if !exists {
+				log.V(4).Info("image %s does not exists, start pulling", remoteImage)
+				if err := p.imagePull(remoteImage); err != nil {
+					return false, fmt.Errorf("pull image %s failure %s", remoteImage, err.Error())
+				}
 			}
 			if err := p.dcli.ImageTag(p.ctx, remoteImage, localImage); err != nil {
 				return false, fmt.Errorf("change image tag(%s => %s) failure: %v", remoteImage, localImage, err)
@@ -1001,4 +1009,35 @@ func newImageWithNewDomain(image string, newDomain string) string {
 		tag = t.Tag()
 	}
 	return path.Join(newDomain, remoteName+":"+tag)
+}
+
+func (p *pkg) checkIfImageExists(image string) (bool, error) {
+	repo, err := reference.Parse(image)
+	if err != nil {
+		log.V(6).Info("parse image", "image", image, "error", err)
+		return false, fmt.Errorf("parse image %s: %v", image, err)
+	}
+	named := repo.(reference.Named)
+	tag := "latest"
+	if t, ok := repo.(reference.Tagged); ok {
+		tag = t.Tag()
+	}
+	imageFullName := named.Name() + ":" + tag
+
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+
+	imageSummarys, err := p.dcli.ImageList(ctx, dtypes.ImageListOptions{
+		Filters: filters.NewArgs(filters.KeyValuePair{Key: "reference", Value: imageFullName}),
+	})
+	if err != nil {
+		return false, fmt.Errorf("list images: %v", err)
+	}
+	for _, imageSummary := range imageSummarys {
+		fmt.Printf("%#v", imageSummary.RepoTags)
+	}
+
+	_ = imageSummarys
+
+	return len(imageSummarys) > 0, nil
 }
