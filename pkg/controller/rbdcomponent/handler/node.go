@@ -278,7 +278,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            NodeName,
-							Image:           n.component.Spec.Image,
+							Image:           "registry.cn-hangzhou.aliyuncs.com/abewang/rbd-node:V5.2-dev",
 							ImagePullPolicy: n.component.ImagePullPolicy(),
 							Env:             envs,
 							Args:            args,

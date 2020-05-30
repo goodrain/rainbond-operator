@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
-
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -81,6 +80,7 @@ func (g *gateway) deployment() interface{} {
 		"--error-log=/dev/stderr error",
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(g.cluster), ","),
 	}
+
 	var volumeMounts []corev1.VolumeMount
 	var volumes []corev1.Volume
 	if g.etcdSecret != nil {

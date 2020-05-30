@@ -223,7 +223,7 @@ func (h *hub) ingressForHub() interface{} {
 		Spec: extensions.IngressSpec{
 			Rules: []extensions.IngressRule{
 				{
-					Host: "goodrain.me",
+					Host: constants.DefImageRepository,
 					IngressRuleValue: extensions.IngressRuleValue{
 						HTTP: &extensions.HTTPIngressRuleValue{
 							Paths: []extensions.HTTPIngressPath{

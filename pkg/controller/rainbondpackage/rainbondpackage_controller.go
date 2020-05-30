@@ -363,7 +363,7 @@ func (p *pkg) checkClusterConfig() error {
 			}
 		}
 		if p.pushImageDomain == "" {
-			p.pushImageDomain = "goodrain.me"
+			p.pushImageDomain = constants.DefImageRepository
 		}
 	}
 	return nil
