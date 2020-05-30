@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -243,6 +245,8 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 		})
 	}
 
+	// prepare probe
+	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/ping", 6100)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      NodeName,
@@ -279,6 +283,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 							Env:             envs,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
+							ReadinessProbe:  readinessProbe,
 						},
 					},
 					Volumes: volumes,

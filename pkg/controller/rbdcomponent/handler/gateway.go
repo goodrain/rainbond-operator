@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
+
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -101,6 +103,8 @@ func (g *gateway) deployment() interface{} {
 		return nil
 	}
 
+	// prepare probe
+	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/healthz", 10254)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayName,
@@ -135,6 +139,7 @@ func (g *gateway) deployment() interface{} {
 							ImagePullPolicy: g.component.ImagePullPolicy(),
 							Args:            args,
 							VolumeMounts:    volumeMounts,
+							ReadinessProbe:  readinessProbe,
 						},
 					},
 					Volumes: volumes,

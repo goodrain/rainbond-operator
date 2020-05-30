@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
@@ -107,6 +109,8 @@ func (m *monitor) statefulset() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
+	// prepare probe
+	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/monitor/health", 3329)
 	ds := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MonitorName,
@@ -142,8 +146,9 @@ func (m *monitor) statefulset() interface{} {
 									},
 								},
 							},
-							Args:         args,
-							VolumeMounts: volumeMounts,
+							Args:           args,
+							VolumeMounts:   volumeMounts,
+							ReadinessProbe: readinessProbe,
 						},
 					},
 					Volumes: volumes,
