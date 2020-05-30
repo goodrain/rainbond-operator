@@ -145,7 +145,7 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		}
 		return reconcile.Result{}, nil
 	}
-
+	
 	updateStatus, re := checkStatusCanReturn(pkg)
 	if updateStatus {
 		if err := updateCRStatus(r.client, pkg); err != nil {
