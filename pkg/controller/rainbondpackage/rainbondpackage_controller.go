@@ -145,7 +145,7 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		}
 		return reconcile.Result{}, nil
 	}
-	
+
 	updateStatus, re := checkStatusCanReturn(pkg)
 	if updateStatus {
 		if err := updateCRStatus(r.client, pkg); err != nil {
@@ -703,7 +703,7 @@ func (p *pkg) imagePullAndPush() error {
 				return false, fmt.Errorf("check if image exists: %v", err)
 			}
 			if !exists {
-				log.V(4).Info("image %s does not exists, start pulling", remoteImage)
+				log.V(4).Info("image does not exists, start pulling", "image name", remoteImage)
 				if err := p.imagePull(remoteImage); err != nil {
 					return false, fmt.Errorf("pull image %s failure %s", remoteImage, err.Error())
 				}
