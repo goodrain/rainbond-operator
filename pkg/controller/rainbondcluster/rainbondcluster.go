@@ -322,3 +322,20 @@ func (r *rainbondClusteMgr) getKubernetesInfo() (string, error) {
 
 	return version, nil
 }
+
+func (r *rainbondClusteMgr) checkIfRbdNodeReady() error {
+	cpt := &rainbondv1alpha1.RbdComponent{}
+	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: "rbd-node"}, cpt); err != nil {
+		return err
+	}
+
+	if cpt.Status == nil {
+		return fmt.Errorf("no status for rbdcomponent rbd-node")
+	}
+
+	if cpt.Status.ReadyReplicas == 0 || cpt.Status.ReadyReplicas != cpt.Status.Replicas {
+		return fmt.Errorf("no ready replicas for rbdcomponent rbd-node")
+	}
+
+	return nil
+}

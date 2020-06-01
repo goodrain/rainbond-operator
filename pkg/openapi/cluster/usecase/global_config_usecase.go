@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	v1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -9,6 +10,8 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
+	"github.com/goodrain/rainbond-operator/pkg/util/retryutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/suffixdomain"
 
 	"github.com/sirupsen/logrus"
@@ -212,12 +215,19 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *v1.Global
 		if len(source.GatewayIngressIPs) > 0 && source.GatewayIngressIPs[0] != "" {
 			ip = source.GatewayIngressIPs[0]
 		}
-		domain, err := cc.genSuffixHTTPHost(ip)
+
+		err := retryutil.Retry(1*time.Second, 3, func() (bool, error) {
+			domain, err := cc.genSuffixHTTPHost(ip)
+			if err != nil {
+				return false, err
+			}
+			clusterInfo.Spec.SuffixHTTPHost = domain
+			return true, nil
+		})
 		if err != nil {
-			logrus.Errorf("generate suffix http host: %v", err)
-			return nil, bcode.ErrGenHTTPDomain
+			logrus.Warningf("generate suffix http host: %v", err)
+			clusterInfo.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
 		}
-		clusterInfo.Spec.SuffixHTTPHost = domain
 	}
 
 	// must provide all, can't patch

@@ -19,6 +19,8 @@ const (
 	SpecialGatewayLabelKey = "rainbond.io/gateway"
 	// SpecialChaosLabelKey is a special node label, used to specify where to install the rbd-chaos
 	SpecialChaosLabelKey = "rainbond.io/chaos"
+	// DefHTTPDomainSuffix -
+	DefHTTPDomainSuffix = "grapps.cn"
 
 	// AliyunCSIDiskPlugin name for aliyun csi disk plugin
 	AliyunCSIDiskPlugin = "aliyun-csi-disk-plugin"
