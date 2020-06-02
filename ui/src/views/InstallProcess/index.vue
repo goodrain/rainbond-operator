@@ -10,7 +10,7 @@
           <cluster-configuration
             :clusterInfo="recordInfo"
             @onResults="handlePerform('startrRsults')"
-            @onhandleErrorRecord="handleRecord('failure')"
+            @onhandleErrorRecord="handleRecord"
             @onhandleStartRecord="handleRecord('start')"
             class="d2-mt"
           ></cluster-configuration>
@@ -22,7 +22,7 @@
           name="startrRsults"
         >
           <install-results
-            @onhandleErrorRecord="handleRecord('failure')"
+            @onhandleErrorRecord="handleRecord"
             @onhandleUninstallRecord="handleRecord"
           ></install-results>
         </el-collapse-item>

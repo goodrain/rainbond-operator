@@ -96,7 +96,7 @@ export default {
   },
   data () {
     let validateCheckList = (rule, value, callback) => {
-      if (this.uninstallForm.otherReasons === '' &&this.uninstallForm.checkList.length === 0) {
+      if (this.uninstallForm.otherReasons === '' && this.uninstallForm.checkList.length === 0) {
         callback(new Error('请选择卸载原因'))
       } else {
         callback()
@@ -170,9 +170,9 @@ export default {
                 })
               }
             })
-            .catch(_ => {
+            .catch(err => {
               this.dialogVisibles = false
-              this.$emit('onhandleErrorRecord')
+              this.$emit('onhandleErrorRecord', 'failure', `${err}`)
             })
         }
       })
@@ -218,8 +218,8 @@ export default {
             this.loading = false
           }
         })
-        .catch(_ => {
-          this.$emit('onhandleErrorRecord')
+        .catch(err => {
+          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
         })
     },
     fetchClusterInstallResultsState () {
@@ -231,8 +231,8 @@ export default {
         .then(res => {
           this.componentList = res.data
         })
-        .catch(_ => {
-          this.$emit('onhandleErrorRecord')
+        .catch(err => {
+          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
         })
     },
     fetchClusterInstallMirrorWarehouse () {
@@ -246,8 +246,8 @@ export default {
             this.mirrorComponentList = res.data
           }
         })
-        .catch(_ => {
-          this.$emit('onhandleErrorRecord')
+        .catch(err => {
+          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
         })
     }
   }
