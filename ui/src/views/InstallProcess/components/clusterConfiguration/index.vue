@@ -1100,6 +1100,9 @@ export default {
     this.fetchClusterInitConfig()
   },
   methods: {
+    fetchErrMessage (err) {
+      return err && typeof err === 'object' ? JSON.stringify(err) : ''
+    },
     validShareStorage (value, item) {
       const info = this.clusterInitInfo
       const arr =
@@ -1193,7 +1196,8 @@ export default {
           }
         })
         .catch(err => {
-          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+          const message = this.fetchErrMessage(err)
+          this.$emit('onhandleErrorRecord', 'failure', `${message}`)
         })
     },
     fetchClusterInitConfig () {
@@ -1325,7 +1329,8 @@ export default {
             })
             .catch(err => {
               this.handleCancelLoading()
-              this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+              const message = this.fetchErrMessage(err)
+              this.$emit('onhandleErrorRecord', 'failure', `${message}`)
             })
         } else {
           this.handleCancelLoading()
@@ -1435,13 +1440,15 @@ export default {
           if (en && en.code === 200) {
             this.$emit('onResults')
           } else {
-            this.$emit('onhandleErrorRecord', 'failure', `${en}`)
+            const message = this.fetchErrMessage(en)
+            this.$emit('onhandleErrorRecord', 'failure', `${message}`)
             this.handleCancelLoading()
           }
         })
         .catch(err => {
           this.handleCancelLoading()
-          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+          const message = this.fetchErrMessage(err)
+          this.$emit('onhandleErrorRecord', 'failure', `${message}`)
         })
     },
     handleCancelLoading () {
@@ -1464,7 +1471,8 @@ export default {
           })
           .catch(err => {
             this.queryGatewayNodeloading = false
-            this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+            const message = this.fetchErrMessage(err)
+            this.$emit('onhandleErrorRecord', 'failure', `${message}`)
           })
       }
     },
@@ -1485,7 +1493,8 @@ export default {
           })
           .catch(err => {
             this.queryChaosNodeloading = false
-            this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+            const message = this.fetchErrMessage(err)
+            this.$emit('onhandleErrorRecord', 'failure', `${message}`)
           })
       }
     }
