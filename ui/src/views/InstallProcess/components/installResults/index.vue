@@ -215,9 +215,9 @@ export default {
                 })
               }
             })
-            .catch(_ => {
+            .catch(err => {
               this.dialogVisibles = false
-              this.$emit('onhandleErrorRecord')
+              this.$emit('onhandleErrorRecord', 'failure', `${err}`)
             })
         }
       })
@@ -263,8 +263,8 @@ export default {
             this.loading = false
           }
         })
-        .catch(_ => {
-          this.$emit('onhandleErrorRecord')
+        .catch(err => {
+          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
         })
     },
     fetchClusterInstallResultsState () {
@@ -276,8 +276,8 @@ export default {
         .then(res => {
           this.componentList = res.data
         })
-        .catch(_ => {
-          this.$emit('onhandleErrorRecord')
+        .catch(err => {
+          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
         })
     },
     fetchClusterInstallMirrorWarehouse () {
@@ -291,8 +291,8 @@ export default {
             this.mirrorComponentList = res.data
           }
         })
-        .catch(_ => {
-          this.$emit('onhandleErrorRecord')
+        .catch(err => {
+          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
         })
     }
   }

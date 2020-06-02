@@ -1193,8 +1193,7 @@ export default {
           }
         })
         .catch(err => {
-          this.$emit('onhandleErrorRecord')
-          console.log(err)
+          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
         })
     },
     fetchClusterInitConfig () {
@@ -1326,8 +1325,7 @@ export default {
             })
             .catch(err => {
               this.handleCancelLoading()
-              this.$emit('onhandleErrorRecord')
-              console.log(err)
+              this.$emit('onhandleErrorRecord', 'failure', `${err}`)
             })
         } else {
           this.handleCancelLoading()
@@ -1437,13 +1435,13 @@ export default {
           if (en && en.code === 200) {
             this.$emit('onResults')
           } else {
-            this.$emit('onhandleErrorRecord')
+            this.$emit('onhandleErrorRecord', 'failure', `${en}`)
             this.handleCancelLoading()
           }
         })
         .catch(err => {
           this.handleCancelLoading()
-          this.$emit('onhandleErrorRecord')
+          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
         })
     },
     handleCancelLoading () {
@@ -1466,8 +1464,7 @@ export default {
           })
           .catch(err => {
             this.queryGatewayNodeloading = false
-            this.$emit('onhandleErrorRecord')
-            console.log(err)
+            this.$emit('onhandleErrorRecord', 'failure', `${err}`)
           })
       }
     },
@@ -1488,8 +1485,7 @@ export default {
           })
           .catch(err => {
             this.queryChaosNodeloading = false
-            this.$emit('onhandleErrorRecord')
-            console.log(err)
+            this.$emit('onhandleErrorRecord', 'failure', `${err}`)
           })
       }
     }
