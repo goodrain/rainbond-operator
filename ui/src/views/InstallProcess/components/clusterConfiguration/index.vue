@@ -314,6 +314,13 @@
         </el-select>
 
         <div class="clues">{{ $t("page.install.config.gatewayNodeDesc") }}</div>
+        <div class="clues">提示：如果你无法搜索并选择一个网关 IP，请参考
+         <a style="color:#409EFF"
+            target="_black"
+            href="https://www.rainbond.com/docs/user-operations/install/troubleshooting/#%E6%97%A0%E6%B3%95%E9%80%89%E6%8B%A9%E7%BD%91%E5%85%B3%E8%8A%82%E7%82%B9">
+            无法选择网关节点。
+         </a>
+        </div>
       </el-form-item>
       <!-- chaos node config -->
       <el-form-item :label="$t('page.install.config.chaosNode')" prop="chaosNodes">

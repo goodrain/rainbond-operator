@@ -26,6 +26,14 @@
           重新上传
           <i class="el-icon-upload el-icon--right"></i>
         </el-button>
+           <el-button
+          v-show="item.stepName==='step_handle_image'&&item.status==='status_failed'"
+          size="small"
+          type="primary"
+          @click="handleRetry"
+        >
+          重试
+        </el-button>
       </el-col>
       <el-col v-show="item.reason" :span="2" class="description errorTitleColor">原因:</el-col>
       <el-col v-show="item.reason" :span="22" class="description">{{item.reason}}</el-col>
@@ -75,6 +83,11 @@ export default {
   methods: {
     submit () {
       this.$emit('onhandleDialogVisible')
+    },
+    handleRetry () {
+      this.$store.dispatch('restartpackage').then(res => {
+        console.log('res', res)
+      })
     }
   }
 }
