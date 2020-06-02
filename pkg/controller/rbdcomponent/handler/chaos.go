@@ -6,6 +6,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
+
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -156,6 +158,7 @@ func (c *chaos) deployment() interface{} {
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(c.cluster), ","),
 		"--pvc-grdata-name=" + constants.GrDataPVC,
 		"--pvc-cache-name=" + constants.CachePVC,
+		"--rbd-namespace=" + c.component.Namespace,
 	}
 
 	if c.etcdSecret != nil {
@@ -211,6 +214,8 @@ func (c *chaos) deployment() interface{} {
 		})
 	}
 
+	// prepare probe
+	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/builder/health", 3228)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ChaosName,
@@ -245,6 +250,7 @@ func (c *chaos) deployment() interface{} {
 							Env:             env,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
+							ReadinessProbe:  readinessProbe,
 						},
 					},
 					Volumes: volumes,

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -206,6 +208,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 		"--nodeid=$(NODE_NAME)",
 		"--image-repo-host=" + rbdutil.GetImageRepository(n.cluster),
 		"--hostsfile=/newetc/hosts",
+		"--rbd-ns=" + n.component.Namespace,
 	}
 	if n.etcdSecret != nil {
 		volume, mount := volumeByEtcd(n.etcdSecret)
@@ -242,6 +245,8 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 		})
 	}
 
+	// prepare probe
+	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/ping", 6100)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      NodeName,
@@ -278,6 +283,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 							Env:             envs,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
+							ReadinessProbe:  readinessProbe,
 						},
 					},
 					Volumes: volumes,

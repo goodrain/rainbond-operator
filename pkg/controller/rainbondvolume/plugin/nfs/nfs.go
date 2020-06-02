@@ -3,6 +3,7 @@ package nfs
 import (
 	"context"
 	"fmt"
+	"path"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin"
@@ -113,7 +114,7 @@ func (p *nfsPlugin) statefulset() interface{} {
 					Containers: []corev1.Container{
 						{
 							Name:            p.name,
-							Image:           "registry.cn-hangzhou.aliyuncs.com/goodrain/nfs-provisioner:v2.3.0", // TODO: do not hard code, get sa from configuration.
+							Image:           path.Join(p.volume.Spec.ImageRepository, "nfs-provisioner"),
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports: []corev1.ContainerPort{
 								{
@@ -198,12 +199,7 @@ func (p *nfsPlugin) statefulset() interface{} {
 								"-provisioner=" + provisioner,
 							},
 							SecurityContext: &corev1.SecurityContext{
-								Capabilities: &corev1.Capabilities{
-									Add: []corev1.Capability{
-										"DAC_READ_SEARCH",
-										"SYS_RESOURCE",
-									},
-								},
+								Privileged: commonutil.Bool(true),
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{

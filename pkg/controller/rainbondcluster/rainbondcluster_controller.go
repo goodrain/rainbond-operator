@@ -48,8 +48,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Only watch rainbondcluster, because only support one rainbond cluster.
 	err = c.Watch(&source.Kind{Type: &rainbondv1alpha1.RainbondCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rainbondcluster",
-			Namespace: "rbd-system",
+			Name: "rainbondcluster",
 		},
 	}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
@@ -111,6 +110,12 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 
 	if rainbondcluster.Spec.ImageHub == nil && rainbondcluster.Spec.ConfigCompleted {
 		reqLogger.V(6).Info("image hub is empty, do sth.")
+
+		if err := mgr.checkIfRbdNodeReady(); err != nil {
+			reqLogger.V(6).Info("rbd-node not ready: %v", err)
+			return reconcile.Result{RequeueAfter: time.Second * 1}, nil
+		}
+
 		imageHub, err := r.getImageHub(rainbondcluster)
 		if err != nil {
 			reqLogger.V(6).Info(fmt.Sprintf("set image hub info: %v", err))
@@ -161,7 +166,7 @@ func (r *ReconcileRainbondCluster) getImageHub(cluster *rainbondv1alpha1.Rainbon
 		if err != nil {
 			return fmt.Errorf("image repository unavailable: %v", err)
 		}
-		if res.StatusCode != http.StatusOK {
+		if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusUnauthorized {
 			return fmt.Errorf("image repository unavailable. http status code: %d", res.StatusCode)
 		}
 		return nil

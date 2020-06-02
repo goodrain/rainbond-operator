@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -79,6 +80,7 @@ func (g *gateway) deployment() interface{} {
 		"--error-log=/dev/stderr error",
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(g.cluster), ","),
 	}
+
 	var volumeMounts []corev1.VolumeMount
 	var volumes []corev1.Volume
 	if g.etcdSecret != nil {
@@ -101,6 +103,8 @@ func (g *gateway) deployment() interface{} {
 		return nil
 	}
 
+	// prepare probe
+	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/healthz", 10254)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayName,
@@ -135,6 +139,7 @@ func (g *gateway) deployment() interface{} {
 							ImagePullPolicy: g.component.ImagePullPolicy(),
 							Args:            args,
 							VolumeMounts:    volumeMounts,
+							ReadinessProbe:  readinessProbe,
 						},
 					},
 					Volumes: volumes,

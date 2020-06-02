@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
@@ -19,6 +21,9 @@ import (
 
 // AppUIName name for rbd-app-ui resources.
 var AppUIName = "rbd-app-ui"
+
+// AppUIDBMigrationsName -
+var AppUIDBMigrationsName = "rbd-app-ui-migrations"
 
 type appui struct {
 	ctx       context.Context
@@ -60,16 +65,35 @@ func (a *appui) Before() error {
 		return err
 	}
 
-	return isUIDBReady(a.ctx, a.client, a.component, a.cluster)
+	if err := isUIDBReady(a.ctx, a.client, a.component, a.cluster); err != nil {
+		return err
+	}
+
+	if a.cluster.Spec.ImageHub == nil {
+		return NewIgnoreError("image repository not ready")
+	}
+
+	return nil
 }
 
 func (a *appui) Resources() []interface{} {
-	return []interface{}{
-		a.deploymentForAppUI(),
+	res := []interface{}{
 		a.serviceForAppUI(),
 		a.ingressForAppUI(),
 		a.migrationsJob(),
 	}
+
+	if err := isUIDBMigrateOK(a.ctx, a.client, a.component); err != nil {
+		if IsIgnoreError(err) {
+			log.V(6).Info(fmt.Sprintf("check if ui db migrations is ok: %v", err))
+		} else {
+			log.Error(err, "check if ui db migrations is ok")
+		}
+	} else {
+		res = append(res, a.deploymentForAppUI())
+	}
+
+	return res
 }
 
 func (a *appui) After() error {
@@ -93,6 +117,9 @@ func (a *appui) ResourcesCreateIfNotExists() []interface{} {
 
 func (a *appui) deploymentForAppUI() interface{} {
 	cpt := a.component
+
+	// prepare probe
+	readinessProbe := probeutil.MakeReadinessProbeTCP("", 7070)
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      AppUIName,
@@ -175,14 +202,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 									SubPath:   "lock",
 								},
 							},
-							LivenessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
-									HTTPGet: &corev1.HTTPGetAction{Port: intstr.FromInt(7070)},
-								},
-								InitialDelaySeconds: 30,
-								PeriodSeconds:       10,
-								TimeoutSeconds:      5,
-							},
+							ReadinessProbe: readinessProbe,
 						},
 					},
 					Volumes: []corev1.Volume{

@@ -6,9 +6,11 @@ package mock
 
 import (
 	gomock "github.com/golang/mock/gomock"
+	v1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	cluster "github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	model "github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
+	v10 "k8s.io/api/core/v1"
 	reflect "reflect"
 )
 
@@ -321,6 +323,35 @@ func (mr *MockComponentUsecaseMockRecorder) List(isInit interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockComponentUsecase)(nil).List), isInit)
 }
 
+// ListComponents mocks base method
+func (m *MockComponentUsecase) ListComponents() []*v1alpha1.RbdComponent {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListComponents")
+	ret0, _ := ret[0].([]*v1alpha1.RbdComponent)
+	return ret0
+}
+
+// ListComponents indicates an expected call of ListComponents
+func (mr *MockComponentUsecaseMockRecorder) ListComponents() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListComponents", reflect.TypeOf((*MockComponentUsecase)(nil).ListComponents))
+}
+
+// ListPodsByComponent mocks base method
+func (m *MockComponentUsecase) ListPodsByComponent(cpn *v1alpha1.RbdComponent) ([]*v10.Pod, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPodsByComponent", cpn)
+	ret0, _ := ret[0].([]*v10.Pod)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPodsByComponent indicates an expected call of ListPodsByComponent
+func (mr *MockComponentUsecaseMockRecorder) ListPodsByComponent(cpn interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPodsByComponent", reflect.TypeOf((*MockComponentUsecase)(nil).ListPodsByComponent), cpn)
+}
+
 // MockInstallUseCase is a mock of InstallUseCase interface
 type MockInstallUseCase struct {
 	ctrl     *gomock.Controller
@@ -371,4 +402,18 @@ func (m *MockInstallUseCase) InstallStatus() (model.StatusRes, error) {
 func (mr *MockInstallUseCaseMockRecorder) InstallStatus() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallStatus", reflect.TypeOf((*MockInstallUseCase)(nil).InstallStatus))
+}
+
+// RestartPackage mocks base method
+func (m *MockInstallUseCase) RestartPackage() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RestartPackage")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RestartPackage indicates an expected call of RestartPackage
+func (mr *MockInstallUseCaseMockRecorder) RestartPackage() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestartPackage", reflect.TypeOf((*MockInstallUseCase)(nil).RestartPackage))
 }

@@ -1,24 +1,24 @@
 package usecase
 
 import (
+	"fmt"
 	"path"
 	"strconv"
 	"time"
-
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
-
-	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/model"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -73,6 +73,7 @@ func parseComponentClaim(claim *componentClaim) *v1alpha1.RbdComponent {
 	component.Name = claim.name
 	component.Spec.Version = claim.version
 	component.Spec.Image = claim.image()
+	component.Spec.ImagePullPolicy = corev1.PullIfNotPresent
 	component.Spec.Replicas = claim.replicas
 	component.Spec.Configs = claim.Configs
 	component.Spec.LogLevel = v1alpha1.ParseLogLevel(claim.logLevel)
@@ -115,12 +116,17 @@ func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
 		return err
 	}
 
+	// check cluster
+	if cluster.Status.KubernetesVersoin < "v1.13.0" {
+		return bcode.ErrInvalidKubernetesVersion
+	}
+
 	// create rainbond volume
 	if err := ic.createRainbondVolumes(req); err != nil {
 		return err
 	}
 
-	if err := ic.initRainbondPackage(); err != nil {
+	if err := ic.createRainbondPackage(); err != nil {
 		return err
 	}
 	return ic.createComponents(req, cluster)
@@ -128,11 +134,13 @@ func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
 
 func (ic *InstallUseCaseImpl) createRainbondVolumes(req *v1.ClusterInstallReq) error {
 	rwx := setRainbondVolume("rainbondvolumerwx", ic.namespace, rbdutil.LabelsForAccessModeRWX(), req.RainbondVolumes.RWX)
+	rwx.Spec.ImageRepository = ic.cfg.RainbondImageRepository
 	if err := ic.createRainbondVolumeIfNotExists(rwx); err != nil {
 		return err
 	}
 	if req.RainbondVolumes.RWO != nil {
 		rwo := setRainbondVolume("rainbondvolumerwo", ic.namespace, rbdutil.LabelsForAccessModeRWO(), req.RainbondVolumes.RWO)
+		rwo.Spec.ImageRepository = ic.cfg.RainbondImageRepository
 		if err := ic.createRainbondVolumeIfNotExists(rwo); err != nil {
 			return err
 		}
@@ -200,7 +208,7 @@ func setRainbondVolume(name, namespace string, labels map[string]string, rv *v1.
 	return volume
 }
 
-func (ic *InstallUseCaseImpl) initRainbondPackage() error {
+func (ic *InstallUseCaseImpl) createRainbondPackage() error {
 	reqLogger := log.WithValues("Namespace", ic.cfg.Namespace, "Name", ic.cfg.Rainbondpackage)
 	pkg := &v1alpha1.RainbondPackage{
 		ObjectMeta: metav1.ObjectMeta{
@@ -219,6 +227,26 @@ func (ic *InstallUseCaseImpl) initRainbondPackage() error {
 		return bcode.ErrCreateRainbondPackage
 	}
 	reqLogger.Info("successfully create rainbondpackage")
+	return nil
+}
+
+func (ic *InstallUseCaseImpl) deleteRainbondPackage() error {
+	reqLogger := log.WithValues("Namespace", ic.cfg.Namespace, "Name", ic.cfg.Rainbondpackage)
+	pkg := &v1alpha1.RainbondPackage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ic.cfg.Rainbondpackage,
+			Namespace: ic.cfg.Namespace,
+		},
+	}
+	if err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(ic.cfg.Namespace).Delete(pkg.Name, &metav1.DeleteOptions{}); err != nil {
+		if errors.IsAlreadyExists(err) {
+			reqLogger.Info("rainbondpackage already exists.")
+			return nil
+		}
+		reqLogger.Error(err, "delete rainbond package")
+		return fmt.Errorf("delete rainbond package: %v", err)
+	}
+	reqLogger.Info("successfully delete rainbondpackage")
 	return nil
 }
 
@@ -325,9 +353,7 @@ func (ic *InstallUseCaseImpl) createComponents(req *v1.ClusterInstallReq, cluste
 	for _, claim := range claims {
 		reqLogger := log.WithValues("Namespace", claim.namespace, "Name", claim.name)
 		// update image repository for priority components
-		if claim.isInit {
-			claim.imageRepository = cluster.Spec.RainbondImageRepository
-		}
+		claim.imageRepository = cluster.Spec.RainbondImageRepository
 		data := parseComponentClaim(claim)
 		// init component
 		data.Namespace = ic.cfg.Namespace
@@ -369,6 +395,17 @@ func (ic *InstallUseCaseImpl) InstallStatus() (model.StatusRes, error) {
 		logrus.Warn("cluster config has not be created yet, something occured ? ")
 	}
 	return statusres, nil
+}
+
+// RestartPackage -
+func (ic *InstallUseCaseImpl) RestartPackage() error {
+	if err := ic.deleteRainbondPackage(); err != nil {
+		return err
+	}
+	if err := ic.createRainbondPackage(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (ic *InstallUseCaseImpl) parseInstallStatus(clusterInfo *v1alpha1.RainbondCluster, pkgInfo *v1alpha1.RainbondPackage, componentStatues []*v1.RbdComponentStatus) (statusres model.StatusRes) {

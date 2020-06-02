@@ -7,7 +7,8 @@ var (
 	ErrGenHTTPDomain = newCodeWithMsg(10001, "failed to generate http domain")
 	ErrInvalidNodes  = newCodeWithMsg(10002, "invalid nodes")
 	// ErrClusterNotFound rainbondcluster not found
-	ErrClusterNotFound = newCodeWithStatus(404, 10003, "rainbondcluster not found")
+	ErrClusterNotFound          = newCodeWithStatus(404, 10003, "rainbondcluster not found")
+	ErrInvalidKubernetesVersion = newCodeWithStatus(400, 10004, "The version of kubernetes cannot be less than v1.13.0")
 
 	// 20000~29999 for rainbond package
 	// ErrCreateRainbondPackage failed to create rainbond package

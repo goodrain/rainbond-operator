@@ -50,10 +50,12 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterUcase) {
 	// install
 	clusterEngine.POST("/install", corsMidle(u.Install))
 	clusterEngine.GET("/install/status", corsMidle(u.InstallStatus))
+	clusterEngine.POST("/install/restartpackage", corsMidle(u.RestartPackage))
 
 	// componse
 	clusterEngine.GET("/components", corsMidle(u.Components))
 	clusterEngine.GET("/components/:name", corsMidle(u.SingleComponent))
+
 }
 
 // ClusterStatus cluster status
@@ -69,11 +71,7 @@ func (cc *ClusterController) ClusterStatus(c *gin.Context) {
 // ClusterInit cluster init
 func (cc *ClusterController) ClusterInit(c *gin.Context) {
 	err := cc.clusterUcase.Cluster().Init()
-	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusInternalServerError, "msg": "内部错误，请联系社区帮助"})
-		return
-	}
-	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success"})
+	ginutil.JSON(c, err, nil)
 }
 
 // ClusterStatusInfo returns the cluster information from rainbondcluster.
@@ -196,6 +194,12 @@ func (cc *ClusterController) InstallStatus(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": data})
+}
+
+// RestartPackage -
+func (cc *ClusterController) RestartPackage(c *gin.Context) {
+	err := cc.clusterUcase.Install().RestartPackage()
+	ginutil.JSON(c, err, err)
 }
 
 // Components components status

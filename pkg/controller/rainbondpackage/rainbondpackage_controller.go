@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/pkg/jsonmessage"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/downloadutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/retryutil"
@@ -23,13 +23,18 @@ import (
 	"github.com/docker/distribution/reference"
 	dtype "github.com/docker/docker/api/types"
 	dtypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	dclient "github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/go-logr/logr"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -53,7 +58,8 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileRainbondPackage{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	recorder := mgr.GetEventRecorderFor("rainbondpackage")
+	return &ReconcileRainbondPackage{client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: recorder}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -67,8 +73,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Watch for changes to primary resource RainbondPackage
 	err = c.Watch(&source.Kind{Type: &rainbondv1alpha1.RainbondPackage{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rainbondpackage",
-			Namespace: "rbd-system",
+			Name: "rainbondpackage",
 		},
 	}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
@@ -85,8 +90,9 @@ var _ reconcile.Reconciler = &ReconcileRainbondPackage{}
 type ReconcileRainbondPackage struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	client   client.Client
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // Reconcile reads that state of the cluster for a RainbondPackage object and makes changes based on the state read
@@ -115,6 +121,31 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
+	cluster := &rainbondv1alpha1.RainbondCluster{}
+	if err := r.client.Get(ctx, types.NamespacedName{Namespace: pkg.Namespace, Name: constants.RainbondClusterName}, cluster); err != nil {
+		reason := "ClusterNotFound"
+		msg := "rainbondcluster not found"
+		if !k8sErrors.IsNotFound(err) {
+			reqLogger.Error(err, "get rainbondcluster.")
+			reason = "UnknownErr"
+			msg = fmt.Sprintf("failed to get rainbondcluster: %v", err)
+		}
+
+		r.recorder.Event(pkg, corev1.EventTypeWarning, reason, msg)
+		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
+	}
+
+	// if instsall mode is full online, set package to ready directly
+	if cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeFullOnline {
+		reqLogger.Info("set package to ready directly", "install mode", cluster.Spec.InstallMode)
+		pkg.Status = initPackageStatus(rainbondv1alpha1.Completed)
+		if err := updateCRStatus(r.client, pkg); err != nil {
+			reqLogger.Error(err, "update package status")
+			return reconcile.Result{RequeueAfter: time.Second * 5}, nil
+		}
+		return reconcile.Result{}, nil
+	}
+
 	updateStatus, re := checkStatusCanReturn(pkg)
 	if updateStatus {
 		if err := updateCRStatus(r.client, pkg); err != nil {
@@ -136,10 +167,11 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 		reqLogger.Error(err, "create package handle failure ")
 		return reconcile.Result{RequeueAfter: time.Second * 5}, nil
 	}
+
 	// handle package
 	if err = p.handle(); err != nil {
 		if err == errorClusterConfigNoLocalHub {
-			reqLogger.Info("waiting local image hub ready")
+			reqLogger.V(4).Info("waiting local image hub ready")
 		} else if err == errorClusterConfigNotReady {
 			reqLogger.Info("waiting cluster config ready")
 		} else {
@@ -150,36 +182,36 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 
 	return reconcile.Result{}, nil
 }
-func initPackageStatus() *rainbondv1alpha1.RainbondPackageStatus {
+func initPackageStatus(status rainbondv1alpha1.PackageConditionStatus) *rainbondv1alpha1.RainbondPackageStatus {
 	return &rainbondv1alpha1.RainbondPackageStatus{
 		Conditions: []rainbondv1alpha1.PackageCondition{
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.Init,
-				Status:             rainbondv1alpha1.Waiting,
+				Status:             status,
 				LastHeartbeatTime:  metav1.Now(),
 				LastTransitionTime: metav1.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.DownloadPackage,
-				Status:             rainbondv1alpha1.Waiting,
+				Status:             status,
 				LastHeartbeatTime:  metav1.Now(),
 				LastTransitionTime: metav1.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.UnpackPackage,
-				Status:             rainbondv1alpha1.Waiting,
+				Status:             status,
 				LastHeartbeatTime:  metav1.Now(),
 				LastTransitionTime: metav1.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.PushImage,
-				Status:             rainbondv1alpha1.Waiting,
+				Status:             status,
 				LastHeartbeatTime:  metav1.Now(),
 				LastTransitionTime: metav1.Now(),
 			},
 			rainbondv1alpha1.PackageCondition{
 				Type:               rainbondv1alpha1.Ready,
-				Status:             rainbondv1alpha1.Waiting,
+				Status:             status,
 				LastHeartbeatTime:  metav1.Now(),
 				LastTransitionTime: metav1.Now(),
 			},
@@ -191,7 +223,7 @@ func initPackageStatus() *rainbondv1alpha1.RainbondPackageStatus {
 //checkStatusCanReturn if pkg status in the working state, straight back
 func checkStatusCanReturn(pkg *rainbondv1alpha1.RainbondPackage) (updateStatus bool, re *reconcile.Result) {
 	if pkg.Status == nil {
-		pkg.Status = initPackageStatus()
+		pkg.Status = initPackageStatus(rainbondv1alpha1.Waiting)
 		return true, &reconcile.Result{}
 	}
 	completedCount := 0
@@ -214,19 +246,22 @@ func checkStatusCanReturn(pkg *rainbondv1alpha1.RainbondPackage) (updateStatus b
 }
 
 type pkg struct {
-	ctx                 context.Context
-	client              client.Client
-	dcli                *dclient.Client
-	pkg                 *rainbondv1alpha1.RainbondPackage
-	cluster             *rainbondv1alpha1.RainbondCluster
-	log                 logr.Logger
-	downloadPackage     bool
-	localPackagePath    string
-	downloadPackageURL  string
+	ctx              context.Context
+	client           client.Client
+	dcli             *dclient.Client
+	pkg              *rainbondv1alpha1.RainbondPackage
+	cluster          *rainbondv1alpha1.RainbondCluster
+	log              logr.Logger
+	downloadPackage  bool
+	localPackagePath string
+	// Deprecated: no longer download installation package.
+	downloadPackageURL string
+	// Deprecated: no longer download installation package.
 	downloadPackageMD5  string
 	downloadImageDomain string
 	pushImageDomain     string
-	totalImageNum       int32
+	// Deprecated: no longer download installation package.
+	totalImageNum int32
 	//need download images
 	images  map[string]string
 	version string
@@ -243,10 +278,11 @@ func newpkg(ctx context.Context, client client.Client, p *rainbondv1alpha1.Rainb
 		return nil, fmt.Errorf("RAINBOND_VERSION not found")
 	}
 	pkg := &pkg{
-		ctx:           ctx,
-		client:        client,
-		pkg:           p.DeepCopy(),
-		dcli:          dcli,
+		ctx:    ctx,
+		client: client,
+		pkg:    p.DeepCopy(),
+		dcli:   dcli,
+		// Deprecated: no longer download installation package.
 		totalImageNum: 23,
 		images:        make(map[string]string, 23),
 		log:           reqLogger,
@@ -269,31 +305,13 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 	p.downloadPackageURL = c.Spec.InstallPackageConfig.URL
 	p.downloadPackageMD5 = c.Spec.InstallPackageConfig.MD5
 	p.cluster = c
+	// TODO: Is it possible to handle the tag when packaging
 	p.images = map[string]string{
-		"/rbd-api:" + p.version:             "/rbd-api:" + p.version,
-		"/rbd-app-ui:" + p.version:          "/rbd-app-ui:" + p.version,
-		"/rbd-eventlog:" + p.version:        "/rbd-eventlog:" + p.version,
-		"/rbd-chaos:" + p.version:           "/rbd-chaos:" + p.version,
-		"/rbd-mq:" + p.version:              "/rbd-mq:" + p.version,
-		"/rbd-webcli:" + p.version:          "/rbd-webcli:" + p.version,
-		"/rbd-worker:" + p.version:          "/rbd-worker:" + p.version,
-		"/rbd-monitor:" + p.version:         "/rbd-monitor:" + p.version,
-		"/rbd-grctl:" + p.version:           "/rbd-grctl:" + p.version,
-		"/rbd-node:" + p.version:            "/rbd-node:" + p.version,
-		"/rbd-gateway:" + p.version:         "/rbd-gateway:" + p.version,
 		"/builder:5.2.0":                    "/builder",
 		"/runner":                           "/runner",
-		"/kube-state-metrics":               "/kube-state-metrics",
-		"/mysqld-exporter":                  "/mysqld-exporter",
-		"/rbd-repo:6.16.0":                  "/rbd-repo:6.16.0",
-		"/rbd-registry:2.6.2":               "/rbd-registry:2.6.2",
-		"/rbd-db:8.0.19":                    "/rbd-db:8.0.19",
-		"/metrics-server:v0.3.6":            "/metrics-server:v0.3.6",
-		"/rbd-init-probe:" + p.version:      "/rbd-init-probe",
-		"/rbd-mesh-data-panel:" + p.version: "/rbd-mesh-data-panel",
+		"/rbd-init-probe:" + p.version:      "/rbd-init-probe",      // TODO: delete p.version
+		"/rbd-mesh-data-panel:" + p.version: "/rbd-mesh-data-panel", // TODO: delete p.version
 		"/plugins-tcm:5.1.7":                "/tcm",
-		"/nfs-provisioner:v2.3.0":           "/nfs-provisioner:v2.3.0",
-		"/etcd:v3.3.18":                     "/etcd:v3.3.18",
 	}
 	return nil
 }
@@ -345,7 +363,7 @@ func (p *pkg) checkClusterConfig() error {
 			}
 		}
 		if p.pushImageDomain == "" {
-			p.pushImageDomain = "goodrain.me"
+			p.pushImageDomain = constants.DefImageRepository
 		}
 	}
 	return nil
@@ -552,7 +570,7 @@ func (p *pkg) donwnloadPackage() error {
 
 //handle
 func (p *pkg) handle() error {
-	p.log.Info("start handling rainbond package.")
+	p.log.V(4).Info("start handling rainbond package.")
 	// check prerequisites
 	if err := p.checkClusterConfig(); err != nil {
 		p.log.V(6).Info(fmt.Sprintf("check cluster config: %v", err))
@@ -607,6 +625,7 @@ func (p *pkg) handle() error {
 	if p.canPushImage() {
 		p.updateConditionStatus(rainbondv1alpha1.PushImage, rainbondv1alpha1.Running)
 		p.updateCRStatus()
+		// Deprecated: No longer download the installation package
 		if p.downloadPackage {
 			p.log.Info("start load and push images")
 			if err := p.imagesLoadAndPush(); err != nil {
@@ -679,8 +698,15 @@ func (p *pkg) imagePullAndPush() error {
 	var count int32
 	handleImgae := func(remoteImage, localImage string) error {
 		return retryutil.Retry(time.Second*2, 3, func() (bool, error) {
-			if err := p.imagePull(remoteImage); err != nil {
-				return false, fmt.Errorf("pull image %s failure %s", remoteImage, err.Error())
+			exists, err := p.checkIfImageExists(remoteImage)
+			if err != nil {
+				return false, fmt.Errorf("check if image exists: %v", err)
+			}
+			if !exists {
+				log.V(4).Info("image does not exists, start pulling", "image name", remoteImage)
+				if err := p.imagePull(remoteImage); err != nil {
+					return false, fmt.Errorf("pull image %s failure %s", remoteImage, err.Error())
+				}
 			}
 			if err := p.dcli.ImageTag(p.ctx, remoteImage, localImage); err != nil {
 				return false, fmt.Errorf("change image tag(%s => %s) failure: %v", remoteImage, localImage, err)
@@ -983,4 +1009,35 @@ func newImageWithNewDomain(image string, newDomain string) string {
 		tag = t.Tag()
 	}
 	return path.Join(newDomain, remoteName+":"+tag)
+}
+
+func (p *pkg) checkIfImageExists(image string) (bool, error) {
+	repo, err := reference.Parse(image)
+	if err != nil {
+		log.V(6).Info("parse image", "image", image, "error", err)
+		return false, fmt.Errorf("parse image %s: %v", image, err)
+	}
+	named := repo.(reference.Named)
+	tag := "latest"
+	if t, ok := repo.(reference.Tagged); ok {
+		tag = t.Tag()
+	}
+	imageFullName := named.Name() + ":" + tag
+
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+
+	imageSummarys, err := p.dcli.ImageList(ctx, dtypes.ImageListOptions{
+		Filters: filters.NewArgs(filters.KeyValuePair{Key: "reference", Value: imageFullName}),
+	})
+	if err != nil {
+		return false, fmt.Errorf("list images: %v", err)
+	}
+	for _, imageSummary := range imageSummarys {
+		fmt.Printf("%#v", imageSummary.RepoTags)
+	}
+
+	_ = imageSummarys
+
+	return len(imageSummarys) > 0, nil
 }

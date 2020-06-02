@@ -121,6 +121,8 @@ type AvailableNodes struct {
 
 // RainbondClusterStatus defines the observed state of RainbondCluster
 type RainbondClusterStatus struct {
+	// Versoin of Kubernetes
+	KubernetesVersoin string `json:"kubernetesVersoin,omitempty"`
 	// List of existing StorageClasses in the cluster
 	// +optional
 	StorageClasses []*StorageClass `json:"storageClasses,omitempty"`

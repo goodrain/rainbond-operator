@@ -27,7 +27,7 @@ spec:
           image: "{{ .Values.rainbondOperator.image.repository }}:{{ .Values.rainbondOperator.image.tag }}"
           imagePullPolicy: {{ .Values.rainbondOperator.image.pullPolicy }}
           args:
-            - --zap-level=4
+            - --zap-level={{ .Values.rainbondOperator.logLevel }}
           env:
             - name: RAINBOND_VERSION
               value: {{ .Values.rainbondVersion }}
@@ -45,10 +45,6 @@ spec:
                   fieldPath: status.hostIP
             - name: SERVICE_ACCOUNT
               value: {{ template "rainbond-operator.serviceAccountName" . }}
-{{- if .Values.enableEtcdOperator }}
-            - name: ENABLE_ETCD_OPERATOR
-              value: "{{ .Values.enableEtcdOperator }}"
-{{- end }}
 {{- if .Values.enableMySQLOperator }}
             - name: ENABLE_MYSQL_OPERATOR
               value: "{{ .Values.enableMySQLOperator }}"
@@ -60,24 +56,20 @@ spec:
               name: rbd-pkg
             - mountPath: /var/run
               name: dockersock
+          securityContext:
+            privileged: true
         - name: openapi
           image: "{{ .Values.openapi.image.repository }}:{{ .Values.openapi.image.tag }}"
           imagePullPolicy: {{ .Values.openapi.image.pullPolicy }}
           args:
-{{- if .Values.openapi.testMode }}
-            - --test-mode
-{{- end }}
             - --rainbond-version={{ .Values.rainbondVersion }}
             - --rbd-download-url={{ .Values.openapi.downloadURL }}
             - --rbd-download-md5={{ .Values.openapi.downloadMD5 }}
-            - --image-repository={{ .Values.openapi.imageRepository }}
+            - --image-repository={{ .Values.rainbond.imageRepository }}
             - --install-mode={{ .Values.openapi.installMode }}
+            - --rbd-namespace={{ .Release.Namespace }}
             - --only-region={{ .Values.openapi.onlyRegion }}
           env:
-            {{- if .Values.enableEtcdOperator }}
-            - name: ENABLE_ETCD_OPERATOR
-              value: "{{ .Values.enableEtcdOperator }}"
-            {{- end }}
             {{- if .Values.enableMySQLOperator }}
             - name: ENABLE_MYSQL_OPERATOR
               value: "{{ .Values.enableMySQLOperator }}"

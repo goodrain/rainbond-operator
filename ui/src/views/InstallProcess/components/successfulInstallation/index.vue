@@ -5,22 +5,35 @@
         <div class="d2-h-30">
           <el-col :span="4">访问地址</el-col>
           <el-col :span="16" class="d2-text-center">
-            <a :href="accessAddress" target="_blank" class="successLink">{{accessAddress}}</a>
+            <a :href="accessAddress" target="_blank" class="successLink">{{
+              accessAddress
+            }}</a>
           </el-col>
           <el-col :span="4" class="d2-text-center">
-            <el-button size="small" type="primary" @click="dialogVisibles = true">卸载</el-button>
+            <el-button
+              size="small"
+              type="primary"
+              @click="dialogVisibles = true"
+              >卸载</el-button
+            >
           </el-col>
         </div>
       </el-card>
 
       <el-card shadow="hover" v-show="componentList">
         <span>
-          <rainbond-component :componentList="componentList"></rainbond-component>
+          <rainbond-component
+            :componentList="componentList"
+          ></rainbond-component>
         </span>
       </el-card>
     </div>
 
-    <el-dialog title="你卸载Rainbond的原因" :visible.sync="dialogVisibles" width="30%">
+    <el-dialog
+      title="你卸载Rainbond的原因"
+      :visible.sync="dialogVisibles"
+      width="30%"
+    >
       <el-form
         :inline="true"
         @submit.native.prevent
@@ -33,19 +46,40 @@
         <el-row :gutter="20">
           <el-col :span="24" class="table-cell-title">
             <el-form-item class="bor" label prop="checkList">
-              <el-checkbox-group v-model="uninstallForm.checkList" style="width:390px">
-                <el-checkbox label="安装复杂"></el-checkbox>
+              <el-checkbox-group
+                v-model="uninstallForm.checkList"
+                style="width:390px"
+              >
+                <el-checkbox label="未感受到产品价值"></el-checkbox>
                 <el-checkbox label="上手困难"></el-checkbox>
-                <el-checkbox label="界面不美观"></el-checkbox>
-                <el-checkbox label="找不到想要的功能"></el-checkbox>
-                <el-checkbox label="没有理由"></el-checkbox>
+                <el-checkbox label="需求不满足"></el-checkbox>
               </el-checkbox-group>
             </el-form-item>
           </el-col>
           <el-col :span="24" class="table-cell-title">
             <el-form-item label="其他原因" class="d2-mt d2-form-item">
-              <el-input type="textarea" v-model="uninstallForm.otherReasons" style="width:290px"></el-input>
+              <el-input
+                type="textarea"
+                v-model="uninstallForm.otherReasons"
+                style="width:290px"
+              ></el-input>
             </el-form-item>
+          </el-col>
+          <el-col :span="24" class="table-cell-title cen ">
+            <el-popover
+              placement="bottom-start"
+              title=""
+              width="200"
+              trigger="hover"
+            >
+              <img
+                :src="`${$baseUrl}image/contact.jpeg`"
+                style="width:200px;height:200px"
+              />
+              <el-link :underline="false" slot="reference" type="primary"
+                >如果安装受阻、请联系管理人员、寻求帮助。</el-link
+              >
+            </el-popover>
           </el-col>
         </el-row>
       </el-form>
@@ -67,7 +101,10 @@ export default {
   },
   data () {
     let validateCheckList = (rule, value, callback) => {
-      if (this.uninstallForm.otherReasons === '' &&this.uninstallForm.checkList.length === 0) {
+      if (
+        this.uninstallForm.otherReasons === '' &&
+        this.uninstallForm.checkList.length === 0
+      ) {
         callback(new Error('请选择卸载原因'))
       } else {
         callback()
@@ -265,7 +302,7 @@ export default {
   color: #67c23a;
 }
 </style>
-<style lang="scss" >
+<style lang="scss">
 .installationStepTitle {
   .el-collapse-item__wrap {
     border: none;
