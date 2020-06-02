@@ -31,6 +31,13 @@ export function putRecord (data) {
     data
   })
 }
+//  重置处理镜像
+export function putrestartpackage () {
+  return request({
+    url: '/cluster/install/restartpackage',
+    method: 'post'
+  })
+}
 
 //  获取集群配置信息
 export function getClusterInfo () {
