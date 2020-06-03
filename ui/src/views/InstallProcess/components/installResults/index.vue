@@ -188,6 +188,9 @@ export default {
     this.timermirror && clearInterval(this.timermirror)
   },
   methods: {
+    fetchErrMessage (err) {
+      return err && typeof err === 'object' ? JSON.stringify(err) : ''
+    },
     onhandleDelete () {
       this.$refs.uninstallForm.validate(valid => {
         if (valid) {
@@ -217,7 +220,8 @@ export default {
             })
             .catch(err => {
               this.dialogVisibles = false
-              this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+              const message = this.fetchErrMessage(err)
+              this.$emit('onhandleErrorRecord', 'failure', `${message}`)
             })
         }
       })
@@ -264,7 +268,8 @@ export default {
           }
         })
         .catch(err => {
-          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+          const message = this.fetchErrMessage(err)
+          this.$emit('onhandleErrorRecord', 'failure', `${message}`)
         })
     },
     fetchClusterInstallResultsState () {
@@ -277,7 +282,8 @@ export default {
           this.componentList = res.data
         })
         .catch(err => {
-          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+          const message = this.fetchErrMessage(err)
+          this.$emit('onhandleErrorRecord', 'failure', `${message}`)
         })
     },
     fetchClusterInstallMirrorWarehouse () {
@@ -292,7 +298,8 @@ export default {
           }
         })
         .catch(err => {
-          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+          const message = this.fetchErrMessage(err)
+          this.$emit('onhandleErrorRecord', 'failure', `${message}`)
         })
     }
   }

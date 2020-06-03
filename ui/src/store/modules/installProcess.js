@@ -11,7 +11,8 @@ import {
   deleteUnloadingPlatform,
   putInit,
   putRecord,
-  queryNode
+  queryNode,
+  putrestartpackage
 } from '@/api/installProcess'
 
 const installProcess = {
@@ -32,6 +33,17 @@ const installProcess = {
     putRecord ({ commit }, resdata) {
       return new Promise((resolve, reject) => {
         putRecord(resdata)
+          .then(response => {
+            resolve(response)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
+    restartpackage ({ commit }, resdata) {
+      return new Promise((resolve, reject) => {
+        putrestartpackage(resdata)
           .then(response => {
             resolve(response)
           })

@@ -314,6 +314,13 @@
         </el-select>
 
         <div class="clues">{{ $t("page.install.config.gatewayNodeDesc") }}</div>
+        <div class="clues">提示：如果你无法搜索并选择一个网关 IP，请参考
+         <a style="color:#409EFF"
+            target="_black"
+            href="https://www.rainbond.com/docs/user-operations/install/troubleshooting/#%E6%97%A0%E6%B3%95%E9%80%89%E6%8B%A9%E7%BD%91%E5%85%B3%E8%8A%82%E7%82%B9">
+            无法选择网关节点。
+         </a>
+        </div>
       </el-form-item>
       <!-- chaos node config -->
       <el-form-item :label="$t('page.install.config.chaosNode')" prop="chaosNodes">
@@ -1100,6 +1107,9 @@ export default {
     this.fetchClusterInitConfig()
   },
   methods: {
+    fetchErrMessage (err) {
+      return err && typeof err === 'object' ? JSON.stringify(err) : ''
+    },
     validShareStorage (value, item) {
       const info = this.clusterInitInfo
       const arr =
@@ -1193,7 +1203,8 @@ export default {
           }
         })
         .catch(err => {
-          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+          const message = this.fetchErrMessage(err)
+          this.$emit('onhandleErrorRecord', 'failure', `${message}`)
         })
     },
     fetchClusterInitConfig () {
@@ -1325,7 +1336,8 @@ export default {
             })
             .catch(err => {
               this.handleCancelLoading()
-              this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+              const message = this.fetchErrMessage(err)
+              this.$emit('onhandleErrorRecord', 'failure', `${message}`)
             })
         } else {
           this.handleCancelLoading()
@@ -1435,13 +1447,15 @@ export default {
           if (en && en.code === 200) {
             this.$emit('onResults')
           } else {
-            this.$emit('onhandleErrorRecord', 'failure', `${en}`)
+            const message = this.fetchErrMessage(en)
+            this.$emit('onhandleErrorRecord', 'failure', `${message}`)
             this.handleCancelLoading()
           }
         })
         .catch(err => {
           this.handleCancelLoading()
-          this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+          const message = this.fetchErrMessage(err)
+          this.$emit('onhandleErrorRecord', 'failure', `${message}`)
         })
     },
     handleCancelLoading () {
@@ -1464,7 +1478,8 @@ export default {
           })
           .catch(err => {
             this.queryGatewayNodeloading = false
-            this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+            const message = this.fetchErrMessage(err)
+            this.$emit('onhandleErrorRecord', 'failure', `${message}`)
           })
       }
     },
@@ -1485,7 +1500,8 @@ export default {
           })
           .catch(err => {
             this.queryChaosNodeloading = false
-            this.$emit('onhandleErrorRecord', 'failure', `${err}`)
+            const message = this.fetchErrMessage(err)
+            this.$emit('onhandleErrorRecord', 'failure', `${message}`)
           })
       }
     }
