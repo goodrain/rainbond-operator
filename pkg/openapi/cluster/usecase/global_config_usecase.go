@@ -49,13 +49,27 @@ func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *v1.GlobalConfigs) er
 		return err
 	}
 
-	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(clusterInfo)
-		if err != nil {
-			return fmt.Errorf("update rainbondcluster: %v", err)
+	_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(clusterInfo)
+	if err != nil {
+		if k8sErrors.IsConflict(err) {
+			return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				newCluster, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(clusterInfo.Name, metav1.GetOptions{})
+				if err != nil {
+					log.Info("get new cluster before update cluster", "warning", err)
+				} else {
+					clusterInfo.ResourceVersion = newCluster.ResourceVersion
+				}
+				_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(clusterInfo)
+				if err != nil {
+					return err
+				}
+				return nil
+			})
 		}
-		return nil
-	})
+		log.Error(err, "update rainbond cluster")
+		return err
+	}
+	return nil
 }
 
 func (cc *GlobalConfigUseCaseImpl) genSuffixHTTPHost(ip string) (domain string, err error) {

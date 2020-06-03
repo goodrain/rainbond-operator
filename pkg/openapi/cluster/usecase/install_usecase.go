@@ -16,10 +16,12 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/retryutil"
 
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -349,20 +351,25 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 
 func (ic *InstallUseCaseImpl) createComponents(req *v1.ClusterInstallReq, cluster *v1alpha1.RainbondCluster) error {
 	claims := ic.genComponentClaims(req, cluster)
-
 	for _, claim := range claims {
-		reqLogger := log.WithValues("Namespace", claim.namespace, "Name", claim.name)
 		// update image repository for priority components
 		claim.imageRepository = cluster.Spec.RainbondImageRepository
 		data := parseComponentClaim(claim)
 		// init component
 		data.Namespace = ic.cfg.Namespace
-		if _, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(ic.cfg.Namespace).Create(data); err != nil {
-			if errors.IsAlreadyExists(err) {
-				reqLogger.Info("component already exists")
-				continue
+
+		err := retryutil.Retry(time.Second*2, 3, func() (bool, error) {
+			if _, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RbdComponents(ic.cfg.Namespace).Create(data); err != nil {
+				if errors.IsAlreadyExists(err) {
+					log.Info("rbd component already exists", "name", data.Name)
+					return true, nil
+				}
+				return false, err
 			}
-			reqLogger.Error(err, "create rainbond component")
+			return true, nil
+		})
+		if err != nil {
+			log.Error(err, "create rbdcomponent", data.Name)
 			return bcode.ErrCreateRbdComponent
 		}
 	}
@@ -380,7 +387,9 @@ func (ic *InstallUseCaseImpl) InstallStatus() (model.StatusRes, error) {
 	}
 	packageInfo, err := ic.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondPackages(ic.cfg.Namespace).Get(ic.cfg.Rainbondpackage, metav1.GetOptions{})
 	if err != nil {
-		log.Error(err, "get rainbondpackage error")
+		if !k8sErrors.IsNotFound(err) {
+			log.Info("get rainbondpackage", "error", err)
+		}
 		return model.StatusRes{FinalStatus: InstallStatusWaiting}, nil
 	}
 	componentStatuses, err := ic.componentUsecase.List(false)
