@@ -322,6 +322,15 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 		name2Claim["rbd-etcd"] = claim
 	}
 
+	// kubernetes dashboard
+	k8sdashboard := newClaim("kubernetes-dashboard")
+	k8sdashboard.version = "v2.0.1-3"
+	name2Claim["kubernetes-dashboard"] = k8sdashboard
+	dashboardscraper := newClaim("dashboard-metrics-scraper")
+	dashboardscraper.imageName = "metrics-scraper"
+	dashboardscraper.version = "v1.0.4"
+	name2Claim["dashboard-metrics-scraper"] = dashboardscraper
+
 	if req.RainbondVolumes.RWX != nil && req.RainbondVolumes.RWX.CSIPlugin != nil {
 		if req.RainbondVolumes.RWX.CSIPlugin.NFS != nil {
 			name2Claim["nfs-provisioner"] = newClaim("nfs-provisioner")
