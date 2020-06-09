@@ -124,8 +124,14 @@ func (r *rainbondClusteMgr) generateRainbondClusterStatus() (*rainbondv1alpha1.R
 	}
 	if r.cluster.Status != nil {
 		if r.cluster.Status.ImagePullUsername == "" || r.cluster.Status.ImagePullPassword == "" {
-			s.ImagePullUsername = "admin"
-			s.ImagePullPassword = uuidutil.NewUUID()[0:8]
+			imageHub := r.cluster.Spec.ImageHub
+			if imageHub != nil && imageHub.Domain == constants.DefImageRepository {
+				s.ImagePullUsername = imageHub.Username
+				s.ImagePullPassword = imageHub.Password
+			} else {
+				s.ImagePullUsername = "admin"
+				s.ImagePullPassword = uuidutil.NewUUID()[0:8]
+			}
 		} else {
 			s.ImagePullUsername = r.cluster.Status.ImagePullUsername
 			s.ImagePullPassword = r.cluster.Status.ImagePullPassword
