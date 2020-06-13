@@ -249,15 +249,19 @@ func (c *clusterUsecase) hackClusterInfo(rainbondCluster *rainbondv1alpha1.Rainb
 	// get install version from config
 	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
 
-	// get enterprise from repo
-	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID()
-
 	// get installID from cluster's annotations
+	var eid string
 	if rainbondCluster.Annotations != nil {
 		if value, ok := rainbondCluster.Annotations["install_id"]; ok && value != "" {
 			status.ClusterInfo.InstallID = value
 		}
+		if value, ok := rainbondCluster.Annotations["enterprise_id"]; ok && value != "" {
+			eid = value
+		}
 	}
+
+	// get enterprise from repo
+	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID(eid)
 }
 
 // no rainbondcluster cr means cluster status is waiting
@@ -408,7 +412,7 @@ func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, err
 
 	annotations := make(map[string]string)
 	annotations["install_id"] = uuidutil.NewUUID()
-	annotations["enterprise_id"] = c.repo.EnterpriseID()
+	annotations["enterprise_id"] = c.repo.EnterpriseID("")
 	cluster.Annotations = annotations
 
 	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)
