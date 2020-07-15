@@ -97,6 +97,7 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 
 	mgr := newRbdcomponentMgr(ctx, r.client, reqLogger, rainbondcluster, r.scheme)
 
+	// generate status for rainbond cluster
 	status, err := mgr.generateRainbondClusterStatus()
 	if err != nil {
 		reqLogger.Error(err, "failed to generate rainbondcluster status")

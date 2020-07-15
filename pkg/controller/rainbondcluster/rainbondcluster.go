@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondcluster/precheck"
 	"sort"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -162,6 +163,9 @@ func (r *rainbondClusteMgr) generateRainbondClusterStatus() (*rainbondv1alpha1.R
 		return nil, err
 	}
 	s.KubernetesVersoin = k8sVersion
+
+	// conditions for rainbond cluster status
+	r.generateConditions()
 
 	return s, nil
 }
@@ -344,4 +348,34 @@ func (r *rainbondClusteMgr) checkIfRbdNodeReady() error {
 	}
 
 	return nil
+}
+
+func (r *rainbondClusteMgr) generateConditions() {
+	// region database
+	spec := r.cluster.Spec
+	if spec.RegionDatabase != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseRegion) {
+		preChecker := precheck.NewDatabasePrechecker(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseRegion, spec.RegionDatabase)
+		condition := preChecker.Check()
+		r.cluster.Status.UpdateCondition(&condition)
+	}
+
+	// console database
+	if spec.UIDatabase != nil {
+		preChecker := precheck.NewDatabasePrechecker(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseConsole, spec.UIDatabase)
+		condition := preChecker.Check()
+		r.cluster.Status.UpdateCondition(&condition)
+	}
+}
+
+func (r *rainbondClusteMgr) isConditionTrue(typ3 rainbondv1alpha1.RainbondClusterConditionType) bool {
+	if r.cluster.Status == nil {
+		return false
+	}
+
+	_, condition := r.cluster.Status.GetCondition(typ3)
+
+	if condition != nil && condition.Status == corev1.ConditionTrue {
+		return true
+	}
+	return false
 }

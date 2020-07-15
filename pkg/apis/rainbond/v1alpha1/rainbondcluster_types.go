@@ -169,6 +169,8 @@ type RainbondClusterStatus struct {
 	ImagePullPassword string `json:"imagePullPassword,omitempty"`
 	// ImagePullSecret is an optional references to secret in the same namespace to use for pulling any of the images used by PodSpec.
 	ImagePullSecret corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+
+	Conditions []RainbondClusterCondition `json:"conditions,omitempty"`
 }
 
 // +genclient
