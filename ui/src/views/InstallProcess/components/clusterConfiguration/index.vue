@@ -356,17 +356,17 @@
         <div class="boxs">
           <div v-for="(item, indexs) in ruleForm.gatewayIngressIPs" :key="indexs" class="cen">
             <el-input v-model="ruleForm.gatewayIngressIPs[indexs]" class="d2-input_inner"></el-input>
-            <em
+            <!-- <em
               v-show="ruleForm.gatewayIngressIPs.length != 1"
               class="el-icon-remove-outline icon-f-22 d2-ml-16"
               @click.prevent="removeIP(indexs)"
-            />
+            /> -->
           </div>
-          <el-button style="margin-top:1rem" size="small" @click="addIP">
+          <!-- <el-button style="margin-top:1rem" size="small" @click="addIP">
             {{
             $t("page.install.config.gatewayIPAdd")
             }}
-          </el-button>
+          </el-button> -->
         </div>
 
         <div class="clues">{{ $t("page.install.config.gatewayIPDesc") }}</div>
