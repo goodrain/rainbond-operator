@@ -7,6 +7,7 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -98,6 +99,16 @@ func (r *repo) statefulset() interface{} {
 								{
 									Name:      claimName,
 									MountPath: "/var/opt/jfrog/artifactory",
+								},
+							},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("512Mi"),
+									corev1.ResourceCPU:    resource.MustParse("0m"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("1536Mi"),
+									corev1.ResourceCPU:    resource.MustParse("1000m"),
 								},
 							},
 						},
