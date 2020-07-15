@@ -1,11 +1,14 @@
 package e2e
 
 import (
-	"github.com/goodrain/rainbond-operator/test/e2e/framework"
 	"testing"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+
+	"github.com/goodrain/rainbond-operator/test/e2e/framework"
+
+	_ "github.com/goodrain/rainbond-operator/test/e2e/rainbondcluster"
 )
 
 // RunE2ETests checks configuration parameters (specified through flags) and then runs
@@ -13,7 +16,7 @@ import (
 func RunE2ETests(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
-	ginkgo.RunSpecs(t, "appstore e2e suite")
+	ginkgo.RunSpecs(t, "rainbond operator e2e suite")
 }
 
 var _ = ginkgo.SynchronizedAfterSuite(func() {

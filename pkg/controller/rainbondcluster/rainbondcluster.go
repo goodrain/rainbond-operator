@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondcluster/precheck"
 	"sort"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -14,6 +13,7 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/uuidutil"
 
 	"github.com/go-logr/logr"
+	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondcluster/precheck"
 	"github.com/pquerna/ffjson/ffjson"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -76,6 +76,9 @@ type rainbondClusteMgr struct {
 }
 
 func newRbdcomponentMgr(ctx context.Context, client client.Client, log logr.Logger, cluster *rainbondv1alpha1.RainbondCluster, scheme *runtime.Scheme) *rainbondClusteMgr {
+	if cluster.Status == nil {
+		cluster.Status = &rainbondv1alpha1.RainbondClusterStatus{}
+	}
 	mgr := &rainbondClusteMgr{
 		ctx:     ctx,
 		client:  client,
@@ -165,7 +168,7 @@ func (r *rainbondClusteMgr) generateRainbondClusterStatus() (*rainbondv1alpha1.R
 	s.KubernetesVersoin = k8sVersion
 
 	// conditions for rainbond cluster status
-	r.generateConditions()
+	s.Conditions = r.generateConditions()
 
 	return s, nil
 }
@@ -350,7 +353,7 @@ func (r *rainbondClusteMgr) checkIfRbdNodeReady() error {
 	return nil
 }
 
-func (r *rainbondClusteMgr) generateConditions() {
+func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClusterCondition {
 	// region database
 	spec := r.cluster.Spec
 	if spec.RegionDatabase != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseRegion) {
@@ -365,6 +368,8 @@ func (r *rainbondClusteMgr) generateConditions() {
 		condition := preChecker.Check()
 		r.cluster.Status.UpdateCondition(&condition)
 	}
+
+	return r.cluster.Status.Conditions
 }
 
 func (r *rainbondClusteMgr) isConditionTrue(typ3 rainbondv1alpha1.RainbondClusterConditionType) bool {

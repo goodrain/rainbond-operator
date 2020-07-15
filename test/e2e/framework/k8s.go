@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	. "github.com/onsi/gomega"
+
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	core "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -48,4 +52,25 @@ func podRunningReady(p *core.Pod) (bool, error) {
 			p.ObjectMeta.Name, p.Spec.NodeName, core.PodReady, core.ConditionTrue, p.Status.Conditions)
 	}
 	return true, nil
+}
+
+// EnsureRainbondCluster creates a rainbondcluster object or returns it if it already exists.
+func (f *Framework) EnsureRainbondCluster(new *rainbondv1alpha1.RainbondCluster) *rainbondv1alpha1.RainbondCluster {
+	cluster, err := f.RainbondClientset.RainbondV1alpha1().RainbondClusters(new.Namespace).Get(new.GetName(), metav1.GetOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			cluster, err = f.RainbondClientset.RainbondV1alpha1().RainbondClusters(new.Namespace).Create(new)
+			Expect(err).NotTo(HaveOccurred(), "unexpected error creating rainbondcluster")
+			return cluster
+		}
+
+		Expect(err).NotTo(HaveOccurred())
+	}
+
+	new.ResourceVersion = cluster.ResourceVersion
+	cluster, err = f.RainbondClientset.RainbondV1alpha1().RainbondClusters(new.Namespace).Update(new)
+
+	Expect(cluster).NotTo(BeNil())
+
+	return cluster
 }

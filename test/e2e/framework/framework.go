@@ -1,9 +1,11 @@
 package framework
 
 import (
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	rainbondoperator "github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -14,8 +16,9 @@ type Framework struct {
 	BaseName string
 
 	// A Kubernetes and Service Catalog client
-	KubeClientSet kubernetes.Interface
-	KubeConfig    *restclient.Config
+	KubeClientSet     kubernetes.Interface
+	KubeConfig        *restclient.Config
+	RainbondClientset rainbondoperator.Interface
 
 	Namespace string
 }
@@ -35,23 +38,26 @@ func NewDefaultFramework(baseName string) *Framework {
 
 // BeforeEach gets a client and makes a namespace.
 func (f *Framework) BeforeEach() {
-	By("Creating a kubernetes client")
-	kubeConfig, err := restclient.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	Expect(err).NotTo(HaveOccurred())
-
+	kubeConfig := k8sutil.MustNewKubeConfig("/Users/abewang/.kube/config") // TODO: do not hard code
 	f.KubeConfig = kubeConfig
+
+	By("Creating a kubernetes client")
+	var err error
 	f.KubeClientSet, err = kubernetes.NewForConfig(kubeConfig)
 	Expect(err).NotTo(HaveOccurred())
 
-	By("Building a namespace api object")
-	namespace, err := CreateKubeNamespace(f.BaseName, f.KubeClientSet)
+	By("Creating a rainbond operator client")
+	f.RainbondClientset, err = rainbondoperator.NewForConfig(kubeConfig)
 	Expect(err).NotTo(HaveOccurred())
 
-	f.Namespace = namespace
+	//By("Building a namespace api object")
+	//namespace, err := CreateKubeNamespace(f.BaseName, f.KubeClientSet)
+	//Expect(err).NotTo(HaveOccurred())
+
+	f.Namespace = "rbd-system"
+
+	By("Creating a new rainbond operator")
+
 
 	err = WaitForPodsReady(f.KubeClientSet, DefaultTimeout, 1, f.Namespace, metav1.ListOptions{
 		LabelSelector: "name=rainbond-operator",
