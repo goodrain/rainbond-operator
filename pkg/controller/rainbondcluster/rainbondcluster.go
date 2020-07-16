@@ -161,12 +161,6 @@ func (r *rainbondClusteMgr) generateRainbondClusterStatus() (*rainbondv1alpha1.R
 		MasterNodes:    masterNodesForChaos,
 	}
 
-	k8sVersion, err := r.getKubernetesInfo()
-	if err != nil {
-		return nil, err
-	}
-	s.KubernetesVersoin = k8sVersion
-
 	// conditions for rainbond cluster status
 	s.Conditions = r.generateConditions()
 
@@ -312,30 +306,6 @@ func (r *rainbondClusteMgr) generateDockerConfig() []byte {
 	return bytes
 }
 
-func (r *rainbondClusteMgr) getKubernetesInfo() (string, error) {
-	nodeList := &corev1.NodeList{}
-	listOpts := []client.ListOption{}
-	if err := r.client.List(r.ctx, nodeList, listOpts...); err != nil {
-		log.Error(err, "list nodes")
-		return "", fmt.Errorf("list nodes: %v", err)
-	}
-
-	var version string
-	for _, node := range nodeList.Items {
-		if node.Status.NodeInfo.KubeletVersion == "" {
-			continue
-		}
-		version = node.Status.NodeInfo.KubeletVersion
-		break
-	}
-
-	if version == "" {
-		return "", fmt.Errorf("failed to get kubernetes version")
-	}
-
-	return version, nil
-}
-
 func (r *rainbondClusteMgr) checkIfRbdNodeReady() error {
 	cpt := &rainbondv1alpha1.RbdComponent{}
 	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: "rbd-node"}, cpt); err != nil {
@@ -375,6 +345,11 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 		condition := preChecker.Check()
 		r.cluster.Status.UpdateCondition(&condition)
 	}
+
+	// kubernetes version
+	k8sVersion := precheck.NewK8sVersionPrechecker(r.ctx, r.log, r.client)
+	k8sVersionCondition := k8sVersion.Check()
+	r.cluster.Status.UpdateCondition(&k8sVersionCondition)
 
 	return r.cluster.Status.Conditions
 }

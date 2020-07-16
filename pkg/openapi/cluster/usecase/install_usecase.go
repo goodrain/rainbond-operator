@@ -118,11 +118,6 @@ func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
 		return err
 	}
 
-	// check cluster
-	if cluster.Status.KubernetesVersoin < "v1.13.0" {
-		return bcode.ErrInvalidKubernetesVersion
-	}
-
 	// create rainbond volume
 	if err := ic.createRainbondVolumes(req); err != nil {
 		return err

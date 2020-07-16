@@ -31,9 +31,10 @@ type RainbondClusterConditionType string
 
 // These are valid conditions of rainbondcluster.
 const (
-	RainbondClusterConditionTypeDatabaseRegion  = "DatabaseRegion"
-	RainbondClusterConditionTypeDatabaseConsole = "DatabaseConsole"
-	RainbondClusterConditionTypeImageRepository = "imagerepository"
+	RainbondClusterConditionTypeDatabaseRegion    = "DatabaseRegion"
+	RainbondClusterConditionTypeDatabaseConsole   = "DatabaseConsole"
+	RainbondClusterConditionTypeImageRepository   = "ImageRepository"
+	RainbondClusterConditionTypeKubernetesVersion = "KubernetesVersion"
 )
 
 // RainbondClusterCondition contains condition information for rainbondcluster.
