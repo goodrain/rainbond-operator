@@ -1,11 +1,10 @@
 package framework
 
 import (
+	rainbondoperator "github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	rainbondoperator "github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -20,14 +19,16 @@ type Framework struct {
 	KubeConfig        *restclient.Config
 	RainbondClientset rainbondoperator.Interface
 
-	Namespace string
+	Namespace    string
+	OperatorName string
 }
 
 // NewDefaultFramework makes a new framework and sets up a BeforeEach/AfterEach for
 // you (you can write additional before/after each functions).
 func NewDefaultFramework(baseName string) *Framework {
 	f := &Framework{
-		BaseName: baseName,
+		BaseName:     baseName,
+		OperatorName: "rainbond-operator",
 	}
 
 	BeforeEach(f.BeforeEach)
@@ -50,14 +51,14 @@ func (f *Framework) BeforeEach() {
 	f.RainbondClientset, err = rainbondoperator.NewForConfig(kubeConfig)
 	Expect(err).NotTo(HaveOccurred())
 
-	//By("Building a namespace api object")
-	//namespace, err := CreateKubeNamespace(f.BaseName, f.KubeClientSet)
-	//Expect(err).NotTo(HaveOccurred())
-
-	f.Namespace = "rbd-system"
+	By("Building a namespace api object")
+	namespace, err := CreateKubeNamespace(f.BaseName, f.KubeClientSet)
+	Expect(err).NotTo(HaveOccurred())
+	f.Namespace = namespace
 
 	By("Creating a new rainbond operator")
-
+	err = InstallReainbondOperator(f.OperatorName, "/Users/abewang/go/src/github.com/goodrain/rainbond-operator/chart", namespace)
+	Expect(err).NotTo(HaveOccurred())
 
 	err = WaitForPodsReady(f.KubeClientSet, DefaultTimeout, 1, f.Namespace, metav1.ListOptions{
 		LabelSelector: "name=rainbond-operator",
@@ -67,7 +68,11 @@ func (f *Framework) BeforeEach() {
 
 // AfterEach deletes the namespace, after reading its events.
 func (f *Framework) AfterEach() {
+	By("Delete ClusterRoleBinding")
+	err := DeleteClusterRoleBinding(f.KubeClientSet, f.OperatorName)
+	Expect(err).NotTo(HaveOccurred())
+
 	By("Waiting for test namespace to no longer exist")
-	err := DeleteKubeNamespace(f.KubeClientSet, f.Namespace)
+	err = DeleteKubeNamespace(f.KubeClientSet, f.Namespace)
 	Expect(err).NotTo(HaveOccurred())
 }

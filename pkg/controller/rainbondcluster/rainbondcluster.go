@@ -369,6 +369,13 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 		r.cluster.Status.UpdateCondition(&condition)
 	}
 
+	// image repository
+	if spec.ImageHub != nil {
+		preChecker := precheck.NewImageRepoPrechecker(r.ctx, r.log, r.cluster)
+		condition := preChecker.Check()
+		r.cluster.Status.UpdateCondition(&condition)
+	}
+
 	return r.cluster.Status.Conditions
 }
 

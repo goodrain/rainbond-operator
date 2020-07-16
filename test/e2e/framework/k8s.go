@@ -74,3 +74,12 @@ func (f *Framework) EnsureRainbondCluster(new *rainbondv1alpha1.RainbondCluster)
 
 	return cluster
 }
+
+// DeleteClusterRoleBinding deletes a ClusterRoleBinding
+func DeleteClusterRoleBinding(c kubernetes.Interface, name string) error {
+	err := c.RbacV1().ClusterRoleBindings().Delete(name, metav1.NewDeleteOptions(0))
+	if k8sErrors.IsNotFound(err) {
+		return nil
+	}
+	return err
+}
