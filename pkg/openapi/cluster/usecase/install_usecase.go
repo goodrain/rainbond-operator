@@ -96,6 +96,7 @@ type InstallUseCaseImpl struct {
 	rainbondKubeClient versioned.Interface
 
 	componentUsecase cluster.ComponentUsecase
+	clusterUcase     cluster.Usecase
 }
 
 // NewInstallUseCase new install case
@@ -110,6 +111,15 @@ func NewInstallUseCase(cfg *option.Config, rainbondKubeClient versioned.Interfac
 
 // Install install
 func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
+	// make sure precheck passes
+	preCheck, err := ic.clusterUcase.PreCheck()
+	if err != nil {
+		return err
+	}
+	if preCheck.Pass == false {
+		return bcode.ErrClusterPreCheckNotPass
+	}
+
 	cluster, err := ic.rainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.namespace).Get(ic.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
