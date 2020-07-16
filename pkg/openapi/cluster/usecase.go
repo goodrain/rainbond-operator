@@ -17,6 +17,7 @@ type IClusterUcase interface {
 
 // Usecase cluster case
 type Usecase interface {
+	PreCheck() (*v1.ClusterPreCheckResp, error)
 	Status() (*model.ClusterStatus, error)
 	Init() error
 	UnInstall() error

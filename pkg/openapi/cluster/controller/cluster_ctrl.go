@@ -35,7 +35,7 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterUcase) {
 	u := &ClusterController{clusterUcase: clusterCase}
 
 	clusterEngine := g.Group("/cluster")
-	clusterEngine.GET("/status", corsMidle(u.ClusterStatus))
+	clusterEngine.GET("/precheck", corsMidle(u.PreCheck))
 	clusterEngine.GET("/status-info", corsMidle(u.ClusterStatusInfo))
 	clusterEngine.POST("/init", corsMidle(u.ClusterInit))
 	clusterEngine.GET("/nodes", corsMidle(u.ClusterNodes))
@@ -56,6 +56,16 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterUcase) {
 	clusterEngine.GET("/components", corsMidle(u.Components))
 	clusterEngine.GET("/components/:name", corsMidle(u.SingleComponent))
 
+}
+
+// PreCheck checks cluster conditions before installing
+func (cc *ClusterController) PreCheck(c *gin.Context) {
+	resp, err := cc.clusterUcase.Cluster().PreCheck()
+	if err != nil {
+		ginutil.JSON(c, resp, err)
+		return
+	}
+	ginutil.JSON(c, resp, nil)
 }
 
 // ClusterStatus cluster status

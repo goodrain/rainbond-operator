@@ -49,6 +49,30 @@ func NewClusterUsecase(cfg *option.Config, repo cluster.Repository, cptUcase clu
 	}
 }
 
+func (c *clusterUsecase) PreCheck() (*v1.ClusterPreCheckResp, error) {
+	cls, err := c.getCluster()
+	if err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return nil, fmt.Errorf("get rainbond clsuter: %v", err)
+		}
+	}
+
+	conditions := convertClusterConditions(cls)
+	pass := true
+	for _, condition := range conditions {
+		if condition.Status != "True" {
+			pass = false
+			break
+		}
+	}
+
+	return &v1.ClusterPreCheckResp{
+		Pass:       pass,
+		Conditions: conditions,
+	}, nil
+
+}
+
 // UnInstall uninstall cluster reset cluster
 func (c *clusterUsecase) UnInstall() error {
 	deleteOpts := &metav1.DeleteOptions{

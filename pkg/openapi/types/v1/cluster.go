@@ -228,3 +228,17 @@ type RainbondVolumes struct {
 type ClusterInstallReq struct {
 	RainbondVolumes *RainbondVolumes `json:"rainbondVolumes" binding:"required"`
 }
+
+// ClusterPreCheckResp holds the response of cluster pre checking
+type ClusterPreCheckResp struct {
+	Pass       bool                        `json:"pass"`
+	Conditions []*ClusterPreCheckCondition `json:"conditions"`
+}
+
+// ClusterPreCheckCondition -
+type ClusterPreCheckCondition struct {
+	Type    string `json:"type"`
+	Status  string `json:"status"`
+	Reason  string `json:"reason"`
+	Message string `json:"message"`
+}
