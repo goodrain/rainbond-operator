@@ -59,6 +59,9 @@ func (a *appui) Before() error {
 	if err != nil {
 		return fmt.Errorf("get db info: %v", err)
 	}
+	if db.Name == "" {
+		db.Name = ConsoleDatabaseName
+	}
 	a.db = db
 
 	if err := setStorageCassName(a.ctx, a.client, a.component.Namespace, a); err != nil {
@@ -163,7 +166,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 								},
 								{
 									Name:  "MYSQL_DB",
-									Value: "console",
+									Value: a.db.Name,
 								},
 								{
 									Name:  "REGION_URL",

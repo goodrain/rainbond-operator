@@ -55,6 +55,9 @@ func (w *worker) Before() error {
 	if err != nil {
 		return fmt.Errorf("get db info: %v", err)
 	}
+	if db.Name == "" {
+		db.Name = RegionDatabaseName
+	}
 	w.db = db
 
 	secret, err := etcdSecret(w.ctx, w.client, w.cluster)

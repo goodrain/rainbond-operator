@@ -55,6 +55,9 @@ func (e *eventlog) Before() error {
 	if err != nil {
 		return fmt.Errorf("get db info: %v", err)
 	}
+	if db.Name == "" {
+		db.Name = RegionDatabaseName
+	}
 	e.db = db
 
 	secret, err := etcdSecret(e.ctx, e.client, e.cluster)

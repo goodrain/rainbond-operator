@@ -64,6 +64,9 @@ func (a *api) Before() error {
 	if err != nil {
 		return fmt.Errorf("get db info: %v", err)
 	}
+	if db.Name == "" {
+		db.Name = RegionDatabaseName
+	}
 	a.db = db
 
 	secret, err := etcdSecret(a.ctx, a.client, a.cluster)

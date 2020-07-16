@@ -2,7 +2,6 @@ package v1alpha1
 
 import (
 	"fmt"
-	"os"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -231,9 +230,5 @@ func (in *RainbondCluster) GatewayIngressIPs() (ips []string) {
 
 // RegionDataSource returns the data source for database region.
 func (in *Database) RegionDataSource() string {
-	name := os.Getenv("REGION_DB_NAME")
-	if name == "" {
-		name = "region"
-	}
-	return fmt.Sprintf("--mysql=%s:%s@tcp(%s:%d)/%s", in.Username, in.Password, in.Host, in.Port, name)
+	return fmt.Sprintf("--mysql=%s:%s@tcp(%s:%d)/%s", in.Username, in.Password, in.Host, in.Port, in.Name)
 }

@@ -28,6 +28,10 @@ var ErrNoDBEndpoints = errors.New("no ready endpoints for DB were found")
 const (
 	// EtcdSSLPath ssl file path for etcd
 	EtcdSSLPath = "/run/ssl/etcd"
+	// RegionDatabaseName -
+	RegionDatabaseName = "region"
+	// ConsoleDatabaseName -
+	ConsoleDatabaseName = "console"
 )
 
 // pvcParameters holds parameters to create pvc.
@@ -109,6 +113,7 @@ func getDefaultDBInfo(ctx context.Context, cli client.Client, in *rainbondv1alph
 		Port:     3306,
 		Username: user,
 		Password: pass,
+		Name:     in.Name,
 	}, nil
 }
 
