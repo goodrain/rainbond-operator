@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondcluster/precheck"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/uuidutil"
-
-	"github.com/go-logr/logr"
-	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondcluster/precheck"
 	"github.com/pquerna/ffjson/ffjson"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -125,21 +123,6 @@ func (r *rainbondClusteMgr) generateRainbondClusterStatus() (*rainbondv1alpha1.R
 	s := &rainbondv1alpha1.RainbondClusterStatus{
 		MasterRoleLabel: masterRoleLabel,
 		StorageClasses:  r.listStorageClasses(),
-	}
-	if r.cluster.Status != nil {
-		if r.cluster.Status.ImagePullUsername == "" || r.cluster.Status.ImagePullPassword == "" {
-			imageHub := r.cluster.Spec.ImageHub
-			if imageHub != nil && imageHub.Domain == constants.DefImageRepository {
-				s.ImagePullUsername = imageHub.Username
-				s.ImagePullPassword = imageHub.Password
-			} else {
-				s.ImagePullUsername = "admin"
-				s.ImagePullPassword = uuidutil.NewUUID()[0:8]
-			}
-		} else {
-			s.ImagePullUsername = r.cluster.Status.ImagePullUsername
-			s.ImagePullPassword = r.cluster.Status.ImagePullPassword
-		}
 	}
 
 	if r.checkIfImagePullSecretExists() {
@@ -333,23 +316,25 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 	}
 
 	// console database
-	if spec.UIDatabase != nil {
+	if spec.UIDatabase != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseConsole) {
 		preChecker := precheck.NewDatabasePrechecker(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseConsole, spec.UIDatabase)
 		condition := preChecker.Check()
 		r.cluster.Status.UpdateCondition(&condition)
 	}
 
 	// image repository
-	if spec.ImageHub != nil {
+	if spec.ImageHub != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository) {
 		preChecker := precheck.NewImageRepoPrechecker(r.ctx, r.log, r.cluster)
 		condition := preChecker.Check()
 		r.cluster.Status.UpdateCondition(&condition)
 	}
 
 	// kubernetes version
-	k8sVersion := precheck.NewK8sVersionPrechecker(r.ctx, r.log, r.client)
-	k8sVersionCondition := k8sVersion.Check()
-	r.cluster.Status.UpdateCondition(&k8sVersionCondition)
+	if !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository) {
+		k8sVersion := precheck.NewK8sVersionPrechecker(r.ctx, r.log, r.client)
+		condition := k8sVersion.Check()
+		r.cluster.Status.UpdateCondition(&condition)
+	}
 
 	return r.cluster.Status.Conditions
 }

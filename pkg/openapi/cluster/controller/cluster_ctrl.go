@@ -37,6 +37,7 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterUcase) {
 
 	clusterEngine := g.Group("/cluster")
 	clusterEngine.GET("/precheck", corsMidle(u.PreCheck))
+	clusterEngine.GET("/status", corsMidle(u.ClusterStatus))
 	clusterEngine.GET("/status-info", corsMidle(u.ClusterStatusInfo))
 	clusterEngine.POST("/init", corsMidle(u.ClusterInit))
 	clusterEngine.GET("/nodes", corsMidle(u.ClusterNodes))

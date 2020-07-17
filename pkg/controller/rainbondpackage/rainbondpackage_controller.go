@@ -159,7 +159,7 @@ func (r *ReconcileRainbondPackage) Reconcile(request reconcile.Request) (reconci
 	}
 
 	//need handle condition
-	p, err := newpkg(ctx, r.client, pkg, reqLogger)
+	p, err := newpkg(ctx, r.client, pkg, cluster, reqLogger)
 	if err != nil {
 		p.updateConditionStatus(rainbondv1alpha1.Init, rainbondv1alpha1.Failed)
 		p.updateConditionResion(rainbondv1alpha1.Init, err.Error(), "create package handle failure")
@@ -267,7 +267,7 @@ type pkg struct {
 	version string
 }
 
-func newpkg(ctx context.Context, client client.Client, p *rainbondv1alpha1.RainbondPackage, reqLogger logr.Logger) (*pkg, error) {
+func newpkg(ctx context.Context, client client.Client, p *rainbondv1alpha1.RainbondPackage, cluster *rainbondv1alpha1.RainbondCluster, reqLogger logr.Logger) (*pkg, error) {
 	dcli, err := newDockerClient(ctx)
 	if err != nil {
 		reqLogger.Error(err, "failed to create docker client")
@@ -287,6 +287,7 @@ func newpkg(ctx context.Context, client client.Client, p *rainbondv1alpha1.Rainb
 		images:        make(map[string]string, 23),
 		log:           reqLogger,
 		version:       version,
+		cluster:       cluster,
 	}
 	return pkg, nil
 }
@@ -295,9 +296,12 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 	if !c.Spec.ConfigCompleted {
 		return errorClusterConfigNotReady
 	}
-	if c.Spec.ImageHub == nil || c.Spec.ImageHub.Domain == "" {
+
+	// check if image repository is ready
+	if !p.isImageRepositoryReady() {
 		return errorClusterConfigNoLocalHub
 	}
+
 	if c.Spec.InstallVersion != "" {
 		p.version = c.Spec.InstallVersion
 	}
@@ -1040,4 +1044,21 @@ func (p *pkg) checkIfImageExists(image string) (bool, error) {
 	_ = imageSummarys
 
 	return len(imageSummarys) > 0, nil
+}
+
+func (p *pkg) isImageRepositoryReady() bool {
+	if p.cluster.Status == nil {
+		return false
+	}
+
+	idx, condition := p.cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository)
+	if idx == -1 {
+		return false
+	}
+
+	if condition.Status != corev1.ConditionTrue {
+		return false
+	}
+
+	return true
 }

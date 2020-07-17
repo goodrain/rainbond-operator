@@ -113,7 +113,6 @@ func getDefaultDBInfo(ctx context.Context, cli client.Client, in *rainbondv1alph
 		Port:     3306,
 		Username: user,
 		Password: pass,
-		Name:     in.Name,
 	}, nil
 }
 

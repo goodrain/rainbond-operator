@@ -100,12 +100,13 @@ type InstallUseCaseImpl struct {
 }
 
 // NewInstallUseCase new install case
-func NewInstallUseCase(cfg *option.Config, rainbondKubeClient versioned.Interface, componentUsecase cluster.ComponentUsecase) *InstallUseCaseImpl {
+func NewInstallUseCase(cfg *option.Config, rainbondKubeClient versioned.Interface, componentUsecase cluster.ComponentUsecase, clusterUcase cluster.Usecase) *InstallUseCaseImpl {
 	return &InstallUseCaseImpl{
 		cfg:                cfg,
 		namespace:          cfg.Namespace,
 		rainbondKubeClient: rainbondKubeClient,
 		componentUsecase:   componentUsecase,
+		clusterUcase:       clusterUcase,
 	}
 }
 
@@ -265,7 +266,7 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 
 	var isInit bool
 	imageRepository := constants.DefImageRepository
-	if cluster.Spec.ImageHub == nil {
+	if cluster.Spec.ImageHub == nil || cluster.Spec.ImageHub.Domain == constants.DefImageRepository {
 		isInit = true
 	} else {
 		imageRepository = path.Join(cluster.Spec.ImageHub.Domain, cluster.Spec.ImageHub.Namespace)
@@ -302,7 +303,7 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 		name2Claim["rbd-db"] = claim
 	}
 
-	if cluster.Spec.ImageHub == nil {
+	if cluster.Spec.ImageHub == nil || cluster.Spec.ImageHub.Domain == constants.DefImageRepository {
 		claim := newClaim("rbd-hub")
 		claim.imageName = "registry"
 		claim.version = "2.6.2"

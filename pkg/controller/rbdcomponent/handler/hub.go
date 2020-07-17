@@ -282,6 +282,6 @@ func (h *hub) getSecret(name string) (*corev1.Secret, error) {
 }
 
 func (h *hub) generateHtpasswd() ([]byte, error) {
-	cmd := exec.Command("htpasswd", "-Bbn", h.cluster.Status.ImagePullUsername, h.cluster.Status.ImagePullPassword)
+	cmd := exec.Command("htpasswd", "-Bbn", h.cluster.Spec.ImageHub.Username, h.cluster.Spec.ImageHub.Password)
 	return cmd.CombinedOutput()
 }

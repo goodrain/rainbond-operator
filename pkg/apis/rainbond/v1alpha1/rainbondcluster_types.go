@@ -163,9 +163,9 @@ type RainbondClusterStatus struct {
 	GatewayAvailableNodes *AvailableNodes `json:"gatewayAvailableNodes,omitempty"`
 	// holds some recommend nodes available for rbd-chaos to run.
 	ChaosAvailableNodes *AvailableNodes `json:"chaosAvailableNodes,omitempty"`
-	// ImagePullUsername is the username to pull any of images used by PodSpec
+	// Deprecated. ImagePullUsername is the username to pull any of images used by PodSpec
 	ImagePullUsername string `json:"imagePullUsername,omitempty"`
-	// ImagePullPassword is the password to pull any of images used by PodSpec
+	// Deprecated. ImagePullPassword is the password to pull any of images used by PodSpec
 	ImagePullPassword string `json:"imagePullPassword,omitempty"`
 	// ImagePullSecret is an optional references to secret in the same namespace to use for pulling any of the images used by PodSpec.
 	ImagePullSecret corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`

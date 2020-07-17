@@ -2,9 +2,8 @@ package rainbondcluster
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"net/http"
+	"github.com/goodrain/rainbond-operator/pkg/util/uuidutil"
 	"time"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -109,14 +108,8 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{RequeueAfter: time.Second * 2}, err
 	}
 
-	if rainbondcluster.Spec.ImageHub == nil && rainbondcluster.Spec.ConfigCompleted {
-		reqLogger.V(6).Info("image hub is empty, do sth.")
-
-		if err := mgr.checkIfRbdNodeReady(); err != nil {
-			reqLogger.V(6).Info("rbd-node not ready: %v", err)
-			return reconcile.Result{RequeueAfter: time.Second * 1}, nil
-		}
-
+	// setup imageHub if empty
+	if rainbondcluster.Spec.ImageHub == nil {
 		imageHub, err := r.getImageHub(rainbondcluster)
 		if err != nil {
 			reqLogger.V(6).Info(fmt.Sprintf("set image hub info: %v", err))
@@ -143,42 +136,9 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 }
 
 func (r *ReconcileRainbondCluster) getImageHub(cluster *rainbondv1alpha1.RainbondCluster) (*rainbondv1alpha1.ImageHub, error) {
-	imageHubReady := func() error {
-		httpClient := &http.Client{
-			Timeout: 1 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true, // TODO: can't ignore TLS
-				},
-			},
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-		defer cancel()
-		eip := cluster.FirstGatewayEIP()
-		if eip == "" {
-			return fmt.Errorf("no external ip found for gateway")
-		}
-		request, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s/v2/", cluster.FirstGatewayEIP()), nil)
-		if err != nil {
-			return fmt.Errorf("new request failure %s", err.Error())
-		}
-		request.Host = constants.DefImageRepository
-		res, err := httpClient.Do(request)
-		if err != nil {
-			return fmt.Errorf("image repository unavailable: %v", err)
-		}
-		if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusUnauthorized {
-			return fmt.Errorf("image repository unavailable. http status code: %d", res.StatusCode)
-		}
-		return nil
-	}
-	if err := imageHubReady(); err != nil {
-		return nil, fmt.Errorf("image repository not ready: %v", err)
-	}
-
 	return &rainbondv1alpha1.ImageHub{
 		Domain:   constants.DefImageRepository,
-		Username: cluster.Status.ImagePullUsername,
-		Password: cluster.Status.ImagePullPassword,
+		Username: "admin",
+		Password: uuidutil.NewUUID()[0:8],
 	}, nil
 }
