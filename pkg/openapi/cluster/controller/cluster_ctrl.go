@@ -152,7 +152,7 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 	}
 
 	if err := cc.clusterUcase.GlobalConfigs().UpdateGlobalConfig(&req); err != nil {
-		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		ginutil.JSON(c, nil, err)
 		return
 	}
 
@@ -189,7 +189,7 @@ func (cc *ClusterController) Install(c *gin.Context) {
 		return
 	}
 
-	if err := cc.clusterUcase.Install().Install(&req); err != nil {
+	if err := cc.clusterUcase.Install().Install(); err != nil {
 		ginutil.JSON(c, nil, err)
 		return
 	}

@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"strconv"
 	"time"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
@@ -261,7 +263,50 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *v1.Global
 	clusterInfo.Spec.NodesForGateway = setNodes(source.NodesForGateways)
 	clusterInfo.Spec.NodesForChaos = setNodes(source.NodesForChaos)
 
+	clusterInfo.Spec.RainbondVolumeSpecRWX = convertRainbondVolume(source.RainbondVolumes.RWX)
+	if source.RainbondVolumes.RWO != nil {
+		clusterInfo.Spec.RainbondVolumeSpecRWO = convertRainbondVolume(source.RainbondVolumes.RWO)
+	}
+
 	return clusterInfo, nil
+}
+
+func convertRainbondVolume(rv *v1.RainbondVolume) *v1alpha1.RainbondVolumeSpec {
+	var storageRequest int32 = 1
+	spec := v1alpha1.RainbondVolumeSpec{
+		StorageClassName: rv.StorageClassName,
+	}
+	if rv.StorageClassParameters != nil {
+		spec.StorageClassParameters = &v1alpha1.StorageClassParameters{
+			Provisioner: rv.StorageClassParameters.Provisioner,
+			Parameters:  rv.StorageClassParameters.Parameters,
+		}
+	}
+
+	if rv.CSIPlugin != nil {
+		csiplugin := &v1alpha1.CSIPluginSource{}
+		switch {
+		case rv.CSIPlugin.AliyunCloudDisk != nil:
+			csiplugin.AliyunCloudDisk = &v1alpha1.AliyunCloudDiskCSIPluginSource{
+				AccessKeyID:      rv.CSIPlugin.AliyunCloudDisk.AccessKeyID,
+				AccessKeySecret:  rv.CSIPlugin.AliyunCloudDisk.AccessKeySecret,
+				MaxVolumePerNode: strconv.Itoa(rv.CSIPlugin.AliyunCloudDisk.MaxVolumePerNode),
+			}
+			storageRequest = 21
+		case rv.CSIPlugin.AliyunNas != nil:
+			csiplugin.AliyunNas = &v1alpha1.AliyunNasCSIPluginSource{
+				AccessKeyID:     rv.CSIPlugin.AliyunNas.AccessKeyID,
+				AccessKeySecret: rv.CSIPlugin.AliyunNas.AccessKeySecret,
+			}
+		case rv.CSIPlugin.NFS != nil:
+			csiplugin.NFS = &v1alpha1.NFSCSIPluginSource{}
+		}
+		spec.CSIPlugin = csiplugin
+	}
+
+	spec.StorageRequest = commonutil.Int32(storageRequest)
+
+	return &spec
 }
 
 //TODO generate test case

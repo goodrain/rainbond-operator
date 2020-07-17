@@ -111,7 +111,7 @@ func NewInstallUseCase(cfg *option.Config, rainbondKubeClient versioned.Interfac
 }
 
 // Install install
-func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
+func (ic *InstallUseCaseImpl) Install() error {
 	// make sure precheck passes
 	preCheck, err := ic.clusterUcase.PreCheck()
 	if err != nil {
@@ -128,6 +128,8 @@ func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
 		}
 		return err
 	}
+
+	req := &v1.ClusterInstallReq{}
 
 	// create rainbond volume
 	if err := ic.createRainbondVolumes(req); err != nil {

@@ -117,8 +117,11 @@ type RainbondClusterSpec struct {
 	InstallVersion string `json:"installVersion,omitempty"`
 	// Whether the configuration has been completed
 	ConfigCompleted bool `json:"configCompleted,omitempty"`
-	//InstallPackageConfig define install package download config
+	// Deprecated. InstallPackageConfig define install package download config
 	InstallPackageConfig InstallPackageConfig `json:"installPackageConfig,omitempty"`
+
+	RainbondVolumeSpecRWX *RainbondVolumeSpec `json:"rainbondVolumeSpecRWX,omitempty"`
+	RainbondVolumeSpecRWO *RainbondVolumeSpec `json:"rainbondVolumeSpecRWO,omitempty"`
 }
 
 //InstallPackageConfig define install package download config

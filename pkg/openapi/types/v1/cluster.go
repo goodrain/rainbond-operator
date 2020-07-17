@@ -153,6 +153,8 @@ type GlobalConfigs struct {
 	GatewayIngressIPs []string   `json:"gatewayIngressIPs"`
 	NodesForGateways  []*K8sNode `json:"nodesForGateway" binding:"required,dive,required"`
 	NodesForChaos     []*K8sNode `json:"nodesForChaos" binding:"required,dive,required"`
+
+	RainbondVolumes RainbondVolumes `json:"rainbondVolumes" binding:"required,dive,required"`
 }
 
 // AliyunCloudDiskCSIPluginSource represents a aliyun cloud disk CSI plugin.
