@@ -346,6 +346,10 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 		r.cluster.Status.DeleteCondition(rainbondv1alpha1.RainbondClusterConditionTypeStorage)
 	}
 
+	dnsPrechecker := precheck.NewDNSPrechecker(r.cluster, r.log)
+	dnsCondition := dnsPrechecker.Check()
+	r.cluster.Status.UpdateCondition(&dnsCondition)
+
 	return r.cluster.Status.Conditions
 }
 

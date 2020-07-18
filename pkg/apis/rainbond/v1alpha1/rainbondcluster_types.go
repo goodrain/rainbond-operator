@@ -35,6 +35,7 @@ const (
 	RainbondClusterConditionTypeImageRepository   = "ImageRepository"
 	RainbondClusterConditionTypeKubernetesVersion = "KubernetesVersion"
 	RainbondClusterConditionTypeStorage           = "Storage"
+	RainbondClusterConditionTypeDNS               = "DNS"
 )
 
 // RainbondClusterCondition contains condition information for rainbondcluster.
