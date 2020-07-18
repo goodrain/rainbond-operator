@@ -2,23 +2,37 @@
   <el-row :gutter="12">
     <el-col :span="1" class="d2-f-16">
       <div class="el-step__icon is-text">
-        <div class="el-step__icon-inner">{{index+1}}</div>
+        <div class="el-step__icon-inner">{{ index + 1 }}</div>
       </div>
     </el-col>
-    <el-col :span="16" class="d2-f-16">{{phaseMap[item.stepName]}}</el-col>
-    <el-col :span="6" class="d2-f-12">{{phaseDesc[item.stepName]}}</el-col>
+    <el-col :span="16" class="d2-f-16">{{ phaseMap[item.stepName] }}</el-col>
+    <el-col :span="6" class="d2-f-12">{{ phaseDesc[item.stepName] }}</el-col>
 
     <el-col :span="1">
-      <i v-if="item.status==='status_finished'" class="el-icon-circle-check success d2-f-20"></i>
-      <i v-else-if="item.status==='status_failed'" class="el-icon-circle-close error d2-f-20"></i>
-      <i v-else-if="item.status==='status_waiting'" class="el-icon-refresh-right loadings d2-f-20"></i>
+      <i
+        v-if="item.status === 'status_finished'"
+        class="el-icon-circle-check success d2-f-20"
+      ></i>
+      <i
+        v-else-if="item.status === 'status_failed'"
+        class="el-icon-circle-close error d2-f-20"
+      ></i>
+      <i
+        v-else-if="item.status === 'status_waiting'"
+        class="el-icon-refresh-right loadings d2-f-20"
+      ></i>
       <i v-else class="el-icon-refresh d2-animation loadings d2-f-20"></i>
     </el-col>
-    <el-progress :percentage="item.progress" class="d2-h-50 d2-mb"></el-progress>
-    <div v-show="(item.reason ||item.message )">
+    <el-progress
+      :percentage="item.progress"
+      class="d2-h-50 d2-mb w95"
+    ></el-progress>
+    <div v-show="item.reason || item.message">
       <el-col :span="24" class="description cen errorTitleColor">
         <el-button
-          v-show="item.stepName==='step_download'&&item.status==='status_failed'"
+          v-show="
+            item.stepName === 'step_download' && item.status === 'status_failed'
+          "
           size="small"
           type="primary"
           @click="submit"
@@ -26,8 +40,11 @@
           重新上传
           <i class="el-icon-upload el-icon--right"></i>
         </el-button>
-           <el-button
-          v-show="item.stepName==='step_handle_image'&&item.status==='status_failed'"
+        <el-button
+          v-show="
+            item.stepName === 'step_handle_image' &&
+              item.status === 'status_failed'
+          "
           size="small"
           type="primary"
           @click="handleRetry"
@@ -35,10 +52,21 @@
           重试
         </el-button>
       </el-col>
-      <el-col v-show="item.reason" :span="2" class="description errorTitleColor">原因:</el-col>
-      <el-col v-show="item.reason" :span="22" class="description">{{item.reason}}</el-col>
-      <el-col v-show="item.message" :span="2" class="description errorTitleColor">消息:</el-col>
-      <el-col v-show="item.message" :span="22" class="description">{{item.message}}</el-col>
+      <el-col v-show="item.reason" :span="2" class="description errorTitleColor"
+        >原因:</el-col
+      >
+      <el-col v-show="item.reason" :span="22" class="description">{{
+        item.reason
+      }}</el-col>
+      <el-col
+        v-show="item.message"
+        :span="2"
+        class="description errorTitleColor"
+        >消息:</el-col
+      >
+      <el-col v-show="item.message" :span="22" class="description">{{
+        item.message
+      }}</el-col>
     </div>
   </el-row>
 </template>
@@ -93,7 +121,7 @@ export default {
 }
 </script>
 
-<style rel="stylesheet/scss" lang="scss" scoped>
+<style lang="scss" scoped>
 .cen {
   text-align: center;
 }
@@ -131,5 +159,11 @@ export default {
 }
 .error {
   color: #f5222d;
+}
+</style>
+
+<style>
+.w95 .el-progress-bar {
+  width: 95% !important;
 }
 </style>
