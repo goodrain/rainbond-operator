@@ -403,38 +403,19 @@
       <!-- eip config -->
       <el-form-item :label="$t('page.install.config.gatewayIP')" prop="ips">
         <div class="boxs">
-<<<<<<< HEAD
-          <div
-            v-for="(item, indexs) in ruleForm.gatewayIngressIPs"
-            :key="indexs"
-            class="cen"
-          >
-            <el-input
-              v-model="ruleForm.gatewayIngressIPs[indexs]"
-              class="d2-input_inner"
-            ></el-input>
-            <em
-=======
           <div v-for="(item, indexs) in ruleForm.gatewayIngressIPs" :key="indexs" class="cen">
             <el-input v-model="ruleForm.gatewayIngressIPs[indexs]" class="d2-input_inner"></el-input>
             <!-- <em
->>>>>>> rainbond/master
               v-show="ruleForm.gatewayIngressIPs.length != 1"
               class="el-icon-remove-outline icon-f-22 d2-ml-16"
               @click.prevent="removeIP(indexs)"
             /> -->
           </div>
-<<<<<<< HEAD
-          <el-button style="margin-top:1rem" size="small" @click="addIP">
-            {{ $t("page.install.config.gatewayIPAdd") }}
-          </el-button>
-=======
           <!-- <el-button style="margin-top:1rem" size="small" @click="addIP">
             {{
             $t("page.install.config.gatewayIPAdd")
             }}
           </el-button> -->
->>>>>>> rainbond/master
         </div>
 
         <div class="clues">{{ $t("page.install.config.gatewayIPDesc") }}</div>
