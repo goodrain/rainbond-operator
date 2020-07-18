@@ -323,7 +323,8 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 	}
 
 	// image repository
-	if spec.ImageHub != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository) {
+	if spec.ImageHub != nil && spec.ImageHub.Domain != constants.DefImageRepository &&
+		!r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository) {
 		preChecker := precheck.NewImageRepoPrechecker(r.ctx, r.log, r.cluster)
 		condition := preChecker.Check()
 		r.cluster.Status.UpdateCondition(&condition)
@@ -333,6 +334,12 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 	if !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository) {
 		k8sVersion := precheck.NewK8sVersionPrechecker(r.ctx, r.log, r.client)
 		condition := k8sVersion.Check()
+		r.cluster.Status.UpdateCondition(&condition)
+	}
+
+	if r.cluster.Spec.RainbondVolumeSpecRWX != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeStorage) {
+		preChecker := precheck.NewStorage(r.ctx, r.client, r.cluster.GetNamespace(), r.cluster.Spec.RainbondVolumeSpecRWX)
+		condition := preChecker.Check()
 		r.cluster.Status.UpdateCondition(&condition)
 	}
 

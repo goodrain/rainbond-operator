@@ -131,10 +131,11 @@ func (ic *InstallUseCaseImpl) Install() error {
 
 	req := &v1.ClusterInstallReq{}
 
+	// TODO: hrh 0718
 	// create rainbond volume
-	if err := ic.createRainbondVolumes(req); err != nil {
-		return err
-	}
+	//if err := ic.createRainbondVolumes(req); err != nil {
+	//	return err
+	//}
 
 	if err := ic.createRainbondPackage(); err != nil {
 		return err
@@ -330,29 +331,29 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 		name2Claim["rbd-etcd"] = claim
 	}
 
-	if req.RainbondVolumes.RWX != nil && req.RainbondVolumes.RWX.CSIPlugin != nil {
-		if req.RainbondVolumes.RWX.CSIPlugin.NFS != nil {
-			name2Claim["nfs-provisioner"] = newClaim("nfs-provisioner")
-			name2Claim["nfs-provisioner"].replicas = commonutil.Int32(1)
-			name2Claim["nfs-provisioner"].isInit = isInit
-		}
-		if req.RainbondVolumes.RWX.CSIPlugin.AliyunNas != nil {
-			name2Claim[constants.AliyunCSINasPlugin] = newClaim(constants.AliyunCSINasPlugin)
-			name2Claim[constants.AliyunCSINasPlugin].isInit = isInit
-			name2Claim[constants.AliyunCSINasProvisioner] = newClaim(constants.AliyunCSINasProvisioner)
-			name2Claim[constants.AliyunCSINasProvisioner].isInit = isInit
-			name2Claim[constants.AliyunCSINasProvisioner].replicas = commonutil.Int32(1)
-		}
-	}
-	if req.RainbondVolumes.RWO != nil && req.RainbondVolumes.RWO.CSIPlugin != nil {
-		if req.RainbondVolumes.RWO.CSIPlugin.AliyunCloudDisk != nil {
-			name2Claim[constants.AliyunCSIDiskPlugin] = newClaim(constants.AliyunCSIDiskPlugin)
-			name2Claim[constants.AliyunCSIDiskPlugin].isInit = isInit
-			name2Claim[constants.AliyunCSIDiskProvisioner] = newClaim(constants.AliyunCSIDiskProvisioner)
-			name2Claim[constants.AliyunCSIDiskProvisioner].isInit = isInit
-			name2Claim[constants.AliyunCSIDiskProvisioner].replicas = commonutil.Int32(1)
-		}
-	}
+	//if req.RainbondVolumes.RWX != nil && req.RainbondVolumes.RWX.CSIPlugin != nil {
+	//	if req.RainbondVolumes.RWX.CSIPlugin.NFS != nil {
+	//		name2Claim["nfs-provisioner"] = newClaim("nfs-provisioner")
+	//		name2Claim["nfs-provisioner"].replicas = commonutil.Int32(1)
+	//		name2Claim["nfs-provisioner"].isInit = isInit
+	//	}
+	//	if req.RainbondVolumes.RWX.CSIPlugin.AliyunNas != nil {
+	//		name2Claim[constants.AliyunCSINasPlugin] = newClaim(constants.AliyunCSINasPlugin)
+	//		name2Claim[constants.AliyunCSINasPlugin].isInit = isInit
+	//		name2Claim[constants.AliyunCSINasProvisioner] = newClaim(constants.AliyunCSINasProvisioner)
+	//		name2Claim[constants.AliyunCSINasProvisioner].isInit = isInit
+	//		name2Claim[constants.AliyunCSINasProvisioner].replicas = commonutil.Int32(1)
+	//	}
+	//}
+	//if req.RainbondVolumes.RWO != nil && req.RainbondVolumes.RWO.CSIPlugin != nil {
+	//	if req.RainbondVolumes.RWO.CSIPlugin.AliyunCloudDisk != nil {
+	//		name2Claim[constants.AliyunCSIDiskPlugin] = newClaim(constants.AliyunCSIDiskPlugin)
+	//		name2Claim[constants.AliyunCSIDiskPlugin].isInit = isInit
+	//		name2Claim[constants.AliyunCSIDiskProvisioner] = newClaim(constants.AliyunCSIDiskProvisioner)
+	//		name2Claim[constants.AliyunCSIDiskProvisioner].isInit = isInit
+	//		name2Claim[constants.AliyunCSIDiskProvisioner].replicas = commonutil.Int32(1)
+	//	}
+	//}
 
 	return name2Claim
 }

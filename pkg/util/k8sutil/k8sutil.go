@@ -8,7 +8,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -100,4 +103,26 @@ func MaterRoleLabel(key string) map[string]string {
 		}
 	}
 	return labels
+}
+
+func CreatePersistentVolumeClaim(ns, claimName string, accessModes []corev1.PersistentVolumeAccessMode, labels map[string]string, storageClassName string, storageRequest int64) *corev1.PersistentVolumeClaim {
+	size := resource.NewQuantity(storageRequest*1024*1024*1024, resource.BinarySI)
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      claimName,
+			Namespace: ns,
+			Labels:    labels,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: accessModes,
+			Resources: corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceStorage: *size,
+				},
+			},
+			StorageClassName: commonutil.String(storageClassName),
+		},
+	}
+
+	return pvc
 }

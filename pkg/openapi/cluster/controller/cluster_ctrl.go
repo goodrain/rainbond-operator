@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 
@@ -182,13 +181,6 @@ func (cc *ClusterController) Uninstall(c *gin.Context) {
 
 // Install install
 func (cc *ClusterController) Install(c *gin.Context) {
-	var req v1.ClusterInstallReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		logrus.Debugf("[Install] %v", err)
-		ginutil.JSON(c, nil, bcode.BadRequest)
-		return
-	}
-
 	if err := cc.clusterUcase.Install().Install(); err != nil {
 		ginutil.JSON(c, nil, err)
 		return

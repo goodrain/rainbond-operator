@@ -43,21 +43,21 @@ func (d *imagerepo) Check() rainbondv1alpha1.RainbondClusterCondition {
 
 	dockerClient, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		return failConditoin(condition, err)
+		return d.failConditoin(condition, err)
 	}
 	dockerClient.NegotiateAPIVersion(d.ctx)
 
 	exists, err := imageutil.CheckIfImageExists(d.ctx, dockerClient, remoteImage)
 	if err != nil {
-		return failConditoin(condition, fmt.Errorf("check if image %s exists: %v", remoteImage, err))
+		return d.failConditoin(condition, fmt.Errorf("check if image %s exists: %v", remoteImage, err))
 	}
 
 	if !exists {
 		if err := imageutil.ImagePull(d.ctx, dockerClient, localImage); err != nil {
-			return failConditoin(condition, fmt.Errorf("pull image %s: %v", localImage, err))
+			return d.failConditoin(condition, fmt.Errorf("pull image %s: %v", localImage, err))
 		}
 		if err := dockerClient.ImageTag(d.ctx, localImage, remoteImage); err != nil {
-			return failConditoin(condition, fmt.Errorf("tag image %s to %s: %v", localImage, remoteImage, err))
+			return d.failConditoin(condition, fmt.Errorf("tag image %s to %s: %v", localImage, remoteImage, err))
 		}
 	}
 
@@ -66,15 +66,14 @@ func (d *imagerepo) Check() rainbondv1alpha1.RainbondClusterCondition {
 		"user", d.cluster.Spec.ImageHub.Username, "pass", d.cluster.Spec.ImageHub.Password)
 	if err := imageutil.ImagePush(d.ctx, dockerClient, remoteImage, rbdutil.GetImageRepository(d.cluster),
 		d.cluster.Spec.ImageHub.Username, d.cluster.Spec.ImageHub.Password); err != nil {
-		return failConditoin(condition, fmt.Errorf("push image: %v", err))
+		return d.failConditoin(condition, fmt.Errorf("push image: %v", err))
 	}
 
 	return condition
 }
 
-func failConditoin(condition rainbondv1alpha1.RainbondClusterCondition, err error) rainbondv1alpha1.RainbondClusterCondition {
-	condition.Status = corev1.ConditionFalse
-	condition.Reason = "ImageRepoFailed"
-	condition.Message = err.Error()
-	return condition
+func (d *imagerepo) failConditoin(condition rainbondv1alpha1.RainbondClusterCondition, err error) rainbondv1alpha1.RainbondClusterCondition {
+	return failConditoin(condition, "ImageRepoFailed", err)
 }
+
+
