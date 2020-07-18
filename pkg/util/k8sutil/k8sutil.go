@@ -146,9 +146,9 @@ func PersistentVolumeClaimForGrdata(ns, claimName string, accessModes []corev1.P
 	return pvc
 }
 
-func GetGrdataPVC(ctx context.Context, client client.Client, ns string) (*corev1.PersistentVolumeClaim, error) {
+func GetFoobarPVC(ctx context.Context, client client.Client, ns string) (*corev1.PersistentVolumeClaim, error) {
 	pvc := corev1.PersistentVolumeClaim{}
-	err := client.Get(ctx, types.NamespacedName{Namespace: ns, Name: constants.GrDataPVC}, &pvc)
+	err := client.Get(ctx, types.NamespacedName{Namespace: ns, Name: constants.FoobarPVC}, &pvc)
 	if err != nil {
 		return nil, err
 	}

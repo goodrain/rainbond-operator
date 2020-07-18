@@ -362,19 +362,18 @@ func (r *rainbondClusteMgr) isConditionTrue(typ3 rainbondv1alpha1.RainbondCluste
 	return false
 }
 
-func (r *rainbondClusteMgr) createGrdataPVCIfNotExists() error {
-	if r.cluster.Spec.RainbondVolumeSpecRWX == nil || r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName == "" {
-		return nil
+func (r *rainbondClusteMgr) createFoobarPVCIfNotExists() error {
+	var storageClassName string
+	if r.cluster.Spec.RainbondVolumeSpecRWX != nil && r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName != "" {
+		storageClassName = r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName
 	}
 
-	storageClassName := r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName
-
-	pvc, err := k8sutil.GetGrdataPVC(r.ctx, r.client, r.cluster.GetNamespace())
+	pvc, err := k8sutil.GetFoobarPVC(r.ctx, r.client, r.cluster.GetNamespace())
 	if err != nil {
 		if !k8sErrors.IsNotFound(err) {
 			return err
 		}
-		return r.createPVCForGrdata(storageClassName)
+		return r.createPVCForFoobar(storageClassName)
 	}
 
 	// check if storageClass is up to date
@@ -385,8 +384,7 @@ func (r *rainbondClusteMgr) createGrdataPVCIfNotExists() error {
 	if err := r.client.Delete(r.ctx, pvc, &client.DeleteOptions{GracePeriodSeconds: commonutil.Int64(0)}); err != nil {
 		return err
 	}
-
-	if err := r.createPVCForGrdata(storageClassName); err != nil {
+	if err := r.createPVCForFoobar(storageClassName); err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
 			return nil
 		}
@@ -396,13 +394,16 @@ func (r *rainbondClusteMgr) createGrdataPVCIfNotExists() error {
 	return nil
 }
 
-func (r *rainbondClusteMgr) createPVCForGrdata(storageClassName string) error {
+func (r *rainbondClusteMgr) createPVCForFoobar(storageClassName string) error {
+	if storageClassName == "" {
+		return nil
+	}
 	// create pvc
 	accessModes := []corev1.PersistentVolumeAccessMode{
 		corev1.ReadWriteMany,
 	}
 	labels := rbdutil.LabelsForRainbond(nil)
-	pvc := k8sutil.PersistentVolumeClaimForGrdata(r.cluster.GetNamespace(), constants.GrDataPVC, accessModes, labels,
+	pvc := k8sutil.PersistentVolumeClaimForGrdata(r.cluster.GetNamespace(), constants.FoobarPVC, accessModes, labels,
 		storageClassName, 1)
 	return r.client.Create(r.ctx, pvc)
 }

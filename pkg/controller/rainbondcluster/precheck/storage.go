@@ -40,7 +40,7 @@ func (s *storage) Check() rainbondv1alpha1.RainbondClusterCondition {
 
 	if s.rwx.StorageClassName != "" {
 		// check if pvc exists
-		pvc, err := k8sutil.GetGrdataPVC(s.ctx, s.client, s.ns)
+		pvc, err := k8sutil.GetFoobarPVC(s.ctx, s.client, s.ns)
 		if err != nil {
 			return s.failConditoin(condition, err.Error())
 		}
@@ -76,9 +76,6 @@ func (s *storage) failConditoin(condition rainbondv1alpha1.RainbondClusterCondit
 func eventListToString(eventList *corev1.EventList) string {
 	var res []string
 	for _, event := range eventList.Items {
-		if event.Type == corev1.EventTypeNormal {
-			continue
-		}
 		res = append(res, fmt.Sprintf("%s: %s", event.Reason, event.Message))
 	}
 	return strings.Join(res, ",")

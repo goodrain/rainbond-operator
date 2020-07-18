@@ -15,6 +15,8 @@ const (
 	GrDataPVC = "rbd-cpt-grdata"
 	// CachePVC -
 	CachePVC = "rbd-chaos-cache"
+	// FoobarPVC -
+	FoobarPVC = "foobar"
 	// SpecialGatewayLabelKey is a special node label, used to specify where to install the rbd-gateway
 	SpecialGatewayLabelKey = "rainbond.io/gateway"
 	// SpecialChaosLabelKey is a special node label, used to specify where to install the rbd-chaos
