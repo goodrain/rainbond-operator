@@ -427,15 +427,12 @@ func (ic *InstallUseCaseImpl) RestartPackage() error {
 }
 
 func (ic *InstallUseCaseImpl) parseInstallStatus(clusterInfo *v1alpha1.RainbondCluster, pkgInfo *v1alpha1.RainbondPackage, componentStatues []*v1.RbdComponentStatus) (statusres model.StatusRes) {
-	defer commonutil.TimeConsume(time.Now())
-
 	statusres.StatusList = append(statusres.StatusList, ic.stepSetting())
 	statusres.StatusList = append(statusres.StatusList, ic.stepHub(clusterInfo, componentStatues))
 	statusres.StatusList = append(statusres.StatusList, ic.stepDownload(clusterInfo, pkgInfo))
 	statusres.StatusList = append(statusres.StatusList, ic.stepUnpack(clusterInfo, pkgInfo))
 	statusres.StatusList = append(statusres.StatusList, ic.stepHandleImage(clusterInfo, pkgInfo))
 	statusres.StatusList = append(statusres.StatusList, ic.stepCreateComponent(componentStatues, pkgInfo))
-
 	return
 }
 
@@ -449,8 +446,9 @@ func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
 	}
 }
 
-func (ic *InstallUseCaseImpl) stepHub(clusterInfo *v1alpha1.RainbondCluster, componentStatues []*v1.RbdComponentStatus) model.InstallStatus {
-	if clusterInfo.Spec.ImageHub != nil { // custom image hub, do not prepare it by rainbond operator, progress set 100 directly
+func (ic *InstallUseCaseImpl) stepHub(cluster *v1alpha1.RainbondCluster, componentStatues []*v1.RbdComponentStatus) model.InstallStatus {
+	idx, condition := cluster.Status.GetCondition(v1alpha1.RainbondClusterConditionTypeImageRepository)
+	if idx != -1 && condition.Status == corev1.ConditionTrue {
 		return model.InstallStatus{
 			StepName: StepPrepareHub,
 			Status:   InstallStatusFinished,
@@ -497,7 +495,6 @@ func (ic *InstallUseCaseImpl) stepHub(clusterInfo *v1alpha1.RainbondCluster, com
 
 // step 2 download rainbond
 func (ic *InstallUseCaseImpl) stepDownload(clusterInfo *v1alpha1.RainbondCluster, pkgInfo *v1alpha1.RainbondPackage) model.InstallStatus {
-	defer commonutil.TimeConsume(time.Now())
 	if pkgInfo.Status == nil {
 		return model.InstallStatus{
 			StepName: StepDownload,
