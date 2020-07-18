@@ -342,6 +342,9 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 		preChecker := precheck.NewStorage(r.ctx, r.client, r.cluster.GetNamespace(), r.cluster.Spec.RainbondVolumeSpecRWX)
 		condition := preChecker.Check()
 		r.cluster.Status.UpdateCondition(&condition)
+	} else {
+		// delete Storage condition
+		r.cluster.Status.DeleteCondition(rainbondv1alpha1.RainbondClusterConditionTypeStorage)
 	}
 
 	return r.cluster.Status.Conditions
