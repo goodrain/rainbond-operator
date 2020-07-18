@@ -1,7 +1,7 @@
 <template>
   <d2-container type="full">
     <div class="d2-ml-115 d2-w-1100">
-      <div v-show="activeName === 'configuration'">
+      <div v-if="activeName === 'configuration'">
         <p class="d2-f-24">{{ $t("page.install.config.title") }}</p>
 
         <cluster-configuration
@@ -11,7 +11,7 @@
           class="d2-mt"
         ></cluster-configuration>
       </div>
-      <div v-show="activeName === 'detection'">
+      <div v-if="activeName === 'detection'">
         <p class="d2-f-24">{{ $t("page.install.config.detection") }}</p>
 
         <detection
@@ -22,7 +22,7 @@
         ></detection>
       </div>
 
-      <div v-show="activeName === 'start'">
+      <div v-if="activeName === 'start'">
         <p class="d2-f-24">{{ $t("page.install.install.title") }}</p>
         <install-results
           @onhandleErrorRecord="handleRecord"
