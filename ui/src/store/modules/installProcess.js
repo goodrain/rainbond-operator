@@ -1,6 +1,7 @@
 import {
   getClusterInfo,
   getState,
+  getDetectionState,
   getClusterInitConfig,
   putClusterConfig,
   installCluster,
@@ -53,7 +54,7 @@ const installProcess = {
       })
     },
 
-    fetchState ({ commit }, resdata) {
+    fetchState (_, resdata) {
       return new Promise((resolve, reject) => {
         getState(resdata)
           .then(response => {
@@ -64,7 +65,17 @@ const installProcess = {
           })
       })
     },
-
+    fetchDetectionState (_, resdata) {
+      return new Promise((resolve, reject) => {
+        getDetectionState(resdata)
+          .then(response => {
+            resolve(response)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
     getClusterInitConfig ({ commit }, resdata) {
       return new Promise((resolve, reject) => {
         getClusterInitConfig(resdata)

@@ -7,6 +7,13 @@ export function getState () {
     method: 'get'
   })
 }
+//  获取检测状态
+export function getDetectionState () {
+  return request({
+    url: `/cluster/precheck`,
+    method: 'get'
+  })
+}
 
 export function getClusterInitConfig () {
   return request({

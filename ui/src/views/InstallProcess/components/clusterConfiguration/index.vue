@@ -17,29 +17,33 @@
       class="demo-ruleForm"
     >
       <!-- install mode -->
-      <el-form-item :label="$t('page.install.config.installmode')" prop="enableHA">
-        <el-radio-group class="d2-ml-35" v-model="ruleForm.enableHA" @change="installModeChange">
+      <el-form-item
+        :label="$t('page.install.config.installmode')"
+        prop="enableHA"
+      >
+        <el-radio-group
+          class="d2-ml-35"
+          v-model="ruleForm.enableHA"
+          @change="installModeChange"
+        >
           <el-radio class="d2-w-150" :label="false">
-            {{
-            $t("page.install.config.minimize")
-            }}
+            {{ $t("page.install.config.minimize") }}
           </el-radio>
           <el-radio :label="true">{{ $t("page.install.config.ha") }}</el-radio>
         </el-radio-group>
         <div class="clues">{{ $t("page.install.config.installmodeDesc") }}</div>
       </el-form-item>
       <!-- hub config -->
-      <el-form-item :label="$t('page.install.config.hub')" prop="imageHubInstall">
+      <el-form-item
+        :label="$t('page.install.config.hub')"
+        prop="imageHubInstall"
+      >
         <el-radio-group class="d2-ml-35" v-model="ruleForm.imageHubInstall">
           <el-radio class="d2-w-150" :label="true">
-            {{
-            $t("page.install.config.hubInstall")
-            }}
+            {{ $t("page.install.config.hubInstall") }}
           </el-radio>
           <el-radio :label="false">
-            {{
-            $t("page.install.config.hubProvide")
-            }}
+            {{ $t("page.install.config.hubProvide") }}
           </el-radio>
         </el-radio-group>
         <div v-if="!ruleForm.imageHubInstall" class="boxs">
@@ -49,7 +53,10 @@
             label-width="85px"
             class="d2-mt d2-form-item"
           >
-            <el-input v-model="ruleForm.imageHubDomain" class="d2-input_inner"></el-input>
+            <el-input
+              v-model="ruleForm.imageHubDomain"
+              class="d2-input_inner"
+            ></el-input>
           </el-form-item>
           <el-form-item
             prop="hubnamespace"
@@ -57,7 +64,10 @@
             label-width="85px"
             class="d2-mt d2-form-item"
           >
-            <el-input v-model="ruleForm.imageHubNamespace" class="d2-input_inner"></el-input>
+            <el-input
+              v-model="ruleForm.imageHubNamespace"
+              class="d2-input_inner"
+            ></el-input>
           </el-form-item>
           <el-form-item
             prop="hubuser"
@@ -65,7 +75,10 @@
             label-width="85px"
             class="d2-mt d2-form-item"
           >
-            <el-input v-model="ruleForm.imageHubUsername" class="d2-input_inner"></el-input>
+            <el-input
+              v-model="ruleForm.imageHubUsername"
+              class="d2-input_inner"
+            ></el-input>
           </el-form-item>
           <el-form-item
             prop="hubpassword"
@@ -73,30 +86,31 @@
             label-width="85px"
             class="d2-mt d2-form-item"
           >
-            <el-input v-model="ruleForm.imageHubPassword" show-password class="d2-input_inner"></el-input>
+            <el-input
+              v-model="ruleForm.imageHubPassword"
+              show-password
+              class="d2-input_inner"
+            ></el-input>
           </el-form-item>
         </div>
         <div class="clues">{{ $t("page.install.config.hubDesc") }}</div>
       </el-form-item>
       <!-- region db config -->
-      <el-form-item :label="$t('page.install.config.regionDB')" prop="installRegionDB">
+      <el-form-item
+        :label="$t('page.install.config.regionDB')"
+        prop="installRegionDB"
+      >
         <el-radio-group class="d2-ml-35" v-model="ruleForm.installRegionDB">
           <el-radio class="d2-w-150" :label="true">
-            {{
-            $t("page.install.config.regionDBInstall")
-            }}
+            {{ $t("page.install.config.regionDBInstall") }}
           </el-radio>
           <el-radio :label="false">
-            {{
-            $t("page.install.config.regionDBProvide")
-            }}
+            {{ $t("page.install.config.regionDBProvide") }}
           </el-radio>
         </el-radio-group>
         <div v-if="!ruleForm.installRegionDB" class="boxs">
           <span class="desc">
-            {{
-            $t("page.install.config.regionDBProviderDesc")
-            }}
+            {{ $t("page.install.config.regionDBProviderDesc") }}
           </span>
           <el-form-item
             :label="$t('page.install.config.regionDBAddress')"
@@ -111,7 +125,10 @@
             ></el-input>
             <span class="d2-w-20">:</span>
 
-            <el-form-item prop="regionDatabasePort" style="width:300px;display: inline-block">
+            <el-form-item
+              prop="regionDatabasePort"
+              style="width:300px;display: inline-block"
+            >
               <el-input
                 v-model="ruleForm.regionDatabasePort"
                 class="d2-input_inner_url"
@@ -127,7 +144,10 @@
             class="d2-mt d2-form-item"
             prop="regionDatabaseUsername"
           >
-            <el-input v-model="ruleForm.regionDatabaseUsername" class="d2-input_inner"></el-input>
+            <el-input
+              v-model="ruleForm.regionDatabaseUsername"
+              class="d2-input_inner"
+            ></el-input>
           </el-form-item>
           <el-form-item
             :label="$t('page.install.config.regionDBPassword')"
@@ -145,24 +165,22 @@
         <div class="clues">{{ $t("page.install.config.regionDBDesc") }}</div>
       </el-form-item>
       <!-- ui db config -->
-      <el-form-item v-if="!onlyRegion" :label="$t('page.install.config.uiDB')" prop="installUIDB">
+      <el-form-item
+        v-if="!onlyRegion"
+        :label="$t('page.install.config.uiDB')"
+        prop="installUIDB"
+      >
         <el-radio-group class="d2-ml-35" v-model="ruleForm.installUIDB">
           <el-radio class="d2-w-150" :label="true">
-            {{
-            $t("page.install.config.uiDBInstall")
-            }}
+            {{ $t("page.install.config.uiDBInstall") }}
           </el-radio>
           <el-radio :label="false">
-            {{
-            $t("page.install.config.uiDBProvide")
-            }}
+            {{ $t("page.install.config.uiDBProvide") }}
           </el-radio>
         </el-radio-group>
         <div v-if="!ruleForm.installUIDB" class="boxs">
           <span class="desc">
-            {{
-            $t("page.install.config.uiDBProviderDesc")
-            }}
+            {{ $t("page.install.config.uiDBProviderDesc") }}
           </span>
           <el-form-item
             :label="$t('page.install.config.uiDBAddress')"
@@ -177,7 +195,10 @@
             ></el-input>
             <span class="d2-w-20">:</span>
 
-            <el-form-item prop="uiDatabasePort" style="width:300px;display: inline-block">
+            <el-form-item
+              prop="uiDatabasePort"
+              style="width:300px;display: inline-block"
+            >
               <el-input
                 v-model="ruleForm.uiDatabasePort"
                 class="d2-input_inner_url"
@@ -192,7 +213,10 @@
             class="d2-mt d2-form-item"
             prop="uiDatabaseUsername"
           >
-            <el-input v-model="ruleForm.uiDatabaseUsername" class="d2-input_inner"></el-input>
+            <el-input
+              v-model="ruleForm.uiDatabaseUsername"
+              class="d2-input_inner"
+            ></el-input>
           </el-form-item>
           <el-form-item
             :label="$t('page.install.config.uiDBPassword')"
@@ -200,7 +224,11 @@
             class="d2-mt d2-form-item"
             prop="uiDatabasePassword"
           >
-            <el-input v-model="ruleForm.uiDatabasePassword" show-password class="d2-input_inner"></el-input>
+            <el-input
+              v-model="ruleForm.uiDatabasePassword"
+              show-password
+              class="d2-input_inner"
+            ></el-input>
           </el-form-item>
         </div>
         <div class="clues">{{ $t("page.install.config.uiDBDesc") }}</div>
@@ -209,14 +237,10 @@
       <el-form-item :label="$t('page.install.config.etcd')" prop="installETCD">
         <el-radio-group class="d2-ml-35" v-model="ruleForm.installETCD">
           <el-radio class="d2-w-150" :label="true">
-            {{
-            $t("page.install.config.etcdInstall")
-            }}
+            {{ $t("page.install.config.etcdInstall") }}
           </el-radio>
           <el-radio :label="false">
-            {{
-            $t("page.install.config.etcdProvide")
-            }}
+            {{ $t("page.install.config.etcdProvide") }}
           </el-radio>
         </el-radio-group>
         <div v-if="!ruleForm.installETCD" class="boxs">
@@ -234,7 +258,10 @@
                 marginTop: index === 0 ? '0' : '20px'
               }"
             >
-              <el-input v-model="ruleForm.etcdConfig.endpoints[index]" class="d2-input_inner"></el-input>
+              <el-input
+                v-model="ruleForm.etcdConfig.endpoints[index]"
+                class="d2-input_inner"
+              ></el-input>
               <em
                 v-if="ruleForm.etcdConfig.endpoints.length > 1"
                 style="margin-left:1rem;font-size:16px"
@@ -247,7 +274,8 @@
             style="margin:1rem 0 0 120px"
             size="small"
             @click="addEndpoints"
-          >{{ $t("page.install.config.etcdEndpointAdd") }}</el-button>
+            >{{ $t("page.install.config.etcdEndpointAdd") }}</el-button
+          >
           <el-form-item
             :label="$t('page.install.config.etcdTLS')"
             label-width="120px"
@@ -310,20 +338,31 @@
           :remote-method="queryGatewayNode"
           default-first-option
         >
-          <el-option v-for="item in optionGatewayNodes" :key="item" :label="item" :value="item"></el-option>
+          <el-option
+            v-for="item in optionGatewayNodes"
+            :key="item"
+            :label="item"
+            :value="item"
+          ></el-option>
         </el-select>
 
         <div class="clues">{{ $t("page.install.config.gatewayNodeDesc") }}</div>
-        <div class="clues">提示：如果你无法搜索并选择一个网关 IP，请参考
-         <a style="color:#409EFF"
+        <div class="clues">
+          提示：如果你无法搜索并选择一个网关 IP，请参考
+          <a
+            style="color:#409EFF"
             target="_black"
-            href="https://www.rainbond.com/docs/user-operations/install/troubleshooting/#%E6%97%A0%E6%B3%95%E9%80%89%E6%8B%A9%E7%BD%91%E5%85%B3%E8%8A%82%E7%82%B9">
+            href="https://www.rainbond.com/docs/user-operations/install/troubleshooting/#%E6%97%A0%E6%B3%95%E9%80%89%E6%8B%A9%E7%BD%91%E5%85%B3%E8%8A%82%E7%82%B9"
+          >
             无法选择网关节点。
-         </a>
+          </a>
         </div>
       </el-form-item>
       <!-- chaos node config -->
-      <el-form-item :label="$t('page.install.config.chaosNode')" prop="chaosNodes">
+      <el-form-item
+        :label="$t('page.install.config.chaosNode')"
+        prop="chaosNodes"
+      >
         <el-select
           v-model="setChaosNodes"
           multiple
@@ -335,12 +374,20 @@
           :remote-method="queryChaosNode"
           default-first-option
         >
-          <el-option v-for="item in optionChaosNodes" :key="item" :label="item" :value="item"></el-option>
+          <el-option
+            v-for="item in optionChaosNodes"
+            :key="item"
+            :label="item"
+            :value="item"
+          ></el-option>
         </el-select>
         <div class="clues">{{ $t("page.install.config.chaosNodeDesc") }}</div>
       </el-form-item>
       <!-- default app domain config -->
-      <el-form-item :label="$t('page.install.config.appDefaultDomain')" prop="HTTPDomain">
+      <el-form-item
+        :label="$t('page.install.config.appDefaultDomain')"
+        prop="HTTPDomain"
+      >
         <el-switch v-model="ruleForm.HTTPDomainSwitch"></el-switch>
         <el-input
           style="margin-left:10px"
@@ -349,43 +396,71 @@
           :placeholder="$t('page.install.config.appDefaultDomainPlaceholder')"
           class="d2-input_inner"
         ></el-input>
-        <div class="clues">{{ $t("page.install.config.appDefaultDomainDesc") }}</div>
+        <div class="clues">
+          {{ $t("page.install.config.appDefaultDomainDesc") }}
+        </div>
       </el-form-item>
       <!-- eip config -->
       <el-form-item :label="$t('page.install.config.gatewayIP')" prop="ips">
         <div class="boxs">
+<<<<<<< HEAD
+          <div
+            v-for="(item, indexs) in ruleForm.gatewayIngressIPs"
+            :key="indexs"
+            class="cen"
+          >
+            <el-input
+              v-model="ruleForm.gatewayIngressIPs[indexs]"
+              class="d2-input_inner"
+            ></el-input>
+            <em
+=======
           <div v-for="(item, indexs) in ruleForm.gatewayIngressIPs" :key="indexs" class="cen">
             <el-input v-model="ruleForm.gatewayIngressIPs[indexs]" class="d2-input_inner"></el-input>
             <!-- <em
+>>>>>>> rainbond/master
               v-show="ruleForm.gatewayIngressIPs.length != 1"
               class="el-icon-remove-outline icon-f-22 d2-ml-16"
               @click.prevent="removeIP(indexs)"
             /> -->
           </div>
+<<<<<<< HEAD
+          <el-button style="margin-top:1rem" size="small" @click="addIP">
+            {{ $t("page.install.config.gatewayIPAdd") }}
+          </el-button>
+=======
           <!-- <el-button style="margin-top:1rem" size="small" @click="addIP">
             {{
             $t("page.install.config.gatewayIPAdd")
             }}
           </el-button> -->
+>>>>>>> rainbond/master
         </div>
 
         <div class="clues">{{ $t("page.install.config.gatewayIPDesc") }}</div>
       </el-form-item>
       <!-- share storage config -->
-      <el-form-item :label="$t('page.install.config.shareStorage')" prop="activeStorageType">
+      <el-form-item
+        :label="$t('page.install.config.shareStorage')"
+        prop="activeStorageType"
+      >
         <el-radio-group
           @change="validShareStorage"
           v-model="ruleForm.activeStorageType"
           class="d2-ml-35"
         >
-          <el-radio
-            v-if="!ruleForm.enableHA"
-            class="d2-w-150"
-            :label="1"
-          >{{ $t("page.install.config.newNFSServer") }}</el-radio>
-          <el-radio :label="2">{{ $t("page.install.config.selectStorage") }}</el-radio>
-          <el-radio :label="3">{{ $t("page.install.config.useAliNasFilesystem") }}</el-radio>
-          <el-radio :label="4">{{ $t("page.install.config.useAliNasSubpath") }}</el-radio>
+          <el-radio v-if="!ruleForm.enableHA" class="d2-w-150" :label="1">{{
+            $t("page.install.config.newNFSServer")
+          }}</el-radio>
+          <el-radio :label="2">{{
+            $t("page.install.config.selectStorage")
+          }}</el-radio>
+          <el-radio :label="3">{{
+            $t("page.install.config.useAliNasFilesystem")
+          }}</el-radio>
+          <el-radio :label="4">{{
+            $t("page.install.config.useAliNasSubpath")
+          }}</el-radio>
         </el-radio-group>
         <!-- storage class -->
         <div v-show="ruleForm.activeStorageType == 2" class="boxs">
@@ -395,21 +470,25 @@
                 clusterInitInfo.storageClasses.length === 0
             "
             class="desc"
-          >{{ $t("page.install.config.noStorageClass") }}</span>
+            >{{ $t("page.install.config.noStorageClass") }}</span
+          >
           <el-form-item
             label="StorageClass"
             label-width="120px"
             class="d2-mt-form d2-form-item"
             v-if="clusterInitInfo.storageClasses"
           >
-            <el-radio-group @change="validShareStorage" v-model="ruleForm.shareStorageClassName">
+            <el-radio-group
+              @change="validShareStorage"
+              v-model="ruleForm.shareStorageClassName"
+            >
               <el-radio
                 border
                 style="margin-bottom: 1rem;margin-left:10px"
                 size="medium"
-                :title="item.accessMode==='Unknown'&&'无法识别读写模式'"
+                :title="item.accessMode === 'Unknown' && '无法识别读写模式'"
                 v-for="item in clusterInitInfo.storageClasses"
-                v-show="item.accessMode!=='ReadWriteOnce'"
+                v-show="item.accessMode !== 'ReadWriteOnce'"
                 :key="item.name"
                 :label="item.name"
               ></el-radio>
@@ -419,8 +498,14 @@
 
         <!-- useAliNasFilesystem-->
         <div v-show="ruleForm.activeStorageType == 3" class="boxs">
-          <span class="desc">{{ $t("page.install.config.nasFilesystem") }}</span>
-          <el-form-item label="AccessKeyID" label-width="130px" class="d2-mt d2-form-item">
+          <span class="desc">{{
+            $t("page.install.config.nasFilesystem")
+          }}</span>
+          <el-form-item
+            label="AccessKeyID"
+            label-width="130px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validShareStorage"
               :placeholder="$t('page.install.config.accessKeyID')"
@@ -428,7 +513,11 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="AccessKeySecret" label-width="130px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="AccessKeySecret"
+            label-width="130px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validShareStorage"
               :placeholder="$t('page.install.config.accessKeySecret')"
@@ -436,7 +525,11 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="ZoneID" label-width="130px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="ZoneID"
+            label-width="130px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validShareStorage"
               :placeholder="$t('page.install.config.zoneId')"
@@ -444,7 +537,11 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="VPC ID" label-width="130px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="VPC ID"
+            label-width="130px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validShareStorage"
               :placeholder="$t('page.install.config.vpcId')"
@@ -482,21 +579,28 @@
             ></el-input>
           </el-form-item>
         </div>
-        <div class="clues">{{ $t("page.install.config.shareStorageDesc") }}</div>
+        <div class="clues">
+          {{ $t("page.install.config.shareStorageDesc") }}
+        </div>
       </el-form-item>
       <!-- block storage config -->
-      <el-form-item :label="$t('page.install.config.blockStorage')" prop="activeBlockStorageType">
+      <el-form-item
+        :label="$t('page.install.config.blockStorage')"
+        prop="activeBlockStorageType"
+      >
         <el-radio-group
           @change="validBlockStorage"
           v-model="ruleForm.activeBlockStorageType"
           class="d2-ml-35"
         >
-          <el-radio :label="0">{{ $t("page.install.config.noStorage") }}</el-radio>
-          <el-radio :label="1">{{ $t("page.install.config.selectStorage") }}</el-radio>
+          <el-radio :label="0">{{
+            $t("page.install.config.noStorage")
+          }}</el-radio>
+          <el-radio :label="1">{{
+            $t("page.install.config.selectStorage")
+          }}</el-radio>
           <el-radio :label="2">
-            {{
-            $t("page.install.config.useAliDisk")
-            }}
+            {{ $t("page.install.config.useAliDisk") }}
           </el-radio>
           <el-radio :label="3">{{ $t("page.install.config.useRBD") }}</el-radio>
         </el-radio-group>
@@ -508,20 +612,24 @@
                 clusterInitInfo.storageClasses.length === 0
             "
             class="desc"
-          >{{ $t("page.install.config.noStorageClass") }}</span>
+            >{{ $t("page.install.config.noStorageClass") }}</span
+          >
           <el-form-item
             label="StorageClass"
             label-width="120px"
             v-if="clusterInitInfo.storageClasses"
             class="d2-mt-form d2-form-item"
           >
-            <el-radio-group @change="validBlockStorage" v-model="ruleForm.blockStorageClassName">
+            <el-radio-group
+              @change="validBlockStorage"
+              v-model="ruleForm.blockStorageClassName"
+            >
               <el-radio
                 border
                 style="margin-bottom: 1rem;margin-left:10px"
                 v-for="item in clusterInitInfo.storageClasses"
-                :title="item.accessMode==='Unknown'&&'无法识别读写模式'"
-                v-show="item.accessMode!=='ReadWriteMany'"
+                :title="item.accessMode === 'Unknown' && '无法识别读写模式'"
+                v-show="item.accessMode !== 'ReadWriteMany'"
                 :key="item.name"
                 :label="item.name"
               ></el-radio>
@@ -531,7 +639,11 @@
         <!-- ali disk -->
         <div v-if="ruleForm.activeBlockStorageType == 2" class="boxs">
           <span class="desc">{{ $t("page.install.config.aliDiskDesc") }}</span>
-          <el-form-item label="AccessKeyID" label-width="130px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="AccessKeyID"
+            label-width="130px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               :placeholder="$t('page.install.config.accessKeyID')"
@@ -539,7 +651,11 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="AccessKeySecret" label-width="130px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="AccessKeySecret"
+            label-width="130px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               :placeholder="$t('page.install.config.accessKeySecret')"
@@ -547,7 +663,11 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="RegionID" label-width="130px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="RegionID"
+            label-width="130px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               :placeholder="$t('page.install.config.regionID')"
@@ -555,7 +675,11 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="ZoneID" label-width="130px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="ZoneID"
+            label-width="130px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               :placeholder="$t('page.install.config.zoneId')"
@@ -567,7 +691,11 @@
         <!-- ceph rbd -->
         <div v-if="ruleForm.activeBlockStorageType == 3" class="boxs">
           <span class="desc">{{ $t("page.install.config.rbdDesc") }}</span>
-          <el-form-item label="Provisioner" label-width="170px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="Provisioner"
+            label-width="170px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               v-model="storage.RWO.provisioner"
@@ -576,7 +704,11 @@
               value="kubernetes.io/rbd"
             ></el-input>
           </el-form-item>
-          <el-form-item label="Monitors" label-width="170px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="Monitors"
+            label-width="170px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               :placeholder="$t('page.install.config.rbdmonitors')"
@@ -586,14 +718,22 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="AdminID" label-width="170px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="AdminID"
+            label-width="170px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               v-model="storage.RWO.storageClassParameters.rbdParameters.adminId"
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="AdminSecretName" label-width="170px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="AdminSecretName"
+            label-width="170px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               v-model="
@@ -602,7 +742,11 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="AdminSecretNamespace" label-width="170px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="AdminSecretNamespace"
+            label-width="170px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               v-model="
@@ -612,21 +756,33 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="Pool" label-width="170px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="Pool"
+            label-width="170px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               v-model="storage.RWO.storageClassParameters.rbdParameters.pool"
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="User ID" label-width="170px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="User ID"
+            label-width="170px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               v-model="storage.RWO.storageClassParameters.rbdParameters.userId"
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="UserSecretName" label-width="170px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="UserSecretName"
+            label-width="170px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               v-model="
@@ -635,7 +791,11 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="UserSecretNamespace" label-width="170px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="UserSecretNamespace"
+            label-width="170px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               v-model="
@@ -645,14 +805,22 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="FSType" label-width="170px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="FSType"
+            label-width="170px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               v-model="storage.RWO.storageClassParameters.rbdParameters.fsType"
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="ImageFormat" label-width="170px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="ImageFormat"
+            label-width="170px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               v-model="
@@ -661,7 +829,11 @@
               class="d2-input_inner"
             ></el-input>
           </el-form-item>
-          <el-form-item label="ImageFeatures" label-width="170px" class="d2-mt d2-form-item">
+          <el-form-item
+            label="ImageFeatures"
+            label-width="170px"
+            class="d2-mt d2-form-item"
+          >
             <el-input
               @change="validBlockStorage"
               v-model="
@@ -671,13 +843,13 @@
             ></el-input>
           </el-form-item>
         </div>
-        <div class="clues">{{ $t("page.install.config.blockStorageDesc") }}</div>
+        <div class="clues">
+          {{ $t("page.install.config.blockStorageDesc") }}
+        </div>
       </el-form-item>
       <div style="width:1100px;text-align:center;">
         <el-button type="primary" @click="submitForm('ruleForm')">
-          {{
-          $t("page.install.config.startInstall")
-          }}
+          {{ $t("page.install.config.next") }}
         </el-button>
       </div>
     </el-form>
@@ -1323,22 +1495,7 @@ export default {
           })
           obj.nodesForChaos = chaosNodes
           obj.enableHA = this.ruleForm.enableHA
-
-          this.$store
-            .dispatch('putClusterInfo', obj)
-            .then(res => {
-              if (res && res.code === 200) {
-                this.$emit('onhandleStartRecord')
-                this.installCluster()
-              } else {
-                this.handleCancelLoading()
-              }
-            })
-            .catch(err => {
-              this.handleCancelLoading()
-              const message = this.fetchErrMessage(err)
-              this.$emit('onhandleErrorRecord', 'failure', `${message}`)
-            })
+          this.installCluster(obj)
         } else {
           this.handleCancelLoading()
           this.$message({
@@ -1349,7 +1506,7 @@ export default {
         }
       })
     },
-    installCluster () {
+    installCluster (parameter) {
       let obj = {}
       obj.rainbondvolumes = {}
       // share storage nfs
@@ -1440,15 +1597,12 @@ export default {
           }
         }
       }
-
       this.$store
-        .dispatch('installCluster', obj)
-        .then(en => {
-          if (en && en.code === 200) {
+        .dispatch('putClusterInfo', Object.assign({}, parameter, obj))
+        .then(res => {
+          if (res && res.code === 200) {
             this.$emit('onResults')
           } else {
-            const message = this.fetchErrMessage(en)
-            this.$emit('onhandleErrorRecord', 'failure', `${message}`)
             this.handleCancelLoading()
           }
         })
