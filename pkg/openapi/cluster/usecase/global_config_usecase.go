@@ -46,32 +46,24 @@ func (cc *GlobalConfigUseCaseImpl) GlobalConfigs() (*model.GlobalConfigs, error)
 
 // UpdateGlobalConfig update gloobal config
 func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *v1.GlobalConfigs) error {
-	clusterInfo, err := cc.formatRainbondClusterConfig(data)
+	newCluster, err := cc.formatRainbondClusterConfig(data)
 	if err != nil {
 		return err
 	}
 
-	_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(clusterInfo)
-	if err != nil {
-		if k8sErrors.IsConflict(err) {
-			return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				newCluster, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(clusterInfo.Name, metav1.GetOptions{})
-				if err != nil {
-					log.Info("get new cluster before update cluster", "warning", err)
-				} else {
-					clusterInfo.ResourceVersion = newCluster.ResourceVersion
-				}
-				_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(clusterInfo)
-				if err != nil {
-					return err
-				}
-				return nil
-			})
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		oldCluster, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(newCluster.Name, metav1.GetOptions{})
+		if err != nil {
+			log.Info("get new cluster before update cluster", "warning", err)
+		} else {
+			newCluster.ResourceVersion = oldCluster.ResourceVersion
 		}
-		log.Error(err, "update rainbond cluster")
-		return err
-	}
-	return nil
+		_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(newCluster)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (cc *GlobalConfigUseCaseImpl) genSuffixHTTPHost(ip string) (domain string, err error) {
