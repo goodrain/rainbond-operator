@@ -185,7 +185,6 @@ func (cc *ClusterController) Install(c *gin.Context) {
 		ginutil.JSON(c, nil, err)
 		return
 	}
-	ginutil.JSON(c, nil, nil)
 }
 
 // InstallStatus install status

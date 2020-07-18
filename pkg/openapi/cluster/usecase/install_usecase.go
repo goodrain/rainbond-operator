@@ -3,7 +3,6 @@ package usecase
 import (
 	"fmt"
 	"path"
-	"strconv"
 	"time"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
@@ -121,7 +120,7 @@ func (ic *InstallUseCaseImpl) Install() error {
 		return bcode.ErrClusterPreCheckNotPass
 	}
 
-	cluster, err := ic.rainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.namespace).Get(ic.cfg.ClusterName, metav1.GetOptions{})
+	cls, err := ic.rainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.namespace).Get(ic.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return bcode.ErrClusterNotFound
@@ -129,28 +128,25 @@ func (ic *InstallUseCaseImpl) Install() error {
 		return err
 	}
 
-	req := &v1.ClusterInstallReq{}
-
-	// TODO: hrh 0718
 	// create rainbond volume
-	//if err := ic.createRainbondVolumes(req); err != nil {
-	//	return err
-	//}
+	if err := ic.createRainbondVolumes(cls); err != nil {
+		return err
+	}
 
 	if err := ic.createRainbondPackage(); err != nil {
 		return err
 	}
-	return ic.createComponents(req, cluster)
+	return ic.createComponents(cls)
 }
 
-func (ic *InstallUseCaseImpl) createRainbondVolumes(req *v1.ClusterInstallReq) error {
-	rwx := setRainbondVolume("rainbondvolumerwx", ic.namespace, rbdutil.LabelsForAccessModeRWX(), req.RainbondVolumes.RWX)
+func (ic *InstallUseCaseImpl) createRainbondVolumes(cluster *v1alpha1.RainbondCluster) error {
+	rwx := setRainbondVolume("rainbondvolumerwx", ic.namespace, rbdutil.LabelsForAccessModeRWX(), cluster.Spec.RainbondVolumeSpecRWX)
 	rwx.Spec.ImageRepository = ic.cfg.RainbondImageRepository
 	if err := ic.createRainbondVolumeIfNotExists(rwx); err != nil {
 		return err
 	}
-	if req.RainbondVolumes.RWO != nil {
-		rwo := setRainbondVolume("rainbondvolumerwo", ic.namespace, rbdutil.LabelsForAccessModeRWO(), req.RainbondVolumes.RWO)
+	if cluster.Spec.RainbondVolumeSpecRWO != nil {
+		rwo := setRainbondVolume("rainbondvolumerwo", ic.namespace, rbdutil.LabelsForAccessModeRWO(), cluster.Spec.RainbondVolumeSpecRWO)
 		rwo.Spec.ImageRepository = ic.cfg.RainbondImageRepository
 		if err := ic.createRainbondVolumeIfNotExists(rwo); err != nil {
 			return err
@@ -173,49 +169,15 @@ func (ic *InstallUseCaseImpl) createRainbondVolumeIfNotExists(volume *v1alpha1.R
 	return nil
 }
 
-func setRainbondVolume(name, namespace string, labels map[string]string, rv *v1.RainbondVolume) *v1alpha1.RainbondVolume {
-	var storageRequest int32 = 1
-	spec := v1alpha1.RainbondVolumeSpec{
-		StorageClassName: rv.StorageClassName,
-	}
-	if rv.StorageClassParameters != nil {
-		spec.StorageClassParameters = &v1alpha1.StorageClassParameters{
-			Provisioner: rv.StorageClassParameters.Provisioner,
-			Parameters:  rv.StorageClassParameters.Parameters,
-		}
-	}
-
-	if rv.CSIPlugin != nil {
-		csiplugin := &v1alpha1.CSIPluginSource{}
-		switch {
-		case rv.CSIPlugin.AliyunCloudDisk != nil:
-			csiplugin.AliyunCloudDisk = &v1alpha1.AliyunCloudDiskCSIPluginSource{
-				AccessKeyID:      rv.CSIPlugin.AliyunCloudDisk.AccessKeyID,
-				AccessKeySecret:  rv.CSIPlugin.AliyunCloudDisk.AccessKeySecret,
-				MaxVolumePerNode: strconv.Itoa(rv.CSIPlugin.AliyunCloudDisk.MaxVolumePerNode),
-			}
-			storageRequest = 21
-		case rv.CSIPlugin.AliyunNas != nil:
-			csiplugin.AliyunNas = &v1alpha1.AliyunNasCSIPluginSource{
-				AccessKeyID:     rv.CSIPlugin.AliyunNas.AccessKeyID,
-				AccessKeySecret: rv.CSIPlugin.AliyunNas.AccessKeySecret,
-			}
-		case rv.CSIPlugin.NFS != nil:
-			csiplugin.NFS = &v1alpha1.NFSCSIPluginSource{}
-		}
-		spec.CSIPlugin = csiplugin
-	}
-
-	spec.StorageRequest = commonutil.Int32(storageRequest)
+func setRainbondVolume(name, namespace string, labels map[string]string, spec *v1alpha1.RainbondVolumeSpec) *v1alpha1.RainbondVolume {
 	volume := &v1alpha1.RainbondVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 			Labels:    rbdutil.LabelsForRainbond(labels),
 		},
-		Spec: spec,
+		Spec: *spec,
 	}
-
 	return volume
 }
 
@@ -261,7 +223,7 @@ func (ic *InstallUseCaseImpl) deleteRainbondPackage() error {
 	return nil
 }
 
-func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, cluster *v1alpha1.RainbondCluster) map[string]*componentClaim {
+func (ic *InstallUseCaseImpl) genComponentClaims(cluster *v1alpha1.RainbondCluster) map[string]*componentClaim {
 	var defReplicas = commonutil.Int32(1)
 	if cluster.Spec.EnableHA {
 		defReplicas = commonutil.Int32(2)
@@ -331,35 +293,35 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 		name2Claim["rbd-etcd"] = claim
 	}
 
-	//if req.RainbondVolumes.RWX != nil && req.RainbondVolumes.RWX.CSIPlugin != nil {
-	//	if req.RainbondVolumes.RWX.CSIPlugin.NFS != nil {
-	//		name2Claim["nfs-provisioner"] = newClaim("nfs-provisioner")
-	//		name2Claim["nfs-provisioner"].replicas = commonutil.Int32(1)
-	//		name2Claim["nfs-provisioner"].isInit = isInit
-	//	}
-	//	if req.RainbondVolumes.RWX.CSIPlugin.AliyunNas != nil {
-	//		name2Claim[constants.AliyunCSINasPlugin] = newClaim(constants.AliyunCSINasPlugin)
-	//		name2Claim[constants.AliyunCSINasPlugin].isInit = isInit
-	//		name2Claim[constants.AliyunCSINasProvisioner] = newClaim(constants.AliyunCSINasProvisioner)
-	//		name2Claim[constants.AliyunCSINasProvisioner].isInit = isInit
-	//		name2Claim[constants.AliyunCSINasProvisioner].replicas = commonutil.Int32(1)
-	//	}
-	//}
-	//if req.RainbondVolumes.RWO != nil && req.RainbondVolumes.RWO.CSIPlugin != nil {
-	//	if req.RainbondVolumes.RWO.CSIPlugin.AliyunCloudDisk != nil {
-	//		name2Claim[constants.AliyunCSIDiskPlugin] = newClaim(constants.AliyunCSIDiskPlugin)
-	//		name2Claim[constants.AliyunCSIDiskPlugin].isInit = isInit
-	//		name2Claim[constants.AliyunCSIDiskProvisioner] = newClaim(constants.AliyunCSIDiskProvisioner)
-	//		name2Claim[constants.AliyunCSIDiskProvisioner].isInit = isInit
-	//		name2Claim[constants.AliyunCSIDiskProvisioner].replicas = commonutil.Int32(1)
-	//	}
-	//}
+	if rwx := cluster.Spec.RainbondVolumeSpecRWX; rwx != nil && rwx.CSIPlugin != nil {
+		if rwx.CSIPlugin.NFS != nil {
+			name2Claim["nfs-provisioner"] = newClaim("nfs-provisioner")
+			name2Claim["nfs-provisioner"].replicas = commonutil.Int32(1)
+			name2Claim["nfs-provisioner"].isInit = isInit
+		}
+		if rwx.CSIPlugin.AliyunNas != nil {
+			name2Claim[constants.AliyunCSINasPlugin] = newClaim(constants.AliyunCSINasPlugin)
+			name2Claim[constants.AliyunCSINasPlugin].isInit = isInit
+			name2Claim[constants.AliyunCSINasProvisioner] = newClaim(constants.AliyunCSINasProvisioner)
+			name2Claim[constants.AliyunCSINasProvisioner].isInit = isInit
+			name2Claim[constants.AliyunCSINasProvisioner].replicas = commonutil.Int32(1)
+		}
+	}
+	if rwo := cluster.Spec.RainbondVolumeSpecRWO; rwo != nil && rwo.CSIPlugin != nil {
+		if rwo.CSIPlugin.AliyunCloudDisk != nil {
+			name2Claim[constants.AliyunCSIDiskPlugin] = newClaim(constants.AliyunCSIDiskPlugin)
+			name2Claim[constants.AliyunCSIDiskPlugin].isInit = isInit
+			name2Claim[constants.AliyunCSIDiskProvisioner] = newClaim(constants.AliyunCSIDiskProvisioner)
+			name2Claim[constants.AliyunCSIDiskProvisioner].isInit = isInit
+			name2Claim[constants.AliyunCSIDiskProvisioner].replicas = commonutil.Int32(1)
+		}
+	}
 
 	return name2Claim
 }
 
-func (ic *InstallUseCaseImpl) createComponents(req *v1.ClusterInstallReq, cluster *v1alpha1.RainbondCluster) error {
-	claims := ic.genComponentClaims(req, cluster)
+func (ic *InstallUseCaseImpl) createComponents(cluster *v1alpha1.RainbondCluster) error {
+	claims := ic.genComponentClaims(cluster)
 	for _, claim := range claims {
 		// update image repository for priority components
 		claim.imageRepository = cluster.Spec.RainbondImageRepository
@@ -461,7 +423,7 @@ func (ic *InstallUseCaseImpl) stepHub(cluster *v1alpha1.RainbondCluster, compone
 	}
 
 	// prepare init component list
-	initComponents := []*v1.RbdComponentStatus{}
+	var initComponents []*v1.RbdComponentStatus
 	for _, cs := range componentStatues {
 		if cs.ISInitComponent {
 			initComponents = append(initComponents, cs)
