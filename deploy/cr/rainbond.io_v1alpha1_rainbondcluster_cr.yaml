@@ -6,4 +6,6 @@ metadata:
 spec:
   suffixHTTPHost: foo.bar.com
   installMode: FullOnline
-  replicas: 2
+  rainbondVolumeSpecRWX:
+    imageRepository: "foobar"
+    storageClassName: standard

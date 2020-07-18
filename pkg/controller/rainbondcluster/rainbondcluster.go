@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"sort"
 
 	"github.com/go-logr/logr"
@@ -337,7 +338,7 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 		r.cluster.Status.UpdateCondition(&condition)
 	}
 
-	if r.cluster.Spec.RainbondVolumeSpecRWX != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeStorage) {
+	if r.cluster.Spec.RainbondVolumeSpecRWX != nil && r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName != "" {
 		preChecker := precheck.NewStorage(r.ctx, r.client, r.cluster.GetNamespace(), r.cluster.Spec.RainbondVolumeSpecRWX)
 		condition := preChecker.Check()
 		r.cluster.Status.UpdateCondition(&condition)
@@ -357,4 +358,49 @@ func (r *rainbondClusteMgr) isConditionTrue(typ3 rainbondv1alpha1.RainbondCluste
 		return true
 	}
 	return false
+}
+
+func (r *rainbondClusteMgr) createGrdataPVCIfNotExists() error {
+	if r.cluster.Spec.RainbondVolumeSpecRWX == nil || r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName == "" {
+		return nil
+	}
+
+	storageClassName := r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName
+
+	pvc, err := k8sutil.GetGrdataPVC(r.ctx, r.client, r.cluster.GetNamespace())
+	if err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return err
+		}
+		return r.createPVCForGrdata(storageClassName)
+	}
+
+	// check if storageClass is up to date
+	if *pvc.Spec.StorageClassName == storageClassName {
+		return nil
+	}
+	// otherwise, delete the old one and create the latest one
+	if err := r.client.Delete(r.ctx, pvc, &client.DeleteOptions{GracePeriodSeconds: commonutil.Int64(0)}); err != nil {
+		return err
+	}
+
+	if err := r.createPVCForGrdata(storageClassName); err != nil {
+		if k8sErrors.IsAlreadyExists(err) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (r *rainbondClusteMgr) createPVCForGrdata(storageClassName string) error {
+	// create pvc
+	accessModes := []corev1.PersistentVolumeAccessMode{
+		corev1.ReadWriteMany,
+	}
+	labels := rbdutil.LabelsForRainbond(nil)
+	pvc := k8sutil.PersistentVolumeClaimForGrdata(r.cluster.GetNamespace(), constants.GrDataPVC, accessModes, labels,
+		storageClassName, 1)
+	return r.client.Create(r.ctx, pvc)
 }

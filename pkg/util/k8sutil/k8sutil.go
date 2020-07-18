@@ -3,20 +3,39 @@ package k8sutil
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/reference"
 	"k8s.io/kubectl/pkg/describe"
 	"net"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var once sync.Once
+var clientset kubernetes.Interface
+
+func GetClientSet() kubernetes.Interface {
+	if clientset == nil {
+		once.Do(func() {
+			config := MustNewKubeConfig("")
+			clientset = kubernetes.NewForConfigOrDie(config)
+		})
+	}
+	return clientset
+}
 
 func MustNewKubeConfig(kubeconfigPath string) *rest.Config {
 	if kubeconfigPath != "" {
@@ -105,7 +124,7 @@ func MaterRoleLabel(key string) map[string]string {
 	return labels
 }
 
-func CreatePersistentVolumeClaim(ns, claimName string, accessModes []corev1.PersistentVolumeAccessMode, labels map[string]string, storageClassName string, storageRequest int64) *corev1.PersistentVolumeClaim {
+func PersistentVolumeClaimForGrdata(ns, claimName string, accessModes []corev1.PersistentVolumeAccessMode, labels map[string]string, storageClassName string, storageRequest int64) *corev1.PersistentVolumeClaim {
 	size := resource.NewQuantity(storageRequest*1024*1024*1024, resource.BinarySI)
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -125,4 +144,28 @@ func CreatePersistentVolumeClaim(ns, claimName string, accessModes []corev1.Pers
 	}
 
 	return pvc
+}
+
+func GetGrdataPVC(ctx context.Context, client client.Client, ns string) (*corev1.PersistentVolumeClaim, error) {
+	pvc := corev1.PersistentVolumeClaim{}
+	err := client.Get(ctx, types.NamespacedName{Namespace: ns, Name: constants.GrDataPVC}, &pvc)
+	if err != nil {
+		return nil, err
+	}
+	return &pvc, nil
+}
+
+// EventsForPersistentVolumeClaim -
+func EventsForPersistentVolumeClaim(pvc *corev1.PersistentVolumeClaim) (*corev1.EventList, error) {
+	clientset := GetClientSet()
+	ref, err := reference.GetReference(scheme.Scheme, pvc)
+	if err != nil {
+		return nil, err
+	}
+	ref.Kind = ""
+	if _, isMirrorPod := pvc.Annotations[corev1.MirrorPodAnnotationKey]; isMirrorPod {
+		ref.UID = types.UID(pvc.Annotations[corev1.MirrorPodAnnotationKey])
+	}
+	events, err := clientset.CoreV1().Events(pvc.GetNamespace()).Search(scheme.Scheme, ref)
+	return events, err
 }

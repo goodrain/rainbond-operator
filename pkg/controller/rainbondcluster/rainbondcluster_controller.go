@@ -132,6 +132,11 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		}
 	}
 
+	// create pvc for grdata if not exists
+	if err := mgr.createGrdataPVCIfNotExists(); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 }
 

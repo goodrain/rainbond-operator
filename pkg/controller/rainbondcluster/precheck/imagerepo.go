@@ -73,7 +73,7 @@ func (d *imagerepo) Check() rainbondv1alpha1.RainbondClusterCondition {
 }
 
 func (d *imagerepo) failConditoin(condition rainbondv1alpha1.RainbondClusterCondition, err error) rainbondv1alpha1.RainbondClusterCondition {
-	return failConditoin(condition, "ImageRepoFailed", err)
+	return failConditoin(condition, "ImageRepoFailed", err.Error())
 }
 
 

@@ -2,7 +2,8 @@ package precheck
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/types"
+	"fmt"
+	"strings"
 	"time"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -10,7 +11,6 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	corev1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -40,27 +40,18 @@ func (s *storage) Check() rainbondv1alpha1.RainbondClusterCondition {
 
 	if s.rwx.StorageClassName != "" {
 		// check if pvc exists
-		pvc, err := s.getGrdataPVC()
+		pvc, err := k8sutil.GetGrdataPVC(s.ctx, s.client, s.ns)
 		if err != nil {
-			if !k8sErrors.IsNotFound(err) {
-				return s.failConditoin(condition, err)
-			}
-			// create pvc
-			accessModes := []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteMany,
-			}
-			pvc = s.pvcForGrdata(accessModes, s.rwx.StorageClassName)
-			if err := s.client.Create(s.ctx, pvc); err != nil {
-				return s.failConditoin(condition, err)
-			}
-			// return false immediately. check if pvc is ready next time.
-			condition.Status = corev1.ConditionFalse
-			return condition
+			return s.failConditoin(condition, err.Error())
 		}
 
 		if !s.isPVCBound(pvc) {
-			condition.Status = corev1.ConditionFalse
-			return condition
+			// list Events
+			eventList, err := k8sutil.EventsForPersistentVolumeClaim(pvc)
+			if err != nil {
+				return s.failConditoin(condition, err.Error())
+			}
+			return s.failConditoin(condition, eventListToString(eventList))
 		}
 	}
 	return condition
@@ -73,20 +64,22 @@ func (s *storage) isPVCBound(pvc *corev1.PersistentVolumeClaim) bool {
 	return false
 }
 
-func (s *storage) getGrdataPVC() (*corev1.PersistentVolumeClaim, error) {
-	pvc := corev1.PersistentVolumeClaim{}
-	err := s.client.Get(s.ctx, types.NamespacedName{Namespace: s.ns, Name: constants.GrDataPVC}, &pvc)
-	if err != nil {
-		return nil, err
-	}
-	return &pvc, nil
-}
-
 func (s *storage) pvcForGrdata(accessModes []corev1.PersistentVolumeAccessMode, storageClassName string) *corev1.PersistentVolumeClaim {
 	labels := rbdutil.LabelsForRainbond(nil)
-	return k8sutil.CreatePersistentVolumeClaim(s.ns, constants.GrDataPVC, accessModes, labels, storageClassName, 1)
+	return k8sutil.PersistentVolumeClaimForGrdata(s.ns, constants.GrDataPVC, accessModes, labels, storageClassName, 1)
 }
 
-func (s *storage) failConditoin(condition rainbondv1alpha1.RainbondClusterCondition, err error) rainbondv1alpha1.RainbondClusterCondition {
-	return failConditoin(condition, "StorageFailed", err)
+func (s *storage) failConditoin(condition rainbondv1alpha1.RainbondClusterCondition, msg string) rainbondv1alpha1.RainbondClusterCondition {
+	return failConditoin(condition, "StorageFailed", msg)
+}
+
+func eventListToString(eventList *corev1.EventList) string {
+	var res []string
+	for _, event := range eventList.Items {
+		if event.Type == corev1.EventTypeNormal {
+			continue
+		}
+		res = append(res, fmt.Sprintf("%s: %s", event.Reason, event.Message))
+	}
+	return strings.Join(res, ",")
 }

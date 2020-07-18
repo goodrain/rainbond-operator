@@ -5,9 +5,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func failConditoin(condition rainbondv1alpha1.RainbondClusterCondition, reason string, err error) rainbondv1alpha1.RainbondClusterCondition {
+func failConditoin(condition rainbondv1alpha1.RainbondClusterCondition, reason, msg string) rainbondv1alpha1.RainbondClusterCondition {
 	condition.Status = corev1.ConditionFalse
 	condition.Reason = reason
-	condition.Message = err.Error()
+	condition.Message = msg
 	return condition
 }
