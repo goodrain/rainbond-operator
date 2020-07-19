@@ -15,26 +15,16 @@
           <el-col :span="19" class="d2-f-16">
             {{ textMap[item.type] || item.type }}
           </el-col>
-          <el-col
-            :span="5"
-            class="d2-f-16 d2-text-cen"
-            :style="{
-              color: item.status == 'True' ? '#606266' : '#333333'
-            }"
-          >
+          <el-col :span="5" class="d2-f-16 d2-text-cen">
             <i
               v-if="item.status == 'True'"
-              class="el-icon-circle-check success d2-f-20"
+              class="el-icon-circle-check d2-f-20"
               style="color:#52c41a"
             ></i>
             <i
-              v-else-if="item.status == 'False'"
-              class="el-icon-circle-close error d2-f-20"
-              style="color:#f5222d"
-            ></i>
-            <i
               v-else
-              class="el-icon-refresh d2-animation el-icon-loading d2-f-20"
+              style="color:#606266"
+              class="el-icon-circle-check  d2-f-20"
             ></i>
           </el-col>
         </div>
@@ -61,7 +51,12 @@
       </el-row>
     </div>
     <div class="d2-text-cen" style="margin:1rem 0">
-      <el-button type="primary" style="margin-right:50px" :loading="loading" @click="handleUpstep">
+      <el-button
+        type="primary"
+        style="margin-right:50px"
+        :loading="loading"
+        @click="handleUpstep"
+      >
         {{ $t("page.install.config.upstep") }}
       </el-button>
       <el-button
@@ -125,18 +120,16 @@ export default {
             this.$emit('onhandleStartRecord')
             this.$emit('onResults')
           } else {
-            const message = this.fetchErrMessage(en)
-            this.$emit('onhandleErrorRecord', 'failure', `${message}`)
-            this.handleCancelLoading()
+            this.handleCancelLoading(en)
           }
         })
         .catch(err => {
-          this.handleCancelLoading()
-          const message = this.fetchErrMessage(err)
-          this.$emit('onhandleErrorRecord', 'failure', `${message}`)
+          this.handleCancelLoading(err)
         })
     },
-    handleCancelLoading () {
+    handleCancelLoading (msg) {
+      const message = this.fetchErrMessage(msg)
+      this.$emit('onhandleErrorRecord', 'failure', `${message}`)
       this.loading = false
     },
     handleUpstep () {
