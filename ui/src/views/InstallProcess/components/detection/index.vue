@@ -29,7 +29,7 @@
             ></i>
             <i
               v-else-if="item.status == 'False'"
-              class="el-icon-circle-close error d2-f-20"
+              class="el-icon-warning-outline error d2-f-20"
               style="color:#f5222d"
             ></i>
             <i
@@ -61,7 +61,12 @@
       </el-row>
     </div>
     <div class="d2-text-cen" style="margin:1rem 0">
-      <el-button type="primary" style="margin-right:50px" :loading="loading" @click="handleUpstep">
+      <el-button
+        type="primary"
+        style="margin-right:50px"
+        :loading="loading"
+        @click="handleUpstep"
+      >
         {{ $t("page.install.config.upstep") }}
       </el-button>
       <el-button
@@ -125,18 +130,16 @@ export default {
             this.$emit('onhandleStartRecord')
             this.$emit('onResults')
           } else {
-            const message = this.fetchErrMessage(en)
-            this.$emit('onhandleErrorRecord', 'failure', `${message}`)
-            this.handleCancelLoading()
+            this.handleCancelLoading(en)
           }
         })
         .catch(err => {
-          this.handleCancelLoading()
-          const message = this.fetchErrMessage(err)
-          this.$emit('onhandleErrorRecord', 'failure', `${message}`)
+          this.handleCancelLoading(err)
         })
     },
-    handleCancelLoading () {
+    handleCancelLoading (msg) {
+      const message = this.fetchErrMessage(msg)
+      this.$emit('onhandleErrorRecord', 'failure', `${message}`)
       this.loading = false
     },
     handleUpstep () {
