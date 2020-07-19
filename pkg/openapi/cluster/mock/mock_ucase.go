@@ -116,6 +116,21 @@ func (m *MockUsecase) EXPECT() *MockUsecaseMockRecorder {
 	return m.recorder
 }
 
+// PreCheck mocks base method
+func (m *MockUsecase) PreCheck() (*v1.ClusterPreCheckResp, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PreCheck")
+	ret0, _ := ret[0].(*v1.ClusterPreCheckResp)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PreCheck indicates an expected call of PreCheck
+func (mr *MockUsecaseMockRecorder) PreCheck() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreCheck", reflect.TypeOf((*MockUsecase)(nil).PreCheck))
+}
+
 // Status mocks base method
 func (m *MockUsecase) Status() (*model.ClusterStatus, error) {
 	m.ctrl.T.Helper()
@@ -376,17 +391,17 @@ func (m *MockInstallUseCase) EXPECT() *MockInstallUseCaseMockRecorder {
 }
 
 // Install mocks base method
-func (m *MockInstallUseCase) Install(req *v1.ClusterInstallReq) error {
+func (m *MockInstallUseCase) Install() error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Install", req)
+	ret := m.ctrl.Call(m, "Install")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Install indicates an expected call of Install
-func (mr *MockInstallUseCaseMockRecorder) Install(req interface{}) *gomock.Call {
+func (mr *MockInstallUseCaseMockRecorder) Install() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockInstallUseCase)(nil).Install), req)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockInstallUseCase)(nil).Install))
 }
 
 // InstallStatus mocks base method
