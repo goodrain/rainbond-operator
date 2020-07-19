@@ -15,26 +15,16 @@
           <el-col :span="19" class="d2-f-16">
             {{ textMap[item.type] || item.type }}
           </el-col>
-          <el-col
-            :span="5"
-            class="d2-f-16 d2-text-cen"
-            :style="{
-              color: item.status == 'True' ? '#606266' : '#333333'
-            }"
-          >
+          <el-col :span="5" class="d2-f-16 d2-text-cen">
             <i
               v-if="item.status == 'True'"
-              class="el-icon-circle-check success d2-f-20"
+              class="el-icon-circle-check d2-f-20"
               style="color:#52c41a"
             ></i>
             <i
-              v-else-if="item.status == 'False'"
-              class="el-icon-warning-outline error d2-f-20"
-              style="color:#f5222d"
-            ></i>
-            <i
               v-else
-              class="el-icon-refresh d2-animation el-icon-loading d2-f-20"
+              style="color:#606266"
+              class="el-icon-circle-check  d2-f-20"
             ></i>
           </el-col>
         </div>
