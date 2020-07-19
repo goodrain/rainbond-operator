@@ -156,7 +156,7 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 
 	clusterInfo.HTTPDomain = source.Spec.SuffixHTTPHost
 
-	clusterInfo.GatewayIngressIPs = append(clusterInfo.GatewayIngressIPs, source.Spec.GatewayIngressIPs...)
+	clusterInfo.GatewayIngressIPs = source.Spec.GatewayIngressIPs
 
 	return clusterInfo, nil
 }
@@ -239,7 +239,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *v1.Global
 	}
 
 	// must provide all, can't patch
-	clusterInfo.Spec.GatewayIngressIPs = append(clusterInfo.Spec.GatewayIngressIPs, source.GatewayIngressIPs...)
+	clusterInfo.Spec.GatewayIngressIPs = source.GatewayIngressIPs
 
 	setNodes := func(nodes []*v1.K8sNode) []*v1alpha1.K8sNode {
 		var result []*v1alpha1.K8sNode

@@ -38,22 +38,34 @@ func (s *storage) Check() rainbondv1alpha1.RainbondClusterCondition {
 		LastHeartbeatTime: metav1.NewTime(time.Now()),
 	}
 
-	if s.rwx.StorageClassName != "" {
-		// check if pvc exists
-		pvc, err := k8sutil.GetFoobarPVC(s.ctx, s.client, s.ns)
-		if err != nil {
-			return s.failConditoin(condition, err.Error())
-		}
-
-		if !s.isPVCBound(pvc) {
-			// list Events
-			eventList, err := k8sutil.EventsForPersistentVolumeClaim(pvc)
+	if s.rwx != nil && s.rwx.StorageClassName != "" {
+		if s.rwx.StorageClassName != "" {
+			// check if pvc exists
+			pvc, err := k8sutil.GetFoobarPVC(s.ctx, s.client, s.ns)
 			if err != nil {
 				return s.failConditoin(condition, err.Error())
 			}
-			return s.failConditoin(condition, eventListToString(eventList))
+
+			if !s.isPVCBound(pvc) {
+				// list Events
+				eventList, err := k8sutil.EventsForPersistentVolumeClaim(pvc)
+				if err != nil {
+					return s.failConditoin(condition, err.Error())
+				}
+				return s.failConditoin(condition, eventListToString(eventList))
+			}
 		}
+		return condition
 	}
+
+	if s.rwx == nil {
+		condition.Status = corev1.ConditionFalse
+		condition.Reason = "InProgress"
+		condition.Message =
+			fmt.Sprintf("precheck for %s is in progress", rainbondv1alpha1.RainbondClusterConditionTypeStorage)
+		return condition
+	}
+
 	return condition
 }
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"sort"
+	"time"
 
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -337,14 +338,9 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 		r.cluster.Status.UpdateCondition(&condition)
 	}
 
-	if r.cluster.Spec.RainbondVolumeSpecRWX != nil && r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName != "" {
-		preChecker := precheck.NewStorage(r.ctx, r.client, r.cluster.GetNamespace(), r.cluster.Spec.RainbondVolumeSpecRWX)
-		condition := preChecker.Check()
-		r.cluster.Status.UpdateCondition(&condition)
-	} else {
-		// delete Storage condition
-		r.cluster.Status.DeleteCondition(rainbondv1alpha1.RainbondClusterConditionTypeStorage)
-	}
+	storagePreChecker := precheck.NewStorage(r.ctx, r.client, r.cluster.GetNamespace(), r.cluster.Spec.RainbondVolumeSpecRWX)
+	storageCondition := storagePreChecker.Check()
+	r.cluster.Status.UpdateCondition(&storageCondition)
 
 	dnsPrechecker := precheck.NewDNSPrechecker(r.cluster, r.log)
 	dnsCondition := dnsPrechecker.Check()
@@ -410,4 +406,18 @@ func (r *rainbondClusteMgr) createPVCForFoobar(storageClassName string) error {
 	pvc := k8sutil.PersistentVolumeClaimForGrdata(r.cluster.GetNamespace(), constants.FoobarPVC, accessModes, labels,
 		storageClassName, 1)
 	return r.client.Create(r.ctx, pvc)
+}
+
+func (r *rainbondClusteMgr) falseConditionNow(typ3 rainbondv1alpha1.RainbondClusterConditionType) *rainbondv1alpha1.RainbondClusterCondition {
+	idx, _ := r.cluster.Status.GetCondition(typ3)
+	if idx != -1 {
+		return nil
+	}
+	return &rainbondv1alpha1.RainbondClusterCondition{
+		Type:              typ3,
+		Status:            corev1.ConditionTrue,
+		LastHeartbeatTime: metav1.NewTime(time.Now()),
+		Reason:            "InProgress",
+		Message:           fmt.Sprintf("precheck for %s is in progress", string(typ3)),
+	}
 }
