@@ -1,7 +1,6 @@
 package rainbondcluster
 
 import (
-	"gotest.tools/assert"
 	"testing"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -36,26 +35,4 @@ func TestCreateImagePullSecret(t *testing.T) {
 		t.Errorf("create image pull secret: %v", err)
 		t.FailNow()
 	}
-}
-
-func TestGenerateConditions(t *testing.T) {
-	cluster := &rainbondv1alpha1.RainbondCluster{
-		Spec: rainbondv1alpha1.RainbondClusterSpec{
-			RegionDatabase:&rainbondv1alpha1.Database{
-				Host:     "127.0.0.1",
-				Port:     3306,
-				Username: "foo",
-				Password: "bar",
-				Name:     "foobar",
-			},
-		},
-		Status: &rainbondv1alpha1.RainbondClusterStatus{},
-	}
-	mgr := rainbondClusteMgr{
-		cluster: cluster,
-	}
-	mgr.generateConditions()
-
-	_, condition := cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseRegion)
-	assert.Equal(t, condition.Status, corev1.ConditionFalse)
 }
