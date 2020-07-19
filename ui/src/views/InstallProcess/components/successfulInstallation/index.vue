@@ -178,10 +178,10 @@ export default {
               this.handleRouter('index')
               break
             case 'Installing':
-              this.handleRouter('InstallProcess')
+              this.handleRouter('InstallProcess', 'start')
               break
             case 'Setting':
-              this.handleRouter('InstallProcess')
+              this.handleRouter('InstallProcess', 'configuration')
               break
             case 'UnInstalling':
               this.handleRouter('index')
@@ -199,10 +199,14 @@ export default {
         this.handleState()
       }, 10000)
     },
-    handleRouter (name) {
-      this.$router.push({
-        name
-      })
+    handleRouter (name, type) {
+      if (name) {
+        let obj = { name }
+        if (type) {
+          obj.params = { type }
+        }
+        this.$router.push(obj)
+      }
     },
     handleRecord () {
       if (!this.recordInfo.testMode) {

@@ -212,8 +212,8 @@ func (a *api) deployment() interface{} {
 							ReadinessProbe: readinessProbe,
 						},
 					},
-
-					Volumes: volumes,
+					ServiceAccountName: "rainbond-operator",
+					Volumes:            volumes,
 				},
 			},
 		},

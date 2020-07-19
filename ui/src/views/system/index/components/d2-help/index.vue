@@ -9,7 +9,7 @@
       style="background:#409EFF;color:#ffffff"
     >
       <!-- <d2-icon name="question-circle-o" class="d2-mr-5"/> -->
-      {{text}}
+      {{ text }}
     </el-button>
   </div>
 </template>
@@ -60,10 +60,10 @@ export default {
               this.loading = true
               break
             case 'Setting':
-              this.handleRouter('InstallProcess')
+              this.handleRouter('InstallProcess', 'configuration')
               break
             case 'Installing':
-              this.handleRouter('InstallProcess')
+              this.handleRouter('InstallProcess', 'start')
               break
             case 'Running':
               this.handleRouter('successfulInstallation')
@@ -102,10 +102,14 @@ export default {
         this.$store.dispatch('putRecord', this.recordInfo).then(() => {})
       }
     },
-    handleRouter (name) {
-      this.$router.push({
-        name
-      })
+    handleRouter (name, type) {
+      if (name) {
+        let obj = { name }
+        if (type) {
+          obj.params = { type }
+        }
+        this.$router.push(obj)
+      }
     }
   }
 }
@@ -128,7 +132,7 @@ export default {
   transition: opacity 0.2s;
 }
 </style>
-<style lang="scss" >
+<style lang="scss">
 .el-loading-mask {
   background-color: rgba(255, 255, 255, 0.5) !important;
 }
