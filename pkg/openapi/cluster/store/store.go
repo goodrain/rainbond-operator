@@ -2,8 +2,6 @@ package store
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -52,9 +50,6 @@ func NewStore(namespace string, rainbondClient *versioned.Clientset, k8sClient *
 		informers:      &Informer{},
 		listers:        &Lister{},
 		stopch:         make(chan struct{}),
-	}
-	if enableMysqlOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_MYSQL_OPERATOR")); enableMysqlOperator {
-		store.enableMysqlOperator = true
 	}
 	// create informers factory, enable and assign required informers
 	infFactory := informers.NewSharedInformerFactoryWithOptions(k8sClient, time.Second, informers.WithNamespace(namespace))

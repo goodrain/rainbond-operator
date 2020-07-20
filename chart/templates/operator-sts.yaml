@@ -45,10 +45,6 @@ spec:
                   fieldPath: status.hostIP
             - name: SERVICE_ACCOUNT
               value: {{ template "rainbond-operator.serviceAccountName" . }}
-{{- if .Values.enableMySQLOperator }}
-            - name: ENABLE_MYSQL_OPERATOR
-              value: "{{ .Values.enableMySQLOperator }}"
-{{- end }}
             - name: REGION_DB_NAME
               value: "{{ .Values.rainbondOperator.regionDBName }}"
           volumeMounts:
@@ -69,11 +65,6 @@ spec:
             - --install-mode={{ .Values.openapi.installMode }}
             - --rbd-namespace={{ .Release.Namespace }}
             - --only-region={{ .Values.openapi.onlyRegion }}
-          env:
-            {{- if .Values.enableMySQLOperator }}
-            - name: ENABLE_MYSQL_OPERATOR
-              value: "{{ .Values.enableMySQLOperator }}"
-            {{- end }}
           volumeMounts:
             - mountPath: /opt/rainbond/pkg
               name: rbd-pkg
