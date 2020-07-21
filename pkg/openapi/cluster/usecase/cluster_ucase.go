@@ -271,7 +271,7 @@ func (c *clusterUsecase) hackClusterInfo(rainbondCluster *rainbondv1alpha1.Rainb
 	}
 
 	// get install version from config
-	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
+	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion + "-v1.0.0"
 
 	// get installID from cluster's annotations
 	var eid string
