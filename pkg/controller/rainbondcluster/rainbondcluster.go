@@ -346,6 +346,10 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 	dnsCondition := dnsPrechecker.Check()
 	r.cluster.Status.UpdateCondition(&dnsCondition)
 
+	k8sStatusPrechecker := precheck.NewK8sStatusPrechecker(r.ctx, r.cluster, r.client, r.log)
+	k8sStatusCondition := k8sStatusPrechecker.Check()
+	r.cluster.Status.UpdateCondition(&k8sStatusCondition)
+
 	return r.cluster.Status.Conditions
 }
 

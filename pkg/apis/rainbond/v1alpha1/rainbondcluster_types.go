@@ -34,6 +34,7 @@ const (
 	RainbondClusterConditionTypeDatabaseConsole   = "DatabaseConsole"
 	RainbondClusterConditionTypeImageRepository   = "ImageRepository"
 	RainbondClusterConditionTypeKubernetesVersion = "KubernetesVersion"
+	RainbondClusterConditionTypeKubernetesStatus = "KubernetesStatus"
 	RainbondClusterConditionTypeStorage           = "Storage"
 	RainbondClusterConditionTypeDNS               = "DNS"
 )

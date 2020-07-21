@@ -3,6 +3,7 @@ package rbdcomponent
 import (
 	"context"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -110,10 +111,8 @@ func (r *rbdcomponentMgr) generateStatus(pods []corev1.Pod) {
 	readyReplicas := func() int32 {
 		var result int32
 		for _, pod := range pods {
-			for _, cond := range pod.Status.Conditions {
-				if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
-					result++
-				}
+			if k8sutil.IsPodReady(&pod) {
+				result++
 			}
 		}
 		return result
@@ -137,10 +136,11 @@ func (r *rbdcomponentMgr) generateStatus(pods []corev1.Pod) {
 	r.cpt.Status = status
 }
 
-func (r *rbdcomponentMgr) isRbdCmponentReady() bool {
+func (r *rbdcomponentMgr) isRbdComponentReady() bool {
 	_, condition := r.cpt.Status.GetCondition(rainbondv1alpha1.RbdComponentReady)
 	if condition == nil {
 		return false
 	}
-	return condition.Status == corev1.ConditionTrue
+
+	return condition.Status == corev1.ConditionTrue && r.cpt.Status.ReadyReplicas == r.cpt.Status.Replicas
 }

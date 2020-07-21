@@ -103,9 +103,12 @@ func (r *ReconcileRainbondCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{RequeueAfter: time.Second * 2}, err
 	}
 	rainbondcluster.Status = status
-	if err := r.client.Status().Update(ctx, rainbondcluster); err != nil {
-		reqLogger.Error(err, "failed to update rainbondcluster status")
-		return reconcile.Result{RequeueAfter: time.Second * 2}, err
+
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return r.client.Status().Update(ctx, rainbondcluster)
+	}); err != nil {
+		reqLogger.Error(err, "update rainbondcluster status")
+		return reconcile.Result{RequeueAfter: time.Second * 1}, err
 	}
 
 	// setup imageHub if empty

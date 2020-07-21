@@ -169,3 +169,24 @@ func EventsForPersistentVolumeClaim(pvc *corev1.PersistentVolumeClaim) (*corev1.
 	events, err := clientset.CoreV1().Events(pvc.GetNamespace()).Search(scheme.Scheme, ref)
 	return events, err
 }
+
+
+// IsPodReady checks if the given pod is ready or not.
+func IsPodReady(pod *corev1.Pod) bool {
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
+// IsPodCompleted checks if the given pod is ready or not.
+func IsPodCompleted(pod *corev1.Pod) bool {
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionFalse && condition.Reason == "PodCompleted" {
+			return true
+		}
+	}
+	return false
+}
