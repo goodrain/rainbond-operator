@@ -2,38 +2,36 @@ package precheck
 
 import "testing"
 
-func TestPing(t *testing.T) {
+func TestNslookup(t *testing.T) {
 	tests := []struct {
-		target, expect string
+		target  string
+		wantErr bool
 	}{
 		{
 			target: "www.rainbond.com",
-			expect: "true\n",
+			wantErr: false,
 		},
 		{
 			target: "www.foobar12345678900987654321.com",
-			expect: "false\n",
+			wantErr: true,
 		},
 		{
 			target: "12345678900",
-			expect: "false\n",
+			wantErr: true,
 		},
 		{
 			target: "registry.cn-hangzhou.aliyuncs.com",
-			expect: "true\n",
+			wantErr: false,
 		},
 	}
 
 	for i := range tests {
 		tc := tests[i]
 
-		out, err := ping(tc.target)
-		if err != nil {
+		err := nslookup(tc.target)
+		if err != nil && !tc.wantErr {
 			t.Error(err)
 			t.FailNow()
-		}
-		if out != tc.expect {
-			t.Errorf("expect %s, but got %s", tc.expect, out)
 		}
 	}
 }

@@ -1,10 +1,9 @@
 package precheck
 
 import (
-	"fmt"
 	"github.com/docker/distribution/reference"
 	"github.com/go-logr/logr"
-	"os/exec"
+	"net"
 	"time"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -39,23 +38,19 @@ func (d *dns) Check() rainbondv1alpha1.RainbondClusterCondition {
 	domain := reference.Domain(ref.(reference.Named))
 
 	// TODO: support offline installation
-	out, err := ping(domain)
-	if err != nil {
+	if err := nslookup(domain); err != nil {
 		return d.failCondition(condition, err.Error())
 	}
-	if out != "true\n" {
-		return d.failCondition(condition, fmt.Sprintf("failed to ping %s", domain))
-	}
+
 	return condition
 }
 
-func ping(target string) (string, error) {
-	cmd := fmt.Sprintf("ping -c 1 %s > /dev/null && echo true || echo false", target)
-	output, err := exec.Command("/bin/sh", "-c", cmd).Output()
+func nslookup(target string) error {
+	_, err := net.LookupIP(target)
 	if err != nil {
-		return string(output), err
+		return err
 	}
-	return string(output), nil
+	return nil
 }
 
 func (d *dns) failCondition(condition rainbondv1alpha1.RainbondClusterCondition, msg string) rainbondv1alpha1.RainbondClusterCondition {
