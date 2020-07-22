@@ -43,7 +43,7 @@
                 "uiDBAddress": "地址",
                 "uiDBUser": "用户名",
                 "uiDBPassword": "密码",
-                "uiDBDesc": "UI数据库记录数据中心元数据，若使用其他数据库（比如RDS请提供可访问信息）",
+                "uiDBDesc": "数据中心数据库记录数据中心元数据，若使用其他数据库（比如RDS）请提供可访问信息",
                 "uiDBProviderDesc": "提供的数据库请务必提前创建'console'名称库并分配好用户权限",
                 "etcd": "ETCD",
                 "etcdInstall": "新安装ETCD",
