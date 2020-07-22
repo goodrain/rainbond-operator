@@ -59,8 +59,6 @@ spec:
           imagePullPolicy: {{ .Values.openapi.image.pullPolicy }}
           args:
             - --rainbond-version={{ .Values.rainbondVersion }}
-            - --rbd-download-url={{ .Values.openapi.downloadURL }}
-            - --rbd-download-md5={{ .Values.openapi.downloadMD5 }}
             - --image-repository={{ .Values.rainbond.imageRepository }}
             - --install-mode={{ .Values.openapi.installMode }}
             - --rbd-namespace={{ .Release.Namespace }}
