@@ -8,19 +8,19 @@ func TestNslookup(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			target: "www.rainbond.com",
+			target:  "www.rainbond.com",
 			wantErr: false,
 		},
 		{
-			target: "www.foobar12345678900987654321.com",
+			target:  "www.foobar12345678900987654321.com",
 			wantErr: true,
 		},
 		{
-			target: "12345678900",
+			target:  "12345678900",
 			wantErr: true,
 		},
 		{
-			target: "registry.cn-hangzhou.aliyuncs.com",
+			target:  "registry.cn-hangzhou.aliyuncs.com",
 			wantErr: false,
 		},
 	}

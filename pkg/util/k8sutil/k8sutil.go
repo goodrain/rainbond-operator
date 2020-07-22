@@ -15,6 +15,7 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -170,7 +171,6 @@ func EventsForPersistentVolumeClaim(pvc *corev1.PersistentVolumeClaim) (*corev1.
 	return events, err
 }
 
-
 // IsPodReady checks if the given pod is ready or not.
 func IsPodReady(pod *corev1.Pod) bool {
 	for _, condition := range pod.Status.Conditions {
@@ -189,4 +189,16 @@ func IsPodCompleted(pod *corev1.Pod) bool {
 		}
 	}
 	return false
+}
+
+// CreateIfNotExists -
+func CreateIfNotExists(ctx context.Context, client client.Client, obj runtime.Object, meta metav1.Object) error {
+	err := client.Get(ctx, types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
+	if err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return err
+		}
+		return client.Create(ctx, obj)
+	}
+	return nil
 }

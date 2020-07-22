@@ -32,4 +32,7 @@ const (
 	AliyunCSINasPlugin = "aliyun-csi-nas-plugin"
 	// AliyunCSINasProvisioner name for aliyun csi nas provisioner
 	AliyunCSINasProvisioner = "aliyun-csi-nas-provisioner"
+
+	// ServiceAccountName is the name of service account
+	ServiceAccountName = "rainbond-operator"
 )

@@ -135,9 +135,9 @@ spec:
                           description: maxVolumePerNode
                           type: string
                       required:
-                      - accessKeyID
-                      - accessKeySecret
-                      - maxVolumePerNode
+                        - accessKeyID
+                        - accessKeySecret
+                        - maxVolumePerNode
                       type: object
                     aliyunNas:
                       description: 'AliyunNasCSIPluginSource represents a aliyun cloud
@@ -152,8 +152,8 @@ spec:
                             for access control
                           type: string
                       required:
-                      - accessKeyID
-                      - accessKeySecret
+                        - accessKeyID
+                        - accessKeySecret
                       type: object
                     nfs:
                       description: 'NFSCSIPluginSource represents a nfs CSI plugin.
@@ -194,7 +194,7 @@ spec:
                   format: int32
                   type: integer
               required:
-              - imageRepository
+                - imageRepository
               type: object
             rainbondVolumeSpecRWX:
               description: RainbondVolumeSpec defines the desired state of RainbondVolume
@@ -218,9 +218,9 @@ spec:
                           description: maxVolumePerNode
                           type: string
                       required:
-                      - accessKeyID
-                      - accessKeySecret
-                      - maxVolumePerNode
+                        - accessKeyID
+                        - accessKeySecret
+                        - maxVolumePerNode
                       type: object
                     aliyunNas:
                       description: 'AliyunNasCSIPluginSource represents a aliyun cloud
@@ -235,8 +235,8 @@ spec:
                             for access control
                           type: string
                       required:
-                      - accessKeyID
-                      - accessKeySecret
+                        - accessKeyID
+                        - accessKeySecret
                       type: object
                     nfs:
                       description: 'NFSCSIPluginSource represents a nfs CSI plugin.
@@ -277,7 +277,7 @@ spec:
                   format: int32
                   type: integer
               required:
-              - imageRepository
+                - imageRepository
               type: object
             regionDatabase:
               description: the region database information that rainbond component
@@ -294,6 +294,9 @@ spec:
                 username:
                   type: string
               type: object
+            sentinelImage:
+              description: SentinelImage is the image for rainbond operator sentinel
+              type: string
             storageClassName:
               description: the storage class that rainbond component will be used.
                 rainbond-operator will create one if StorageClassName is empty
@@ -317,7 +320,7 @@ spec:
                   type: string
               type: object
           required:
-          - suffixHTTPHost
+            - suffixHTTPHost
           type: object
         status:
           description: RainbondClusterStatus defines the observed state of RainbondCluster
@@ -382,8 +385,8 @@ spec:
                     description: Type of rainbondclsuter condition.
                     type: string
                 required:
-                - status
-                - type
+                  - status
+                  - type
                 type: object
               type: array
             gatewayAvailableNodes:
@@ -454,14 +457,14 @@ spec:
                   provisioner:
                     type: string
                 required:
-                - name
-                - provisioner
+                  - name
+                  - provisioner
                 type: object
               type: array
           type: object
       type: object
   version: v1alpha1
   versions:
-  - name: v1alpha1
-    served: true
-    storage: true
+    - name: v1alpha1
+      served: true
+      storage: true

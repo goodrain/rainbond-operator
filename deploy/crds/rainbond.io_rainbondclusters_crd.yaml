@@ -294,6 +294,9 @@ spec:
                 username:
                   type: string
               type: object
+            sentinelImage:
+              description: SentinelImage is the image for rainbond operator sentinel
+              type: string
             storageClassName:
               description: the storage class that rainbond component will be used.
                 rainbond-operator will create one if StorageClassName is empty

@@ -430,7 +430,8 @@ func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, err
 				URL: c.cfg.DownloadURL,
 				MD5: c.cfg.DownloadMD5,
 			},
-			InstallMode: installMode,
+			InstallMode:   installMode,
+			SentinelImage: c.cfg.SentinelImage,
 		},
 	}
 

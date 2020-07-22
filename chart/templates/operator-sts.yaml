@@ -65,6 +65,7 @@ spec:
             - --install-mode={{ .Values.openapi.installMode }}
             - --rbd-namespace={{ .Release.Namespace }}
             - --only-region={{ .Values.openapi.onlyRegion }}
+            - --sentinel-image={{ .Values.openapi.sentinelImage }}
           volumeMounts:
             - mountPath: /opt/rainbond/pkg
               name: rbd-pkg

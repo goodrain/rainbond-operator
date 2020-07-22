@@ -350,6 +350,13 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 	k8sStatusCondition := k8sStatusPrechecker.Check()
 	r.cluster.Status.UpdateCondition(&k8sStatusCondition)
 
+	// container network
+	if r.cluster.Spec.SentinelImage != "" {
+		containerNetworkPrechecker := precheck.NewContainerNetworkPrechecker(r.ctx, r.client, r.scheme, r.log, r.cluster)
+		containerNetworkCondition := containerNetworkPrechecker.Check()
+		r.cluster.Status.UpdateCondition(&containerNetworkCondition)
+	}
+
 	return r.cluster.Status.Conditions
 }
 

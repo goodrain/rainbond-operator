@@ -31,6 +31,7 @@ type Config struct {
 	InstallMode             string
 	RainbondImageRepository string
 	InitPath                string
+	SentinelImage           string
 	OnlyInstallRegion       bool
 }
 
@@ -53,6 +54,7 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&c.OnlyInstallRegion, "only-region", false, "Only install region, if true, can not install ui.")
 	fs.StringVar(&c.RainbondImageRepository, "image-repository", "registry.cn-hangzhou.aliyuncs.com/goodrain", "Image repository for Rainbond components.")
 	fs.StringVar(&c.InitPath, "init-path", "/opt/rainbond/.init", "rainbond init file path")
+	fs.StringVar(&c.SentinelImage, "sentinel-image", "registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator-sentinel", "The image for rainbond operator sentinel")
 }
 
 // SetLog set log

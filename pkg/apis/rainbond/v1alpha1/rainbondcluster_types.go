@@ -34,9 +34,10 @@ const (
 	RainbondClusterConditionTypeDatabaseConsole   = "DatabaseConsole"
 	RainbondClusterConditionTypeImageRepository   = "ImageRepository"
 	RainbondClusterConditionTypeKubernetesVersion = "KubernetesVersion"
-	RainbondClusterConditionTypeKubernetesStatus = "KubernetesStatus"
+	RainbondClusterConditionTypeKubernetesStatus  = "KubernetesStatus"
 	RainbondClusterConditionTypeStorage           = "Storage"
 	RainbondClusterConditionTypeDNS               = "DNS"
+	RainbondClusterConditionTypeContainerNetwork  = "ContainerNetwork"
 )
 
 // RainbondClusterCondition contains condition information for rainbondcluster.
@@ -125,6 +126,9 @@ type RainbondClusterSpec struct {
 
 	RainbondVolumeSpecRWX *RainbondVolumeSpec `json:"rainbondVolumeSpecRWX,omitempty"`
 	RainbondVolumeSpecRWO *RainbondVolumeSpec `json:"rainbondVolumeSpecRWO,omitempty"`
+
+	// SentinelImage is the image for rainbond operator sentinel
+	SentinelImage string `json:"sentinelImage,omitempty"`
 }
 
 //InstallPackageConfig define install package download config
