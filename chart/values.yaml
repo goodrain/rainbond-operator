@@ -39,6 +39,7 @@ openapi:
   downloadMD5: e8ad16355bc596a72913a0bcbf700949d7e30c6bc8d93ee7ef49378d19f9783b
   installMode: WithoutPackage
   onlyRegion: false
+  sentinelImage: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator-sentinel
 
 rainbond:
   imageRepository: registry.cn-hangzhou.aliyuncs.com/goodrain
