@@ -100,9 +100,10 @@ func (c *containerNetwork) isSentinelReady() (string, error) {
 
 func (c *containerNetwork) communicate() error {
 	podList := corev1.PodList{}
-	err := c.client.List(c.ctx, &podList, client.InNamespace(c.cluster.Namespace), client.MatchingLabels{
-
+	labels := rbdutil.LabelsForRainbond(map[string]string{
+		"name": SentinelName,
 	})
+	err := c.client.List(c.ctx, &podList, client.InNamespace(c.cluster.Namespace), client.MatchingLabels(labels))
 	if err != nil {
 		return err
 	}
