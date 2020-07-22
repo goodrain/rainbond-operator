@@ -117,7 +117,6 @@ export default {
         .dispatch('installCluster', {})
         .then(en => {
           if (en && en.code === 200) {
-            this.$emit('onhandleStartRecord')
             this.$emit('onResults')
           } else {
             this.handleCancelLoading(en)
@@ -133,6 +132,17 @@ export default {
       this.loading = false
     },
     handleUpstep () {
+      if (this.list.length > 0 && !this.pass) {
+        let mag = ''
+        this.list.fiter.map(item => {
+          if (item.reason) {
+            mag += item.reason
+          }
+        })
+        if (mag) {
+          this.$emit('onhandleErrorRecord', 'failure', `${mag}`)
+        }
+      }
       this.$emit('onUpstep')
     }
   }

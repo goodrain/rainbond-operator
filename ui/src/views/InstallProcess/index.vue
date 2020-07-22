@@ -8,16 +8,15 @@
           :clusterInfo="recordInfo"
           @onResults="handlePerform('detection')"
           @onhandleErrorRecord="handleRecord"
+          @onhandleStartRecord="handleRecord('start')"
           class="d2-mt"
         ></cluster-configuration>
       </div>
       <div v-if="activeName === 'detection'">
         <p class="d2-f-24">{{ $t("page.install.config.detection") }}</p>
-
         <detection
           @onhandleErrorRecord="handleRecord"
           @onUpstep="handleUpstep"
-          @onhandleStartRecord="handleRecord('start')"
           @onResults="handlePerform('start')"
         ></detection>
       </div>
