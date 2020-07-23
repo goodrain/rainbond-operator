@@ -156,7 +156,6 @@ func (c *chaos) deployment() interface{} {
 	}
 	args := []string{
 		"--hostIP=$(POD_IP)",
-		fmt.Sprintf("--log-level=%s", c.component.LogLevel()),
 		c.db.RegionDataSource(),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(c.cluster), ","),
 		"--pvc-grdata-name=" + constants.GrDataPVC,
@@ -219,6 +218,7 @@ func (c *chaos) deployment() interface{} {
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/builder/health", 3228)
+	args = mergeArgs(args, c.component.Spec.Args)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ChaosName,

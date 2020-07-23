@@ -76,9 +76,7 @@ func parseComponentClaim(claim *componentClaim) *v1alpha1.RbdComponent {
 	component.Spec.Image = claim.image()
 	component.Spec.ImagePullPolicy = corev1.PullIfNotPresent
 	component.Spec.Replicas = claim.replicas
-	component.Spec.Configs = claim.Configs
 	component.Spec.LogLevel = v1alpha1.ParseLogLevel(claim.logLevel)
-	component.Spec.Type = claim.name
 	labels := rbdutil.LabelsForRainbond(map[string]string{"name": claim.name})
 	if claim.isInit {
 		component.Spec.PriorityComponent = true

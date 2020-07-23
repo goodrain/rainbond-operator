@@ -796,12 +796,10 @@ func (in *RbdComponentSpec) DeepCopyInto(out *RbdComponentSpec) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.Configs != nil {
-		in, out := &in.Configs, &out.Configs
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
+	if in.Args != nil {
+		in, out := &in.Args, &out.Args
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	return
 }

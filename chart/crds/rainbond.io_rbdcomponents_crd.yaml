@@ -31,11 +31,17 @@ spec:
         spec:
           description: RbdComponentSpec defines the desired state of RbdComponent
           properties:
-            configs:
-              additionalProperties:
+            args:
+              description: 'Arguments to the entrypoint. The docker image''s CMD is
+                used if this is not provided. Variable references $(VAR_NAME) are
+                expanded using the container''s environment. If a variable cannot
+                be resolved, the reference in the input string will be unchanged.
+                The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME).
+                Escaped references will never be expanded, regardless of whether the
+                variable exists or not. Cannot be updated.'
+              items:
                 type: string
-              description: component config map
-              type: object
+              type: array
             image:
               description: Docker image name.
               type: string
@@ -43,11 +49,6 @@ spec:
               description: Image pull policy. One of Always, Never, IfNotPresent.
                 Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
                 Cannot be updated.
-              type: string
-            logLevel:
-              description: LogLevel -
-              type: string
-            packagePath:
               type: string
             priorityComponent:
               description: ' Whether this component needs to be created first'
@@ -57,14 +58,8 @@ spec:
                 between explicit zero and not specified. Defaults to 1.
               format: int32
               type: integer
-            type:
-              description: type of rainbond component
-              type: string
-            version:
-              description: version of rainbond component
-              type: string
           required:
-          - priorityComponent
+            - priorityComponent
           type: object
         status:
           description: RbdComponentStatus defines the observed state of RbdComponent
@@ -96,8 +91,8 @@ spec:
                     description: Type is the type of the condition.
                     type: string
                 required:
-                - status
-                - type
+                  - status
+                  - type
                 type: object
               type: array
             pods:
@@ -125,6 +120,6 @@ spec:
       type: object
   version: v1alpha1
   versions:
-  - name: v1alpha1
-    served: true
-    storage: true
+    - name: v1alpha1
+      served: true
+      storage: true

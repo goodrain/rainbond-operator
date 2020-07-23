@@ -116,7 +116,6 @@ func (w *worker) deployment() interface{} {
 		},
 	}
 	args := []string{
-		fmt.Sprintf("--log-level=%s", w.component.LogLevel()),
 		"--host-ip=$(POD_IP)",
 		"--node-name=$(HOST_IP)",
 		w.db.RegionDataSource(),
@@ -169,6 +168,7 @@ func (w *worker) deployment() interface{} {
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/worker/health", 6369)
+	args = mergeArgs(args, w.component.Spec.Args)
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      WorkerName,

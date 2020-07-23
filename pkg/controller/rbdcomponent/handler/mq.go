@@ -64,7 +64,6 @@ func (m *mq) ListPods() ([]corev1.Pod, error) {
 
 func (m *mq) deployment() interface{} {
 	args := []string{
-		"--log-level=" + string(m.component.Spec.LogLevel),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(m.cluster), ","),
 		"--hostIP=$(POD_IP)",
 	}
@@ -77,6 +76,7 @@ func (m *mq) deployment() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
+	args = mergeArgs(args, m.component.Spec.Args)
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MQName,

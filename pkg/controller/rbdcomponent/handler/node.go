@@ -200,7 +200,6 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 		},
 	}
 	args := []string{
-		fmt.Sprintf("--log-level=%s", n.component.LogLevel()),
 		"--etcd=" + strings.Join(etcdEndpoints(n.cluster), ","),
 		"--hostIP=$(POD_IP)",
 		"--run-mode master",
@@ -247,6 +246,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/ping", 6100)
+	args = mergeArgs(args, n.component.Spec.Args)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      NodeName,

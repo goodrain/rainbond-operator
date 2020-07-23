@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	chandler "github.com/goodrain/rainbond-operator/pkg/controller/rbdcomponent/handler"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	appv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -26,10 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	chandler "github.com/goodrain/rainbond-operator/pkg/controller/rbdcomponent/handler"
-	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 )
 
 var log = logf.Log.WithName("controller_rbdcomponent")
@@ -319,7 +317,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 			return reconcile.Result{}, err
 		}
 		// Check if the resource already exists, if not create a new one
-		reconcileResult, err := r.updateOrCreateResource(reqLogger, res.(runtime.Object), res.(metav1.Object))
+		reconcileResult, err := mgr.updateOrCreateResource(res.(runtime.Object), res.(metav1.Object))
 		if err != nil {
 			reqLogger.Error(err, "update or create resource")
 			reason := "ErrCreateResources"
@@ -384,32 +382,6 @@ func (r *ReconcileRbdComponent) resourceCreateIfNotExists(ctx context.Context, o
 		return r.client.Create(ctx, obj)
 	}
 	return nil
-}
-
-func (r *ReconcileRbdComponent) updateOrCreateResource(reqLogger logr.Logger, obj runtime.Object, meta metav1.Object) (reconcile.Result, error) {
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
-	if err != nil && k8sErrors.IsNotFound(err) {
-		reqLogger.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
-		err = r.client.Create(context.TODO(), obj)
-		if err != nil {
-			reqLogger.Error(err, "Failed to create new", obj.GetObjectKind(), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
-			return reconcile.Result{}, err
-		}
-		// daemonset created successfully - return and requeue TODO: why?
-		return reconcile.Result{Requeue: true}, nil
-	} else if err != nil {
-		reqLogger.Error(err, fmt.Sprintf("Failed to get %s", obj.GetObjectKind()))
-		return reconcile.Result{}, err
-	}
-
-	// obj exsits, update
-	reqLogger.V(5).Info("Object exists.", "Kind", obj.GetObjectKind().GroupVersionKind().Kind, "Namespace", meta.GetNamespace(), "Name", meta.GetName())
-	if err := r.client.Update(context.TODO(), obj); err != nil {
-		reqLogger.Error(err, "Failed to update", "Kind", obj.GetObjectKind())
-		return reconcile.Result{}, err
-	}
-
-	return reconcile.Result{}, nil
 }
 
 func checkPackageStatus(pkg *rainbondv1alpha1.RainbondPackage) error {

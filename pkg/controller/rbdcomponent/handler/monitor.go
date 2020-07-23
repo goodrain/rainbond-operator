@@ -92,7 +92,6 @@ func (m *monitor) statefulset() interface{} {
 		"--storage.tsdb.path=/prometheusdata",
 		"--storage.tsdb.no-lockfile",
 		"--storage.tsdb.retention=7d",
-		fmt.Sprintf("--log.level=%s", m.component.LogLevel()),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(m.cluster), ","),
 	}
 	volumeMounts := []corev1.VolumeMount{
@@ -111,6 +110,7 @@ func (m *monitor) statefulset() interface{} {
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/monitor/health", 3329)
+	args = mergeArgs(args, m.component.Spec.Args)
 	ds := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MonitorName,

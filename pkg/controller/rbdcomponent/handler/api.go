@@ -142,8 +142,7 @@ func (a *api) deployment() interface{} {
 	}
 	args := []string{
 		"--api-addr=0.0.0.0:8888",
-		"--enable-feature=privileged",
-		fmt.Sprintf("--log-level=%s", a.component.LogLevel()),
+		//"--enable-feature=privileged", // TODO: args
 		a.db.RegionDataSource(),
 		"--etcd=" + strings.Join(etcdEndpoints(a.cluster), ","),
 	}
@@ -165,6 +164,9 @@ func (a *api) deployment() interface{} {
 			"--client-ca-file=/etc/goodrain/region.goodrain.me/ssl/ca.pem",
 		)
 	}
+
+	args = mergeArgs(args, a.component.Spec.Args)
+
 	a.labels["name"] = APIName
 
 	// prepare probe

@@ -3,14 +3,20 @@ package rbdcomponent
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 
+	storagev1 "k8s.io/api/storage/v1"
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rbdcomponent/handler"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 type rbdcomponentMgr struct {
@@ -143,4 +149,65 @@ func (r *rbdcomponentMgr) isRbdComponentReady() bool {
 	}
 
 	return condition.Status == corev1.ConditionTrue && r.cpt.Status.ReadyReplicas == r.cpt.Status.Replicas
+}
+
+func (r *rbdcomponentMgr) updateOrCreateResource(obj runtime.Object, meta metav1.Object) (reconcile.Result, error) {
+	oldOjb := obj.DeepCopyObject()
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, oldOjb)
+	if err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			r.log.Error(err, fmt.Sprintf("Failed to get %s", obj.GetObjectKind()))
+			return reconcile.Result{}, err
+		}
+		r.log.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+		err = r.client.Create(context.TODO(), obj)
+		if err != nil {
+			r.log.Error(err, "Failed to create new", obj.GetObjectKind(), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+			return reconcile.Result{}, err
+		}
+		// daemonset created successfully - return and requeue
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+	if !objectCanUpdate(obj) {
+		return reconcile.Result{}, nil
+	}
+
+	obj = r.updateRuntimeObject(oldOjb, obj)
+
+	r.log.V(5).Info("Object exists.", "Kind", obj.GetObjectKind().GroupVersionKind().Kind,
+		"Namespace", meta.GetNamespace(), "Name", meta.GetName())
+	if err := r.client.Update(context.TODO(), obj); err != nil {
+		r.log.Error(err, "Failed to update", "Kind", obj.GetObjectKind())
+		return reconcile.Result{}, err
+	}
+
+	return reconcile.Result{}, nil
+}
+
+func (r *rbdcomponentMgr) updateRuntimeObject(old, new runtime.Object) runtime.Object {
+	// TODO: maybe use patch is better
+	// spec.clusterIP: Invalid value: \"\": field is immutable
+	if n, ok := new.(*corev1.Service); ok {
+		r.log.V(6).Info("copy necessary fields from old service before updating")
+		o := old.(*corev1.Service)
+		n.ResourceVersion = o.ResourceVersion
+		n.Spec.ClusterIP = o.Spec.ClusterIP
+		return n
+	}
+	return new
+}
+
+func objectCanUpdate(obj runtime.Object) bool {
+	// do not use 'obj.GetObjectKind().GroupVersionKind().Kind', because it may be empty
+	if _, ok := obj.(*corev1.PersistentVolumeClaim); ok {
+		return false
+	}
+	if _, ok := obj.(*corev1.PersistentVolume); ok {
+		return false
+	}
+	if _, ok := obj.(*storagev1.StorageClass); ok {
+		return false
+	}
+	return true
 }

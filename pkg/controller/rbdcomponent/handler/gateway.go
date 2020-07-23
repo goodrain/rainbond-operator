@@ -57,7 +57,7 @@ func (g *gateway) Before() error {
 
 func (g *gateway) Resources() []interface{} {
 	return []interface{}{
-		g.deployment(),
+		g.daemonset(),
 	}
 }
 
@@ -73,10 +73,10 @@ func (g *gateway) Replicas() *int32 {
 	return commonutil.Int32(int32(len(g.cluster.Spec.NodesForGateway)))
 }
 
-func (g *gateway) deployment() interface{} {
+func (g *gateway) daemonset() interface{} {
 	args := []string{
-		fmt.Sprintf("--log-level=%s", g.component.LogLevel()),
-		"--error-log=/dev/stderr error",
+		"--error-log=/dev/stderr",
+		"--errlog-level=error",
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(g.cluster), ","),
 	}
 
@@ -102,6 +102,7 @@ func (g *gateway) deployment() interface{} {
 		return nil
 	}
 
+	args = mergeArgs(args, g.component.Spec.Args)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayName,

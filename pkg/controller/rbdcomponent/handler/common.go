@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -384,4 +385,19 @@ func imagePullSecrets(cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alp
 	return []corev1.LocalObjectReference{
 		cluster.Status.ImagePullSecret,
 	}
+}
+
+func mergeArgs(priorityArgs, commonArgs []string) []string {
+	prioritySet := make(map[string]struct{})
+	for _, arg := range priorityArgs {
+		prioritySet[strings.Split(arg, "=")[0]] = struct{}{}
+	}
+	for _, arg := range commonArgs {
+		key := strings.Split(arg, "=")[0]
+		if _, ok := prioritySet[key]; ok {
+			continue
+		}
+		priorityArgs = append(priorityArgs, arg)
+	}
+	return priorityArgs
 }

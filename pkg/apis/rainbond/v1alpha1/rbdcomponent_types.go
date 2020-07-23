@@ -5,47 +5,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// LogLevel -
-type LogLevel string
-
-const (
-	// LogLevelDebug -
-	LogLevelDebug LogLevel = "debug"
-	// LogLevelInfo -
-	LogLevelInfo LogLevel = "info"
-	// LogLevelWarning -
-	LogLevelWarning LogLevel = "warning"
-	// LogLevelError -
-	LogLevelError LogLevel = "error"
-)
-
-//ParseLogLevel parse log level
-func ParseLogLevel(l string) LogLevel {
-	switch l {
-	case "debug":
-		return LogLevelDebug
-	case "info":
-		return LogLevelInfo
-	case "warning":
-		return LogLevelWarning
-	case "error":
-		return LogLevelError
-	default:
-		return LogLevelInfo
-	}
-}
-
 // RbdComponentSpec defines the desired state of RbdComponent
 type RbdComponentSpec struct {
 	// Number of desired pods. This is a pointer to distinguish between explicit
 	// zero and not specified. Defaults to 1.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
-	// type of rainbond component
-	Type string `json:"type,omitempty"`
-	// version of rainbond component
-	Version  string   `json:"version,omitempty"`
-	LogLevel LogLevel `json:"logLevel,omitempty"`
 	// Docker image name.
 	Image string `json:"image,omitempty"`
 	// Image pull policy.
@@ -53,29 +18,17 @@ type RbdComponentSpec struct {
 	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
 	// Cannot be updated.
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-	// component config map
-	Configs     map[string]string `json:"configs,omitempty"`
-	PackagePath string            `json:"packagePath,omitempty"`
+	// Arguments to the entrypoint.
+	// The docker image's CMD is used if this is not provided.
+	// Variable references $(VAR_NAME) are expanded using the container's environment. If a variable
+	// cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax
+	// can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded,
+	// regardless of whether the variable exists or not.
+	// Cannot be updated.
+	// +optional
+	Args []string `json:"args,omitempty" protobuf:"bytes,4,rep,name=args"`
 	//  Whether this component needs to be created first
 	PriorityComponent bool `json:"priorityComponent"`
-}
-
-// ControllerType -
-type ControllerType string
-
-const (
-	// ControllerTypeDeployment -
-	ControllerTypeDeployment ControllerType = "deployment"
-	// ControllerTypeDaemonSet -
-	ControllerTypeDaemonSet ControllerType = "daemonset"
-	// ControllerTypeStatefulSet -
-	ControllerTypeStatefulSet ControllerType = "statefuleset"
-	// ControllerTypeUnknown -
-	ControllerTypeUnknown ControllerType = "unknown"
-)
-
-func (c ControllerType) String() string {
-	return string(c)
 }
 
 // RbdComponentConditionType is a valid value for RbdComponentCondition.Type
@@ -160,12 +113,4 @@ func (in *RbdComponent) ImagePullPolicy() corev1.PullPolicy {
 		return corev1.PullAlways
 	}
 	return in.Spec.ImagePullPolicy
-}
-
-// LogLevel returns the LogLevel, or  return LogLevelInfo if it is empty.
-func (in *RbdComponent) LogLevel() LogLevel {
-	if in.Spec.LogLevel == "" {
-		return LogLevelInfo
-	}
-	return in.Spec.LogLevel
 }
