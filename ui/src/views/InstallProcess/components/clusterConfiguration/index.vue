@@ -1117,7 +1117,7 @@ export default {
       callback()
     }
     return {
-      activeNames: ['nodes', 'chaosNodes'],
+      activeNames: ['nodes', 'chaosNodes', 'gatewayIP'],
       errorEndpointsMsg: null,
       queryGatewayNodeloading: false,
       queryChaosNodeloading: false,
@@ -1466,6 +1466,9 @@ export default {
     installModeChange (value) {
       if (value && this.ruleForm.activeStorageType === 1) {
         this.ruleForm.activeStorageType = 2
+        this.activeNames.push('shareStorage')
+      } else {
+        this.ruleForm.activeStorageType = 1
       }
     },
     removeIP (index) {

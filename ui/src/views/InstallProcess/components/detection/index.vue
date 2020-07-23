@@ -84,7 +84,10 @@ export default {
         DatabaseRegion: 'Region 数据库',
         DatabaseConsole: 'Console 数据库',
         ImageRepository: '镜像仓库',
-        KubernetesVersion: 'Kubernetes 版本'
+        KubernetesVersion: 'Kubernetes 版本',
+        KubernetesStatus: 'Kubernetes 集群',
+        ContainerNetwork: '容器网络',
+        Storage: '共享存储'
       }
     }
   },
