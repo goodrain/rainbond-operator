@@ -2,17 +2,17 @@ package rainbondvolume
 
 import (
 	"context"
+	"errors"
 	"fmt"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondvolume/plugin"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
+	"time"
 
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,6 +29,8 @@ import (
 )
 
 var log = logf.Log.WithName("controller_rainbondvolume")
+
+var ErrCSIPluginNotReady = errors.New("csi plugin not ready")
 
 // Add creates a new RainbondVolume Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -107,7 +109,7 @@ func (r *ReconcileRainbondVolume) Reconcile(request reconcile.Request) (reconcil
 	volume := &rainbondv1alpha1.RainbondVolume{}
 	err := r.client.Get(ctx, request.NamespacedName, volume)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -152,6 +154,10 @@ func (r *ReconcileRainbondVolume) Reconcile(request reconcile.Request) (reconcil
 			return reconcile.Result{}, err
 		}
 		if err := r.applyCSIPlugin(ctx, csiplugin, volume); err != nil {
+			if err == ErrCSIPluginNotReady {
+				reqLogger.V(6).Info(err.Error())
+				return reconcile.Result{RequeueAfter: 3 * time.Second}, err
+			}
 			if err := r.updateVolumeStatus(ctx, volume); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -201,7 +207,7 @@ func (r *ReconcileRainbondVolume) applyCSIPlugin(ctx context.Context, plugin plu
 	}
 
 	// requeue the volume with error
-	return fmt.Errorf("csi plugin not ready")
+	return ErrCSIPluginNotReady
 }
 
 func (r *ReconcileRainbondVolume) updateOrCreateResource(ctx context.Context, obj runtime.Object, meta metav1.Object) error {
