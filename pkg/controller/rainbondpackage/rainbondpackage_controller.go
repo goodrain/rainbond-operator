@@ -574,7 +574,7 @@ func (p *pkg) donwnloadPackage() error {
 
 //handle
 func (p *pkg) handle() error {
-	p.log.V(4).Info("start handling rainbond package.")
+	p.log.V(6).Info("start handling rainbond package.")
 	// check prerequisites
 	if err := p.checkClusterConfig(); err != nil {
 		p.log.V(6).Info(fmt.Sprintf("check cluster config: %v", err))
