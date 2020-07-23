@@ -45,8 +45,6 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.ClusterName, "cluster-name", "rainbondcluster", "rbd cluster name")
 	fs.StringVar(&c.EtcdSecretName, "rbd-etcd", "rbd-etcd-secret", "etcd cluster info saved in secret")
 	fs.StringVar(&c.ArchiveFilePath, "rbd-archive", "/opt/rainbond/pkg/tgz/rainbond-pkg-V5.2-dev.tgz", "rbd base archive file path")
-	fs.StringVar(&c.DownloadURL, "rbd-download-url", "", "download rainbond tar")
-	fs.StringVar(&c.DownloadMD5, "rbd-download-md5", "fcd61975ff0a55fc1a1dd997043488adc14fe7e4fea474f77865a0689b52e1de", "check down rainbond tar md5")
 	fs.StringVar(&c.SuffixHTTPHost, "suffix-configmap", "rbd-suffix-host", "rbd suffix http host configmap name")
 	fs.StringVar(&c.KubeCfgSecretName, "kube-secret", "kube-cfg-secret", "kubernetes account info used for cadvisor through kubelet")
 	fs.StringVar(&c.Rainbondpackage, "rainbond-package-name", "rainbondpackage", "kubernetes rainbondpackage resource name")

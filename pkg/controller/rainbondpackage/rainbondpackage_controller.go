@@ -306,8 +306,6 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 		p.version = c.Spec.InstallVersion
 	}
 	p.localPackagePath = p.pkg.Spec.PkgPath
-	p.downloadPackageURL = c.Spec.InstallPackageConfig.URL
-	p.downloadPackageMD5 = c.Spec.InstallPackageConfig.MD5
 	p.cluster = c
 	// TODO: Is it possible to handle the tag when packaging
 	p.images = map[string]string{

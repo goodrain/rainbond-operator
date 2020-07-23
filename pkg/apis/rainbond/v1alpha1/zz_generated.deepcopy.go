@@ -380,7 +380,6 @@ func (in *RainbondClusterSpec) DeepCopyInto(out *RainbondClusterSpec) {
 		*out = new(EtcdConfig)
 		(*in).DeepCopyInto(*out)
 	}
-	out.InstallPackageConfig = in.InstallPackageConfig
 	if in.RainbondVolumeSpecRWX != nil {
 		in, out := &in.RainbondVolumeSpecRWX, &out.RainbondVolumeSpecRWX
 		*out = new(RainbondVolumeSpec)
