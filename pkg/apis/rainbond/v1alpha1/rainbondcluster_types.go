@@ -105,9 +105,6 @@ type RainbondClusterSpec struct {
 	InstallMode InstallMode `json:"installMode,omitempty"`
 	// User-specified private image repository, replacing goodrain.me.
 	ImageHub *ImageHub `json:"imageHub,omitempty"`
-	// the storage class that rainbond component will be used.
-	// rainbond-operator will create one if StorageClassName is empty
-	StorageClassName string `json:"storageClassName,omitempty"`
 	// the region database information that rainbond component will be used.
 	// rainbond-operator will create one if DBInfo is empty
 	RegionDatabase *Database `json:"regionDatabase,omitempty"`
@@ -127,6 +124,9 @@ type RainbondClusterSpec struct {
 
 	// SentinelImage is the image for rainbond operator sentinel
 	SentinelImage string `json:"sentinelImage,omitempty"`
+
+	// RbdComponents is a list of rainbond cluster components
+	RbdComponents []*RbdComponent `json:"rbdComponents,omitempty"`
 }
 
 //InstallPackageConfig define install package download config

@@ -151,6 +151,18 @@ func (r *rbdcomponentMgr) isRbdComponentReady() bool {
 	return condition.Status == corev1.ConditionTrue && r.cpt.Status.ReadyReplicas == r.cpt.Status.Replicas
 }
 
+func (r *rbdcomponentMgr) resourceCreateIfNotExists(obj runtime.Object, meta metav1.Object) error {
+	err := r.client.Get(r.ctx, types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, obj)
+	if err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return err
+		}
+		r.log.V(4).Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", meta.GetNamespace(), "Name", meta.GetName())
+		return r.client.Create(r.ctx, obj)
+	}
+	return nil
+}
+
 func (r *rbdcomponentMgr) updateOrCreateResource(obj runtime.Object, meta metav1.Object) (reconcile.Result, error) {
 	oldOjb := obj.DeepCopyObject()
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: meta.GetName(), Namespace: meta.GetNamespace()}, oldOjb)

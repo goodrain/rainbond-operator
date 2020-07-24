@@ -390,6 +390,17 @@ func (in *RainbondClusterSpec) DeepCopyInto(out *RainbondClusterSpec) {
 		*out = new(RainbondVolumeSpec)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.RbdComponents != nil {
+		in, out := &in.RbdComponents, &out.RbdComponents
+		*out = make([]*RbdComponent, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(RbdComponent)
+				(*in).DeepCopyInto(*out)
+			}
+		}
+	}
 	return
 }
 
