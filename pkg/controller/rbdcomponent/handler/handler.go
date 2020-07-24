@@ -23,11 +23,18 @@ type StorageClassRWOer interface {
 	SetStorageClassNameRWO(pvcParameters *pvcParameters)
 }
 
-// K8sResourcesInterface provides methods to create or update k8s resources,
+// ResourcesCreator provides methods to create or update k8s resources,
 // such as daemonset, daemonset, etc.
-type K8sResourcesInterface interface {
+type ResourcesCreator interface {
 	// returns the resources that should be created if not exists
 	ResourcesCreateIfNotExists() []interface{}
+}
+
+// ResourcesDeleter -
+type ResourcesDeleter interface {
+	// returns the resources that need to be delete if exists.
+	ResourcesNeedDelete() []interface{}
+	// TODO: wait until deleting successfully
 }
 
 // Replicaser provides methods to get replicas for rbdcomponent.

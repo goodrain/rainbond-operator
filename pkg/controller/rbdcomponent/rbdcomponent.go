@@ -3,37 +3,42 @@ package rbdcomponent
 import (
 	"context"
 	"fmt"
-
-	storagev1 "k8s.io/api/storage/v1"
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rbdcomponent/handler"
+	chandler "github.com/goodrain/rainbond-operator/pkg/controller/rbdcomponent/handler"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 type rbdcomponentMgr struct {
-	ctx    context.Context
-	client client.Client
-	log    logr.Logger
+	ctx      context.Context
+	client   client.Client
+	log      logr.Logger
+	recorder record.EventRecorder
 
 	cpt        *rainbondv1alpha1.RbdComponent
 	replicaser handler.Replicaser
 }
 
-func newRbdcomponentMgr(ctx context.Context, client client.Client, log logr.Logger, cpt *rainbondv1alpha1.RbdComponent) *rbdcomponentMgr {
+func newRbdcomponentMgr(ctx context.Context, client client.Client, recorder record.EventRecorder, log logr.Logger, cpt *rainbondv1alpha1.RbdComponent) *rbdcomponentMgr {
 	mgr := &rbdcomponentMgr{
-		ctx:    ctx,
-		client: client,
-		log:    log,
-		cpt:    cpt,
+		ctx:      ctx,
+		client:   client,
+		recorder: recorder,
+		log:      log,
+		cpt:      cpt,
 	}
 	return mgr
 }
@@ -221,5 +226,36 @@ func objectCanUpdate(obj runtime.Object) bool {
 	if _, ok := obj.(*storagev1.StorageClass); ok {
 		return false
 	}
+	if _, ok := obj.(*batchv1.Job); ok {
+		return false
+	}
 	return true
+}
+
+func (r *rbdcomponentMgr) deleteResources(deleter chandler.ResourcesDeleter) (*reconcile.Result, error) {
+	resources := deleter.ResourcesNeedDelete()
+	for _, res := range resources {
+		if res == nil {
+			continue
+		}
+		if err := r.deleteResourcesIfExists(res.(runtime.Object)); err != nil {
+			condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady,
+				corev1.ConditionFalse, "ErrDeleteResource", err.Error())
+			changed := r.cpt.Status.UpdateCondition(condition)
+			if changed {
+				r.recorder.Event(r.cpt, corev1.EventTypeWarning, condition.Reason, condition.Message)
+				return &reconcile.Result{Requeue: true}, r.updateStatus()
+			}
+			return &reconcile.Result{}, err
+		}
+	}
+	return nil, nil
+}
+
+func (r *rbdcomponentMgr) deleteResourcesIfExists(obj runtime.Object) error {
+	err := r.client.Delete(r.ctx, obj, &client.DeleteOptions{GracePeriodSeconds: commonutil.Int64(0)})
+	if err != nil && !k8sErrors.IsNotFound(err) {
+		return err
+	}
+	return nil
 }

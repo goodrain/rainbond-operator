@@ -39,7 +39,7 @@ type node struct {
 
 var _ ComponentHandler = &node{}
 var _ StorageClassRWXer = &node{}
-var _ K8sResourcesInterface = &node{}
+var _ ResourcesCreator = &node{}
 var _ Replicaser = &node{}
 
 // NewNode creates a new rbd-node handler.

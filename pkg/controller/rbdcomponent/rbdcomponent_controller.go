@@ -145,7 +145,7 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		cpt.Status = &rainbondv1alpha1.RbdComponentStatus{}
 	}
 
-	mgr := newRbdcomponentMgr(ctx, r.client, reqLogger, cpt)
+	mgr := newRbdcomponentMgr(ctx, r.client, r.recorder, reqLogger, cpt)
 
 	fn, ok := handlerFuncs[cpt.Name]
 	if !ok {
@@ -230,10 +230,21 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
-	k8sResourcesMgr, ok := hdl.(chandler.K8sResourcesInterface)
+	resourcesDeleter, ok := hdl.(chandler.ResourcesDeleter)
 	if ok {
-		reqLogger.V(6).Info("K8sResourcesInterface create resources create if not exists")
-		resourcesCreateIfNotExists := k8sResourcesMgr.ResourcesCreateIfNotExists()
+		result, err := mgr.deleteResources(resourcesDeleter)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if result != nil {
+			return *result, nil
+		}
+	}
+
+	resourceCreator, ok := hdl.(chandler.ResourcesCreator)
+	if ok {
+		reqLogger.V(6).Info("ResourcesCreator create resources create if not exists")
+		resourcesCreateIfNotExists := resourceCreator.ResourcesCreateIfNotExists()
 		for _, res := range resourcesCreateIfNotExists {
 			if res == nil {
 				continue
@@ -314,7 +325,6 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 
 	pods, err := hdl.ListPods()
 	if err != nil {
-
 		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse,
 			"ErrListPods", err.Error())
 		changed := cpt.Status.UpdateCondition(condition)
