@@ -107,7 +107,7 @@ func (r *repo) statefulset() interface{} {
 									corev1.ResourceCPU:    resource.MustParse("0m"),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("1536Mi"),
+									corev1.ResourceMemory: resource.MustParse("2048Mi"),
 									corev1.ResourceCPU:    resource.MustParse("1000m"),
 								},
 							},
