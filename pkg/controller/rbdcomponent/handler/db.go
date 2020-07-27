@@ -97,15 +97,6 @@ func (d *db) Before() error {
 }
 
 func (d *db) Resources() []interface{} {
-	if d.enableMysqlOperator {
-		return []interface{}{
-			d.secretForDB(),
-			d.serviceForMysqlCluster(),
-			d.configMapForMyCnf(),
-			d.mysqlCluster(),
-		}
-	}
-
 	return []interface{}{
 		d.secretForDB(),
 		d.configMapForMyCnf(),
