@@ -17,13 +17,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/config"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	clusterCtrl "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/controller"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/repository"
 	cucase "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/usecase"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/nodestore"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/upload"
 	uctrl "github.com/goodrain/rainbond-operator/pkg/openapi/user/controller"
 	uucase "github.com/goodrain/rainbond-operator/pkg/openapi/user/usecase"
 	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
@@ -32,15 +31,11 @@ import (
 
 var log = logf.Log.WithName("main")
 
-var (
-	archiveFilePath = "/opt/rainbond/pkg/tgz/rainbond-pkg-V5.2-dev.tgz"
-)
-
 // APIServer api server
-var cfg *option.Config
+var cfg *config.Config
 
 func init() {
-	cfg = &option.Config{}
+	cfg = &config.Config{}
 	cfg.AddFlags(pflag.CommandLine)
 	pflag.Parse()
 	cfg.SetLog()
@@ -81,19 +76,20 @@ func main() {
 	}
 	defer nodestorer.Stop()
 
-	repo := repository.NewClusterRepo(cfg.InitPath)
 
+	// router
 	r := gin.Default()
 	r.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
 	r.Use(static.Serve("/", static.LocalFile("/app/ui", true)))
 
+	// user
 	userUcase := uucase.NewUserUsecase(nil, "my-secret-key")
 	uctrl.NewUserController(r, userUcase)
 
+	// cluster
+	repo := repository.NewClusterRepo(cfg.InitPath)
 	clusterUcase := cucase.NewClusterCase(cfg, repo, rainbondKubeClient, nodestorer, storer)
 	clusterCtrl.NewClusterController(r, clusterUcase)
-
-	upload.NewUploadController(r, archiveFilePath)
 
 	logrus.Infof("api server listen %s", func() string {
 		if port := os.Getenv("PORT"); port != "" {
@@ -111,8 +107,8 @@ func main() {
 }
 
 var corsMidle = func(f gin.HandlerFunc) gin.HandlerFunc {
-	return gin.HandlerFunc(func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
 		corsutil.SetCORS(ctx)
 		f(ctx)
-	})
+	}
 }

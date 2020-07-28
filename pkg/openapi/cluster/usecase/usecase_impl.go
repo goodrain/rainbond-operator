@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/config"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/store"
@@ -17,7 +17,7 @@ type CaseImpl struct {
 }
 
 // NewClusterCase new cluster case
-func NewClusterCase(conf *option.Config, repo cluster.Repository, rainbondKubeClient versioned.Interface, nodestorer nodestore.Interface, storer store.Storer) cluster.IClusterUcase {
+func NewClusterCase(conf *config.Config, repo cluster.Repository, rainbondKubeClient versioned.Interface, nodestorer nodestore.Interface, storer store.Storer) cluster.IClusterUcase {
 	clusterCase := &CaseImpl{}
 	clusterCase.componentUseCaseImpl = NewComponentUsecase(conf, storer)
 	clusterCase.globalConfigUseCaseImpl = NewGlobalConfigUseCase(conf)

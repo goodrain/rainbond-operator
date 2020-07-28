@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/config"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func Test_componentUsecase_convertEventMessage(t *testing.T) {
 	type fields struct {
-		cfg *option.Config
+		cfg *config.Config
 	}
 	type args struct {
 		events []*corev1.Event

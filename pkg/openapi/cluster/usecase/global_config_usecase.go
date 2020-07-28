@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/config"
 	v1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
@@ -26,11 +26,11 @@ import (
 
 // GlobalConfigUseCaseImpl case
 type GlobalConfigUseCaseImpl struct {
-	cfg *option.Config
+	cfg *config.Config
 }
 
 // NewGlobalConfigUseCase new global config case
-func NewGlobalConfigUseCase(cfg *option.Config) cluster.GlobalConfigUseCase {
+func NewGlobalConfigUseCase(cfg *config.Config) cluster.GlobalConfigUseCase {
 	return &GlobalConfigUseCaseImpl{cfg: cfg}
 }
 

@@ -3,7 +3,7 @@ package usecase
 import (
 	"fmt"
 
-	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/config"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
@@ -24,7 +24,7 @@ import (
 )
 
 type clusterUsecase struct {
-	cfg            *option.Config
+	cfg            *config.Config
 	clientset      kubernetes.Interface
 	rainbondClient versioned.Interface
 	namespace      string
@@ -36,7 +36,7 @@ type clusterUsecase struct {
 }
 
 // NewClusterUsecase creates a new cluster.Usecase.
-func NewClusterUsecase(cfg *option.Config, repo cluster.Repository, cptUcase cluster.ComponentUsecase, nodestorer nodestore.Interface) cluster.Usecase {
+func NewClusterUsecase(cfg *config.Config, repo cluster.Repository, cptUcase cluster.ComponentUsecase, nodestorer nodestore.Interface) cluster.Usecase {
 	return &clusterUsecase{
 		cfg:            cfg,
 		clientset:      cfg.KubeClient,

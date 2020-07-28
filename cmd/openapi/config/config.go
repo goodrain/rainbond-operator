@@ -1,4 +1,4 @@
-package option
+package config
 
 import (
 	"fmt"
@@ -9,6 +9,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
+
+// C represents a global configuration.
+var C *Config
 
 // Config config for openapi
 type Config struct {
@@ -33,6 +36,8 @@ type Config struct {
 	InitPath                string
 	SentinelImage           string
 	OnlyInstallRegion       bool
+
+	VersionDir string
 }
 
 // AddFlags add flag
@@ -53,6 +58,9 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.RainbondImageRepository, "image-repository", "registry.cn-hangzhou.aliyuncs.com/goodrain", "Image repository for Rainbond components.")
 	fs.StringVar(&c.InitPath, "init-path", "/opt/rainbond/.init", "rainbond init file path")
 	fs.StringVar(&c.SentinelImage, "sentinel-image", "registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator-sentinel", "The image for rainbond operator sentinel")
+	fs.StringVar(&c.VersionDir, "version-dir", "/app/version", "The version directory")
+
+	C = c
 }
 
 // SetLog set log
