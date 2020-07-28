@@ -6,27 +6,27 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/store"
-
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/config"
+	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
+	clusterCtrl "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/controller"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/repository"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/store"
+	cucase "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/usecase"
+	"github.com/goodrain/rainbond-operator/pkg/openapi/nodestore"
+	upgradec "github.com/goodrain/rainbond-operator/pkg/openapi/upgrade/controller"
+	upgradeu "github.com/goodrain/rainbond-operator/pkg/openapi/upgrade/usecase"
+	uctrl "github.com/goodrain/rainbond-operator/pkg/openapi/user/controller"
+	uucase "github.com/goodrain/rainbond-operator/pkg/openapi/user/usecase"
+	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
-	"github.com/goodrain/rainbond-operator/cmd/openapi/config"
-	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
-	clusterCtrl "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/controller"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/repository"
-	cucase "github.com/goodrain/rainbond-operator/pkg/openapi/cluster/usecase"
-	"github.com/goodrain/rainbond-operator/pkg/openapi/nodestore"
-	uctrl "github.com/goodrain/rainbond-operator/pkg/openapi/user/controller"
-	uucase "github.com/goodrain/rainbond-operator/pkg/openapi/user/usecase"
-	"github.com/goodrain/rainbond-operator/pkg/util/corsutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 )
 
 var log = logf.Log.WithName("main")
@@ -76,7 +76,6 @@ func main() {
 	}
 	defer nodestorer.Stop()
 
-
 	// router
 	r := gin.Default()
 	r.OPTIONS("/*path", corsMidle(func(ctx *gin.Context) {}))
@@ -90,6 +89,10 @@ func main() {
 	repo := repository.NewClusterRepo(cfg.InitPath)
 	clusterUcase := cucase.NewClusterCase(cfg, repo, rainbondKubeClient, nodestorer, storer)
 	clusterCtrl.NewClusterController(r, clusterUcase)
+
+	// upgrade
+	upgradeUcase := upgradeu.NewUpgradeUsecase(rainbondKubeClient, cfg.VersionDir, cfg.Namespace, cfg.ClusterName)
+	upgradec.NewUpgradeController(r, upgradeUcase)
 
 	logrus.Infof("api server listen %s", func() string {
 		if port := os.Getenv("PORT"); port != "" {
