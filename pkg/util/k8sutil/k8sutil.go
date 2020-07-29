@@ -3,15 +3,13 @@ package k8sutil
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/reference"
-	"k8s.io/kubectl/pkg/describe"
+	"github.com/sirupsen/logrus"
 	"net"
 	"os"
 	"sync"
 	"time"
 
+	rainbondversiond "github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -19,10 +17,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/reference"
+	"k8s.io/kubectl/pkg/describe"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 )
 
 var once sync.Once
@@ -199,6 +202,29 @@ func CreateIfNotExists(ctx context.Context, client client.Client, obj runtime.Ob
 			return err
 		}
 		return client.Create(ctx, obj)
+	}
+	return nil
+}
+
+func CreateOrUpdateRbdComponent(clientset rainbondversiond.Interface, cpt *rainbondv1alpha1.RbdComponent) error {
+	old, err := clientset.RainbondV1alpha1().RbdComponents(cpt.Namespace).Get(cpt.GetName(), metav1.GetOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			logrus.Infof("[CreateOrUpdateRbdComponent] create rbdcomponent %s/%s", cpt.Namespace, cpt.Name)
+			_, err := clientset.RainbondV1alpha1().RbdComponents(cpt.Namespace).Create(cpt)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+		return err
+	}
+
+	logrus.Infof("[CreateOrUpdateRbdComponent] update rbdcomponent %s/%s", cpt.Namespace, cpt.Name)
+	cpt.ResourceVersion = old.ResourceVersion
+	_, err = clientset.RainbondV1alpha1().RbdComponents(cpt.Namespace).Update(cpt)
+	if err != nil {
+		return err
 	}
 	return nil
 }

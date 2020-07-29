@@ -1,0 +1,8 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RbdComponent
+metadata:
+  name: rbd-app-ui
+spec:
+  image: registry.cn-hangzhou.aliyuncs.com/abewang/rbd-app-ui:V5.2-dev
+  imagePullPolicy: IfNotPresent
+  priorityComponent: false
