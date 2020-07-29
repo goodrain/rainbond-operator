@@ -100,10 +100,16 @@ service.interceptors.response.use(
     }
   },
   error => {
-    console.log('error', error)
-
     if (error.response && error.response.data) {
       const dataAxios = error.response.data
+      if (
+        dataAxios &&
+        dataAxios.code &&
+        dataAxios.code >= 1000 &&
+        dataAxios.code <= 1005
+      ) {
+        return Promise.reject(dataAxios)
+      }
       return handleResponseCode(dataAxios)
     }
     Message({

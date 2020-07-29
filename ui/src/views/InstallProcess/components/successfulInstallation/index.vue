@@ -1,21 +1,36 @@
 <template>
   <d2-container type="full">
-    <div class="d2-ml-115 d2-w-1100" v-loading="loading">
+    <div class="d2-ml-115 d2-w-1100" v-loading="loading || upgradeLoading">
       <el-card class="d2-mb">
         <div class="d2-h-30">
-          <el-col :span="4">访问地址</el-col>
-          <el-col :span="16" class="d2-text-center">
-            <a :href="accessAddress" target="_blank" class="successLink">{{
-              accessAddress
-            }}</a>
+          <el-col :span="5"
+            >当前版本&nbsp;&nbsp;
+            <span style="color:#409EFF">{{
+              upVersionInfo.currentVersion
+            }}</span>
           </el-col>
-          <el-col :span="4" class="d2-text-center">
+          <el-col :span="14" class="d2-text-center">
+            访问地址&nbsp;&nbsp;
+            <a :href="accessAddress" target="_blank" class="successLink">
+              {{ accessAddress }}
+            </a>
+          </el-col>
+          <el-col :span="5" class="d2-text-center">
             <el-button
               size="small"
               type="primary"
               @click="dialogVisibles = true"
-              >卸载</el-button
             >
+              卸载
+            </el-button>
+            <el-button
+              v-if="upgradeableVersions"
+              size="small"
+              type="primary"
+              @click="upgradeDialog = true"
+            >
+              升级
+            </el-button>
           </el-col>
         </div>
       </el-card>
@@ -88,6 +103,55 @@
         <el-button type="primary" @click="onhandleDelete">卸 载</el-button>
       </span>
     </el-dialog>
+
+    <el-dialog title="版本升级" :visible.sync="upgradeDialog" width="30%">
+      <el-form
+        :inline="true"
+        @submit.native.prevent
+        :model="upVersionInfo"
+        :rules="upVersionRules"
+        ref="upVersionForm"
+        size="small"
+        label-width="100px"
+      >
+        <el-row :gutter="20">
+          <el-col :span="24" class="table-cell-title cen ">
+            <el-form-item label="当前版本" class="d2-mt d2-form-item">
+              <el-input
+                disabled
+                v-model="upVersionInfo.currentVersion"
+                style="width:290px"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24" class="table-cell-title">
+            <el-form-item class="bor" label="可升级版本" prop="version">
+              <el-select
+                style="width:290px"
+                v-model="upVersionInfo.version"
+                :placeholder="$t('page.install.config.upgrade')"
+              >
+                <el-option
+                  v-for="item in upVersionInfo.upgradeableVersions"
+                  :key="item"
+                  :label="item"
+                  :value="item"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="upgradeDialog = false">取 消</el-button>
+        <el-button
+          type="primary"
+          v-loading="upgradeLoading"
+          @click="onhandleUpgrade"
+          >升级</el-button
+        >
+      </span>
+    </el-dialog>
   </d2-container>
 </template>
 
@@ -123,13 +187,30 @@ export default {
         otherReasons: [{ required: false }]
       },
       dialogVisibles: false,
+      upgradeDialog: false,
       uninstallForm: {
         checkList: [],
         otherReasons: ''
       },
+      upVersionRules: {
+        version: [
+          {
+            required: true,
+            message: this.$t('page.install.config.upgrade'),
+            trigger: 'blur'
+          }
+        ]
+      },
+      upVersionInfo: {
+        currentVersion: '',
+        version: '',
+        upgradeableVersions: []
+      },
       activeName: 'rsultSucess',
       componentList: [],
       loading: true,
+      upgradeLoading: false,
+      upgradeableVersions: false,
       accessAddress: '',
       recordInfo: {
         install_id: '',
@@ -142,6 +223,7 @@ export default {
     }
   },
   created () {
+    this.fetchUpVersions()
     this.handleState()
     this.fetchAccessAddress()
     this.fetchClusterInstallResultsState(true)
@@ -152,7 +234,6 @@ export default {
   methods: {
     handleState () {
       this.timers && clearInterval(this.timers)
-
       this.$store.dispatch('fetchState').then(res => {
         if (res && res.code === 200 && res.data.final_status) {
           const { clusterInfo, final_status, reasons, testMode } = res.data
@@ -249,10 +330,82 @@ export default {
         }
       })
     },
+    onhandleUpgrade () {
+      this.$refs.upVersionForm.validate(valid => {
+        if (valid) {
+          this.upgradeLoading = true
+          this.$store
+            .dispatch('upgradeVersion', { version: this.upVersionInfo.version })
+            .then(res => {
+              if (res && res.code === 200) {
+                this.fetchUpVersions()
+                this.upgradeLoading = false
+                this.upgradeDialog = false
+                this.$notify({
+                  type: 'success',
+                  title: '版本升级',
+                  message: '升级成功'
+                })
+              }
+            })
+            .catch(err => {
+              this.upgradeLoading = false
+              let msg = ''
+              const { code } = err
+              if (code) {
+                switch (code) {
+                  case 1000:
+                    msg = '版本格式有误'
+                    break
+                  case 1001:
+                    msg = '当前版本不存在'
+                    break
+                  case 1002:
+                    msg = '当前版本格式有误'
+                    break
+                  case 1003:
+                    msg = '不支持降级'
+                    break
+                  case 1004:
+                    msg = '版本不存在'
+                    break
+                  case 1005:
+                    msg = '无法获取升级信息'
+                    break
+                  default:
+                    break
+                }
+              }
+              if (msg) {
+                this.$message({
+                  message: msg,
+                  type: 'warning'
+                })
+              } else {
+                this.upgradeDialog = false
+              }
+            })
+        }
+      })
+    },
     fetchAccessAddress () {
       this.$store.dispatch('fetchAccessAddress').then(res => {
         if (res && res.code === 200) {
           this.accessAddress = res.data
+        }
+      })
+    },
+    fetchUpVersions () {
+      this.$store.dispatch('fetchUpVersions').then(res => {
+        if (res && res.code === 200) {
+          this.upVersionInfo = res.data
+          const { upgradeableVersions } = res.data
+          if (upgradeableVersions && upgradeableVersions.length > 0) {
+            this.upgradeableVersions = true
+            this.upVersionInfo.version = upgradeableVersions[0]
+          } else {
+            this.upgradeableVersions = false
+          }
         }
       })
     },
