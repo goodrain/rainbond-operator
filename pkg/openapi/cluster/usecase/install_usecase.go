@@ -257,7 +257,7 @@ func (ic *InstallUseCaseImpl) genComponentClaims(cluster *v1alpha1.RainbondClust
 
 	if cluster.Spec.RegionDatabase == nil || (cluster.Spec.UIDatabase == nil && !ic.cfg.OnlyInstallRegion) {
 		claim := newClaim("rbd-db")
-		claim.version = "v5.1.9"
+		claim.version = "8.0.19"
 		claim.replicas = commonutil.Int32(1)
 		name2Claim["rbd-db"] = claim
 	}
