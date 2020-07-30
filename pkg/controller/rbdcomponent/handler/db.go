@@ -430,6 +430,11 @@ func (d *db) serviceForMysqlCluster() interface{} {
 }
 
 func (d *db) configMapForMyCnf() interface{} {
+	var innodbDirs []string
+	for _, database := range d.databases {
+		innodbDirs = append(innodbDirs, "/var/lib/mysql/"+database)
+	}
+
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mycnf,
@@ -443,6 +448,7 @@ default-character-set = utf8mb4
 
 [mysqld]
 user=mysql
+innodb_directories="%s"
 
 #
 # * Character sets
@@ -455,9 +461,10 @@ character_set_server   = utf8mb4
 collation_server       = utf8mb4_unicode_ci
 
 # Compatible with versions before 8.0
+default_authentication_plugin=mysql_native_password
 skip-host-cache
 skip-name-resolve
-`),
+`, strings.Join(innodbDirs, ";")),
 		},
 	}
 
