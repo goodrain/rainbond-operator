@@ -137,9 +137,9 @@ export default {
     handleUpstep () {
       if (this.list.length > 0 && !this.pass) {
         let mag = ''
-        this.list.fiter.map(item => {
+        this.list.map(item => {
           if (item.reason) {
-            mag += item.reason
+            mag += `原因:${item.reason};消息:'${item.message};`
           }
         })
         if (mag) {
