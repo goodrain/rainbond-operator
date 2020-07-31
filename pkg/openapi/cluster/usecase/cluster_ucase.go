@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -271,7 +272,7 @@ func (c *clusterUsecase) hackClusterInfo(rainbondCluster *rainbondv1alpha1.Rainb
 	}
 
 	// get install version from config
-	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion + "-v1.0.0"
+	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion + "-" + os.Getenv("RELEASE_DESC")
 
 	// get installID from cluster's annotations
 	var eid string
