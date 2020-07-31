@@ -38,7 +38,7 @@ const (
 	RainbondClusterConditionTypeStorage           = "Storage"
 	RainbondClusterConditionTypeDNS               = "DNS"
 	RainbondClusterConditionTypeContainerNetwork  = "ContainerNetwork"
-	RainbondClusterConditionTypeMemory  = "Memory"
+	RainbondClusterConditionTypeMemory            = "Memory"
 )
 
 // RainbondClusterCondition contains condition information for rainbondcluster.
