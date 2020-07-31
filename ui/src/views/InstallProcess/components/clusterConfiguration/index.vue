@@ -18,18 +18,16 @@
       class="setruleForm"
       autocomplete="on"
     >
-    <el-collapse v-model="activeNames" @change="handleChange">
-      <!-- install mode -->
-      <el-collapse-item name="installmode" class="d2-mb">
-        <template slot="title">
-          <div class="elCollapseHeader actives">
-            <div>{{$t('page.install.config.installmode')}}</div>
-            <p>选择适合自己的安装方式</p>
-          </div>
-        </template>
-          <el-form-item
-            prop="enableHA"
-          >
+      <el-collapse v-model="activeNames" @change="handleChange">
+        <!-- install mode -->
+        <el-collapse-item name="installmode" class="d2-mb">
+          <template slot="title">
+            <div class="elCollapseHeader actives">
+              <div>{{ $t("page.install.config.installmode") }}</div>
+              <p>选择适合自己的安装方式</p>
+            </div>
+          </template>
+          <el-form-item prop="enableHA">
             <el-radio-group
               class="d2-ml-35"
               v-model="ruleForm.enableHA"
@@ -38,890 +36,921 @@
               <el-radio class="d2-w-150" :label="false">
                 {{ $t("page.install.config.minimize") }}
               </el-radio>
-              <el-radio :label="true">{{ $t("page.install.config.ha") }}</el-radio>
+              <el-radio :label="true">{{
+                $t("page.install.config.ha")
+              }}</el-radio>
             </el-radio-group>
-            <div class="clues">{{ $t("page.install.config.installmodeDesc") }}</div>
+            <div class="clues">
+              {{ $t("page.install.config.installmodeDesc") }}
+            </div>
           </el-form-item>
+        </el-collapse-item>
 
-      </el-collapse-item>
-
-      <!-- hub config -->
-      <el-collapse-item name="hub" class="d2-mb">
-        <template slot="title">
-          <div class="elCollapseHeader actives">
-            <div>{{$t('page.install.config.hub')}}</div>
-            <p>{{ $t("page.install.config.hubDesc") }}</p>
-          </div>
-        </template>
-        <el-form-item
-          prop="imageHubInstall"
-        >
-          <el-radio-group class="d2-ml-35" v-model="ruleForm.imageHubInstall">
-            <el-radio class="d2-w-150" :label="true">
-              {{ ruleForm.enableHA?$t("page.install.config.hubInstallHA"):$t("page.install.config.hubInstall") }}
-            </el-radio>
-            <el-radio :label="false">
-              {{ $t("page.install.config.hubProvide") }}
-            </el-radio>
-          </el-radio-group>
-          <div v-if="!ruleForm.imageHubInstall" class="boxs">
-            <el-form-item
-              prop="imageHubDomain"
-              :label="$t('page.install.config.hubDomain')"
-              label-width="85px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                v-model="ruleForm.imageHubDomain"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              prop="hubnamespace"
-              :label="$t('page.install.config.hubNamespace')"
-              label-width="85px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                v-model="ruleForm.imageHubNamespace"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              prop="hubuser"
-              :label="$t('page.install.config.hubUser')"
-              label-width="85px"
-              class="d2-mt d2-form-item"
-
-            >
-              <el-input
-                v-model="ruleForm.imageHubUsername"
-                class="d2-input_inner"
-                autocomplete="off"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              prop="hubpassword"
-              :label="$t('page.install.config.hubPassword')"
-              label-width="85px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                v-model="ruleForm.imageHubPassword"
-                show-password
-                class="d2-input_inner"
-                autocomplete="off"
-              ></el-input>
-            </el-form-item>
-          </div>
-        </el-form-item>
-      </el-collapse-item>
-
-      <!-- region db config -->
-      <el-collapse-item name="regionDB" class="d2-mb">
-        <template slot="title">
-          <div class="elCollapseHeader actives">
-            <div>{{$t('page.install.config.regionDB')}}</div>
-            <p>{{ $t("page.install.config.regionDBDesc") }}</p>
-          </div>
-        </template>
-        <el-form-item
-          prop="installRegionDB"
-        >
-          <el-radio-group class="d2-ml-35" v-model="ruleForm.installRegionDB">
-            <el-radio class="d2-w-150" :label="true">
-              {{ $t("page.install.config.regionDBInstall") }}
-            </el-radio>
-            <el-radio :label="false">
-              {{ $t("page.install.config.regionDBProvide") }}
-            </el-radio>
-          </el-radio-group>
-          <div v-if="!ruleForm.installRegionDB" class="boxs">
-            <span class="desc">
-              {{ $t("page.install.config.regionDBProviderDesc") }}
-            </span>
-            <el-form-item
-              :label="$t('page.install.config.regionDBAddress')"
-              label-width="85px"
-              class="d2-mt d2-form-item"
-              prop="regionDatabaseHost"
-            >
-              <el-input
-                v-model="ruleForm.regionDatabaseHost"
-                class="d2-input_inner_url"
-                style="width:240px"
-              ></el-input>
-              <span class="d2-w-20">:</span>
-
+        <!-- hub config -->
+        <el-collapse-item name="hub" class="d2-mb">
+          <template slot="title">
+            <div class="elCollapseHeader actives">
+              <div>{{ $t("page.install.config.hub") }}</div>
+              <p>{{ $t("page.install.config.hubDesc") }}</p>
+            </div>
+          </template>
+          <el-form-item prop="imageHubInstall">
+            <el-radio-group class="d2-ml-35" v-model="ruleForm.imageHubInstall">
+              <el-radio class="d2-w-150" :label="true">
+                {{
+                  ruleForm.enableHA
+                    ? $t("page.install.config.hubInstallHA")
+                    : $t("page.install.config.hubInstall")
+                }}
+              </el-radio>
+              <el-radio :label="false">
+                {{ $t("page.install.config.hubProvide") }}
+              </el-radio>
+            </el-radio-group>
+            <div v-if="!ruleForm.imageHubInstall" class="boxs">
               <el-form-item
-                prop="regionDatabasePort"
-                style="width:300px;display: inline-block"
+                prop="imageHubDomain"
+                :label="$t('page.install.config.hubDomain')"
+                label-width="85px"
+                class="d2-mt d2-form-item"
               >
                 <el-input
-                  v-model="ruleForm.regionDatabasePort"
-                  class="d2-input_inner_url"
-                  style="width:140px"
-                  type="number"
+                  v-model="ruleForm.imageHubDomain"
+                  class="d2-input_inner"
                 ></el-input>
               </el-form-item>
-            </el-form-item>
-
-            <el-form-item
-              :label="$t('page.install.config.regionDBUser')"
-              label-width="85px"
-              class="d2-mt d2-form-item"
-              prop="regionDatabaseUsername"
-            >
-              <el-input
-                v-model="ruleForm.regionDatabaseUsername"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              :label="$t('page.install.config.regionDBPassword')"
-              label-width="85px"
-              class="d2-mt d2-form-item"
-              prop="regionDatabasePassword"
-            >
-              <el-input
-                v-model="ruleForm.regionDatabasePassword"
-                show-password
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-          </div>
-        </el-form-item>
-      </el-collapse-item>
-
-      <!-- ui db config -->
-      <el-collapse-item v-if="!onlyRegion" name="uiDB" class="d2-mb">
-        <template slot="title">
-          <div class="elCollapseHeader actives">
-            <div>{{$t('page.install.config.uiDB')}}</div>
-            <p>{{ $t("page.install.config.uiDBDesc") }}</p>
-          </div>
-        </template>
-      <el-form-item
-        prop="installUIDB"
-      >
-        <el-radio-group class="d2-ml-35" v-model="ruleForm.installUIDB">
-          <el-radio class="d2-w-150" :label="true">
-            {{ $t("page.install.config.uiDBInstall") }}
-          </el-radio>
-          <el-radio :label="false">
-            {{ $t("page.install.config.uiDBProvide") }}
-          </el-radio>
-        </el-radio-group>
-        <div v-if="!ruleForm.installUIDB" class="boxs">
-          <span class="desc">
-            {{ $t("page.install.config.uiDBProviderDesc") }}
-          </span>
-          <el-form-item
-            :label="$t('page.install.config.uiDBAddress')"
-            label-width="85px"
-            class="d2-mt d2-form-item"
-            prop="uiDatabaseHost"
-          >
-            <el-input
-              v-model="ruleForm.uiDatabaseHost"
-              class="d2-input_inner_url"
-              style="width:240px"
-            ></el-input>
-            <span class="d2-w-20">:</span>
-
-            <el-form-item
-              prop="uiDatabasePort"
-              style="width:300px;display: inline-block"
-            >
-              <el-input
-                v-model="ruleForm.uiDatabasePort"
-                class="d2-input_inner_url"
-                style="width:140px"
-                type="number"
-              ></el-input>
-            </el-form-item>
-          </el-form-item>
-          <el-form-item
-            :label="$t('page.install.config.uiDBUser')"
-            label-width="85px"
-            class="d2-mt d2-form-item"
-            prop="uiDatabaseUsername"
-          >
-            <el-input
-              v-model="ruleForm.uiDatabaseUsername"
-              class="d2-input_inner"
-            ></el-input>
-          </el-form-item>
-          <el-form-item
-            :label="$t('page.install.config.uiDBPassword')"
-            label-width="85px"
-            class="d2-mt d2-form-item"
-            prop="uiDatabasePassword"
-          >
-            <el-input
-              v-model="ruleForm.uiDatabasePassword"
-              show-password
-              class="d2-input_inner"
-            ></el-input>
-          </el-form-item>
-        </div>
-      </el-form-item>
-      </el-collapse-item>
-
-      <!-- etcd config -->
-      <el-collapse-item name="etcd" class="d2-mb">
-        <template slot="title">
-          <div class="elCollapseHeader actives">
-            <div>{{$t('page.install.config.etcd')}}</div>
-            <p>{{ $t("page.install.config.etcdDesc") }}</p>
-          </div>
-        </template>
-        <el-form-item  prop="installETCD">
-          <el-radio-group class="d2-ml-35" v-model="ruleForm.installETCD">
-            <el-radio class="d2-w-150" :label="true">
-              {{ ruleForm.enableHA ? $t("page.install.config.etcdInstallHA"):$t("page.install.config.etcdInstall") }}
-            </el-radio>
-            <el-radio :label="false">
-              {{ $t("page.install.config.etcdProvide") }}
-            </el-radio>
-          </el-radio-group>
-          <div v-if="!ruleForm.installETCD" class="boxs">
-            <el-form-item
-              :label="$t('page.install.config.etcdEndpoint')"
-              label-width="120px"
-              class="d2-mt d2-form-item"
-            >
-              <div
-                v-for="(item, index) in ruleForm.etcdConfig.endpoints"
-                :key="index"
-                class="cen"
-                :prop="'endpoints.' + index + '.value'"
-                :style="{
-                  marginTop: index === 0 ? '0' : '20px'
-                }"
+              <el-form-item
+                prop="hubnamespace"
+                :label="$t('page.install.config.hubNamespace')"
+                label-width="85px"
+                class="d2-mt d2-form-item"
               >
-                <el-form-item  :prop="`items[${index}].endpoints`"
-                :error="errorEndpointsMsg">
-                  <el-input
-                  placeholder="ETCD地址"
-                  @blur="detection(index)"
-                  v-model="ruleForm.etcdConfig.endpoints[index]"
+                <el-input
+                  v-model="ruleForm.imageHubNamespace"
                   class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                prop="hubuser"
+                :label="$t('page.install.config.hubUser')"
+                label-width="85px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  v-model="ruleForm.imageHubUsername"
+                  class="d2-input_inner"
+                  autocomplete="off"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                prop="hubpassword"
+                :label="$t('page.install.config.hubPassword')"
+                label-width="85px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  v-model="ruleForm.imageHubPassword"
+                  show-password
+                  class="d2-input_inner"
+                  autocomplete="off"
+                ></el-input>
+              </el-form-item>
+            </div>
+          </el-form-item>
+        </el-collapse-item>
+
+        <!-- region db config -->
+        <el-collapse-item name="regionDB" class="d2-mb">
+          <template slot="title">
+            <div class="elCollapseHeader actives">
+              <div>{{ $t("page.install.config.regionDB") }}</div>
+              <p>{{ $t("page.install.config.regionDBDesc") }}</p>
+            </div>
+          </template>
+          <el-form-item prop="installRegionDB">
+            <el-radio-group class="d2-ml-35" v-model="ruleForm.installRegionDB">
+              <el-radio class="d2-w-150" :label="true">
+                {{ $t("page.install.config.regionDBInstall") }}
+              </el-radio>
+              <el-radio :label="false">
+                {{ $t("page.install.config.regionDBProvide") }}
+              </el-radio>
+            </el-radio-group>
+            <div v-if="!ruleForm.installRegionDB" class="boxs">
+              <span class="desc">
+                {{ $t("page.install.config.regionDBProviderDesc") }}
+              </span>
+              <el-form-item
+                :label="$t('page.install.config.regionDBAddress')"
+                label-width="85px"
+                class="d2-mt d2-form-item"
+                prop="regionDatabaseHost"
+              >
+                <el-input
+                  v-model="ruleForm.regionDatabaseHost"
+                  class="d2-input_inner_url"
+                  style="width:240px"
+                ></el-input>
+                <span class="d2-w-20">:</span>
+
+                <el-form-item
+                  prop="regionDatabasePort"
+                  style="width:300px;display: inline-block"
+                >
+                  <el-input
+                    v-model="ruleForm.regionDatabasePort"
+                    class="d2-input_inner_url"
+                    style="width:140px"
+                    type="number"
                   ></el-input>
                 </el-form-item>
-                <em
-                  v-if="ruleForm.etcdConfig.endpoints.length > 1"
-                  style="margin-left:1rem;font-size:16px"
-                  class="el-icon-remove-outline"
-                  @click.prevent="removeEndpoints(index)"
-                />
-              </div>
-            </el-form-item>
-            <el-button
-              style="margin:1rem 0 0 120px"
-              size="small"
-              @click="addEndpoints"
-              >{{ $t("page.install.config.etcdEndpointAdd") }}</el-button
-            >
-            <el-form-item
-              :label="$t('page.install.config.etcdTLS')"
-              label-width="120px"
-              class="d2-mt d2-form-item"
-            >
-              <el-switch v-model="ruleForm.etcdConfig.useTLS"></el-switch>
-            </el-form-item>
+              </el-form-item>
 
-            <div v-show="ruleForm.etcdConfig.useTLS">
               <el-form-item
-                :label="$t('page.install.config.etcdCA')"
-                label-width="120px"
+                :label="$t('page.install.config.regionDBUser')"
+                label-width="85px"
                 class="d2-mt d2-form-item"
+                prop="regionDatabaseUsername"
               >
                 <el-input
-                  type="textarea"
-                  v-if="ruleForm.etcdConfig.certInfo"
-                  v-model="ruleForm.etcdConfig.certInfo.caFile"
+                  v-model="ruleForm.regionDatabaseUsername"
                   class="d2-input_inner"
                 ></el-input>
               </el-form-item>
               <el-form-item
-                :label="$t('page.install.config.etcdCert')"
-                label-width="120px"
+                :label="$t('page.install.config.regionDBPassword')"
+                label-width="85px"
                 class="d2-mt d2-form-item"
+                prop="regionDatabasePassword"
               >
                 <el-input
-                  type="textarea"
-                  v-if="ruleForm.etcdConfig.certInfo"
-                  v-model="ruleForm.etcdConfig.certInfo.certFile"
-                  class="d2-input_inner"
-                ></el-input>
-              </el-form-item>
-              <el-form-item
-                :label="$t('page.install.config.etcdCertKey')"
-                label-width="120px"
-                class="d2-mt d2-form-item"
-              >
-                <el-input
-                  type="textarea"
-                  v-if="ruleForm.etcdConfig.certInfo"
-                  v-model="ruleForm.etcdConfig.certInfo.keyFile"
+                  v-model="ruleForm.regionDatabasePassword"
+                  show-password
                   class="d2-input_inner"
                 ></el-input>
               </el-form-item>
             </div>
-          </div>
-        </el-form-item>
-      </el-collapse-item>
+          </el-form-item>
+        </el-collapse-item>
 
-      <!-- gateway node config -->
-      <el-collapse-item name="nodes" class="d2-mb">
-        <template slot="title">
-          <div class="elCollapseHeader actives d2-pt-5">
-            <div>{{$t('page.install.config.gatewayNode')}}</div>
-            <p class="clues">{{ $t("page.install.config.gatewayNodeDesc") }}</p>
-            <p class="clues">
-              提示：如果你无法搜索并选择一个网关 IP，请参考
-              <a
-                style="color:#409EFF"
-                target="_black"
-                href="https://www.rainbond.com/docs/user-operations/install/troubleshooting/#%E6%97%A0%E6%B3%95%E9%80%89%E6%8B%A9%E7%BD%91%E5%85%B3%E8%8A%82%E7%82%B9"
+        <!-- ui db config -->
+        <el-collapse-item v-if="!onlyRegion" name="uiDB" class="d2-mb">
+          <template slot="title">
+            <div class="elCollapseHeader actives">
+              <div>{{ $t("page.install.config.uiDB") }}</div>
+              <p>{{ $t("page.install.config.uiDBDesc") }}</p>
+            </div>
+          </template>
+          <el-form-item prop="installUIDB">
+            <el-radio-group class="d2-ml-35" v-model="ruleForm.installUIDB">
+              <el-radio class="d2-w-150" :label="true">
+                {{ $t("page.install.config.uiDBInstall") }}
+              </el-radio>
+              <el-radio :label="false">
+                {{ $t("page.install.config.uiDBProvide") }}
+              </el-radio>
+            </el-radio-group>
+            <div v-if="!ruleForm.installUIDB" class="boxs">
+              <span class="desc">
+                {{ $t("page.install.config.uiDBProviderDesc") }}
+              </span>
+              <el-form-item
+                :label="$t('page.install.config.uiDBAddress')"
+                label-width="85px"
+                class="d2-mt d2-form-item"
+                prop="uiDatabaseHost"
               >
-                无法选择网关节点。
-              </a>
-            </p>
-          </div>
-        </template>
-        <el-form-item  prop="nodes">
-          <el-select
-            v-model="setgatewayNodes"
-            multiple
-            filterable
-            style="width:868px"
-            remote
-            :loading="queryGatewayNodeloading"
-            :placeholder="$t('page.install.config.ipsearch')"
-            :remote-method="queryGatewayNode"
-            default-first-option
-          >
-            <el-option
-              v-for="item in optionGatewayNodes"
-              :key="item"
-              :label="item"
-              :value="item"
-            ></el-option>
-          </el-select>
+                <el-input
+                  v-model="ruleForm.uiDatabaseHost"
+                  class="d2-input_inner_url"
+                  style="width:240px"
+                ></el-input>
+                <span class="d2-w-20">:</span>
 
-        </el-form-item>
-      </el-collapse-item>
+                <el-form-item
+                  prop="uiDatabasePort"
+                  style="width:300px;display: inline-block"
+                >
+                  <el-input
+                    v-model="ruleForm.uiDatabasePort"
+                    class="d2-input_inner_url"
+                    style="width:140px"
+                    type="number"
+                  ></el-input>
+                </el-form-item>
+              </el-form-item>
+              <el-form-item
+                :label="$t('page.install.config.uiDBUser')"
+                label-width="85px"
+                class="d2-mt d2-form-item"
+                prop="uiDatabaseUsername"
+              >
+                <el-input
+                  v-model="ruleForm.uiDatabaseUsername"
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                :label="$t('page.install.config.uiDBPassword')"
+                label-width="85px"
+                class="d2-mt d2-form-item"
+                prop="uiDatabasePassword"
+              >
+                <el-input
+                  v-model="ruleForm.uiDatabasePassword"
+                  show-password
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+            </div>
+          </el-form-item>
+        </el-collapse-item>
 
-      <!-- chaos node config -->
-      <el-collapse-item name="chaosNodes" class="d2-mb">
-        <template slot="title">
-          <div class="elCollapseHeader actives">
-            <div>{{$t('page.install.config.chaosNode')}}</div>
-            <p>{{ $t("page.install.config.chaosNodeDesc") }}</p>
-          </div>
-        </template>
-        <el-form-item
-          prop="chaosNodes"
-        >
-          <el-select
-            v-model="setChaosNodes"
-            multiple
-            filterable
-            style="width:868px"
-            :placeholder="$t('page.install.config.ipsearch')"
-            remote
-            :loading="queryChaosNodeloading"
-            :remote-method="queryChaosNode"
-            default-first-option
-          >
-            <el-option
-              v-for="item in optionChaosNodes"
-              :key="item"
-              :label="item"
-              :value="item"
-            ></el-option>
-          </el-select>
-        </el-form-item>
-      </el-collapse-item>
+        <!-- etcd config -->
+        <el-collapse-item name="etcd" class="d2-mb">
+          <template slot="title">
+            <div class="elCollapseHeader actives">
+              <div>{{ $t("page.install.config.etcd") }}</div>
+              <p>{{ $t("page.install.config.etcdDesc") }}</p>
+            </div>
+          </template>
+          <el-form-item prop="installETCD">
+            <el-radio-group class="d2-ml-35" v-model="ruleForm.installETCD">
+              <el-radio class="d2-w-150" :label="true">
+                {{
+                  ruleForm.enableHA
+                    ? $t("page.install.config.etcdInstallHA")
+                    : $t("page.install.config.etcdInstall")
+                }}
+              </el-radio>
+              <el-radio :label="false">
+                {{ $t("page.install.config.etcdProvide") }}
+              </el-radio>
+            </el-radio-group>
+            <div v-if="!ruleForm.installETCD" class="boxs">
+              <el-form-item
+                :label="$t('page.install.config.etcdEndpoint')"
+                label-width="120px"
+                class="d2-mt d2-form-item"
+              >
+                <div
+                  v-for="(item, index) in ruleForm.etcdConfig.endpoints"
+                  :key="index"
+                  class="cen"
+                  :prop="'endpoints.' + index + '.value'"
+                  :style="{
+                    marginTop: index === 0 ? '0' : '20px'
+                  }"
+                >
+                  <el-form-item
+                    :prop="`items[${index}].endpoints`"
+                    :error="errorEndpointsMsg"
+                  >
+                    <el-input
+                      placeholder="ETCD地址"
+                      @blur="detection(index)"
+                      v-model="ruleForm.etcdConfig.endpoints[index]"
+                      class="d2-input_inner"
+                    ></el-input>
+                  </el-form-item>
+                  <em
+                    v-if="ruleForm.etcdConfig.endpoints.length > 1"
+                    style="margin-left:1rem;font-size:16px"
+                    class="el-icon-remove-outline"
+                    @click.prevent="removeEndpoints(index)"
+                  />
+                </div>
+              </el-form-item>
+              <el-button
+                style="margin:1rem 0 0 120px"
+                size="small"
+                @click="addEndpoints"
+                >{{ $t("page.install.config.etcdEndpointAdd") }}</el-button
+              >
+              <el-form-item
+                :label="$t('page.install.config.etcdTLS')"
+                label-width="120px"
+                class="d2-mt d2-form-item"
+              >
+                <el-switch v-model="ruleForm.etcdConfig.useTLS"></el-switch>
+              </el-form-item>
 
-      <!-- default app domain config -->
-      <el-collapse-item name="HTTPDomain" class="d2-mb">
-        <template slot="title">
-          <div class="elCollapseHeader actives">
-            <div>{{$t('page.install.config.appDefaultDomain')}}</div>
-            <p>{{ $t("page.install.config.appDefaultDomainDesc") }}</p>
-          </div>
-        </template>
-        <el-form-item
-          prop="HTTPDomain"
-        >
-          <el-switch v-model="ruleForm.HTTPDomainSwitch"></el-switch>
-          <el-input
-            style="margin-left:10px"
-            v-if="!ruleForm.HTTPDomainSwitch"
-            v-model="ruleForm.HTTPDomain"
-            :placeholder="$t('page.install.config.appDefaultDomainPlaceholder')"
-            class="d2-input_inner"
-          ></el-input>
+              <div v-show="ruleForm.etcdConfig.useTLS">
+                <el-form-item
+                  :label="$t('page.install.config.etcdCA')"
+                  label-width="120px"
+                  class="d2-mt d2-form-item"
+                >
+                  <el-input
+                    type="textarea"
+                    v-if="ruleForm.etcdConfig.certInfo"
+                    v-model="ruleForm.etcdConfig.certInfo.caFile"
+                    class="d2-input_inner"
+                  ></el-input>
+                </el-form-item>
+                <el-form-item
+                  :label="$t('page.install.config.etcdCert')"
+                  label-width="120px"
+                  class="d2-mt d2-form-item"
+                >
+                  <el-input
+                    type="textarea"
+                    v-if="ruleForm.etcdConfig.certInfo"
+                    v-model="ruleForm.etcdConfig.certInfo.certFile"
+                    class="d2-input_inner"
+                  ></el-input>
+                </el-form-item>
+                <el-form-item
+                  :label="$t('page.install.config.etcdCertKey')"
+                  label-width="120px"
+                  class="d2-mt d2-form-item"
+                >
+                  <el-input
+                    type="textarea"
+                    v-if="ruleForm.etcdConfig.certInfo"
+                    v-model="ruleForm.etcdConfig.certInfo.keyFile"
+                    class="d2-input_inner"
+                  ></el-input>
+                </el-form-item>
+              </div>
+            </div>
+          </el-form-item>
+        </el-collapse-item>
 
-        </el-form-item>
-      </el-collapse-item>
+        <!-- gateway node config -->
+        <el-collapse-item name="nodes" class="d2-mb">
+          <template slot="title">
+            <div class="elCollapseHeader actives d2-pt-5">
+              <div>{{ $t("page.install.config.gatewayNode") }}</div>
+              <p class="clues">
+                {{ $t("page.install.config.gatewayNodeDesc") }}
+              </p>
+              <p class="clues">
+                提示：如果你无法搜索并选择一个网关 IP，请参考
+                <a
+                  style="color:#409EFF"
+                  target="_black"
+                  href="https://www.rainbond.com/docs/user-operations/install/troubleshooting/#%E6%97%A0%E6%B3%95%E9%80%89%E6%8B%A9%E7%BD%91%E5%85%B3%E8%8A%82%E7%82%B9"
+                >
+                  无法选择网关节点。
+                </a>
+              </p>
+            </div>
+          </template>
+          <el-form-item prop="nodes">
+            <el-select
+              v-model="setgatewayNodes"
+              multiple
+              filterable
+              style="width:868px"
+              remote
+              :loading="queryGatewayNodeloading"
+              :placeholder="$t('page.install.config.ipsearch')"
+              :remote-method="queryGatewayNode"
+              default-first-option
+            >
+              <el-option
+                v-for="item in optionGatewayNodes"
+                :key="item"
+                :label="item"
+                :value="item"
+              ></el-option>
+            </el-select>
+          </el-form-item>
+        </el-collapse-item>
 
-      <!-- eip config -->
-      <el-collapse-item name="gatewayIP" class="d2-mb">
-        <template slot="title">
-          <div class="elCollapseHeader d2-pt-5 noactives">
-            <div>{{$t('page.install.config.gatewayIP')}}</div>
-            <p>{{ $t("page.install.config.gatewayIPDesc") }}</p>
-          </div>
-        </template>
-        <el-form-item  prop="ips">
-          <!-- <div class="boxs"> -->
-            <div v-for="(item, indexs) in ruleForm.gatewayIngressIPs" :key="indexs" class="cen">
-              <el-input v-model="ruleForm.gatewayIngressIPs[indexs]" class="d2-input_inner"></el-input>
+        <!-- chaos node config -->
+        <el-collapse-item name="chaosNodes" class="d2-mb">
+          <template slot="title">
+            <div class="elCollapseHeader actives">
+              <div>{{ $t("page.install.config.chaosNode") }}</div>
+              <p>{{ $t("page.install.config.chaosNodeDesc") }}</p>
+            </div>
+          </template>
+          <el-form-item prop="chaosNodes">
+            <el-select
+              v-model="setChaosNodes"
+              multiple
+              filterable
+              style="width:868px"
+              :placeholder="$t('page.install.config.ipsearch')"
+              remote
+              :loading="queryChaosNodeloading"
+              :remote-method="queryChaosNode"
+              default-first-option
+            >
+              <el-option
+                v-for="item in optionChaosNodes"
+                :key="item"
+                :label="item"
+                :value="item"
+              ></el-option>
+            </el-select>
+          </el-form-item>
+        </el-collapse-item>
+
+        <!-- default app domain config -->
+        <el-collapse-item name="HTTPDomain" class="d2-mb">
+          <template slot="title">
+            <div class="elCollapseHeader actives">
+              <div>{{ $t("page.install.config.appDefaultDomain") }}</div>
+              <p>{{ $t("page.install.config.appDefaultDomainDesc") }}</p>
+            </div>
+          </template>
+          <el-form-item prop="HTTPDomain">
+            <el-switch v-model="ruleForm.HTTPDomainSwitch"></el-switch>
+            <el-input
+              style="margin-left:10px"
+              v-if="!ruleForm.HTTPDomainSwitch"
+              v-model="ruleForm.HTTPDomain"
+              :placeholder="
+                $t('page.install.config.appDefaultDomainPlaceholder')
+              "
+              class="d2-input_inner"
+            ></el-input>
+          </el-form-item>
+        </el-collapse-item>
+
+        <!-- eip config -->
+        <el-collapse-item name="gatewayIP" class="d2-mb">
+          <template slot="title">
+            <div class="elCollapseHeader d2-pt-5 noactives">
+              <div>{{ $t("page.install.config.gatewayIP") }}</div>
+              <p>{{ $t("page.install.config.gatewayIPDesc") }}</p>
+            </div>
+          </template>
+          <el-form-item prop="ips">
+            <!-- <div class="boxs"> -->
+            <div
+              v-for="(item, indexs) in ruleForm.gatewayIngressIPs"
+              :key="indexs"
+              class="cen"
+            >
+              <el-input
+                v-model="ruleForm.gatewayIngressIPs[indexs]"
+                class="d2-input_inner"
+              ></el-input>
               <!-- <em
                 v-show="ruleForm.gatewayIngressIPs.length != 1"
                 class="el-icon-remove-outline icon-f-22 d2-ml-16"
                 @click.prevent="removeIP(indexs)"
               /> -->
             </div>
-            <div class="clues" >以下场景，请务必填写网关公网IP：</div>
-            <div class="clues" >- 当网关节点具备公网 IP 地址时，填写对应的公网地址。</div>
-            <div class="clues" >- 当多个网关节点被统一负载均衡时，填写负载均衡的 IP 地址，如阿里云 SLB 服务地址。</div>
-            <div class="clues" >- 当多个网关节点部署诸如 Keepalived 等基于 VIP 的高可用服务时，填写 VIP。</div>
+            <div class="clues">以下场景，请务必填写网关公网IP：</div>
+            <div class="clues">
+              - 当网关节点具备公网 IP 地址时，填写对应的公网地址。
+            </div>
+            <div class="clues">
+              - 当多个网关节点被统一负载均衡时，填写负载均衡的 IP 地址，如阿里云
+              SLB 服务地址。
+            </div>
+            <div class="clues">
+              - 当多个网关节点部署诸如 Keepalived 等基于 VIP
+              的高可用服务时，填写 VIP。
+            </div>
             <!-- <el-button style="margin-top:1rem" size="small" @click="addIP">
               {{
               $t("page.install.config.gatewayIPAdd")
               }}
             </el-button> -->
-          <!-- </div> -->
-        </el-form-item>
-      </el-collapse-item>
+            <!-- </div> -->
+          </el-form-item>
+        </el-collapse-item>
 
-      <!-- share storage config -->
-      <el-collapse-item name="shareStorage" class="d2-mb">
-        <template slot="title">
-          <div class="elCollapseHeader actives">
-            <div>{{$t('page.install.config.shareStorage')}}</div>
-            <p>{{ $t("page.install.config.shareStorageDesc") }}</p>
-          </div>
-        </template>
-        <el-form-item
-          prop="activeStorageType"
-        >
-          <el-radio-group
-            @change="validShareStorage"
-            v-model="ruleForm.activeStorageType"
-            class="d2-ml-35"
-          >
-            <el-radio v-if="!ruleForm.enableHA" class="d2-w-150" :label="1">{{
-              $t("page.install.config.newNFSServer")
-            }}</el-radio>
-            <el-radio :label="2">{{
-              $t("page.install.config.selectStorage")
-            }}</el-radio>
-            <!-- <el-radio :label="3">{{
+        <!-- share storage config -->
+        <el-collapse-item name="shareStorage" class="d2-mb">
+          <template slot="title">
+            <div class="elCollapseHeader actives">
+              <div>{{ $t("page.install.config.shareStorage") }}</div>
+              <p>{{ $t("page.install.config.shareStorageDesc") }}</p>
+            </div>
+          </template>
+          <el-form-item prop="activeStorageType">
+            <el-radio-group
+              @change="validShareStorage"
+              v-model="ruleForm.activeStorageType"
+              class="d2-ml-35"
+            >
+              <el-radio v-if="!ruleForm.enableHA" class="d2-w-150" :label="1">{{
+                $t("page.install.config.newNFSServer")
+              }}</el-radio>
+              <el-radio :label="2">{{
+                $t("page.install.config.selectStorage")
+              }}</el-radio>
+              <!-- <el-radio :label="3">{{
               $t("page.install.config.useAliNasFilesystem")
             }}</el-radio> -->
-            <el-radio :label="4">{{
-              $t("page.install.config.useAliNasSubpath")
-            }}</el-radio>
-          </el-radio-group>
-          <!-- storage class -->
-          <div v-show="ruleForm.activeStorageType == 2" class="boxs">
-            <span
-              v-if="
-                !clusterInitInfo.storageClasses ||
-                  clusterInitInfo.storageClasses.length === 0
-              "
-              class="desc"
-              >{{ $t("page.install.config.noStorageClass") }}</span
-            >
-            <el-form-item
-              label="StorageClass"
-              label-width="120px"
-              class="d2-mt-form d2-form-item"
-              v-if="clusterInitInfo.storageClasses"
-            >
-              <el-radio-group
-                @change="validShareStorage"
-                v-model="ruleForm.shareStorageClassName"
+              <el-radio :label="4">{{
+                $t("page.install.config.useAliNasSubpath")
+              }}</el-radio>
+            </el-radio-group>
+            <!-- storage class -->
+            <div v-show="ruleForm.activeStorageType == 2" class="boxs">
+              <span
+                v-if="
+                  !clusterInitInfo.storageClasses ||
+                    clusterInitInfo.storageClasses.length === 0
+                "
+                class="desc"
+                >{{ $t("page.install.config.noStorageClass") }}</span
               >
-                <el-radio
-                  border
-                  style="margin-bottom: 1rem;margin-left:10px"
-                  size="medium"
-                  :title="item.accessMode === 'Unknown' && '无法识别读写模式'"
-                  v-for="item in clusterInitInfo.storageClasses"
-                  v-show="item.accessMode !== 'ReadWriteOnce'"
-                  :key="item.name"
-                  :label="item.name"
-                ></el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </div>
-
-          <!-- useAliNasFilesystem-->
-          <div v-show="ruleForm.activeStorageType == 3" class="boxs">
-            <span class="desc">{{
-              $t("page.install.config.nasFilesystem")
-            }}</span>
-            <el-form-item
-              label="AccessKeyID"
-              label-width="130px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validShareStorage"
-                :placeholder="$t('page.install.config.accessKeyID')"
-                v-model="storage.RWX.csiPlugin.aliyunNas.accessKeyID"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="AccessKeySecret"
-              label-width="130px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validShareStorage"
-                :placeholder="$t('page.install.config.accessKeySecret')"
-                v-model="storage.RWX.csiPlugin.aliyunNas.accessKeySecret"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="ZoneID"
-              label-width="130px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validShareStorage"
-                :placeholder="$t('page.install.config.zoneId')"
-                v-model="storage.RWX.csiPlugin.aliyunNas.zoneId"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="VPC ID"
-              label-width="130px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validShareStorage"
-                :placeholder="$t('page.install.config.vpcId')"
-                v-model="storage.RWX.csiPlugin.aliyunNas.vpcId"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              :label="$t('page.install.config.vSwitchId')"
-              label-width="130px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validShareStorage"
-                :placeholder="$t('page.install.config.vSwitchId')"
-                v-model="storage.RWX.csiPlugin.aliyunNas.vSwitchId"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-          </div>
-
-          <!-- useAliNasSubpath -->
-          <div v-show="ruleForm.activeStorageType == 4" class="boxs">
-            <span class="desc">{{ $t("page.install.config.nasSubpath") }}</span>
-            <el-form-item
-              label="Server"
-              label-width="85px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                v-model="storage.RWX.csiPlugin.aliyunNas.server"
-                @change="validShareStorage"
-                :placeholder="$t('page.install.config.Server')"
-                class="d2-input_inner_url"
-              ></el-input>
-              <div class="clues">
-              示例：abcdefghij-12345.cn-huhehaote.nas.aliyuncs.com:/
-              </div>
-            </el-form-item>
-          </div>
-
-        </el-form-item>
-      </el-collapse-item>
-
-      <!-- block storage config -->
-      <el-collapse-item name="blockStorage" class="d2-mb">
-        <template slot="title">
-          <div class="elCollapseHeader noactives">
-            <div>{{$t('page.install.config.blockStorage')}}</div>
-            <p>{{ $t("page.install.config.blockStorageDesc") }}</p>
-          </div>
-        </template>
-        <el-form-item
-          prop="activeBlockStorageType"
-        >
-          <el-radio-group
-            @change="validBlockStorage"
-            v-model="ruleForm.activeBlockStorageType"
-            class="d2-ml-35"
-          >
-            <el-radio :label="0">{{
-              $t("page.install.config.noStorage")
-            }}</el-radio>
-            <el-radio :label="1">{{
-              $t("page.install.config.selectStorage")
-            }}</el-radio>
-            <el-radio :label="2">
-              {{ $t("page.install.config.useAliDisk") }}
-            </el-radio>
-            <!-- <el-radio :label="3">{{ $t("page.install.config.useRBD") }}</el-radio> -->
-          </el-radio-group>
-          <!-- storage class -->
-          <div v-show="ruleForm.activeBlockStorageType == 1" class="boxs">
-            <span
-              v-if="
-                !clusterInitInfo.storageClasses ||
-                  clusterInitInfo.storageClasses.length === 0
-              "
-              class="desc"
-              >{{ $t("page.install.config.noStorageClass") }}</span
-            >
-            <el-form-item
-              label="StorageClass"
-              label-width="120px"
-              v-if="clusterInitInfo.storageClasses"
-              class="d2-mt-form d2-form-item"
-            >
-              <el-radio-group
-                @change="validBlockStorage"
-                v-model="ruleForm.blockStorageClassName"
+              <el-form-item
+                label="StorageClass"
+                label-width="120px"
+                class="d2-mt-form d2-form-item"
+                v-if="clusterInitInfo.storageClasses"
               >
-                <el-radio
-                  border
-                  style="margin-bottom: 1rem;margin-left:10px"
-                  v-for="item in clusterInitInfo.storageClasses"
-                  :title="item.accessMode === 'Unknown' && '无法识别读写模式'"
-                  v-show="item.accessMode !== 'ReadWriteMany'"
-                  :key="item.name"
-                  :label="item.name"
-                ></el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </div>
-          <!-- ali disk -->
-          <div v-if="ruleForm.activeBlockStorageType == 2" class="boxs">
-            <span class="desc">{{ $t("page.install.config.aliDiskDesc") }}</span>
-            <el-form-item
-              label="AccessKeyID"
-              label-width="130px"
-              class="d2-mt d2-form-item"
+                <el-radio-group
+                  @change="validShareStorage"
+                  v-model="ruleForm.shareStorageClassName"
+                >
+                  <el-radio
+                    border
+                    style="margin-bottom: 1rem;margin-left:10px"
+                    size="medium"
+                    :title="item.accessMode === 'Unknown' && '无法识别读写模式'"
+                    v-for="item in clusterInitInfo.storageClasses"
+                    v-show="item.accessMode !== 'ReadWriteOnce'"
+                    :key="item.name"
+                    :label="item.name"
+                  ></el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </div>
+
+            <!-- useAliNasFilesystem-->
+            <div v-show="ruleForm.activeStorageType == 3" class="boxs">
+              <span class="desc">{{
+                $t("page.install.config.nasFilesystem")
+              }}</span>
+              <el-form-item
+                label="AccessKeyID"
+                label-width="130px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validShareStorage"
+                  :placeholder="$t('page.install.config.accessKeyID')"
+                  v-model="storage.RWX.csiPlugin.aliyunNas.accessKeyID"
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="AccessKeySecret"
+                label-width="130px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validShareStorage"
+                  :placeholder="$t('page.install.config.accessKeySecret')"
+                  v-model="storage.RWX.csiPlugin.aliyunNas.accessKeySecret"
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="ZoneID"
+                label-width="130px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validShareStorage"
+                  :placeholder="$t('page.install.config.zoneId')"
+                  v-model="storage.RWX.csiPlugin.aliyunNas.zoneId"
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="VPC ID"
+                label-width="130px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validShareStorage"
+                  :placeholder="$t('page.install.config.vpcId')"
+                  v-model="storage.RWX.csiPlugin.aliyunNas.vpcId"
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                :label="$t('page.install.config.vSwitchId')"
+                label-width="130px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validShareStorage"
+                  :placeholder="$t('page.install.config.vSwitchId')"
+                  v-model="storage.RWX.csiPlugin.aliyunNas.vSwitchId"
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+            </div>
+
+            <!-- useAliNasSubpath -->
+            <div v-show="ruleForm.activeStorageType == 4" class="boxs">
+              <span class="desc">{{
+                $t("page.install.config.nasSubpath")
+              }}</span>
+              <el-form-item
+                label="Server"
+                label-width="85px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  v-model="storage.RWX.csiPlugin.aliyunNas.server"
+                  @change="validShareStorage"
+                  :placeholder="$t('page.install.config.Server')"
+                  class="d2-input_inner_url"
+                ></el-input>
+                <div class="clues">
+                  示例：abcdefghij-12345.cn-huhehaote.nas.aliyuncs.com:/
+                </div>
+              </el-form-item>
+            </div>
+          </el-form-item>
+        </el-collapse-item>
+
+        <!-- block storage config -->
+        <el-collapse-item name="blockStorage" class="d2-mb">
+          <template slot="title">
+            <div class="elCollapseHeader noactives">
+              <div>{{ $t("page.install.config.blockStorage") }}</div>
+              <p>{{ $t("page.install.config.blockStorageDesc") }}</p>
+            </div>
+          </template>
+          <el-form-item prop="activeBlockStorageType">
+            <el-radio-group
+              @change="validBlockStorage"
+              v-model="ruleForm.activeBlockStorageType"
+              class="d2-ml-35"
             >
-              <el-input
-                @change="validBlockStorage"
-                :placeholder="$t('page.install.config.accessKeyID')"
-                v-model="storage.RWO.csiPlugin.aliyunCloudDisk.accessKeyID"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="AccessKeySecret"
-              label-width="130px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                :placeholder="$t('page.install.config.accessKeySecret')"
-                v-model="storage.RWO.csiPlugin.aliyunCloudDisk.accessKeySecret"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="RegionID"
-              label-width="130px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                :placeholder="$t('page.install.config.regionID')"
-                v-model="storage.RWO.csiPlugin.aliyunCloudDisk.region_id"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="ZoneID"
-              label-width="130px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                :placeholder="$t('page.install.config.zoneId')"
-                v-model="storage.RWO.csiPlugin.aliyunCloudDisk.zoneId"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-          </div>
-          <!-- ceph rbd -->
-          <div v-if="ruleForm.activeBlockStorageType == 3" class="boxs">
-            <span class="desc">{{ $t("page.install.config.rbdDesc") }}</span>
-            <el-form-item
-              label="Provisioner"
-              label-width="170px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                v-model="storage.RWO.provisioner"
-                :disabled="true"
-                class="d2-input_inner"
-                value="kubernetes.io/rbd"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="Monitors"
-              label-width="170px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                :placeholder="$t('page.install.config.rbdmonitors')"
-                v-model="
-                  storage.RWO.storageClassParameters.rbdParameters.monitors
+              <el-radio :label="0">{{
+                $t("page.install.config.noStorage")
+              }}</el-radio>
+              <el-radio :label="1">{{
+                $t("page.install.config.selectStorage")
+              }}</el-radio>
+              <el-radio :label="2">
+                {{ $t("page.install.config.useAliDisk") }}
+              </el-radio>
+              <!-- <el-radio :label="3">{{ $t("page.install.config.useRBD") }}</el-radio> -->
+            </el-radio-group>
+            <!-- storage class -->
+            <div v-show="ruleForm.activeBlockStorageType == 1" class="boxs">
+              <span
+                v-if="
+                  !clusterInitInfo.storageClasses ||
+                    clusterInitInfo.storageClasses.length === 0
                 "
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="AdminID"
-              label-width="170px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                v-model="storage.RWO.storageClassParameters.rbdParameters.adminId"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="AdminSecretName"
-              label-width="170px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                v-model="
-                  storage.RWO.storageClassParameters.rbdParameters.adminSecretName
-                "
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="AdminSecretNamespace"
-              label-width="170px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                v-model="
-                  storage.RWO.storageClassParameters.rbdParameters
-                    .adminSecretNamespace
-                "
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="Pool"
-              label-width="170px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                v-model="storage.RWO.storageClassParameters.rbdParameters.pool"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="User ID"
-              label-width="170px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                v-model="storage.RWO.storageClassParameters.rbdParameters.userId"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="UserSecretName"
-              label-width="170px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                v-model="
-                  storage.RWO.storageClassParameters.rbdParameters.userSecretName
-                "
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="UserSecretNamespace"
-              label-width="170px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                v-model="
-                  storage.RWO.storageClassParameters.rbdParameters
-                    .userSecretNamespace
-                "
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="FSType"
-              label-width="170px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                v-model="storage.RWO.storageClassParameters.rbdParameters.fsType"
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="ImageFormat"
-              label-width="170px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                v-model="
-                  storage.RWO.storageClassParameters.rbdParameters.imageFormat
-                "
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-            <el-form-item
-              label="ImageFeatures"
-              label-width="170px"
-              class="d2-mt d2-form-item"
-            >
-              <el-input
-                @change="validBlockStorage"
-                v-model="
-                  storage.RWO.storageClassParameters.rbdParameters.imageFeatures
-                "
-                class="d2-input_inner"
-              ></el-input>
-            </el-form-item>
-          </div>
-        </el-form-item>
-      </el-collapse-item>
-    </el-collapse>
+                class="desc"
+                >{{ $t("page.install.config.noStorageClass") }}</span
+              >
+              <el-form-item
+                label="StorageClass"
+                label-width="120px"
+                v-if="clusterInitInfo.storageClasses"
+                class="d2-mt-form d2-form-item"
+              >
+                <el-radio-group
+                  @change="validBlockStorage"
+                  v-model="ruleForm.blockStorageClassName"
+                >
+                  <el-radio
+                    border
+                    style="margin-bottom: 1rem;margin-left:10px"
+                    v-for="item in clusterInitInfo.storageClasses"
+                    :title="item.accessMode === 'Unknown' && '无法识别读写模式'"
+                    v-show="item.accessMode !== 'ReadWriteMany'"
+                    :key="item.name"
+                    :label="item.name"
+                  ></el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </div>
+            <!-- ali disk -->
+            <div v-if="ruleForm.activeBlockStorageType == 2" class="boxs">
+              <span class="desc">{{
+                $t("page.install.config.aliDiskDesc")
+              }}</span>
+              <el-form-item
+                label="AccessKeyID"
+                label-width="130px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  :placeholder="$t('page.install.config.accessKeyID')"
+                  v-model="storage.RWO.csiPlugin.aliyunCloudDisk.accessKeyID"
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="AccessKeySecret"
+                label-width="130px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  :placeholder="$t('page.install.config.accessKeySecret')"
+                  v-model="
+                    storage.RWO.csiPlugin.aliyunCloudDisk.accessKeySecret
+                  "
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="RegionID"
+                label-width="130px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  :placeholder="$t('page.install.config.regionID')"
+                  v-model="storage.RWO.csiPlugin.aliyunCloudDisk.region_id"
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="ZoneID"
+                label-width="130px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  :placeholder="$t('page.install.config.zoneId')"
+                  v-model="storage.RWO.csiPlugin.aliyunCloudDisk.zoneId"
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+            </div>
+            <!-- ceph rbd -->
+            <div v-if="ruleForm.activeBlockStorageType == 3" class="boxs">
+              <span class="desc">{{ $t("page.install.config.rbdDesc") }}</span>
+              <el-form-item
+                label="Provisioner"
+                label-width="170px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  v-model="storage.RWO.provisioner"
+                  :disabled="true"
+                  class="d2-input_inner"
+                  value="kubernetes.io/rbd"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="Monitors"
+                label-width="170px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  :placeholder="$t('page.install.config.rbdmonitors')"
+                  v-model="
+                    storage.RWO.storageClassParameters.rbdParameters.monitors
+                  "
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="AdminID"
+                label-width="170px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  v-model="
+                    storage.RWO.storageClassParameters.rbdParameters.adminId
+                  "
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="AdminSecretName"
+                label-width="170px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  v-model="
+                    storage.RWO.storageClassParameters.rbdParameters
+                      .adminSecretName
+                  "
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="AdminSecretNamespace"
+                label-width="170px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  v-model="
+                    storage.RWO.storageClassParameters.rbdParameters
+                      .adminSecretNamespace
+                  "
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="Pool"
+                label-width="170px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  v-model="
+                    storage.RWO.storageClassParameters.rbdParameters.pool
+                  "
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="User ID"
+                label-width="170px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  v-model="
+                    storage.RWO.storageClassParameters.rbdParameters.userId
+                  "
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="UserSecretName"
+                label-width="170px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  v-model="
+                    storage.RWO.storageClassParameters.rbdParameters
+                      .userSecretName
+                  "
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="UserSecretNamespace"
+                label-width="170px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  v-model="
+                    storage.RWO.storageClassParameters.rbdParameters
+                      .userSecretNamespace
+                  "
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="FSType"
+                label-width="170px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  v-model="
+                    storage.RWO.storageClassParameters.rbdParameters.fsType
+                  "
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="ImageFormat"
+                label-width="170px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  v-model="
+                    storage.RWO.storageClassParameters.rbdParameters.imageFormat
+                  "
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="ImageFeatures"
+                label-width="170px"
+                class="d2-mt d2-form-item"
+              >
+                <el-input
+                  @change="validBlockStorage"
+                  v-model="
+                    storage.RWO.storageClassParameters.rbdParameters
+                      .imageFeatures
+                  "
+                  class="d2-input_inner"
+                ></el-input>
+              </el-form-item>
+            </div>
+          </el-form-item>
+        </el-collapse-item>
+      </el-collapse>
       <div style="width:1100px;text-align:center;">
         <el-button type="primary" @click="submitForm('ruleForm')">
           {{ $t("page.install.config.next") }}
@@ -932,7 +961,12 @@
 </template>
 
 <script>
-import { validateDomain, validateDomainPort, validateIpPort, validateIp } from '@/libs/validate'
+import {
+  validateDomain,
+  validateDomainPort,
+  validateIpPort,
+  validateIp
+} from '@/libs/validate'
 
 export default {
   name: 'clusterConfiguration',
@@ -983,8 +1017,16 @@ export default {
     }
 
     const validateAddressIP = (rule, value, callback) => {
-      if ((!validateDomain(value) && !validateDomainPort(value)) && !validateIp(value)) {
-        callback(new Error('合法格式:rm-xxxxxxxx.mysql.rds.aliyuncs.com 或 192.168.1.1'))
+      if (
+        !validateDomain(value) &&
+        !validateDomainPort(value) &&
+        !validateIp(value)
+      ) {
+        callback(
+          new Error(
+            '合法格式:rm-xxxxxxxx.mysql.rds.aliyuncs.com 或 192.168.1.1'
+          )
+        )
       } else {
         callback()
       }
@@ -1016,7 +1058,11 @@ export default {
     let validateDomains = (rule, value, callback) => {
       if (value.substr(0, 4) === 'http') {
         callback(new Error(this.$t('page.install.config.nohttpValidation')))
-      } else if ((!validateDomain(value) && !validateDomainPort(value)) && !validateIpPort(value)) {
+      } else if (
+        !validateDomain(value) &&
+        !validateDomainPort(value) &&
+        !validateIpPort(value)
+      ) {
         callback(new Error('合法格式:hub.docker.com或192.168.1.1:5000'))
       } else {
         callback()
@@ -1398,13 +1444,19 @@ export default {
       this.errorEndpointsMsg = null
       if (index || index == 0) {
         const value = this.ruleForm.etcdConfig.endpoints[index]
-        if ((!validateDomain(value) && !validateDomainPort(value)) && !validateIpPort(value)) {
+        if (
+          !validateDomain(value) &&
+          !validateDomainPort(value) &&
+          !validateIpPort(value)
+        ) {
           this.errorEndpointsMsg = '合法格式:etcd-0:2379 或 192.168.1.1:2379'
         }
       }
     },
-    fetchErrMessage (err) {
-      return err && typeof err === 'object' ? JSON.stringify(err) : ''
+    fetchErrMessage (err, msg) {
+      return err && typeof err === 'object'
+        ? JSON.stringify(err)
+        : msg || ''
     },
     validShareStorage (value, item) {
       const info = this.clusterInitInfo
@@ -1502,7 +1554,7 @@ export default {
           }
         })
         .catch(err => {
-          const message = this.fetchErrMessage(err)
+          const message = this.fetchErrMessage(err, 'GET/cluster/configs')
           this.$emit('onhandleErrorRecord', 'failure', `${message}`)
         })
     },
@@ -1728,7 +1780,7 @@ export default {
         .dispatch('putClusterInfo', Object.assign({}, parameter, obj))
         .then(res => {
           if (res && res.code === 200) {
-            this.$emit('onhandleStartRecord')
+            this.$emit('onhandleCheckRecord')
             this.$emit('onResults')
           } else {
             this.handleCancelLoading()
@@ -1736,7 +1788,7 @@ export default {
         })
         .catch(err => {
           this.handleCancelLoading()
-          const message = this.fetchErrMessage(err)
+          const message = this.fetchErrMessage(err, 'PUT/cluster/configs')
           this.$emit('onhandleErrorRecord', 'failure', `${message}`)
         })
     },
@@ -1760,7 +1812,7 @@ export default {
           })
           .catch(err => {
             this.queryGatewayNodeloading = false
-            const message = this.fetchErrMessage(err)
+            const message = this.fetchErrMessage(err, '/cluster/nodes')
             this.$emit('onhandleErrorRecord', 'failure', `${message}`)
           })
       }
@@ -1782,7 +1834,7 @@ export default {
           })
           .catch(err => {
             this.queryChaosNodeloading = false
-            const message = this.fetchErrMessage(err)
+            const message = this.fetchErrMessage(err, '/cluster/nodes')
             this.$emit('onhandleErrorRecord', 'failure', `${message}`)
           })
       }
@@ -1791,16 +1843,20 @@ export default {
 }
 </script>
 
-<style  lang="scss" scoped>
-.elCollapseHeader{
-  padding-left:15px;
+<style lang="scss" scoped>
+.elCollapseHeader {
+  padding-left: 15px;
   background: rgb(242, 245, 245) !important;
   font-family: PingFangSC-Regular;
-  div,p{line-height: 20px;margin: 0;}
-  div{
+  div,
+  p {
+    line-height: 20px;
+    margin: 0;
+  }
+  div {
     font-size: 16px;
   }
-  p{
+  p {
     font-size: 12px;
     color: #999999;
   }
@@ -1816,8 +1872,12 @@ export default {
 //   }
 // p{margin-left: 16px;}
 // }
-.actives,.noactives{
-  div,p{margin-left: 16px;}
+.actives,
+.noactives {
+  div,
+  p {
+    margin-left: 16px;
+  }
 }
 .boxs {
   border: 1px solid #dcdfe6 !important;
@@ -1875,24 +1935,25 @@ export default {
 }
 </style>
 <style lang="scss">
-.setruleForm{
-.el-collapse-item__content{
-  padding-bottom: 0px;
-  padding-top: 20px;
-}
-.el-collapse-item__header{
-  min-height: 48px;
-  height: auto !important;
-  background: rgb(242, 245, 245) !important;
-}
-.el-collapse-item__header,.el-collapse-item__wrap{
+.setruleForm {
+  .el-collapse-item__content {
+    padding-bottom: 0px;
+    padding-top: 20px;
+  }
+  .el-collapse-item__header {
+    min-height: 48px;
+    height: auto !important;
+    background: rgb(242, 245, 245) !important;
+  }
+  .el-collapse-item__header,
+  .el-collapse-item__wrap {
     border: 1px solid rgb(221, 228, 230) !important;
   }
-.el-collapse-item__wrap{
-  border-top: 0 !important;
+  .el-collapse-item__wrap {
+    border-top: 0 !important;
   }
 
-  .el-collapse{
+  .el-collapse {
     border: none !important;
   }
 }
