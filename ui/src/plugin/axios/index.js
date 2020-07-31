@@ -101,7 +101,6 @@ service.interceptors.response.use(
   },
   error => {
     console.log('error', error)
-
     if (error.response && error.response.data) {
       const dataAxios = error.response.data
       return handleResponseCode(dataAxios)

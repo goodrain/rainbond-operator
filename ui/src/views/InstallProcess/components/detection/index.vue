@@ -100,7 +100,7 @@ export default {
   },
   methods: {
     fetchErrMessage (err) {
-      return err && typeof err === 'object' ? JSON.stringify(err) : ''
+      return err && typeof err === 'object' ? JSON.stringify(err) : '/cluster/install'
     },
     handleDetection () {
       this.timer && clearInterval(this.timer)
@@ -120,6 +120,7 @@ export default {
         .dispatch('installCluster', {})
         .then(en => {
           if (en && en.code === 200) {
+            this.$emit('onhandleStartRecord')
             this.$emit('onResults')
           } else {
             this.handleCancelLoading(en)

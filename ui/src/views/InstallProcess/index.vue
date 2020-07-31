@@ -8,7 +8,7 @@
           :clusterInfo="recordInfo"
           @onResults="handlePerform('detection')"
           @onhandleErrorRecord="handleRecord"
-          @onhandleStartRecord="handleRecord('start')"
+          @onhandleCheckRecord="handleRecord('check')"
           class="d2-mt"
         ></cluster-configuration>
       </div>
@@ -17,6 +17,7 @@
         <detection
           @onhandleErrorRecord="handleRecord"
           @onUpstep="handleUpstep"
+          @onhandleStartRecord="handleRecord('start')"
           @onResults="handlePerform('start')"
         ></detection>
       </div>
