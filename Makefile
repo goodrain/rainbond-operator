@@ -80,10 +80,10 @@ mock:
 build-ui:
 	docker build . -f hack/build/ui/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui-base:$(VERSION)
 build-api:
-	sed -i "" 's/IMAGE_DOMAIN/$(IMAGE_DOMAIN)/' hack/build/openapi/Dockerfile
-	sed -i "" 's/IMAGE_NAMESPACE/$(IMAGE_NAMESPACE)/' hack/build/openapi/Dockerfile
-	sed -i "" 's/VERSION/$(VERSION)/' hack/build/openapi/Dockerfile
-	sed -i "" 's/__RELEASE_DESC__/$(release_desc)/' hack/build/openapi/Dockerfile
+	sed -i 's/IMAGE_DOMAIN/$(IMAGE_DOMAIN)/' hack/build/openapi/Dockerfile
+	sed -i 's/IMAGE_NAMESPACE/$(IMAGE_NAMESPACE)/' hack/build/openapi/Dockerfile
+	sed -i 's/VERSION/$(VERSION)/' hack/build/openapi/Dockerfile
+	sed -i 's/__RELEASE_DESC__/$(release_desc)/' hack/build/openapi/Dockerfile
 	docker build . -f hack/build/openapi/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(VERSION)
 build-operator:
 	docker build . -f hack/build/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)
