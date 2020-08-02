@@ -249,6 +249,9 @@ github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.1
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
+# github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible
+github.com/openshift/api/config/v1
+github.com/openshift/api/operator/v1
 # github.com/operator-framework/operator-sdk v0.13.0
 github.com/operator-framework/operator-sdk/pkg/k8sutil
 github.com/operator-framework/operator-sdk/pkg/kube-metrics
