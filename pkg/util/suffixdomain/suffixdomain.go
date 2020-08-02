@@ -4,7 +4,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	"github.com/sirupsen/logrus"
 )
+
+var defaultdomain = "offline.appdomain"
 
 // GenerateDomain generate suffix domain
 func GenerateDomain(iip, id, secretKey string) (string, error) {
@@ -13,7 +17,6 @@ func GenerateDomain(iip, id, secretKey string) (string, error) {
 	body["uuid"] = []string{id}
 	body["type"] = []string{"False"}
 	body["auth"] = []string{secretKey}
-
 	resp, err := http.PostForm("http://domain.grapps.cn/domain/new", body)
 	if err != nil {
 		return "", err
@@ -23,5 +26,9 @@ func GenerateDomain(iip, id, secretKey string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(data), nil
+	if resp.StatusCode == 200 {
+		return string(data), nil
+	}
+	logrus.Errorf("cenerate domain failure %s", err.Error())
+	return defaultdomain, nil
 }
