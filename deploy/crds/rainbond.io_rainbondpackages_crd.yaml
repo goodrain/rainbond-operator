@@ -32,7 +32,7 @@ spec:
           description: RainbondPackageSpec defines the desired state of RainbondPackage
           properties:
             pkgPath:
-              description: The path where the rainbond package is located.
+              description: 'Deprecated: The path where the rainbond package is located.'
               type: string
           required:
           - pkgPath

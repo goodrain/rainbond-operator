@@ -365,11 +365,11 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 
 	mgr.generateStatus(pods)
 
-	if !mgr.isRbdCmponentReady() {
+	if !mgr.isRbdComponentReady() {
 		return reconcile.Result{RequeueAfter: 1 * time.Second}, mgr.updateStatus()
 	}
 
-	return reconcile.Result{}, mgr.updateStatus()
+	return reconcile.Result{RequeueAfter: 3 * time.Second}, mgr.updateStatus()
 }
 
 func (r *ReconcileRbdComponent) resourceCreateIfNotExists(ctx context.Context, obj runtime.Object, meta metav1.Object) error {

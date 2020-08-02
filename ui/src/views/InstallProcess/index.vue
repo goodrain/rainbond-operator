@@ -1,32 +1,34 @@
 <template>
   <d2-container type="full">
     <div class="d2-ml-115 d2-w-1100">
-      <el-collapse class="clbr" v-model="activeName" accordion>
-        <el-collapse-item
-          name="cluster"
-          class="installationStepTitle"
-          :title="$t('page.install.config.title')"
-        >
-          <cluster-configuration
-            :clusterInfo="recordInfo"
-            @onResults="handlePerform('startrRsults')"
-            @onhandleErrorRecord="handleRecord"
-            @onhandleStartRecord="handleRecord('start')"
-            class="d2-mt"
-          ></cluster-configuration>
-        </el-collapse-item>
-        <el-collapse-item
-          v-if="resultShow"
-          class="installationStepTitle"
-          :title="$t('page.install.install.title')"
-          name="startrRsults"
-        >
-          <install-results
-            @onhandleErrorRecord="handleRecord"
-            @onhandleUninstallRecord="handleRecord"
-          ></install-results>
-        </el-collapse-item>
-      </el-collapse>
+      <div v-if="activeName === 'configuration'">
+        <p class="d2-f-24">{{ $t("page.install.config.title") }}</p>
+
+        <cluster-configuration
+          :clusterInfo="recordInfo"
+          @onResults="handlePerform('detection')"
+          @onhandleErrorRecord="handleRecord"
+          @onhandleCheckRecord="handleRecord('check')"
+          class="d2-mt"
+        ></cluster-configuration>
+      </div>
+      <div v-if="activeName === 'detection'">
+        <p class="d2-f-24">{{ $t("page.install.config.detection") }}</p>
+        <detection
+          @onhandleErrorRecord="handleRecord"
+          @onUpstep="handleUpstep"
+          @onhandleStartRecord="handleRecord('start')"
+          @onResults="handlePerform('start')"
+        ></detection>
+      </div>
+
+      <div v-if="activeName === 'start'">
+        <p class="d2-f-24">{{ $t("page.install.install.title") }}</p>
+        <install-results
+          @onhandleErrorRecord="handleRecord"
+          @onhandleUninstallRecord="handleRecord"
+        ></install-results>
+      </div>
     </div>
   </d2-container>
 </template>
@@ -34,17 +36,21 @@
 <script>
 import ClusterConfiguration from './components/clusterConfiguration'
 import InstallResults from './components/installResults'
+import Detection from './components/detection'
 
 export default {
   name: 'InstallProcess',
   components: {
     ClusterConfiguration,
-    InstallResults
+    InstallResults,
+    Detection
   },
   data () {
     return {
-      activeName: 'cluster',
-      resultShow: false,
+      activeName:
+        this.$route.params.type && this.$route.params.type !== ':type'
+          ? this.$route.params.type
+          : 'configuration',
       recordInfo: {
         install_id: '',
         version: '',
@@ -87,10 +93,10 @@ export default {
               this.handleRouter('index')
               break
             case 'Installing':
-              this.handlePerform('startrRsults')
+              this.handlePerform('start')
               break
             case 'Setting':
-              this.handlePerform('cluster')
+              this.handlePerform('configuration')
               break
             case 'Running':
               this.handleRouter('successfulInstallation')
@@ -116,9 +122,20 @@ export default {
         this.$store.dispatch('putRecord', this.recordInfo).then(() => {})
       }
     },
+    handleUpstep () {
+      this.activeName = 'configuration'
+      this.handlePerform('configuration')
+    },
     handlePerform (name) {
+      if (name !== 'start' && this.activeName === 'detection') {
+        return null
+      }
       this.activeName = name
-      this.resultShow = name === 'startrRsults'
+      // alert(name)
+      this.$router.push({
+        name: 'InstallProcess',
+        params: { type: name }
+      })
     },
     handleRouter (name) {
       this.$router.push({
@@ -129,6 +146,10 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+.d2-f-24 {
+  font-size: 24px;
+  margin: 0;
+}
 .clbr {
   border: none;
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/docker/distribution/reference"
@@ -62,9 +61,6 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 		mysqlPassword:  string(uuid.NewUUID())[0:8],
 		databases:      []string{"console"},
 		storageRequest: getStorageRequest("DB_DATA_STORAGE_REQUEST", 21),
-	}
-	if enableMysqlOperator, _ := strconv.ParseBool(os.Getenv("ENABLE_MYSQL_OPERATOR")); enableMysqlOperator {
-		d.enableMysqlOperator = true
 	}
 	regionDBName := os.Getenv("REGION_DB_NAME")
 	if regionDBName == "" {

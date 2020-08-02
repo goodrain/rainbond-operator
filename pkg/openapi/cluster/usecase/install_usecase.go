@@ -3,7 +3,6 @@ package usecase
 import (
 	"fmt"
 	"path"
-	"strconv"
 	"time"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
@@ -96,21 +95,32 @@ type InstallUseCaseImpl struct {
 	rainbondKubeClient versioned.Interface
 
 	componentUsecase cluster.ComponentUsecase
+	clusterUcase     cluster.Usecase
 }
 
 // NewInstallUseCase new install case
-func NewInstallUseCase(cfg *option.Config, rainbondKubeClient versioned.Interface, componentUsecase cluster.ComponentUsecase) *InstallUseCaseImpl {
+func NewInstallUseCase(cfg *option.Config, rainbondKubeClient versioned.Interface, componentUsecase cluster.ComponentUsecase, clusterUcase cluster.Usecase) *InstallUseCaseImpl {
 	return &InstallUseCaseImpl{
 		cfg:                cfg,
 		namespace:          cfg.Namespace,
 		rainbondKubeClient: rainbondKubeClient,
 		componentUsecase:   componentUsecase,
+		clusterUcase:       clusterUcase,
 	}
 }
 
 // Install install
-func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
-	cluster, err := ic.rainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.namespace).Get(ic.cfg.ClusterName, metav1.GetOptions{})
+func (ic *InstallUseCaseImpl) Install() error {
+	// make sure precheck passes
+	preCheck, err := ic.clusterUcase.PreCheck()
+	if err != nil {
+		return err
+	}
+	if preCheck.Pass == false {
+		return bcode.ErrClusterPreCheckNotPass
+	}
+
+	cls, err := ic.rainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.namespace).Get(ic.cfg.ClusterName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return bcode.ErrClusterNotFound
@@ -118,30 +128,25 @@ func (ic *InstallUseCaseImpl) Install(req *v1.ClusterInstallReq) error {
 		return err
 	}
 
-	// check cluster
-	if cluster.Status.KubernetesVersoin < "v1.13.0" {
-		return bcode.ErrInvalidKubernetesVersion
-	}
-
 	// create rainbond volume
-	if err := ic.createRainbondVolumes(req); err != nil {
+	if err := ic.createRainbondVolumes(cls); err != nil {
 		return err
 	}
 
 	if err := ic.createRainbondPackage(); err != nil {
 		return err
 	}
-	return ic.createComponents(req, cluster)
+	return ic.createComponents(cls)
 }
 
-func (ic *InstallUseCaseImpl) createRainbondVolumes(req *v1.ClusterInstallReq) error {
-	rwx := setRainbondVolume("rainbondvolumerwx", ic.namespace, rbdutil.LabelsForAccessModeRWX(), req.RainbondVolumes.RWX)
+func (ic *InstallUseCaseImpl) createRainbondVolumes(cluster *v1alpha1.RainbondCluster) error {
+	rwx := setRainbondVolume("rainbondvolumerwx", ic.namespace, rbdutil.LabelsForAccessModeRWX(), cluster.Spec.RainbondVolumeSpecRWX)
 	rwx.Spec.ImageRepository = ic.cfg.RainbondImageRepository
 	if err := ic.createRainbondVolumeIfNotExists(rwx); err != nil {
 		return err
 	}
-	if req.RainbondVolumes.RWO != nil {
-		rwo := setRainbondVolume("rainbondvolumerwo", ic.namespace, rbdutil.LabelsForAccessModeRWO(), req.RainbondVolumes.RWO)
+	if cluster.Spec.RainbondVolumeSpecRWO != nil {
+		rwo := setRainbondVolume("rainbondvolumerwo", ic.namespace, rbdutil.LabelsForAccessModeRWO(), cluster.Spec.RainbondVolumeSpecRWO)
 		rwo.Spec.ImageRepository = ic.cfg.RainbondImageRepository
 		if err := ic.createRainbondVolumeIfNotExists(rwo); err != nil {
 			return err
@@ -164,49 +169,15 @@ func (ic *InstallUseCaseImpl) createRainbondVolumeIfNotExists(volume *v1alpha1.R
 	return nil
 }
 
-func setRainbondVolume(name, namespace string, labels map[string]string, rv *v1.RainbondVolume) *v1alpha1.RainbondVolume {
-	var storageRequest int32 = 1
-	spec := v1alpha1.RainbondVolumeSpec{
-		StorageClassName: rv.StorageClassName,
-	}
-	if rv.StorageClassParameters != nil {
-		spec.StorageClassParameters = &v1alpha1.StorageClassParameters{
-			Provisioner: rv.StorageClassParameters.Provisioner,
-			Parameters:  rv.StorageClassParameters.Parameters,
-		}
-	}
-
-	if rv.CSIPlugin != nil {
-		csiplugin := &v1alpha1.CSIPluginSource{}
-		switch {
-		case rv.CSIPlugin.AliyunCloudDisk != nil:
-			csiplugin.AliyunCloudDisk = &v1alpha1.AliyunCloudDiskCSIPluginSource{
-				AccessKeyID:      rv.CSIPlugin.AliyunCloudDisk.AccessKeyID,
-				AccessKeySecret:  rv.CSIPlugin.AliyunCloudDisk.AccessKeySecret,
-				MaxVolumePerNode: strconv.Itoa(rv.CSIPlugin.AliyunCloudDisk.MaxVolumePerNode),
-			}
-			storageRequest = 21
-		case rv.CSIPlugin.AliyunNas != nil:
-			csiplugin.AliyunNas = &v1alpha1.AliyunNasCSIPluginSource{
-				AccessKeyID:     rv.CSIPlugin.AliyunNas.AccessKeyID,
-				AccessKeySecret: rv.CSIPlugin.AliyunNas.AccessKeySecret,
-			}
-		case rv.CSIPlugin.NFS != nil:
-			csiplugin.NFS = &v1alpha1.NFSCSIPluginSource{}
-		}
-		spec.CSIPlugin = csiplugin
-	}
-
-	spec.StorageRequest = commonutil.Int32(storageRequest)
+func setRainbondVolume(name, namespace string, labels map[string]string, spec *v1alpha1.RainbondVolumeSpec) *v1alpha1.RainbondVolume {
 	volume := &v1alpha1.RainbondVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 			Labels:    rbdutil.LabelsForRainbond(labels),
 		},
-		Spec: spec,
+		Spec: *spec,
 	}
-
 	return volume
 }
 
@@ -252,7 +223,7 @@ func (ic *InstallUseCaseImpl) deleteRainbondPackage() error {
 	return nil
 }
 
-func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, cluster *v1alpha1.RainbondCluster) map[string]*componentClaim {
+func (ic *InstallUseCaseImpl) genComponentClaims(cluster *v1alpha1.RainbondCluster) map[string]*componentClaim {
 	var defReplicas = commonutil.Int32(1)
 	if cluster.Spec.EnableHA {
 		defReplicas = commonutil.Int32(2)
@@ -260,7 +231,7 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 
 	var isInit bool
 	imageRepository := constants.DefImageRepository
-	if cluster.Spec.ImageHub == nil {
+	if cluster.Spec.ImageHub == nil || cluster.Spec.ImageHub.Domain == constants.DefImageRepository {
 		isInit = true
 	} else {
 		imageRepository = path.Join(cluster.Spec.ImageHub.Domain, cluster.Spec.ImageHub.Namespace)
@@ -291,13 +262,11 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 	if cluster.Spec.RegionDatabase == nil || (cluster.Spec.UIDatabase == nil && !ic.cfg.OnlyInstallRegion) {
 		claim := newClaim("rbd-db")
 		claim.version = "8.0.19"
-		if cluster.Spec.EnableHA {
-			claim.replicas = commonutil.Int32(3)
-		}
+		claim.replicas = commonutil.Int32(1)
 		name2Claim["rbd-db"] = claim
 	}
 
-	if cluster.Spec.ImageHub == nil {
+	if cluster.Spec.ImageHub == nil || cluster.Spec.ImageHub.Domain == constants.DefImageRepository {
 		claim := newClaim("rbd-hub")
 		claim.imageName = "registry"
 		claim.version = "2.6.2"
@@ -331,13 +300,13 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 	dashboardscraper.version = "v1.0.4"
 	name2Claim["dashboard-metrics-scraper"] = dashboardscraper
 
-	if req.RainbondVolumes.RWX != nil && req.RainbondVolumes.RWX.CSIPlugin != nil {
-		if req.RainbondVolumes.RWX.CSIPlugin.NFS != nil {
+	if rwx := cluster.Spec.RainbondVolumeSpecRWX; rwx != nil && rwx.CSIPlugin != nil {
+		if rwx.CSIPlugin.NFS != nil {
 			name2Claim["nfs-provisioner"] = newClaim("nfs-provisioner")
 			name2Claim["nfs-provisioner"].replicas = commonutil.Int32(1)
 			name2Claim["nfs-provisioner"].isInit = isInit
 		}
-		if req.RainbondVolumes.RWX.CSIPlugin.AliyunNas != nil {
+		if rwx.CSIPlugin.AliyunNas != nil {
 			name2Claim[constants.AliyunCSINasPlugin] = newClaim(constants.AliyunCSINasPlugin)
 			name2Claim[constants.AliyunCSINasPlugin].isInit = isInit
 			name2Claim[constants.AliyunCSINasProvisioner] = newClaim(constants.AliyunCSINasProvisioner)
@@ -345,8 +314,8 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 			name2Claim[constants.AliyunCSINasProvisioner].replicas = commonutil.Int32(1)
 		}
 	}
-	if req.RainbondVolumes.RWO != nil && req.RainbondVolumes.RWO.CSIPlugin != nil {
-		if req.RainbondVolumes.RWO.CSIPlugin.AliyunCloudDisk != nil {
+	if rwo := cluster.Spec.RainbondVolumeSpecRWO; rwo != nil && rwo.CSIPlugin != nil {
+		if rwo.CSIPlugin.AliyunCloudDisk != nil {
 			name2Claim[constants.AliyunCSIDiskPlugin] = newClaim(constants.AliyunCSIDiskPlugin)
 			name2Claim[constants.AliyunCSIDiskPlugin].isInit = isInit
 			name2Claim[constants.AliyunCSIDiskProvisioner] = newClaim(constants.AliyunCSIDiskProvisioner)
@@ -358,8 +327,8 @@ func (ic *InstallUseCaseImpl) genComponentClaims(req *v1.ClusterInstallReq, clus
 	return name2Claim
 }
 
-func (ic *InstallUseCaseImpl) createComponents(req *v1.ClusterInstallReq, cluster *v1alpha1.RainbondCluster) error {
-	claims := ic.genComponentClaims(req, cluster)
+func (ic *InstallUseCaseImpl) createComponents(cluster *v1alpha1.RainbondCluster) error {
+	claims := ic.genComponentClaims(cluster)
 	for _, claim := range claims {
 		// update image repository for priority components
 		claim.imageRepository = cluster.Spec.RainbondImageRepository
@@ -427,15 +396,12 @@ func (ic *InstallUseCaseImpl) RestartPackage() error {
 }
 
 func (ic *InstallUseCaseImpl) parseInstallStatus(clusterInfo *v1alpha1.RainbondCluster, pkgInfo *v1alpha1.RainbondPackage, componentStatues []*v1.RbdComponentStatus) (statusres model.StatusRes) {
-	defer commonutil.TimeConsume(time.Now())
-
 	statusres.StatusList = append(statusres.StatusList, ic.stepSetting())
 	statusres.StatusList = append(statusres.StatusList, ic.stepHub(clusterInfo, componentStatues))
 	statusres.StatusList = append(statusres.StatusList, ic.stepDownload(clusterInfo, pkgInfo))
 	statusres.StatusList = append(statusres.StatusList, ic.stepUnpack(clusterInfo, pkgInfo))
 	statusres.StatusList = append(statusres.StatusList, ic.stepHandleImage(clusterInfo, pkgInfo))
 	statusres.StatusList = append(statusres.StatusList, ic.stepCreateComponent(componentStatues, pkgInfo))
-
 	return
 }
 
@@ -449,8 +415,9 @@ func (ic *InstallUseCaseImpl) stepSetting() model.InstallStatus {
 	}
 }
 
-func (ic *InstallUseCaseImpl) stepHub(clusterInfo *v1alpha1.RainbondCluster, componentStatues []*v1.RbdComponentStatus) model.InstallStatus {
-	if clusterInfo.Spec.ImageHub != nil { // custom image hub, do not prepare it by rainbond operator, progress set 100 directly
+func (ic *InstallUseCaseImpl) stepHub(cluster *v1alpha1.RainbondCluster, componentStatues []*v1.RbdComponentStatus) model.InstallStatus {
+	idx, condition := cluster.Status.GetCondition(v1alpha1.RainbondClusterConditionTypeImageRepository)
+	if idx != -1 && condition.Status == corev1.ConditionTrue {
 		return model.InstallStatus{
 			StepName: StepPrepareHub,
 			Status:   InstallStatusFinished,
@@ -463,7 +430,7 @@ func (ic *InstallUseCaseImpl) stepHub(clusterInfo *v1alpha1.RainbondCluster, com
 	}
 
 	// prepare init component list
-	initComponents := []*v1.RbdComponentStatus{}
+	var initComponents []*v1.RbdComponentStatus
 	for _, cs := range componentStatues {
 		if cs.ISInitComponent {
 			initComponents = append(initComponents, cs)
@@ -497,7 +464,6 @@ func (ic *InstallUseCaseImpl) stepHub(clusterInfo *v1alpha1.RainbondCluster, com
 
 // step 2 download rainbond
 func (ic *InstallUseCaseImpl) stepDownload(clusterInfo *v1alpha1.RainbondCluster, pkgInfo *v1alpha1.RainbondPackage) model.InstallStatus {
-	defer commonutil.TimeConsume(time.Now())
 	if pkgInfo.Status == nil {
 		return model.InstallStatus{
 			StepName: StepDownload,

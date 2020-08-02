@@ -28,6 +28,10 @@ var ErrNoDBEndpoints = errors.New("no ready endpoints for DB were found")
 const (
 	// EtcdSSLPath ssl file path for etcd
 	EtcdSSLPath = "/run/ssl/etcd"
+	// RegionDatabaseName -
+	RegionDatabaseName = "region"
+	// ConsoleDatabaseName -
+	ConsoleDatabaseName = "console"
 )
 
 // pvcParameters holds parameters to create pvc.

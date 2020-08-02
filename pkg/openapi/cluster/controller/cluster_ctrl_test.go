@@ -140,24 +140,6 @@ func TestClusterInfoRequest(t *testing.T) {
 			want: bcode.BadRequest,
 		},
 		{
-			name: "ok",
-			data: &v1.GlobalConfigs{
-				NodesForGateways: []*v1.K8sNode{
-					{
-						Name:       "foo",
-						InternalIP: "172.20.0.20",
-					},
-				},
-				NodesForChaos: []*v1.K8sNode{
-					{
-						Name:       "bar",
-						InternalIP: "172.20.0.20",
-					},
-				},
-			},
-			want: bcode.OK,
-		},
-		{
 			name: "missing internal ip",
 			data: &v1.GlobalConfigs{
 				NodesForGateways: []*v1.K8sNode{
@@ -222,83 +204,6 @@ func TestClusterInfoRequest(t *testing.T) {
 			r := gin.Default()
 			// setup router
 			r.PUT(path, cc.UpdateConfig)
-
-			body, _ := ffjson.Marshal(tc.data)
-
-			w := httptest.NewRecorder()
-			req, _ := http.NewRequest("PUT", path, bytes.NewBuffer(body))
-			r.ServeHTTP(w, req)
-
-			assert.Equal(t, tc.want.Code(), w.Code)
-		})
-	}
-}
-
-func TestClusterInstallRequest(t *testing.T) {
-	tests := []struct {
-		name string
-		data *v1.ClusterInstallReq
-		want bcode.Coder
-	}{
-		{
-			name: "no data",
-			want: bcode.BadRequest,
-		},
-		{
-			name: "ok",
-			data: &v1.ClusterInstallReq{
-				RainbondVolumes: &v1.RainbondVolumes{
-					RWX: &v1.RainbondVolume{},
-				},
-			},
-			want: bcode.OK,
-		},
-		{
-			name: "missing rainbondvolumes",
-			data: &v1.ClusterInstallReq{},
-			want: bcode.BadRequest,
-		},
-		{
-			name: "missing rwx",
-			data: &v1.ClusterInstallReq{
-				RainbondVolumes: &v1.RainbondVolumes{
-					RWX: nil,
-					RWO: &v1.RainbondVolume{},
-				},
-			},
-			want: bcode.BadRequest,
-		},
-		{
-			name: "missing rwo",
-			data: &v1.ClusterInstallReq{
-				RainbondVolumes: &v1.RainbondVolumes{
-					RWX: &v1.RainbondVolume{},
-					RWO: nil,
-				},
-			},
-			want: bcode.OK,
-		},
-	}
-
-	path := "/cluster/install"
-	for idx := range tests {
-		tc := tests[idx]
-		t.Run(tc.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-
-			installUcase := mock.NewMockInstallUseCase(ctrl)
-			installUcase.EXPECT().Install(tc.data).Return(nil)
-
-			clusterUcase := mock.NewMockIClusterUcase(ctrl)
-			clusterUcase.EXPECT().Install().Return(installUcase)
-
-			cc := &ClusterController{
-				clusterUcase: clusterUcase,
-			}
-
-			r := gin.Default()
-			// setup router
-			r.PUT(path, cc.Install)
 
 			body, _ := ffjson.Marshal(tc.data)
 

@@ -17,6 +17,7 @@ type IClusterUcase interface {
 
 // Usecase cluster case
 type Usecase interface {
+	PreCheck() (*v1.ClusterPreCheckResp, error)
 	Status() (*model.ClusterStatus, error)
 	Init() error
 	UnInstall() error
@@ -42,7 +43,7 @@ type ComponentUsecase interface { // TODO: loop call
 
 // InstallUseCase cluster install case
 type InstallUseCase interface {
-	Install(req *v1.ClusterInstallReq) error
+	Install() error
 	InstallStatus() (model.StatusRes, error)
 	RestartPackage() error
 }

@@ -153,6 +153,8 @@ type GlobalConfigs struct {
 	GatewayIngressIPs []string   `json:"gatewayIngressIPs"`
 	NodesForGateways  []*K8sNode `json:"nodesForGateway" binding:"required,dive,required"`
 	NodesForChaos     []*K8sNode `json:"nodesForChaos" binding:"required,dive,required"`
+
+	RainbondVolumes RainbondVolumes `json:"rainbondVolumes" binding:"required,dive,required"`
 }
 
 // AliyunCloudDiskCSIPluginSource represents a aliyun cloud disk CSI plugin.
@@ -227,4 +229,18 @@ type RainbondVolumes struct {
 // ClusterInstallReq -
 type ClusterInstallReq struct {
 	RainbondVolumes *RainbondVolumes `json:"rainbondVolumes" binding:"required"`
+}
+
+// ClusterPreCheckResp holds the response of cluster pre checking
+type ClusterPreCheckResp struct {
+	Pass       bool                        `json:"pass"`
+	Conditions []*ClusterPreCheckCondition `json:"conditions"`
+}
+
+// ClusterPreCheckCondition -
+type ClusterPreCheckCondition struct {
+	Type    string `json:"type"`
+	Status  string `json:"status"`
+	Reason  string `json:"reason"`
+	Message string `json:"message"`
 }

@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"sort"
+	"time"
 
+	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondcluster/precheck"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/uuidutil"
-
-	"github.com/go-logr/logr"
 	"github.com/pquerna/ffjson/ffjson"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -75,6 +76,9 @@ type rainbondClusteMgr struct {
 }
 
 func newRbdcomponentMgr(ctx context.Context, client client.Client, log logr.Logger, cluster *rainbondv1alpha1.RainbondCluster, scheme *runtime.Scheme) *rainbondClusteMgr {
+	if cluster.Status == nil {
+		cluster.Status = &rainbondv1alpha1.RainbondClusterStatus{}
+	}
 	mgr := &rainbondClusteMgr{
 		ctx:     ctx,
 		client:  client,
@@ -122,15 +126,6 @@ func (r *rainbondClusteMgr) generateRainbondClusterStatus() (*rainbondv1alpha1.R
 		MasterRoleLabel: masterRoleLabel,
 		StorageClasses:  r.listStorageClasses(),
 	}
-	if r.cluster.Status != nil {
-		if r.cluster.Status.ImagePullUsername == "" || r.cluster.Status.ImagePullPassword == "" {
-			s.ImagePullUsername = "admin"
-			s.ImagePullPassword = uuidutil.NewUUID()[0:8]
-		} else {
-			s.ImagePullUsername = r.cluster.Status.ImagePullUsername
-			s.ImagePullPassword = r.cluster.Status.ImagePullPassword
-		}
-	}
 
 	if r.checkIfImagePullSecretExists() {
 		s.ImagePullSecret = corev1.LocalObjectReference{Name: RdbHubCredentialsName}
@@ -151,11 +146,8 @@ func (r *rainbondClusteMgr) generateRainbondClusterStatus() (*rainbondv1alpha1.R
 		MasterNodes:    masterNodesForChaos,
 	}
 
-	k8sVersion, err := r.getKubernetesInfo()
-	if err != nil {
-		return nil, err
-	}
-	s.KubernetesVersoin = k8sVersion
+	// conditions for rainbond cluster status
+	s.Conditions = r.generateConditions()
 
 	return s, nil
 }
@@ -299,30 +291,6 @@ func (r *rainbondClusteMgr) generateDockerConfig() []byte {
 	return bytes
 }
 
-func (r *rainbondClusteMgr) getKubernetesInfo() (string, error) {
-	nodeList := &corev1.NodeList{}
-	listOpts := []client.ListOption{}
-	if err := r.client.List(r.ctx, nodeList, listOpts...); err != nil {
-		log.Error(err, "list nodes")
-		return "", fmt.Errorf("list nodes: %v", err)
-	}
-
-	var version string
-	for _, node := range nodeList.Items {
-		if node.Status.NodeInfo.KubeletVersion == "" {
-			continue
-		}
-		version = node.Status.NodeInfo.KubeletVersion
-		break
-	}
-
-	if version == "" {
-		return "", fmt.Errorf("failed to get kubernetes version")
-	}
-
-	return version, nil
-}
-
 func (r *rainbondClusteMgr) checkIfRbdNodeReady() error {
 	cpt := &rainbondv1alpha1.RbdComponent{}
 	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: "rbd-node"}, cpt); err != nil {
@@ -338,4 +306,133 @@ func (r *rainbondClusteMgr) checkIfRbdNodeReady() error {
 	}
 
 	return nil
+}
+
+func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClusterCondition {
+	// region database
+	spec := r.cluster.Spec
+	if spec.RegionDatabase != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseRegion) {
+		preChecker := precheck.NewDatabasePrechecker(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseRegion, spec.RegionDatabase)
+		condition := preChecker.Check()
+		r.cluster.Status.UpdateCondition(&condition)
+	}
+
+	// console database
+	if spec.UIDatabase != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseConsole) {
+		preChecker := precheck.NewDatabasePrechecker(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseConsole, spec.UIDatabase)
+		condition := preChecker.Check()
+		r.cluster.Status.UpdateCondition(&condition)
+	}
+
+	// image repository
+	if spec.ImageHub != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository) {
+		preChecker := precheck.NewImageRepoPrechecker(r.ctx, r.log, r.cluster)
+		condition := preChecker.Check()
+		r.cluster.Status.UpdateCondition(&condition)
+	}
+
+	// kubernetes version
+	if !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeKubernetesVersion) {
+		k8sVersion := precheck.NewK8sVersionPrechecker(r.ctx, r.log, r.client)
+		condition := k8sVersion.Check()
+		r.cluster.Status.UpdateCondition(&condition)
+	}
+
+	storagePreChecker := precheck.NewStorage(r.ctx, r.client, r.cluster.GetNamespace(), r.cluster.Spec.RainbondVolumeSpecRWX)
+	storageCondition := storagePreChecker.Check()
+	r.cluster.Status.UpdateCondition(&storageCondition)
+
+	dnsPrechecker := precheck.NewDNSPrechecker(r.cluster, r.log)
+	dnsCondition := dnsPrechecker.Check()
+	r.cluster.Status.UpdateCondition(&dnsCondition)
+
+	k8sStatusPrechecker := precheck.NewK8sStatusPrechecker(r.ctx, r.cluster, r.client, r.log)
+	k8sStatusCondition := k8sStatusPrechecker.Check()
+	r.cluster.Status.UpdateCondition(&k8sStatusCondition)
+
+	memory := precheck.NewMemory(r.ctx, r.log, r.client)
+	memoryCondition := memory.Check()
+	r.cluster.Status.UpdateCondition(&memoryCondition)
+
+	// container network
+	if r.cluster.Spec.SentinelImage != "" {
+		containerNetworkPrechecker := precheck.NewContainerNetworkPrechecker(r.ctx, r.client, r.scheme, r.log, r.cluster)
+		containerNetworkCondition := containerNetworkPrechecker.Check()
+		r.cluster.Status.UpdateCondition(&containerNetworkCondition)
+	}
+
+	return r.cluster.Status.Conditions
+}
+
+func (r *rainbondClusteMgr) isConditionTrue(typ3 rainbondv1alpha1.RainbondClusterConditionType) bool {
+	if r.cluster.Status == nil {
+		return false
+	}
+
+	_, condition := r.cluster.Status.GetCondition(typ3)
+
+	if condition != nil && condition.Status == corev1.ConditionTrue {
+		return true
+	}
+	return false
+}
+
+func (r *rainbondClusteMgr) createFoobarPVCIfNotExists() error {
+	var storageClassName string
+	if r.cluster.Spec.RainbondVolumeSpecRWX != nil && r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName != "" {
+		storageClassName = r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName
+	}
+
+	pvc, err := k8sutil.GetFoobarPVC(r.ctx, r.client, r.cluster.GetNamespace())
+	if err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return err
+		}
+		return r.createPVCForFoobar(storageClassName)
+	}
+
+	// check if storageClass is up to date
+	if *pvc.Spec.StorageClassName == storageClassName {
+		return nil
+	}
+	// otherwise, delete the old one and create the latest one
+	if err := r.client.Delete(r.ctx, pvc, &client.DeleteOptions{GracePeriodSeconds: commonutil.Int64(0)}); err != nil {
+		return err
+	}
+	if err := r.createPVCForFoobar(storageClassName); err != nil {
+		if k8sErrors.IsAlreadyExists(err) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (r *rainbondClusteMgr) createPVCForFoobar(storageClassName string) error {
+	if storageClassName == "" {
+		return nil
+	}
+	// create pvc
+	accessModes := []corev1.PersistentVolumeAccessMode{
+		corev1.ReadWriteMany,
+	}
+	labels := rbdutil.LabelsForRainbond(nil)
+	pvc := k8sutil.PersistentVolumeClaimForGrdata(r.cluster.GetNamespace(), constants.FoobarPVC, accessModes, labels,
+		storageClassName, 1)
+	return r.client.Create(r.ctx, pvc)
+}
+
+func (r *rainbondClusteMgr) falseConditionNow(typ3 rainbondv1alpha1.RainbondClusterConditionType) *rainbondv1alpha1.RainbondClusterCondition {
+	idx, _ := r.cluster.Status.GetCondition(typ3)
+	if idx != -1 {
+		return nil
+	}
+	return &rainbondv1alpha1.RainbondClusterCondition{
+		Type:              typ3,
+		Status:            corev1.ConditionTrue,
+		LastHeartbeatTime: metav1.NewTime(time.Now()),
+		Reason:            "InProgress",
+		Message:           fmt.Sprintf("precheck for %s is in progress", string(typ3)),
+	}
 }

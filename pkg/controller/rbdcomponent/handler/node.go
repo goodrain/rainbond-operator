@@ -267,9 +267,9 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
 					HostAliases:                   hostsAliases(n.cluster),
-					HostNetwork:                   true,
 					HostPID:                       true,
 					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
+					HostNetwork:                   true,
 					Tolerations: []corev1.Toleration{
 						{
 							Operator: corev1.TolerationOpExists, // tolerate everything.

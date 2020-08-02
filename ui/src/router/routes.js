@@ -23,7 +23,7 @@ const frameIn = [
       },
       // 安装流程页面
       {
-        path: 'install',
+        path: 'install/:type',
         name: 'InstallProcess',
         meta: {
           title: '集群安装',

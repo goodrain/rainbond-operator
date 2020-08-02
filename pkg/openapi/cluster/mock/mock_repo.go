@@ -33,15 +33,15 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 }
 
 // EnterpriseID mocks base method
-func (m *MockRepository) EnterpriseID() string {
+func (m *MockRepository) EnterpriseID(eid string) string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnterpriseID")
+	ret := m.ctrl.Call(m, "EnterpriseID", eid)
 	ret0, _ := ret[0].(string)
 	return ret0
 }
 
 // EnterpriseID indicates an expected call of EnterpriseID
-func (mr *MockRepositoryMockRecorder) EnterpriseID() *gomock.Call {
+func (mr *MockRepositoryMockRecorder) EnterpriseID(eid interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnterpriseID", reflect.TypeOf((*MockRepository)(nil).EnterpriseID))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnterpriseID", reflect.TypeOf((*MockRepository)(nil).EnterpriseID), eid)
 }

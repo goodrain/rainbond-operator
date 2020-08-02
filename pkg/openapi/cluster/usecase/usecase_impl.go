@@ -21,8 +21,8 @@ func NewClusterCase(conf *option.Config, repo cluster.Repository, rainbondKubeCl
 	clusterCase := &CaseImpl{}
 	clusterCase.componentUseCaseImpl = NewComponentUsecase(conf, storer)
 	clusterCase.globalConfigUseCaseImpl = NewGlobalConfigUseCase(conf)
-	clusterCase.installCaseImpl = NewInstallUseCase(conf, rainbondKubeClient, clusterCase.componentUseCaseImpl)
 	clusterCase.clusterImpl = NewClusterUsecase(conf, repo, clusterCase.componentUseCaseImpl, nodestorer)
+	clusterCase.installCaseImpl = NewInstallUseCase(conf, rainbondKubeClient, clusterCase.componentUseCaseImpl, clusterCase.clusterImpl)
 	return clusterCase
 }
 

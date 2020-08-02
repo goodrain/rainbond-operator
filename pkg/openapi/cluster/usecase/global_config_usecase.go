@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"strconv"
 	"time"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
@@ -44,32 +46,24 @@ func (cc *GlobalConfigUseCaseImpl) GlobalConfigs() (*model.GlobalConfigs, error)
 
 // UpdateGlobalConfig update gloobal config
 func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *v1.GlobalConfigs) error {
-	clusterInfo, err := cc.formatRainbondClusterConfig(data)
+	newCluster, err := cc.formatRainbondClusterConfig(data)
 	if err != nil {
 		return err
 	}
 
-	_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(clusterInfo)
-	if err != nil {
-		if k8sErrors.IsConflict(err) {
-			return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				newCluster, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(clusterInfo.Name, metav1.GetOptions{})
-				if err != nil {
-					log.Info("get new cluster before update cluster", "warning", err)
-				} else {
-					clusterInfo.ResourceVersion = newCluster.ResourceVersion
-				}
-				_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(clusterInfo)
-				if err != nil {
-					return err
-				}
-				return nil
-			})
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		oldCluster, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(newCluster.Name, metav1.GetOptions{})
+		if err != nil {
+			log.Info("get new cluster before update cluster", "warning", err)
+		} else {
+			newCluster.ResourceVersion = oldCluster.ResourceVersion
 		}
-		log.Error(err, "update rainbond cluster")
-		return err
-	}
-	return nil
+		_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(newCluster)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (cc *GlobalConfigUseCaseImpl) genSuffixHTTPHost(ip string) (domain string, err error) {
@@ -162,7 +156,7 @@ func (cc *GlobalConfigUseCaseImpl) parseRainbondClusterConfig(source *v1alpha1.R
 
 	clusterInfo.HTTPDomain = source.Spec.SuffixHTTPHost
 
-	clusterInfo.GatewayIngressIPs = append(clusterInfo.GatewayIngressIPs, source.Spec.GatewayIngressIPs...)
+	clusterInfo.GatewayIngressIPs = source.Spec.GatewayIngressIPs
 
 	return clusterInfo, nil
 }
@@ -245,7 +239,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *v1.Global
 	}
 
 	// must provide all, can't patch
-	clusterInfo.Spec.GatewayIngressIPs = append(clusterInfo.Spec.GatewayIngressIPs, source.GatewayIngressIPs...)
+	clusterInfo.Spec.GatewayIngressIPs = source.GatewayIngressIPs
 
 	setNodes := func(nodes []*v1.K8sNode) []*v1alpha1.K8sNode {
 		var result []*v1alpha1.K8sNode
@@ -261,7 +255,50 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *v1.Global
 	clusterInfo.Spec.NodesForGateway = setNodes(source.NodesForGateways)
 	clusterInfo.Spec.NodesForChaos = setNodes(source.NodesForChaos)
 
+	clusterInfo.Spec.RainbondVolumeSpecRWX = convertRainbondVolume(source.RainbondVolumes.RWX)
+	if source.RainbondVolumes.RWO != nil {
+		clusterInfo.Spec.RainbondVolumeSpecRWO = convertRainbondVolume(source.RainbondVolumes.RWO)
+	}
+
 	return clusterInfo, nil
+}
+
+func convertRainbondVolume(rv *v1.RainbondVolume) *v1alpha1.RainbondVolumeSpec {
+	var storageRequest int32 = 1
+	spec := v1alpha1.RainbondVolumeSpec{
+		StorageClassName: rv.StorageClassName,
+	}
+	if rv.StorageClassParameters != nil {
+		spec.StorageClassParameters = &v1alpha1.StorageClassParameters{
+			Provisioner: rv.StorageClassParameters.Provisioner,
+			Parameters:  rv.StorageClassParameters.Parameters,
+		}
+	}
+
+	if rv.CSIPlugin != nil {
+		csiplugin := &v1alpha1.CSIPluginSource{}
+		switch {
+		case rv.CSIPlugin.AliyunCloudDisk != nil:
+			csiplugin.AliyunCloudDisk = &v1alpha1.AliyunCloudDiskCSIPluginSource{
+				AccessKeyID:      rv.CSIPlugin.AliyunCloudDisk.AccessKeyID,
+				AccessKeySecret:  rv.CSIPlugin.AliyunCloudDisk.AccessKeySecret,
+				MaxVolumePerNode: strconv.Itoa(rv.CSIPlugin.AliyunCloudDisk.MaxVolumePerNode),
+			}
+			storageRequest = 21
+		case rv.CSIPlugin.AliyunNas != nil:
+			csiplugin.AliyunNas = &v1alpha1.AliyunNasCSIPluginSource{
+				AccessKeyID:     rv.CSIPlugin.AliyunNas.AccessKeyID,
+				AccessKeySecret: rv.CSIPlugin.AliyunNas.AccessKeySecret,
+			}
+		case rv.CSIPlugin.NFS != nil:
+			csiplugin.NFS = &v1alpha1.NFSCSIPluginSource{}
+		}
+		spec.CSIPlugin = csiplugin
+	}
+
+	spec.StorageRequest = commonutil.Int32(storageRequest)
+
+	return &spec
 }
 
 //TODO generate test case

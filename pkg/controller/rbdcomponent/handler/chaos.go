@@ -60,6 +60,9 @@ func (c *chaos) Before() error {
 	if err != nil {
 		return fmt.Errorf("get db info: %v", err)
 	}
+	if db.Name == "" {
+		db.Name = RegionDatabaseName
+	}
 	c.db = db
 
 	secret, err := etcdSecret(c.ctx, c.client, c.cluster)

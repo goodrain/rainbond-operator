@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -47,6 +48,30 @@ func NewClusterUsecase(cfg *option.Config, repo cluster.Repository, cptUcase clu
 		cptUcase:       cptUcase,
 		nodestorer:     nodestorer,
 	}
+}
+
+func (c *clusterUsecase) PreCheck() (*v1.ClusterPreCheckResp, error) {
+	cls, err := c.getCluster()
+	if err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return nil, fmt.Errorf("get rainbond clsuter: %v", err)
+		}
+	}
+
+	conditions := convertClusterConditions(cls)
+	pass := true
+	for _, condition := range conditions {
+		if condition.Status != "True" {
+			pass = false
+			break
+		}
+	}
+
+	return &v1.ClusterPreCheckResp{
+		Pass:       pass,
+		Conditions: conditions,
+	}, nil
+
 }
 
 // UnInstall uninstall cluster reset cluster
@@ -247,17 +272,21 @@ func (c *clusterUsecase) hackClusterInfo(rainbondCluster *rainbondv1alpha1.Rainb
 	}
 
 	// get install version from config
-	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion
-
-	// get enterprise from repo
-	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID()
+	status.ClusterInfo.InstallVersion = c.cfg.RainbondVersion + "-" + os.Getenv("RELEASE_DESC")
 
 	// get installID from cluster's annotations
+	var eid string
 	if rainbondCluster.Annotations != nil {
 		if value, ok := rainbondCluster.Annotations["install_id"]; ok && value != "" {
 			status.ClusterInfo.InstallID = value
 		}
+		if value, ok := rainbondCluster.Annotations["enterprise_id"]; ok && value != "" {
+			eid = value
+		}
 	}
+
+	// get enterprise from repo
+	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID(eid)
 }
 
 // no rainbondcluster cr means cluster status is waiting
@@ -402,13 +431,14 @@ func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, err
 				URL: c.cfg.DownloadURL,
 				MD5: c.cfg.DownloadMD5,
 			},
-			InstallMode: installMode,
+			InstallMode:   installMode,
+			SentinelImage: c.cfg.SentinelImage,
 		},
 	}
 
 	annotations := make(map[string]string)
 	annotations["install_id"] = uuidutil.NewUUID()
-	annotations["enterprise_id"] = c.repo.EnterpriseID()
+	annotations["enterprise_id"] = c.repo.EnterpriseID("")
 	cluster.Annotations = annotations
 
 	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)

@@ -35,6 +35,7 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterUcase) {
 	u := &ClusterController{clusterUcase: clusterCase}
 
 	clusterEngine := g.Group("/cluster")
+	clusterEngine.GET("/precheck", corsMidle(u.PreCheck))
 	clusterEngine.GET("/status", corsMidle(u.ClusterStatus))
 	clusterEngine.GET("/status-info", corsMidle(u.ClusterStatusInfo))
 	clusterEngine.POST("/init", corsMidle(u.ClusterInit))
@@ -56,6 +57,16 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterUcase) {
 	clusterEngine.GET("/components", corsMidle(u.Components))
 	clusterEngine.GET("/components/:name", corsMidle(u.SingleComponent))
 
+}
+
+// PreCheck checks cluster conditions before installing
+func (cc *ClusterController) PreCheck(c *gin.Context) {
+	resp, err := cc.clusterUcase.Cluster().PreCheck()
+	if err != nil {
+		ginutil.JSON(c, resp, err)
+		return
+	}
+	ginutil.JSON(c, resp, nil)
 }
 
 // ClusterStatus cluster status
@@ -140,7 +151,7 @@ func (cc *ClusterController) UpdateConfig(c *gin.Context) {
 	}
 
 	if err := cc.clusterUcase.GlobalConfigs().UpdateGlobalConfig(&req); err != nil {
-		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": http.StatusInternalServerError, "msg": err.Error()})
+		ginutil.JSON(c, nil, err)
 		return
 	}
 
@@ -170,16 +181,7 @@ func (cc *ClusterController) Uninstall(c *gin.Context) {
 
 // Install install
 func (cc *ClusterController) Install(c *gin.Context) {
-	reqLogger := log.WithName("UpdateConfig")
-	var req v1.ClusterInstallReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		reqLogger.V(4).Info(fmt.Sprintf("bad request: %v", err))
-		ginutil.JSON(c, nil, bcode.BadRequest)
-		return
-	}
-
-	if err := cc.clusterUcase.Install().Install(&req); err != nil {
-		log.Error(err, "install error")
+	if err := cc.clusterUcase.Install().Install(); err != nil {
 		ginutil.JSON(c, nil, err)
 		return
 	}

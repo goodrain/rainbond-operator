@@ -2,7 +2,6 @@ package v1alpha1
 
 import (
 	"fmt"
-	"os"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +25,42 @@ const (
 	NodeLabelRole = "kubernetes.io/role"
 )
 
+// RainbondClusterConditionType is the type of rainbondclsuter condition.
+type RainbondClusterConditionType string
+
+// These are valid conditions of rainbondcluster.
+const (
+	RainbondClusterConditionTypeDatabaseRegion    = "DatabaseRegion"
+	RainbondClusterConditionTypeDatabaseConsole   = "DatabaseConsole"
+	RainbondClusterConditionTypeImageRepository   = "ImageRepository"
+	RainbondClusterConditionTypeKubernetesVersion = "KubernetesVersion"
+	RainbondClusterConditionTypeKubernetesStatus  = "KubernetesStatus"
+	RainbondClusterConditionTypeStorage           = "Storage"
+	RainbondClusterConditionTypeDNS               = "DNS"
+	RainbondClusterConditionTypeContainerNetwork  = "ContainerNetwork"
+	RainbondClusterConditionTypeMemory            = "Memory"
+)
+
+// RainbondClusterCondition contains condition information for rainbondcluster.
+type RainbondClusterCondition struct {
+	// Type of rainbondclsuter condition.
+	Type RainbondClusterConditionType `json:"type" `
+	// Status of the condition, one of True, False, Unknown.
+	Status corev1.ConditionStatus `json:"status" `
+	// Last time we got an update on a given condition.
+	// +optional
+	LastHeartbeatTime metav1.Time `json:"lastHeartbeatTime,omitempty" `
+	// Last time the condition transit from one status to another.
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" `
+	// (brief) reason for the condition's last transition.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// Human readable message indicating details about last transition.
+	// +optional
+	Message string `json:"message,omitempty"`
+}
+
 // ImageHub image hub
 type ImageHub struct {
 	Domain    string `json:"domain,omitempty"`
@@ -40,6 +75,7 @@ type Database struct {
 	Port     int    `json:"port,omitempty"`
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
+	Name     string `json:"name,omitempty"`
 }
 
 // EtcdConfig defines the configuration of etcd client.
@@ -53,7 +89,7 @@ type EtcdConfig struct {
 // RainbondClusterSpec defines the desired state of RainbondCluster
 type RainbondClusterSpec struct {
 	// EnableHA is a highly available switch.
-	EnableHA bool `json:"enableHA"`
+	EnableHA bool `json:"enableHA,omitempty"`
 	// Repository of each Rainbond component image, eg. docker.io/rainbond.
 	// +optional
 	RainbondImageRepository string `json:"rainbondImageRepository,omitempty"`
@@ -86,8 +122,14 @@ type RainbondClusterSpec struct {
 	InstallVersion string `json:"installVersion,omitempty"`
 	// Whether the configuration has been completed
 	ConfigCompleted bool `json:"configCompleted,omitempty"`
-	//InstallPackageConfig define install package download config
+	// Deprecated. InstallPackageConfig define install package download config
 	InstallPackageConfig InstallPackageConfig `json:"installPackageConfig,omitempty"`
+
+	RainbondVolumeSpecRWX *RainbondVolumeSpec `json:"rainbondVolumeSpecRWX,omitempty"`
+	RainbondVolumeSpecRWO *RainbondVolumeSpec `json:"rainbondVolumeSpecRWO,omitempty"`
+
+	// SentinelImage is the image for rainbond operator sentinel
+	SentinelImage string `json:"sentinelImage,omitempty"`
 }
 
 //InstallPackageConfig define install package download config
@@ -132,12 +174,14 @@ type RainbondClusterStatus struct {
 	GatewayAvailableNodes *AvailableNodes `json:"gatewayAvailableNodes,omitempty"`
 	// holds some recommend nodes available for rbd-chaos to run.
 	ChaosAvailableNodes *AvailableNodes `json:"chaosAvailableNodes,omitempty"`
-	// ImagePullUsername is the username to pull any of images used by PodSpec
+	// Deprecated. ImagePullUsername is the username to pull any of images used by PodSpec
 	ImagePullUsername string `json:"imagePullUsername,omitempty"`
-	// ImagePullPassword is the password to pull any of images used by PodSpec
+	// Deprecated. ImagePullPassword is the password to pull any of images used by PodSpec
 	ImagePullPassword string `json:"imagePullPassword,omitempty"`
 	// ImagePullSecret is an optional references to secret in the same namespace to use for pulling any of the images used by PodSpec.
 	ImagePullSecret corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+
+	Conditions []RainbondClusterCondition `json:"conditions,omitempty"`
 }
 
 // +genclient
@@ -197,9 +241,5 @@ func (in *RainbondCluster) GatewayIngressIPs() (ips []string) {
 
 // RegionDataSource returns the data source for database region.
 func (in *Database) RegionDataSource() string {
-	name := os.Getenv("REGION_DB_NAME")
-	if name == "" {
-		name = "region"
-	}
-	return fmt.Sprintf("--mysql=%s:%s@tcp(%s:%d)/%s", in.Username, in.Password, in.Host, in.Port, name)
+	return fmt.Sprintf("--mysql=%s:%s@tcp(%s:%d)/%s", in.Username, in.Password, in.Host, in.Port, in.Name)
 }
