@@ -29,6 +29,6 @@ func GenerateDomain(iip, id, secretKey string) (string, error) {
 	if resp.StatusCode == 200 {
 		return string(data), nil
 	}
-	logrus.Errorf("cenerate domain failure %s", err.Error())
+	logrus.Errorf("cenerate domain failure %s", string(data))
 	return defaultdomain, nil
 }
