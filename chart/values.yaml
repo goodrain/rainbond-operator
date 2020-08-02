@@ -29,7 +29,7 @@ openapi:
   name: openapi
   image:
     repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui
-    tag: v1.0.1-cloud
+    tag: v1.0.1-cloud 
     pullPolicy: IfNotPresent
   port: 8080
   nodePort: 30008

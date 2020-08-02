@@ -64,8 +64,6 @@ func (k *k8sdashbaord) deploymentForKubernetesDashboard() interface{} {
 	args := []string{
 		"--insecure-bind-address=0.0.0.0",
 		fmt.Sprintf("--namespace=%s", k.component.Namespace),
-		"--enable-insecure-login=true",
-		"--enable-skip-login",
 	}
 	labels := copyLabels(k.labels)
 	labels["name"] = KubernetesDashboardName
