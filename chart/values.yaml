@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-rainbondVersion: v5.2.0-release
+rainbondVersion: v5.2.1-cloud
 
 ## Install Default RBAC roles and bindings
 rbac:
@@ -19,7 +19,7 @@ rainbondOperator:
   name: rainbond-operator
   image:
     repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator
-    tag: v1.0.1-dashboard
+    tag: v1.0.1-cloud
     pullPolicy: IfNotPresent
   regionDBName: region
   logLevel: 4
@@ -29,7 +29,7 @@ openapi:
   name: openapi
   image:
     repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui
-    tag: v1.0.1-dashboard
+    tag: v1.0.1-cloud
     pullPolicy: IfNotPresent
   port: 8080
   nodePort: 30008
