@@ -23,7 +23,7 @@ func TestVersions(t *testing.T) {
 			Name:      clusterName,
 		},
 		Spec: rainbondv1alpha1.RainbondClusterSpec{
-			InstallVersion: "v5.2.0",
+			InstallVersion: "v5.2.0-release",
 		},
 	}
 	invalidCluster := &rainbondv1alpha1.RainbondCluster{
@@ -50,7 +50,7 @@ func TestVersions(t *testing.T) {
 			name:         "OK",
 			namespace:    namespace,
 			clusterName:  clusterName,
-			wantVersions: []string{"v5.2.1", "v5.2.2", "v5.2.999"},
+			wantVersions: []string{"v5.2.1-release", "v5.2.2-release", "v5.2.999-release"},
 		},
 		{
 			name:        "InvalidCluster",
@@ -70,7 +70,10 @@ func TestVersions(t *testing.T) {
 				t.FailNow()
 			}
 
-			assert.ElementsMatch(t, tc.wantVersions, versions)
+			if versions == nil {
+				return
+			}
+			assert.ElementsMatch(t, tc.wantVersions, versions.UpgradeableVersions)
 		})
 	}
 }

@@ -13,6 +13,7 @@ RUN go build -ldflags "$LDFLAGS" -o /openapi $PWD/cmd/openapi
 
 FROM IMAGE_DOMAIN/IMAGE_NAMESPACE/rbd-op-ui-base:VERSION
 COPY --from=builder openapi /app
+ADD hack/version /app/version
 EXPOSE 8080
 
 ENTRYPOINT ["/app/openapi"]

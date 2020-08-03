@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var validVersion = regexp.MustCompile(`^v[0-9]+.[0-9]+.[0-9]+$`)
+var validVersion = regexp.MustCompile(`^v[0-9]+.[0-9]+.[0-9]+-release$`)
 
 type upgradeUsecase struct {
 	rainbondClient rainbondversiond.Interface
