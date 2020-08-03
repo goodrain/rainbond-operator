@@ -1,9 +1,8 @@
 package usecase
 
 import (
-	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
-	"github.com/goodrain/rainbond-operator/pkg/util/retryutil"
 	"io/ioutil"
+	"os"
 	"path"
 	"regexp"
 	"strings"
@@ -15,6 +14,8 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/upgrade"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/retryutil"
 	"github.com/sirupsen/logrus"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -149,6 +150,10 @@ func (u *upgradeUsecase) currentVersion() (string, error) {
 			return "", bcode.ErrCurrentVersionNotFound
 		}
 		return "", err
+	}
+	// compatible with the old version
+	if os.Getenv("RAINBOND_VERSION") == "v5.2.0-release" {
+		currentVersion = "v5.2.0-release"
 	}
 	if currentVersion == "" {
 		logrus.Warningf("[upgradeUsecase] [currentVersion] current version is empty")
