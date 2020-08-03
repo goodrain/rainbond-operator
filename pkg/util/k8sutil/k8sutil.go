@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	rainbondversiond "github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -25,7 +26,6 @@ import (
 	"k8s.io/client-go/tools/reference"
 	"k8s.io/kubectl/pkg/describe"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 )
 
 var once sync.Once

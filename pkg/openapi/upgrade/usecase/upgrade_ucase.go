@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"io/ioutil"
-	"os"
 	"path"
 	"regexp"
 	"strings"
@@ -151,13 +150,10 @@ func (u *upgradeUsecase) currentVersion() (string, error) {
 		}
 		return "", err
 	}
-	// compatible with the old version
-	if os.Getenv("RAINBOND_VERSION") == "v5.2.0-release" {
-		currentVersion = "v5.2.0-release"
-	}
 	if currentVersion == "" {
 		logrus.Warningf("[upgradeUsecase] [currentVersion] current version is empty")
-		return "", bcode.ErrCurrentVersionNotFound
+		currentVersion = "v5.2.0-release"
+		//return "", bcode.ErrCurrentVersionNotFound
 	}
 	// check if the version is valid
 	if !versionValid(currentVersion) {
