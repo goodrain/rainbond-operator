@@ -387,7 +387,7 @@ func imagePullSecrets(cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alp
 	}
 }
 
-func mergeArgs(priorityArgs, commonArgs []string) []string {
+func mergeArgs(commonArgs, priorityArgs []string) []string {
 	prioritySet := make(map[string]struct{})
 	for _, arg := range priorityArgs {
 		prioritySet[strings.Split(arg, "=")[0]] = struct{}{}
