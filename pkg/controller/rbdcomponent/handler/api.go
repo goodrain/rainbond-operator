@@ -142,7 +142,7 @@ func (a *api) deployment() interface{} {
 	}
 	args := []string{
 		"--api-addr=0.0.0.0:8888",
-		//"--enable-feature=privileged", // TODO: args
+		"--enable-feature=privileged",
 		a.db.RegionDataSource(),
 		"--etcd=" + strings.Join(etcdEndpoints(a.cluster), ","),
 	}
