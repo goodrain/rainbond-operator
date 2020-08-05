@@ -8,6 +8,7 @@ import (
 	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // LabelsForRainbond returns labels for resources created by rainbond operator.
@@ -75,4 +76,12 @@ func isPortOccupied(address string) bool {
 	}
 	defer func() { _ = conn.Close() }()
 	return true
+}
+
+// FailCondition -
+func FailCondition(condition rainbondv1alpha1.RainbondClusterCondition, reason, msg string) rainbondv1alpha1.RainbondClusterCondition {
+	condition.Status = corev1.ConditionFalse
+	condition.Reason = reason
+	condition.Message = msg
+	return condition
 }

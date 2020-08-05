@@ -118,12 +118,15 @@ func (e *eventlog) statefulset() interface{} {
 	args := []string{
 		"--cluster.bind.ip=$(POD_IP)",
 		"--cluster.instance.ip=$(POD_IP)",
-		"--node-id=$(NODE_ID)",
 		"--eventlog.bind.ip=$(POD_IP)",
 		"--websocket.bind.ip=$(POD_IP)",
 		"--db.url=" + strings.Replace(e.db.RegionDataSource(), "--mysql=", "", 1),
 		"--discover.etcd.addr=" + strings.Join(etcdEndpoints(e.cluster), ","),
 	}
+	if !strings.Contains(e.component.Spec.Image, "5.2.0") {
+		args = append(args, "--node-id=$(NODE_ID)")
+	}
+
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "grdata",

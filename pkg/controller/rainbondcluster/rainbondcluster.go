@@ -357,6 +357,12 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 		r.cluster.Status.UpdateCondition(&containerNetworkCondition)
 	}
 
+	if idx, condition := r.cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeRunning); idx == -1 || condition.Status != corev1.ConditionTrue {
+		running := r.runningCondition()
+		r.log.V(4).Info("update running condition", "status", running.Status, "reason", running.Reason)
+		r.cluster.Status.UpdateCondition(&running)
+	}
+
 	return r.cluster.Status.Conditions
 }
 
@@ -431,4 +437,46 @@ func (r *rainbondClusteMgr) falseConditionNow(typ3 rainbondv1alpha1.RainbondClus
 		Reason:            "InProgress",
 		Message:           fmt.Sprintf("precheck for %s is in progress", string(typ3)),
 	}
+}
+
+func (r *rainbondClusteMgr) runningCondition() rainbondv1alpha1.RainbondClusterCondition {
+	condition := rainbondv1alpha1.RainbondClusterCondition{
+		Type:              rainbondv1alpha1.RainbondClusterConditionTypeRunning,
+		Status:            corev1.ConditionTrue,
+		LastHeartbeatTime: metav1.NewTime(time.Now()),
+	}
+
+	// list all rbdcomponents
+	rbdcomponents, err := r.listRbdComponents()
+	if err != nil {
+		return rbdutil.FailCondition(condition, "ListRbdComponentFailed", err.Error())
+	}
+
+	if len(rbdcomponents) < 10 {
+		return rbdutil.FailCondition(condition, "InsufficientRbdComponent",
+			fmt.Sprintf("insufficient number of rbdcomponents. expect %d rbdcomponents, but got %d", 10, len(rbdcomponents)))
+	}
+
+	for _, cpt := range rbdcomponents {
+		idx, c := cpt.Status.GetCondition(rainbondv1alpha1.RbdComponentReady)
+		if idx == -1 {
+			return rbdutil.FailCondition(condition, "RbdComponentReadyNotFound",
+				fmt.Sprintf("condition 'RbdComponentReady' not found for %s", cpt.GetName()))
+		}
+		if c.Status == corev1.ConditionFalse {
+			return rbdutil.FailCondition(condition, "RbdComponentNotReady",
+				fmt.Sprintf("rbdcomponent(%s) not ready", cpt.GetName()))
+		}
+	}
+
+	return condition
+}
+
+func (r *rainbondClusteMgr) listRbdComponents() ([]rainbondv1alpha1.RbdComponent, error) {
+	rbdcomponentList := &rainbondv1alpha1.RbdComponentList{}
+	err := r.client.List(r.ctx, rbdcomponentList, client.InNamespace(r.cluster.Namespace))
+	if err != nil {
+		return nil, err
+	}
+	return rbdcomponentList.Items, nil
 }

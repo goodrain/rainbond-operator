@@ -34,6 +34,9 @@ func convertClusterConditions(cluster *rainbondv1alpha1.RainbondCluster) []*v1.C
 			cluster.Spec.ImageHub != nil && cluster.Spec.ImageHub.Domain == constants.DefImageRepository {
 			continue
 		}
+		if cdt.Type == rainbondv1alpha1.RainbondClusterConditionTypeRunning {
+			continue
+		}
 
 		condition := &v1.ClusterPreCheckCondition{
 			Type:    string(cdt.Type),

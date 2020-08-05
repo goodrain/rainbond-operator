@@ -379,24 +379,12 @@ func (c *clusterUsecase) handleComponentStatus(cluster *rainbondv1alpha1.Rainbon
 	}
 	status.FinalStatus = model.Installing
 
-	readyCount := 0
-	terminal := false
-	for _, component := range componentList {
-		if component.Status == v1.ComponentStatusRunning {
-			readyCount++
-		}
-		if component.Status == v1.ComponentStatusTerminating { //TODO terminal uninstalling
-			terminal = true
-		}
-	}
-	if terminal {
-		status.FinalStatus = model.UnInstalling
+	idx, condition := cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeRunning)
+	if idx != -1 && condition.Status == corev1.ConditionTrue {
+		status.FinalStatus = model.Running
 		return status
 	}
-	if readyCount != len(componentList) {
-		return status
-	}
-	status.FinalStatus = model.Running
+
 	return status
 }
 
