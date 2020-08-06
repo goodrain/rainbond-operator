@@ -41,6 +41,14 @@ func (d *imagerepo) Check() rainbondv1alpha1.RainbondClusterCondition {
 
 	imageRepo := rbdutil.GetImageRepository(d.cluster)
 
+	if idx, cdt := d.cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository);
+		(idx == -1 || cdt.Reason == "DefaultImageRepoFailed") && imageRepo != constants.DefImageRepository {
+		condition.Status = corev1.ConditionFalse
+		condition.Reason = "InProgress"
+		condition.Message =
+			fmt.Sprintf("precheck for %s is in progress", rainbondv1alpha1.RainbondClusterConditionTypeImageRepository)
+	}
+
 	localImage := path.Join(d.cluster.Spec.RainbondImageRepository, "smallimage")
 	remoteImage := path.Join(imageRepo, "smallimage")
 
