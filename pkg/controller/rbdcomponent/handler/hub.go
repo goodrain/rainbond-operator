@@ -61,6 +61,10 @@ func (h *hub) Before() error {
 		return err
 	}
 
+	if h.cluster.Spec.ImageHub == nil {
+		return NewIgnoreError("imageHub is empty")
+	}
+
 	htpasswd, err := h.generateHtpasswd()
 	if err != nil {
 		return fmt.Errorf("generate htpasswd: %v", err)

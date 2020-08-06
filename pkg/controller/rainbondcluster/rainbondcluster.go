@@ -350,6 +350,10 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 	k8sStatusCondition := k8sStatusPrechecker.Check()
 	r.cluster.Status.UpdateCondition(&k8sStatusCondition)
 
+	memory := precheck.NewMemory(r.ctx, r.log, r.client)
+	memoryCondition := memory.Check()
+	r.cluster.Status.UpdateCondition(&memoryCondition)
+
 	// container network
 	if r.cluster.Spec.SentinelImage != "" {
 		containerNetworkPrechecker := precheck.NewContainerNetworkPrechecker(r.ctx, r.client, r.scheme, r.log, r.cluster)

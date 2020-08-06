@@ -188,8 +188,8 @@ export default {
     this.timermirror && clearInterval(this.timermirror)
   },
   methods: {
-    fetchErrMessage (err) {
-      return err && typeof err === 'object' ? JSON.stringify(err) : ''
+    fetchErrMessage (err, msg) {
+      return err && typeof err === 'object' ? JSON.stringify(err) : msg || ''
     },
     onhandleDelete () {
       this.$refs.uninstallForm.validate(valid => {
@@ -220,7 +220,10 @@ export default {
             })
             .catch(err => {
               this.dialogVisibles = false
-              const message = this.fetchErrMessage(err)
+              const message = this.fetchErrMessage(
+                err,
+                'DELETE/cluster/uninstall'
+              )
               this.$emit('onhandleErrorRecord', 'failure', `${message}`)
             })
         }
@@ -268,7 +271,10 @@ export default {
           }
         })
         .catch(err => {
-          const message = this.fetchErrMessage(err)
+          const message = this.fetchErrMessage(
+            err,
+            'GET/cluster/install/status'
+          )
           this.$emit('onhandleErrorRecord', 'failure', `${message}`)
         })
     },
@@ -282,7 +288,7 @@ export default {
           this.componentList = res.data
         })
         .catch(err => {
-          const message = this.fetchErrMessage(err)
+          const message = this.fetchErrMessage(err, 'GET/cluster/components')
           this.$emit('onhandleErrorRecord', 'failure', `${message}`)
         })
     },
@@ -298,7 +304,7 @@ export default {
           }
         })
         .catch(err => {
-          const message = this.fetchErrMessage(err)
+          const message = this.fetchErrMessage(err, 'GET/cluster/components')
           this.$emit('onhandleErrorRecord', 'failure', `${message}`)
         })
     }

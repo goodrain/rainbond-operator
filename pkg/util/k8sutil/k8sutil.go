@@ -3,7 +3,6 @@ package k8sutil
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"net"
 	"os"
 	"sync"
@@ -13,6 +12,7 @@ import (
 	rainbondversiond "github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -206,6 +206,7 @@ func CreateIfNotExists(ctx context.Context, client client.Client, obj runtime.Ob
 	return nil
 }
 
+// CreateOrUpdateRbdComponent -
 func CreateOrUpdateRbdComponent(clientset rainbondversiond.Interface, cpt *rainbondv1alpha1.RbdComponent) error {
 	old, err := clientset.RainbondV1alpha1().RbdComponents(cpt.Namespace).Get(cpt.GetName(), metav1.GetOptions{})
 	if err != nil {
@@ -227,4 +228,13 @@ func CreateOrUpdateRbdComponent(clientset rainbondversiond.Interface, cpt *rainb
 		return err
 	}
 	return nil
+}
+
+// ListNodes returns all nodes.
+func ListNodes(ctx context.Context, c client.Client) ([]corev1.Node, error) {
+	nodeList := &corev1.NodeList{}
+	if err := c.List(ctx, nodeList); err != nil {
+		return nil, err
+	}
+	return nodeList.Items, nil
 }

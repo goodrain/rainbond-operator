@@ -13,7 +13,7 @@ RUN go build -ldflags "$LDFLAGS" -o /openapi $PWD/cmd/openapi
 
 FROM registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui-base:d0f3862-dirty
 COPY --from=builder openapi /app
-ADD hack/version /app/version
+ENV RELEASE_DESC __RELEASE_DESC__
 EXPOSE 8080
 
 ENTRYPOINT ["/app/openapi"]

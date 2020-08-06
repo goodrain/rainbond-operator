@@ -100,7 +100,7 @@ export default {
   },
   methods: {
     fetchErrMessage (err) {
-      return err && typeof err === 'object' ? JSON.stringify(err) : ''
+      return err && typeof err === 'object' ? JSON.stringify(err) : '/cluster/install'
     },
     handleDetection () {
       this.timer && clearInterval(this.timer)
@@ -120,6 +120,7 @@ export default {
         .dispatch('installCluster', {})
         .then(en => {
           if (en && en.code === 200) {
+            this.$emit('onhandleStartRecord')
             this.$emit('onResults')
           } else {
             this.handleCancelLoading(en)
@@ -137,9 +138,9 @@ export default {
     handleUpstep () {
       if (this.list.length > 0 && !this.pass) {
         let mag = ''
-        this.list.fiter.map(item => {
+        this.list.map(item => {
           if (item.reason) {
-            mag += item.reason
+            mag += `原因:${item.reason};消息:'${item.message};`
           }
         })
         if (mag) {

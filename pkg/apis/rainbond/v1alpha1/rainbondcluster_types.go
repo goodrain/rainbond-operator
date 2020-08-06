@@ -39,6 +39,7 @@ const (
 	RainbondClusterConditionTypeDNS               = "DNS"
 	RainbondClusterConditionTypeContainerNetwork  = "ContainerNetwork"
 	RainbondClusterConditionTypeRunning           = "Running"
+	RainbondClusterConditionTypeMemory            = "Memory"
 )
 
 // RainbondClusterCondition contains condition information for rainbondcluster.

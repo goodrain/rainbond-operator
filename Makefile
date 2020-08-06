@@ -18,6 +18,9 @@ else
 	VERSION ?= $(shell git describe --always --dirty)
 endif
 
+buildTime=$(shell date +%F-%H)
+git_commit=$(shell git log -n 1 --pretty --format=%h)
+release_desc=${VERSION}-${git_commit}-${buildTime}
 
 GROUP=rainbond
 APIVERSION=v1alpha1
@@ -80,6 +83,7 @@ build-api:
 	sed -i 's/IMAGE_DOMAIN/$(IMAGE_DOMAIN)/' hack/build/openapi/Dockerfile
 	sed -i 's/IMAGE_NAMESPACE/$(IMAGE_NAMESPACE)/' hack/build/openapi/Dockerfile
 	sed -i 's/VERSION/$(VERSION)/' hack/build/openapi/Dockerfile
+	sed -i 's/__RELEASE_DESC__/$(release_desc)/' hack/build/openapi/Dockerfile
 	docker build . -f hack/build/openapi/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(VERSION)
 build-operator:
 	docker build . -f hack/build/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)

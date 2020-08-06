@@ -271,6 +271,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 					HostPID:                       true,
 					HostNetwork:                   true,
 					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
+					HostNetwork:                   true,
 					Tolerations: []corev1.Toleration{
 						{
 							Operator: corev1.TolerationOpExists, // tolerate everything.
