@@ -41,8 +41,7 @@ func (d *imagerepo) Check() rainbondv1alpha1.RainbondClusterCondition {
 
 	imageRepo := rbdutil.GetImageRepository(d.cluster)
 
-	if idx, cdt := d.cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository);
-		(idx == -1 || cdt.Reason == "DefaultImageRepoFailed") && imageRepo != constants.DefImageRepository {
+	if idx, cdt := d.cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository); (idx == -1 || cdt.Reason == "DefaultImageRepoFailed") && imageRepo != constants.DefImageRepository {
 		condition.Status = corev1.ConditionFalse
 		condition.Reason = "InProgress"
 		condition.Message =
