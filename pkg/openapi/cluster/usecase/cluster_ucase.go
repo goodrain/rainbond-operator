@@ -417,6 +417,7 @@ func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, err
 			RainbondImageRepository: c.cfg.RainbondImageRepository,
 			InstallMode:             installMode,
 			SentinelImage:           c.cfg.SentinelImage,
+			InstallVersion:          c.cfg.RainbondVersion,
 		},
 	}
 
