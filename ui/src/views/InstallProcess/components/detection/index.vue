@@ -112,7 +112,7 @@ export default {
       })
       this.timer = setTimeout(() => {
         this.handleDetection()
-      }, 10000)
+      }, 3000)
     },
     handleInstall () {
       this.loading = true
