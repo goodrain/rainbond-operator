@@ -269,7 +269,6 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 					ServiceAccountName:            "rainbond-operator",
 					HostAliases:                   hostsAliases(n.cluster),
 					HostPID:                       true,
-					HostNetwork:                   true,
 					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 					HostNetwork:                   true,
 					Tolerations: []corev1.Toleration{
