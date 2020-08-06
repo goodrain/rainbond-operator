@@ -150,6 +150,34 @@ func (e *eventlog) statefulset() interface{} {
 		args = append(args, eventLogEtcdArgs()...)
 	}
 
+	env := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{
+			Name: "NODE_ID",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+		{
+			Name:  "K8S_MASTER",
+			Value: "kubernetes",
+		},
+		{
+			Name:  "DOCKER_LOG_SAVE_DAY",
+			Value: "7",
+		},
+	}
+	env = mergeEnvs(env, e.component.Spec.Env)
+
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeTCP("", 6363)
 	args = mergeArgs(args, e.component.Spec.Args)
@@ -177,35 +205,10 @@ func (e *eventlog) statefulset() interface{} {
 							Name:            EventLogName,
 							Image:           e.component.Spec.Image,
 							ImagePullPolicy: e.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
-								},
-								{
-									Name: "NODE_ID",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "metadata.name",
-										},
-									},
-								},
-								{
-									Name:  "K8S_MASTER",
-									Value: "kubernetes",
-								},
-								{
-									Name:  "DOCKER_LOG_SAVE_DAY",
-									Value: "7",
-								},
-							},
-							Args:           args,
-							VolumeMounts:   volumeMounts,
-							ReadinessProbe: readinessProbe,
+							Env:             env,
+							Args:            args,
+							VolumeMounts:    volumeMounts,
+							ReadinessProbe:  readinessProbe,
 						},
 					},
 					Volumes: volumes,

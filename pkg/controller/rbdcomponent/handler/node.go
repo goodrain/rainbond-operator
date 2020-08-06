@@ -243,6 +243,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 			Value: hubImageRepository,
 		})
 	}
+	envs = mergeEnvs(envs, n.component.Spec.Env)
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/ping", 6100)

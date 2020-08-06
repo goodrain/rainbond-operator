@@ -144,6 +144,33 @@ func (d *db) statefulsetForDB() interface{} {
 	if regionDBName == "" {
 		regionDBName = "region"
 	}
+	env := []corev1.EnvVar{
+		{
+			Name:  "MYSQL_ROOT_HOST",
+			Value: "%",
+		},
+		{
+			Name:  "MYSQL_LOG_CONSOLE",
+			Value: "true",
+		},
+		{
+			Name: "MYSQL_ROOT_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: DBName,
+					},
+					Key:      mysqlPasswordKey,
+					Optional: commonutil.Bool(true),
+				},
+			},
+		},
+		{
+			Name:  "MYSQL_DATABASE",
+			Value: regionDBName,
+		},
+	}
+	env = mergeEnvs(env, d.component.Spec.Env)
 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -169,32 +196,7 @@ func (d *db) statefulsetForDB() interface{} {
 							Name:            DBName,
 							Image:           d.component.Spec.Image,
 							ImagePullPolicy: d.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name:  "MYSQL_ROOT_HOST",
-									Value: "%",
-								},
-								{
-									Name:  "MYSQL_LOG_CONSOLE",
-									Value: "true",
-								},
-								{
-									Name: "MYSQL_ROOT_PASSWORD",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: DBName,
-											},
-											Key:      mysqlPasswordKey,
-											Optional: commonutil.Bool(true),
-										},
-									},
-								},
-								{
-									Name:  "MYSQL_DATABASE",
-									Value: regionDBName,
-								},
-							},
+							Env:             env,
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      claimName,

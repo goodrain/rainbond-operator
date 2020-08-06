@@ -164,10 +164,24 @@ func (a *api) deployment() interface{} {
 			"--client-ca-file=/etc/goodrain/region.goodrain.me/ssl/ca.pem",
 		)
 	}
+	a.labels["name"] = APIName
+	envs := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{
+			Name:  "EX_DOMAIN",
+			Value: a.cluster.Spec.SuffixHTTPHost,
+		},
+	}
 
 	args = mergeArgs(args, a.component.Spec.Args)
-
-	a.labels["name"] = APIName
+	envs = mergeEnvs(envs, a.component.Spec.Env)
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/health", 8888)
@@ -195,23 +209,10 @@ func (a *api) deployment() interface{} {
 							Name:            APIName,
 							Image:           a.component.Spec.Image,
 							ImagePullPolicy: a.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
-								},
-								{
-									Name:  "EX_DOMAIN",
-									Value: a.cluster.Spec.SuffixHTTPHost,
-								},
-							},
-							Args:           args,
-							VolumeMounts:   volumeMounts,
-							ReadinessProbe: readinessProbe,
+							Env:             envs,
+							Args:            args,
+							VolumeMounts:    volumeMounts,
+							ReadinessProbe:  readinessProbe,
 						},
 					},
 					ServiceAccountName: "rainbond-operator",

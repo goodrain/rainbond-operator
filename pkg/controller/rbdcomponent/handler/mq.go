@@ -75,6 +75,17 @@ func (m *mq) deployment() interface{} {
 		volumes = append(volumes, volume)
 		args = append(args, etcdSSLArgs()...)
 	}
+	env := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+	}
+	env = mergeEnvs(env, m.component.Spec.Env)
 
 	args = mergeArgs(args, m.component.Spec.Args)
 	ds := &appsv1.Deployment{
@@ -101,18 +112,9 @@ func (m *mq) deployment() interface{} {
 							Name:            MQName,
 							Image:           m.component.Spec.Image,
 							ImagePullPolicy: m.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
-								},
-							},
-							Args:         args,
-							VolumeMounts: volumeMounts,
+							Env:             env,
+							Args:            args,
+							VolumeMounts:    volumeMounts,
 						},
 					},
 					Volumes: volumes,

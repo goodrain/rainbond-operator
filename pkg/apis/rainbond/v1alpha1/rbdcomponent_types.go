@@ -29,6 +29,12 @@ type RbdComponentSpec struct {
 	Args []string `json:"args,omitempty" protobuf:"bytes,4,rep,name=args"`
 	//  Whether this component needs to be created first
 	PriorityComponent bool `json:"priorityComponent"`
+	// List of environment variables to set in the container.
+	// Cannot be updated.
+	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge
+	Env []corev1.EnvVar `json:"env,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,7,rep,name=env"`
 }
 
 // RbdComponentConditionType is a valid value for RbdComponentCondition.Type

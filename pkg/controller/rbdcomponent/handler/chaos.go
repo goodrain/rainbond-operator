@@ -215,6 +215,7 @@ func (c *chaos) deployment() interface{} {
 			Value: imageHub.Password,
 		})
 	}
+	env = mergeEnvs(env, c.component.Spec.Env)
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/builder/health", 3228)

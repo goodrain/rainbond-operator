@@ -121,6 +121,50 @@ func (a *appui) ResourcesCreateIfNotExists() []interface{} {
 func (a *appui) deploymentForAppUI() interface{} {
 	cpt := a.component
 
+	envs := []corev1.EnvVar{
+		{
+			Name:  "MYSQL_HOST",
+			Value: a.db.Host,
+		},
+		{
+			Name:  "MYSQL_PORT",
+			Value: strconv.Itoa(a.db.Port),
+		},
+		{
+			Name:  "MYSQL_USER",
+			Value: a.db.Username,
+		},
+		{
+			Name:  "MYSQL_PASS",
+			Value: a.db.Password,
+		},
+		{
+			Name:  "MYSQL_DB",
+			Value: a.db.Name,
+		},
+		{
+			Name:  "REGION_URL",
+			Value: "https://rbd-api-api:8443",
+		},
+		{
+			Name:  "REGION_WS_URL",
+			Value: fmt.Sprintf("ws://%s:6060", a.cluster.GatewayIngressIP()),
+		},
+		{
+			Name:  "REGION_HTTP_DOMAIN",
+			Value: a.cluster.Spec.SuffixHTTPHost,
+		},
+		{
+			Name:  "REGION_TCP_DOMAIN",
+			Value: a.cluster.GatewayIngressIP(),
+		},
+		{
+			Name:  "IMAGE_REPO",
+			Value: a.cluster.Spec.ImageHub.Domain,
+		},
+	}
+	envs = mergeEnvs(envs, a.component.Spec.Env)
+
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeTCP("", 7070)
 	deploy := &appsv1.Deployment{
@@ -147,48 +191,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 							Name:            AppUIName,
 							Image:           cpt.Spec.Image,
 							ImagePullPolicy: cpt.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name:  "MYSQL_HOST",
-									Value: a.db.Host,
-								},
-								{
-									Name:  "MYSQL_PORT",
-									Value: strconv.Itoa(a.db.Port),
-								},
-								{
-									Name:  "MYSQL_USER",
-									Value: a.db.Username,
-								},
-								{
-									Name:  "MYSQL_PASS",
-									Value: a.db.Password,
-								},
-								{
-									Name:  "MYSQL_DB",
-									Value: a.db.Name,
-								},
-								{
-									Name:  "REGION_URL",
-									Value: "https://rbd-api-api:8443",
-								},
-								{
-									Name:  "REGION_WS_URL",
-									Value: fmt.Sprintf("ws://%s:6060", a.cluster.GatewayIngressIP()),
-								},
-								{
-									Name:  "REGION_HTTP_DOMAIN",
-									Value: a.cluster.Spec.SuffixHTTPHost,
-								},
-								{
-									Name:  "REGION_TCP_DOMAIN",
-									Value: a.cluster.GatewayIngressIP(),
-								},
-								{
-									Name:  "IMAGE_REPO",
-									Value: a.cluster.Spec.ImageHub.Domain,
-								},
-							},
+							Env:             envs,
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "ssl",

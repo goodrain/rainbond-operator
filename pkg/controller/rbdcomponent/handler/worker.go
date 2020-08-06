@@ -165,10 +165,11 @@ func (w *worker) deployment() interface{} {
 			Value: imageHub.Password,
 		})
 	}
+	args = mergeArgs(args, w.component.Spec.Args)
+	env = mergeEnvs(env, w.component.Spec.Env)
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/worker/health", 6369)
-	args = mergeArgs(args, w.component.Spec.Args)
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      WorkerName,

@@ -93,6 +93,15 @@ func (e *etcd) Replicas() *int32 {
 func (e *etcd) statefulsetForEtcd() interface{} {
 	claimName := "data"
 	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO, e.labels, e.storageRequest)
+
+	env := []corev1.EnvVar{
+		{
+			Name:  "ETCD_QUOTA_BACKEND_BYTES",
+			Value: "4294967296", // 4 Gi
+		},
+	}
+	env = mergeEnvs(env, e.component.Spec.Env)
+
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EtcdName,
@@ -140,12 +149,7 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 								"--auto-compaction-retention",
 								"1",
 							},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "ETCD_QUOTA_BACKEND_BYTES",
-									Value: "4294967296", // 4 Gi
-								},
-							},
+							Env: env,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "client",

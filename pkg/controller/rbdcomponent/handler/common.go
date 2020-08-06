@@ -401,3 +401,17 @@ func mergeArgs(commonArgs, priorityArgs []string) []string {
 	}
 	return priorityArgs
 }
+
+func mergeEnvs(commonEnvs, priorityEnvs []corev1.EnvVar) []corev1.EnvVar {
+	envSet := make(map[string]struct{})
+	for _, env := range priorityEnvs {
+		envSet[env.Name] = struct{}{}
+	}
+	for _, env := range commonEnvs {
+		if _, ok := envSet[env.Name]; ok {
+			continue
+		}
+		priorityEnvs = append(priorityEnvs, env)
+	}
+	return priorityEnvs
+}
