@@ -265,7 +265,27 @@ func (a *api) createService() []interface{} {
 		},
 	}
 
-	return []interface{}{svcAPI, svcWebsocket}
+	inner := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      APIName + "api-inner",
+			Namespace: a.component.Namespace,
+			Labels:    a.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "https",
+					Port: 8888,
+					TargetPort: intstr.IntOrString{
+						IntVal: 8888,
+					},
+				},
+			},
+			Selector: a.labels,
+		},
+	}
+
+	return []interface{}{svcAPI, svcWebsocket, inner}
 }
 
 func (a *api) getSecret(name string) (*corev1.Secret, error) {
