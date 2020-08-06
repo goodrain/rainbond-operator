@@ -359,7 +359,6 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 
 	if idx, condition := r.cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeRunning); idx == -1 || condition.Status != corev1.ConditionTrue {
 		running := r.runningCondition()
-		r.log.V(4).Info("update running condition", "status", running.Status, "reason", running.Reason)
 		r.cluster.Status.UpdateCondition(&running)
 	}
 

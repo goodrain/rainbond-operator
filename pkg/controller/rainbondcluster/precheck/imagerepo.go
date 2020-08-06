@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/docker/docker/client"
+	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/imageutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 	"path"
@@ -38,8 +39,10 @@ func (d *imagerepo) Check() rainbondv1alpha1.RainbondClusterCondition {
 		LastHeartbeatTime: metav1.NewTime(time.Now()),
 	}
 
+	imageRepo := rbdutil.GetImageRepository(d.cluster)
+
 	localImage := path.Join(d.cluster.Spec.RainbondImageRepository, "smallimage")
-	remoteImage := path.Join(rbdutil.GetImageRepository(d.cluster), "smallimage")
+	remoteImage := path.Join(imageRepo, "smallimage")
 
 	dockerClient, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -62,11 +65,15 @@ func (d *imagerepo) Check() rainbondv1alpha1.RainbondClusterCondition {
 	}
 
 	// push a small image to check the given image repository
-	d.log.V(6).Info("push image", "image", remoteImage, "repository", rbdutil.GetImageRepository(d.cluster),
+	d.log.V(6).Info("push image", "image", remoteImage, "repository", imageRepo,
 		"user", d.cluster.Spec.ImageHub.Username, "pass", d.cluster.Spec.ImageHub.Password)
-	if err := imageutil.ImagePush(d.ctx, dockerClient, remoteImage, rbdutil.GetImageRepository(d.cluster),
+	if err := imageutil.ImagePush(d.ctx, dockerClient, remoteImage, imageRepo,
 		d.cluster.Spec.ImageHub.Username, d.cluster.Spec.ImageHub.Password); err != nil {
-		return d.failConditoin(condition, fmt.Errorf("push image: %v", err))
+		condition = d.failConditoin(condition, fmt.Errorf("push image: %v", err))
+		if imageRepo == constants.DefImageRepository {
+			condition.Reason = "DefaultImageRepoFailed"
+		}
+		return condition
 	}
 
 	return condition
