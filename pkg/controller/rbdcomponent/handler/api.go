@@ -268,7 +268,7 @@ func (a *api) createService() []interface{} {
 
 	inner := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      APIName + "api-inner",
+			Name:      APIName + "-api-inner",
 			Namespace: a.component.Namespace,
 			Labels:    a.labels,
 		},
