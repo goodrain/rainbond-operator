@@ -3,6 +3,6 @@ kind: RbdComponent
 metadata:
   name: rbd-worker
 spec:
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-worker:V5.2-dev
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-worker:v5.2.1-release
   imagePullPolicy: IfNotPresent
   priorityComponent: false

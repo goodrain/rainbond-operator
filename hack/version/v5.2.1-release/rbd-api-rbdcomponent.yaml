@@ -3,6 +3,6 @@ kind: RbdComponent
 metadata:
   name: rbd-api
 spec:
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-api:V5.2-dev
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-api:v5.2.1-release
   imagePullPolicy: IfNotPresent
   priorityComponent: false

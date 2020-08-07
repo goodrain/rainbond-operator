@@ -3,7 +3,7 @@ kind: RbdComponent
 metadata:
   name: rbd-webcli
 spec:
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-webcli:V5.2-dev
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-webcli:v5.2.1-release
   imagePullPolicy: IfNotPresent
   logLevel: info
   priorityComponent: false

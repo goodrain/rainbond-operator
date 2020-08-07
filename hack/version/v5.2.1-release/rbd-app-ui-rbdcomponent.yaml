@@ -3,6 +3,6 @@ kind: RbdComponent
 metadata:
   name: rbd-app-ui
 spec:
-  image: registry.cn-hangzhou.aliyuncs.com/abewang/rbd-app-ui:V5.2-dev
+  image: registry.cn-hangzhou.aliyuncs.com/abewang/rbd-app-ui:v5.2.1-release
   imagePullPolicy: IfNotPresent
   priorityComponent: false

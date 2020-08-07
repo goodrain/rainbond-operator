@@ -3,6 +3,6 @@ kind: RbdComponent
 metadata:
   name: rbd-eventlog
 spec:
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-eventlog:V5.2-dev
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-eventlog:v5.2.1-release
   imagePullPolicy: IfNotPresent
   priorityComponent: false
