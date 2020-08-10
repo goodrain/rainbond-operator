@@ -218,7 +218,8 @@ export default {
         status: 'complete',
         eid: '',
         message: '',
-        testMode: false
+        testMode: false,
+        highAvailability: false
       }
     }
   },
@@ -242,7 +243,9 @@ export default {
             this.recordInfo.version = clusterInfo.installVersion
             this.recordInfo.eid = clusterInfo.enterpriseID
             this.recordInfo.testMode = testMode
-            this.recordInfo.message = ''
+            if (clusterInfo.highAvailability) {
+              this.recordInfo.highAvailability = clusterInfo.highAvailability
+            }
           }
 
           if (reasons) {
@@ -250,7 +253,6 @@ export default {
             this.recordInfo.message = reasons.toString()
             this.handleRecord()
           }
-
           switch (final_status) {
             case 'Initing':
               this.handleRouter('index')
