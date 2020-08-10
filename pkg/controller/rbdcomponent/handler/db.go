@@ -7,17 +7,17 @@ import (
 	"strings"
 
 	"github.com/docker/distribution/reference"
-	mysqlv1alpha1 "github.com/oracle/mysql-operator/pkg/apis/mysql/v1alpha1"
+	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
-	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 )
 
 var (
@@ -48,6 +48,7 @@ type db struct {
 
 var _ ComponentHandler = &db{}
 var _ StorageClassRWOer = &db{}
+var _ ClusterScopedResourcesCreator = &db{}
 
 //NewDB new db
 func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -132,13 +133,18 @@ func (d *db) Replicas() *int32 {
 	return nil
 }
 
+func (d *db) CreateClusterScoped() []interface{} {
+	return []interface{}{
+		d.pv(),
+	}
+}
+
 func (d *db) statefulsetForDB() interface{} {
 	repo, _ := reference.Parse(d.component.Spec.Image)
 	name := repo.(reference.Named).Name()
 	exporterImage := strings.Replace(name, "rbd-db", "mysqld-exporter", 1)
 
 	claimName := "data"
-	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO, d.labels, d.storageRequest)
 
 	regionDBName := os.Getenv("REGION_DB_NAME")
 	if regionDBName == "" {
@@ -258,7 +264,7 @@ func (d *db) statefulsetForDB() interface{} {
 					},
 				},
 			},
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*pvc},
+			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*d.pvc()},
 		},
 	}
 
@@ -339,98 +345,6 @@ func (d *db) secretForDB() interface{} {
 	}
 }
 
-func (d *db) mysqlCluster() *mysqlv1alpha1.Cluster {
-	claimName := "data"
-	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO, d.labels, d.storageRequest)
-
-	var defaultSize int32 = 1
-	if d.component.Spec.Replicas != nil {
-		defaultSize = *d.component.Spec.Replicas
-	}
-
-	// make sure the image name is right
-	repo, _ := reference.Parse(d.component.Spec.Image)
-	named := repo.(reference.Named)
-	tag := "latest"
-	if t, ok := repo.(reference.Tagged); ok {
-		tag = t.Tag()
-	}
-	affinity := &corev1.Affinity{
-		PodAntiAffinity: &corev1.PodAntiAffinity{
-			PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
-				{
-					Weight: 100,
-					PodAffinityTerm: corev1.PodAffinityTerm{
-						LabelSelector: &metav1.LabelSelector{
-							MatchExpressions: []metav1.LabelSelectorRequirement{
-								{
-									Key:      "v1alpha1.mysql.oracle.com/cluster",
-									Operator: metav1.LabelSelectorOpIn,
-									Values:   []string{DBName},
-								},
-							},
-						},
-						TopologyKey: "kubernetes.io/hostname",
-					},
-				},
-			},
-		},
-	}
-
-	mc := &mysqlv1alpha1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      DBName,
-			Namespace: d.component.Namespace,
-			Labels:    d.labels,
-		},
-		Spec: mysqlv1alpha1.ClusterSpec{
-			MultiMaster:      true,
-			Members:          defaultSize,
-			ImagePullSecrets: imagePullSecrets(d.component, d.cluster),
-			RootPasswordSecret: &corev1.LocalObjectReference{
-				Name: DBName,
-			},
-			Repository:          named.Name(),
-			Version:             tag,
-			VolumeClaimTemplate: pvc,
-			Config: &corev1.LocalObjectReference{
-				Name: mycnf,
-			},
-			Affinity: affinity,
-		},
-	}
-	return mc
-}
-
-func (d *db) serviceForMysqlCluster() interface{} {
-	labels := copyLabels(d.labels)
-	labels["v1alpha1.mysql.oracle.com/cluster"] = DBName
-	selector := map[string]string{
-		"v1alpha1.mysql.oracle.com/cluster": DBName,
-	}
-	if d.enableMysqlOperator && d.component.Spec.Replicas != nil && *d.component.Spec.Replicas > 1 {
-		selector["v1alpha1.mysql.oracle.com/role"] = "primary"
-	}
-	svc := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      dbhost,
-			Namespace: d.component.Namespace,
-			Labels:    labels,
-		},
-		Spec: corev1.ServiceSpec{
-			ClusterIP: "None",
-			Ports: []corev1.ServicePort{
-				{
-					Name: "main",
-					Port: 3306,
-				},
-			},
-			Selector: selector,
-		},
-	}
-	return svc
-}
-
 func (d *db) configMapForMyCnf() interface{} {
 	var innodbDirs []string
 	for _, database := range d.databases {
@@ -471,4 +385,57 @@ skip-name-resolve
 	}
 
 	return cm
+}
+
+func (d *db) pv() *corev1.PersistentVolume {
+	pv := &corev1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   DBName,
+			Labels: d.labels,
+		},
+	}
+
+	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
+	spec := corev1.PersistentVolumeSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{
+			corev1.ReadWriteOnce,
+		},
+		Capacity: corev1.ResourceList{
+			corev1.ResourceStorage: *size,
+		},
+		StorageClassName: "manual",
+	}
+
+	hostPath := &corev1.HostPathVolumeSource{
+		Path: "/opt/rainbond/data/db",
+		Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+	}
+	spec.HostPath = hostPath
+
+	pv.Spec = spec
+
+	return pv
+}
+
+func (d *db) pvc() *corev1.PersistentVolumeClaim {
+	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   DBName,
+			Labels: d.labels,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+			Resources: corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceStorage: *size,
+				},
+			},
+			VolumeName:       DBName,
+			StorageClassName: commonutil.String("manual"),
+		},
+	}
+	return pvc
 }

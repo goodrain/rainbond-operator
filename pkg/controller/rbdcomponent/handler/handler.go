@@ -30,6 +30,13 @@ type ResourcesCreator interface {
 	ResourcesCreateIfNotExists() []interface{}
 }
 
+// ClusterScopedResourcesCreator provides methods to create or update k8s resources which in cluster-scoped ,
+// such as daemonset, daemonset, etc.
+type ClusterScopedResourcesCreator interface {
+	// returns the resources that should be created if not exists
+	CreateClusterScoped() []interface{}
+}
+
 // ResourcesDeleter -
 type ResourcesDeleter interface {
 	// returns the resources that need to be delete if exists.

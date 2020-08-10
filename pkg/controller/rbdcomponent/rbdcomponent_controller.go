@@ -275,6 +275,29 @@ func (r *ReconcileRbdComponent) Reconcile(request reconcile.Request) (reconcile.
 		}
 	}
 
+	resourceCreatorClusterScope, ok := hdl.(chandler.ClusterScopedResourcesCreator)
+	if ok {
+		reqLogger.V(6).Info("ClusterScopedResourcesCreator create resources create if not exists")
+		resourcesCreateIfNotExists := resourceCreatorClusterScope.CreateClusterScoped()
+		for _, res := range resourcesCreateIfNotExists {
+			if res == nil {
+				continue
+			}
+
+			if err := mgr.resourceCreateIfNotExists(res.(runtime.Object), res.(metav1.Object)); err != nil {
+				reqLogger.Error(err, "create resouce if not exists")
+				condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady,
+					corev1.ConditionFalse, "ErrCreateResources", err.Error())
+				changed := cpt.Status.UpdateCondition(condition)
+				if changed {
+					r.recorder.Event(cpt, corev1.EventTypeWarning, condition.Reason, condition.Message)
+					return reconcile.Result{Requeue: true}, mgr.updateStatus()
+				}
+				return reconcile.Result{}, err
+			}
+		}
+	}
+
 	replicaser, ok := hdl.(chandler.Replicaser)
 	if ok {
 		mgr.setReplicaser(replicaser)
