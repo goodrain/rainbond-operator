@@ -410,7 +410,7 @@ func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, err
 		installMode = rainbondv1alpha1.InstallationModeFullOnline
 	}
 
-	cluster := &rainbondv1alpha1.RainbondCluster{
+	cls := &rainbondv1alpha1.RainbondCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: c.cfg.Namespace,
 			Name:      c.cfg.ClusterName,
@@ -420,15 +420,16 @@ func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, err
 			InstallMode:             installMode,
 			SentinelImage:           c.cfg.SentinelImage,
 			InstallVersion:          c.cfg.RainbondVersion,
+			EnableHA:                false,
 		},
 	}
 
 	annotations := make(map[string]string)
 	annotations["install_id"] = uuidutil.NewUUID()
 	annotations["enterprise_id"] = c.repo.EnterpriseID("")
-	cluster.Annotations = annotations
+	cls.Annotations = annotations
 
-	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)
+	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cls)
 }
 
 func (c *clusterUsecase) getRainbondPackage() (*rainbondv1alpha1.RainbondPackage, error) {
