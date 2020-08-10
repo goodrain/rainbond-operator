@@ -218,22 +218,23 @@ export default {
         status: 'complete',
         eid: '',
         message: '',
-        testMode: false
+        testMode: false,
+        highAvailability: false
       }
     }
   },
   created () {
-    this.fetchUpVersions()
-    this.handleState()
     this.fetchAccessAddress()
+    this.fetchUpVersions()
     this.fetchClusterInstallResultsState(true)
+    this.handleState()
   },
   beforeDestroy () {
     this.timers && clearInterval(this.timers)
+    this.timer && clearInterval(this.timer)
   },
   methods: {
     handleState () {
-      this.timers && clearInterval(this.timers)
       this.$store.dispatch('fetchState').then(res => {
         if (res && res.code === 200 && res.data.final_status) {
           const { clusterInfo, final_status, reasons, testMode } = res.data
@@ -242,7 +243,9 @@ export default {
             this.recordInfo.version = clusterInfo.installVersion
             this.recordInfo.eid = clusterInfo.enterpriseID
             this.recordInfo.testMode = testMode
-            this.recordInfo.message = ''
+            if (clusterInfo.highAvailability) {
+              this.recordInfo.highAvailability = clusterInfo.highAvailability
+            }
           }
 
           if (reasons) {
@@ -250,7 +253,6 @@ export default {
             this.recordInfo.message = reasons.toString()
             this.handleRecord()
           }
-
           switch (final_status) {
             case 'Initing':
               this.handleRouter('index')
@@ -339,12 +341,13 @@ export default {
             .then(res => {
               if (res && res.code === 200) {
                 this.fetchUpVersions()
+                this.fetchClusterInstallResultsState()
                 this.upgradeLoading = false
                 this.upgradeDialog = false
                 this.$notify({
                   type: 'success',
                   title: '版本升级',
-                  message: '升级成功'
+                  message: '升级开始, 请等待全部组件就绪'
                 })
               }
             })
@@ -391,6 +394,7 @@ export default {
     fetchAccessAddress () {
       this.$store.dispatch('fetchAccessAddress').then(res => {
         if (res && res.code === 200) {
+          this.recordInfo.message = res.data
           this.accessAddress = res.data
         }
       })
@@ -419,7 +423,7 @@ export default {
         }
         this.timers = setTimeout(() => {
           this.fetchClusterInstallResultsState()
-        }, 8000)
+        }, 5000)
       })
     }
   }
