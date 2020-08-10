@@ -287,6 +287,8 @@ func (c *clusterUsecase) hackClusterInfo(rainbondCluster *rainbondv1alpha1.Rainb
 
 	// get enterprise from repo
 	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID(eid)
+
+	status.ClusterInfo.HighAvailability = rainbondCluster.Spec.EnableHA
 }
 
 // no rainbondcluster cr means cluster status is waiting
