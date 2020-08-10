@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/docker/distribution/reference"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
@@ -144,8 +145,6 @@ func (d *db) statefulsetForDB() interface{} {
 	name := repo.(reference.Named).Name()
 	exporterImage := strings.Replace(name, "rbd-db", "mysqld-exporter", 1)
 
-	claimName := "data"
-
 	regionDBName := os.Getenv("REGION_DB_NAME")
 	if regionDBName == "" {
 		regionDBName = "region"
@@ -178,6 +177,7 @@ func (d *db) statefulsetForDB() interface{} {
 	}
 	env = mergeEnvs(env, d.component.Spec.Env)
 
+	pvc := d.pvc()
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
@@ -205,7 +205,7 @@ func (d *db) statefulsetForDB() interface{} {
 							Env:             env,
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      claimName,
+									Name:      pvc.GetName(),
 									MountPath: "/var/lib/mysql",
 									SubPath:   "mysql",
 								},
@@ -264,7 +264,7 @@ func (d *db) statefulsetForDB() interface{} {
 					},
 				},
 			},
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*d.pvc()},
+			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*pvc},
 		},
 	}
 
@@ -407,7 +407,7 @@ func (d *db) pv() *corev1.PersistentVolume {
 	}
 
 	hostPath := &corev1.HostPathVolumeSource{
-		Path: "/opt/rainbond/data/db",
+		Path: "/opt/rainbond/data/db" + time.Now().Format("20060102150405"),
 		Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 	}
 	spec.HostPath = hostPath
