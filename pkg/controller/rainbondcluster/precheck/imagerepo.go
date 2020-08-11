@@ -66,9 +66,9 @@ func (d *imagerepo) Check() rainbondv1alpha1.RainbondClusterCondition {
 		if err := imageutil.ImagePull(d.ctx, dockerClient, localImage); err != nil {
 			return d.failConditoin(condition, fmt.Errorf("pull image %s: %v", localImage, err))
 		}
-		if err := dockerClient.ImageTag(d.ctx, localImage, remoteImage); err != nil {
-			return d.failConditoin(condition, fmt.Errorf("tag image %s to %s: %v", localImage, remoteImage, err))
-		}
+	}
+	if err := dockerClient.ImageTag(d.ctx, localImage, remoteImage); err != nil {
+		return d.failConditoin(condition, fmt.Errorf("tag image %s to %s: %v", localImage, remoteImage, err))
 	}
 
 	// push a small image to check the given image repository
