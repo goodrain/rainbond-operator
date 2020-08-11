@@ -186,7 +186,7 @@ func (r *rbdcomponentMgr) updateOrCreateResource(obj runtime.Object, meta metav1
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	if !objectCanUpdate(obj) {
+	if !objectCanUpdate(obj, meta) {
 		return reconcile.Result{}, nil
 	}
 
@@ -215,7 +215,7 @@ func (r *rbdcomponentMgr) updateRuntimeObject(old, new runtime.Object) runtime.O
 	return new
 }
 
-func objectCanUpdate(obj runtime.Object) bool {
+func objectCanUpdate(obj runtime.Object, meta metav1.Object) bool {
 	// do not use 'obj.GetObjectKind().GroupVersionKind().Kind', because it may be empty
 	if _, ok := obj.(*corev1.PersistentVolumeClaim); ok {
 		return false
@@ -227,6 +227,9 @@ func objectCanUpdate(obj runtime.Object) bool {
 		return false
 	}
 	if _, ok := obj.(*batchv1.Job); ok {
+		return false
+	}
+	if meta.GetName() == "rbd-db" || meta.GetName() == "rbd-etcd" {
 		return false
 	}
 	return true
