@@ -57,7 +57,7 @@ func (d *imagerepo) Check() rainbondv1alpha1.RainbondClusterCondition {
 	}
 	dockerClient.NegotiateAPIVersion(d.ctx)
 
-	exists, err := imageutil.CheckIfImageExists(d.ctx, dockerClient, remoteImage)
+	exists, err := imageutil.CheckIfImageExists(d.ctx, dockerClient, localImage)
 	if err != nil {
 		return d.failConditoin(condition, fmt.Errorf("check if image %s exists: %v", remoteImage, err))
 	}

@@ -350,10 +350,7 @@ func (p *pkg) checkClusterConfig() error {
 		return err
 	}
 	switch cluster.Spec.InstallMode {
-	case rainbondv1alpha1.InstallationModeWithPackage:
-		p.downloadPackage = true
 	default:
-		p.downloadPackage = false
 		p.downloadImageDomain = cluster.Spec.RainbondImageRepository
 		if p.downloadImageDomain == "" {
 			p.downloadImageDomain = "rainbond"

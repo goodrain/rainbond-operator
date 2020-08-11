@@ -403,11 +403,11 @@ func (c *clusterUsecase) getCluster() (*rainbondv1alpha1.RainbondCluster, error)
 
 func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, error) {
 	installMode := rainbondv1alpha1.InstallationModeWithoutPackage
-	if c.cfg.InstallMode == string(rainbondv1alpha1.InstallationModeWithPackage) {
-		installMode = rainbondv1alpha1.InstallationModeWithPackage
-	}
 	if c.cfg.InstallMode == string(rainbondv1alpha1.InstallationModeFullOnline) {
 		installMode = rainbondv1alpha1.InstallationModeFullOnline
+	}
+	if c.cfg.InstallMode == string(rainbondv1alpha1.InstallationModeOffline) {
+		installMode = rainbondv1alpha1.InstallationModeOffline
 	}
 
 	cls := &rainbondv1alpha1.RainbondCluster{
