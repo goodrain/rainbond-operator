@@ -461,6 +461,11 @@ func (r *rainbondClusteMgr) runningCondition() rainbondv1alpha1.RainbondClusterC
 	}
 
 	for _, cpt := range rbdcomponents {
+		if cpt.Status == nil {
+			return rbdutil.FailCondition(condition, "RbdComponentStatusNotInit",
+				fmt.Sprintf("status of rbdcomponent(%s) is not initilized", cpt.GetName()))
+		}
+
 		idx, c := cpt.Status.GetCondition(rainbondv1alpha1.RbdComponentReady)
 		if idx == -1 {
 			return rbdutil.FailCondition(condition, "RbdComponentReadyNotFound",
