@@ -244,8 +244,7 @@ func (c *chaos) deployment() interface{} {
 							Operator: corev1.TolerationOpExists, // tolerate everything.
 						},
 					},
-					HostAliases: hostsAliases(c.cluster),
-					Affinity:    affinity,
+					Affinity: affinity,
 					Containers: []corev1.Container{
 						{
 							Name:            ChaosName,
