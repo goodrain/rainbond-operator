@@ -210,6 +210,17 @@ func init() {
 	SchemeBuilder.Register(&RainbondCluster{}, &RainbondClusterList{})
 }
 
+// InnerGatewayIngressIP -
+func (in *RainbondCluster) InnerGatewayIngressIP() string {
+	if len(in.Spec.NodesForGateway) > 0 {
+		return in.Spec.NodesForGateway[0].InternalIP
+	}
+	if len(in.Spec.GatewayIngressIPs) > 0 && in.Spec.GatewayIngressIPs[0] != "" {
+		return in.Spec.GatewayIngressIPs[0]
+	}
+	return ""
+}
+
 // GatewayIngressIP returns the gateway ip, or take the internal ip
 // of the first node for gateway if it's not exists.
 func (in *RainbondCluster) GatewayIngressIP() string {

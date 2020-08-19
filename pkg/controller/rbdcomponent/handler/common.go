@@ -326,7 +326,7 @@ func hostsAliases(cluster *rainbondv1alpha1.RainbondCluster) []corev1.HostAlias 
 	var hostAliases []corev1.HostAlias
 	if rbdutil.GetImageRepository(cluster) == constants.DefImageRepository {
 		hostAliases = append(hostAliases, corev1.HostAlias{
-			IP:        cluster.GatewayIngressIP(),
+			IP:        cluster.InnerGatewayIngressIP(),
 			Hostnames: []string{rbdutil.GetImageRepository(cluster)},
 		})
 	}
