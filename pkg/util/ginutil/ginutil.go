@@ -16,13 +16,16 @@ type Result struct {
 // JSON -
 func JSON(c *gin.Context, data interface{}, err error) {
 	bc := bcode.Err2Coder(err)
-	if bc == bcode.ServerErr {
-		logrus.Error(err)
-	}
 	result := &Result{
 		Code: bc.Code(),
 		Msg:  bc.Msg(),
 		Data: data,
 	}
+
+	if bc == bcode.ServerErr {
+		logrus.Error(err)
+		result.Msg = err.Error()
+	}
+
 	c.JSON(bc.Status(), result)
 }
