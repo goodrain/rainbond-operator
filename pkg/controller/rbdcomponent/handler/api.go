@@ -213,6 +213,7 @@ func (a *api) deployment() interface{} {
 							Args:            args,
 							VolumeMounts:    volumeMounts,
 							ReadinessProbe:  readinessProbe,
+							Resources:       a.component.Spec.Resources,
 						},
 					},
 					ServiceAccountName: "rainbond-operator",

@@ -174,6 +174,7 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 									MountPath: "/var/run/etcd",
 								},
 							},
+							Resources: e.component.Spec.Resources,
 						},
 					},
 				},

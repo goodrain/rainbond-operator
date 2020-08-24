@@ -227,6 +227,7 @@ func (d *db) statefulsetForDB() interface{} {
 								PeriodSeconds:       2,
 								TimeoutSeconds:      1,
 							},
+							Resources: d.component.Spec.Resources,
 						},
 						{
 							Name:            DBName + "-exporter",

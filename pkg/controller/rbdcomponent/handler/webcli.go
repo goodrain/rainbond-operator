@@ -115,6 +115,7 @@ func (w *webcli) deployment() interface{} {
 							},
 							Args:         args,
 							VolumeMounts: volumeMounts,
+							Resources:    w.component.Spec.Resources,
 						},
 					},
 					Volumes: volumes,

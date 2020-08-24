@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
@@ -119,6 +120,14 @@ func (m *monitor) statefulset() interface{} {
 	}
 	env = mergeEnvs(env, m.component.Spec.Env)
 
+	resources := corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("1024Mi"),
+			corev1.ResourceCPU:    resource.MustParse("1000m"),
+		},
+	}
+	resources = mergeResources(resources, m.component.Spec.Resources)
+
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/monitor/health", 3329)
 	args = mergeArgs(args, m.component.Spec.Args)
@@ -151,6 +160,7 @@ func (m *monitor) statefulset() interface{} {
 							Args:            args,
 							VolumeMounts:    volumeMounts,
 							ReadinessProbe:  readinessProbe,
+							Resources:       resources,
 						},
 					},
 					Volumes: volumes,

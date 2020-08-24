@@ -3,13 +3,13 @@ package handler
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -102,6 +102,18 @@ func (g *gateway) daemonset() interface{} {
 		return nil
 	}
 
+	resources := corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("256Mi"),
+			corev1.ResourceCPU:    resource.MustParse("0m"),
+		},
+		Limits: corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("1024Mi"),
+			corev1.ResourceCPU:    resource.MustParse("1000m"),
+		},
+	}
+	resources = mergeResources(resources, g.component.Spec.Resources)
+
 	args = mergeArgs(args, g.component.Spec.Args)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -137,16 +149,7 @@ func (g *gateway) daemonset() interface{} {
 							ImagePullPolicy: g.component.ImagePullPolicy(),
 							Args:            args,
 							VolumeMounts:    volumeMounts,
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("256Mi"),
-									corev1.ResourceCPU:    resource.MustParse("0m"),
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("1024Mi"),
-									corev1.ResourceCPU:    resource.MustParse("1000m"),
-								},
-							},
+							Resources:       resources,
 						},
 					},
 					Volumes: volumes,

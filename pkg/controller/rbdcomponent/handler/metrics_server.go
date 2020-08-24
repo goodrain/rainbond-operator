@@ -211,6 +211,7 @@ func (m *metricsServer) deployment() interface{} {
 									MountPath: "/tmp",
 								},
 							},
+							Resources: m.component.Spec.Resources,
 						},
 					},
 					Volumes: []corev1.Volume{

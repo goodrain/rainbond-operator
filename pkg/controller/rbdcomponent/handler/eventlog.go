@@ -209,6 +209,7 @@ func (e *eventlog) statefulset() interface{} {
 							Args:            args,
 							VolumeMounts:    volumeMounts,
 							ReadinessProbe:  readinessProbe,
+							Resources:       e.component.Spec.Resources,
 						},
 					},
 					Volumes: volumes,

@@ -209,6 +209,7 @@ func (a *appui) deploymentForAppUI() interface{} {
 								},
 							},
 							ReadinessProbe: readinessProbe,
+							Resources:      a.component.Spec.Resources,
 						},
 					},
 					Volumes: []corev1.Volume{

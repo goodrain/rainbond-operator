@@ -285,6 +285,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 							Args:            args,
 							VolumeMounts:    volumeMounts,
 							ReadinessProbe:  readinessProbe,
+
 						},
 					},
 					Volumes: volumes,

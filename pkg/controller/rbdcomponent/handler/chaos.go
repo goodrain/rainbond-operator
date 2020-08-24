@@ -255,6 +255,7 @@ func (c *chaos) deployment() interface{} {
 							Args:            args,
 							VolumeMounts:    volumeMounts,
 							ReadinessProbe:  readinessProbe,
+							Resources:       c.component.Spec.Resources,
 						},
 					},
 					Volumes: volumes,

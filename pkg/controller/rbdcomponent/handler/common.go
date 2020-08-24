@@ -415,3 +415,13 @@ func mergeEnvs(commonEnvs, priorityEnvs []corev1.EnvVar) []corev1.EnvVar {
 	}
 	return priorityEnvs
 }
+
+func mergeResources(commonResources, priorityResources corev1.ResourceRequirements) corev1.ResourceRequirements {
+	if priorityResources.Requests != nil {
+		commonResources.Requests = priorityResources.Requests
+	}
+	if priorityResources.Limits != nil {
+		commonResources.Limits = priorityResources.Limits
+	}
+	return commonResources
+}

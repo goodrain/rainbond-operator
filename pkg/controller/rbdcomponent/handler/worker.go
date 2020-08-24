@@ -199,6 +199,7 @@ func (w *worker) deployment() interface{} {
 							Args:            args,
 							VolumeMounts:    volumeMounts,
 							ReadinessProbe:  readinessProbe,
+							Resources:       w.component.Spec.Resources,
 						},
 					},
 					Volumes: volumes,

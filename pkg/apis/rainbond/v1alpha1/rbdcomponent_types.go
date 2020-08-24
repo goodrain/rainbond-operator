@@ -35,6 +35,11 @@ type RbdComponentSpec struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge
 	Env []corev1.EnvVar `json:"env,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,7,rep,name=env"`
+	// Compute Resources required by this container.
+	// Cannot be updated.
+	// More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+	// +optional
+	Resources corev1.ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,8,opt,name=resources"`
 }
 
 // RbdComponentConditionType is a valid value for RbdComponentCondition.Type

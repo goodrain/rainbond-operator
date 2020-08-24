@@ -7,7 +7,6 @@ import (
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -115,6 +114,7 @@ func (m *mq) deployment() interface{} {
 							Env:             env,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
+							Resources:       m.component.Spec.Resources,
 						},
 					},
 					Volumes: volumes,

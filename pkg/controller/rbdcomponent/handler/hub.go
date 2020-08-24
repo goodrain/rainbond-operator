@@ -149,6 +149,7 @@ func (h *hub) deployment() interface{} {
 									ReadOnly:  true,
 								},
 							},
+							Resources: h.component.Spec.Resources,
 						},
 					},
 					Volumes: []corev1.Volume{
