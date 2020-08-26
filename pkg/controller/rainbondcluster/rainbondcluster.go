@@ -342,9 +342,11 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 	storageCondition := storagePreChecker.Check()
 	r.cluster.Status.UpdateCondition(&storageCondition)
 
-	dnsPrechecker := precheck.NewDNSPrechecker(r.cluster, r.log)
-	dnsCondition := dnsPrechecker.Check()
-	r.cluster.Status.UpdateCondition(&dnsCondition)
+	if r.cluster.Spec.InstallMode != rainbondv1alpha1.InstallationModeOffline {
+		dnsPrechecker := precheck.NewDNSPrechecker(r.cluster, r.log)
+		dnsCondition := dnsPrechecker.Check()
+		r.cluster.Status.UpdateCondition(&dnsCondition)
+	}
 
 	k8sStatusPrechecker := precheck.NewK8sStatusPrechecker(r.ctx, r.cluster, r.client, r.log)
 	k8sStatusCondition := k8sStatusPrechecker.Check()
