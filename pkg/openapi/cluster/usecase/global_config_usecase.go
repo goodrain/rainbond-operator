@@ -66,6 +66,34 @@ func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *v1.GlobalConfigs) er
 	})
 }
 
+func (cc *GlobalConfigUseCaseImpl) UpdateGatewayIP(gatewayIP string) error {
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		cls, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(cc.cfg.ClusterName, metav1.GetOptions{})
+		if err != nil {
+			if k8sErrors.IsNotFound(err) {
+				// ignore not found
+				return nil
+			}
+			return err
+		}
+
+		cls.Spec.GatewayIngressIPs = []string{gatewayIP}
+
+		_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(cls)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil
+	}
+
+	// TODO: update * domain
+	return nil
+}
+
 func (cc *GlobalConfigUseCaseImpl) genSuffixHTTPHost(ip string) (domain string, err error) {
 	id, auth, err := cc.getOrCreateUUIDAndAuth()
 	if err != nil {
