@@ -11,9 +11,18 @@
           </el-col>
           <el-col :span="14" class="d2-text-center">
             访问地址&nbsp;&nbsp;
-            <a :href="accessAddress" target="_blank" class="successLink">
-              {{ accessAddress }}
-            </a>
+
+            <el-tooltip placement="top">
+              <div slot="content">
+                提示：请确保上述地址的网络联通性，如无法访问，可考虑以下情况：
+                <br />- 切换为服务器公网IP地址访问 <br />-
+                切换为负载均衡地址访问 <br />- 安全组策略是否禁用7070端口
+              </div>
+
+              <a :href="accessAddress" target="_blank" class="successLink">
+                {{ accessAddress }}
+              </a>
+            </el-tooltip>
           </el-col>
           <el-col :span="5" class="d2-text-center">
             <el-button
@@ -156,31 +165,31 @@
 </template>
 
 <script>
-import RainbondComponent from '../installResults/rainbondComponent'
+import RainbondComponent from "../installResults/rainbondComponent";
 
 export default {
-  name: 'successfulInstallation',
+  name: "successfulInstallation",
   components: {
     RainbondComponent
   },
-  data () {
+  data() {
     let validateCheckList = (rule, value, callback) => {
       if (
-        this.uninstallForm.otherReasons === '' &&
+        this.uninstallForm.otherReasons === "" &&
         this.uninstallForm.checkList.length === 0
       ) {
-        callback(new Error('请选择卸载原因'))
+        callback(new Error("请选择卸载原因"));
       } else {
-        callback()
+        callback();
       }
-    }
+    };
     return {
       uninstallRules: {
         checkList: [
           {
             required: true,
-            type: 'array',
-            trigger: 'change',
+            type: "array",
+            trigger: "change",
             validator: validateCheckList
           }
         ],
@@ -190,244 +199,244 @@ export default {
       upgradeDialog: false,
       uninstallForm: {
         checkList: [],
-        otherReasons: ''
+        otherReasons: ""
       },
       upVersionRules: {
         version: [
           {
             required: true,
-            message: this.$t('page.install.config.upgrade'),
-            trigger: 'blur'
+            message: this.$t("page.install.config.upgrade"),
+            trigger: "blur"
           }
         ]
       },
       upVersionInfo: {
-        currentVersion: '',
-        version: '',
+        currentVersion: "",
+        version: "",
         upgradeableVersions: []
       },
-      activeName: 'rsultSucess',
+      activeName: "rsultSucess",
       componentList: [],
       loading: true,
       upgradeLoading: false,
       upgradeableVersions: false,
-      accessAddress: '',
+      accessAddress: "",
       recordInfo: {
-        install_id: '',
-        version: '',
-        status: 'complete',
-        eid: '',
-        message: '',
+        install_id: "",
+        version: "",
+        status: "complete",
+        eid: "",
+        message: "",
         testMode: false,
         highAvailability: false
       }
-    }
+    };
   },
-  created () {
-    this.fetchAccessAddress()
-    this.fetchUpVersions()
-    this.fetchClusterInstallResultsState(true)
-    this.handleState()
+  created() {
+    this.fetchAccessAddress();
+    this.fetchUpVersions();
+    this.fetchClusterInstallResultsState(true);
+    this.handleState();
   },
-  beforeDestroy () {
-    this.timers && clearInterval(this.timers)
-    this.timer && clearInterval(this.timer)
+  beforeDestroy() {
+    this.timers && clearInterval(this.timers);
+    this.timer && clearInterval(this.timer);
   },
   methods: {
-    handleState () {
-      this.$store.dispatch('fetchState').then(res => {
+    handleState() {
+      this.$store.dispatch("fetchState").then(res => {
         if (res && res.code === 200 && res.data.final_status) {
-          const { clusterInfo, final_status, reasons, testMode } = res.data
+          const { clusterInfo, final_status, reasons, testMode } = res.data;
           if (clusterInfo) {
-            this.recordInfo.install_id = clusterInfo.installID
-            this.recordInfo.version = clusterInfo.installVersion
-            this.recordInfo.eid = clusterInfo.enterpriseID
-            this.recordInfo.testMode = testMode
+            this.recordInfo.install_id = clusterInfo.installID;
+            this.recordInfo.version = clusterInfo.installVersion;
+            this.recordInfo.eid = clusterInfo.enterpriseID;
+            this.recordInfo.testMode = testMode;
             if (clusterInfo.highAvailability) {
-              this.recordInfo.highAvailability = clusterInfo.highAvailability
+              this.recordInfo.highAvailability = clusterInfo.highAvailability;
             }
           }
 
           if (reasons) {
-            this.recordInfo.status = final_status
-            this.recordInfo.message = reasons.toString()
-            this.handleRecord()
+            this.recordInfo.status = final_status;
+            this.recordInfo.message = reasons.toString();
+            this.handleRecord();
           }
           switch (final_status) {
-            case 'Initing':
-              this.handleRouter('index')
-              break
-            case 'Waiting':
-              this.handleRouter('index')
-              break
-            case 'Installing':
-              this.handleRouter('InstallProcess', 'start')
-              break
-            case 'Setting':
-              this.handleRouter('InstallProcess', 'configuration')
-              break
-            case 'UnInstalling':
-              this.handleRouter('index')
-              break
-            case 'Running':
-              this.recordInfo.status = 'complete'
-              this.handleRecord()
-              break
+            case "Initing":
+              this.handleRouter("index");
+              break;
+            case "Waiting":
+              this.handleRouter("index");
+              break;
+            case "Installing":
+              this.handleRouter("InstallProcess", "start");
+              break;
+            case "Setting":
+              this.handleRouter("InstallProcess", "configuration");
+              break;
+            case "UnInstalling":
+              this.handleRouter("index");
+              break;
+            case "Running":
+              this.recordInfo.status = "complete";
+              this.handleRecord();
+              break;
             default:
-              break
+              break;
           }
         }
-      })
+      });
       this.timer = setTimeout(() => {
-        this.handleState()
-      }, 10000)
+        this.handleState();
+      }, 10000);
     },
-    handleRouter (name, type) {
+    handleRouter(name, type) {
       if (name) {
-        let obj = { name }
+        let obj = { name };
         if (type) {
-          obj.params = { type }
+          obj.params = { type };
         }
-        this.$router.push(obj)
+        this.$router.push(obj);
       }
     },
-    handleRecord () {
+    handleRecord() {
       if (!this.recordInfo.testMode) {
-        this.$store.dispatch('putRecord', this.recordInfo).then(() => {})
+        this.$store.dispatch("putRecord", this.recordInfo).then(() => {});
       }
     },
-    onhandleDelete () {
+    onhandleDelete() {
       this.$refs.uninstallForm.validate(valid => {
         if (valid) {
           this.$store
-            .dispatch('deleteUnloadingPlatform')
+            .dispatch("deleteUnloadingPlatform")
             .then(res => {
               if (res && res.code === 200) {
-                this.dialogVisibles = false
+                this.dialogVisibles = false;
                 let message = this.uninstallForm.otherReasons
-                  ? this.uninstallForm.otherReasons + ','
-                  : ''
+                  ? this.uninstallForm.otherReasons + ","
+                  : "";
                 if (this.uninstallForm.checkList.length > 0) {
                   this.uninstallForm.checkList.map(item => {
-                    message += ',' + item
-                  })
+                    message += "," + item;
+                  });
                 }
-                this.recordInfo.message = message
-                this.recordInfo.status = 'uninstall'
-                this.handleRecord()
+                this.recordInfo.message = message;
+                this.recordInfo.status = "uninstall";
+                this.handleRecord();
                 this.$notify({
-                  type: 'success',
-                  title: '卸载',
-                  message: '卸载成功'
-                })
-                this.handleRouter('index')
+                  type: "success",
+                  title: "卸载",
+                  message: "卸载成功"
+                });
+                this.handleRouter("index");
               }
             })
             .catch(_ => {
-              this.dialogVisibles = false
-              this.recordInfo.message = ''
-              this.recordInfo.status = 'failure'
-              this.handleRecord()
-            })
+              this.dialogVisibles = false;
+              this.recordInfo.message = "";
+              this.recordInfo.status = "failure";
+              this.handleRecord();
+            });
         }
-      })
+      });
     },
-    onhandleUpgrade () {
+    onhandleUpgrade() {
       this.$refs.upVersionForm.validate(valid => {
         if (valid) {
-          this.upgradeLoading = true
+          this.upgradeLoading = true;
           this.$store
-            .dispatch('upgradeVersion', { version: this.upVersionInfo.version })
+            .dispatch("upgradeVersion", { version: this.upVersionInfo.version })
             .then(res => {
               if (res && res.code === 200) {
-                this.fetchUpVersions()
-                this.fetchClusterInstallResultsState()
-                this.upgradeLoading = false
-                this.upgradeDialog = false
+                this.fetchUpVersions();
+                this.fetchClusterInstallResultsState();
+                this.upgradeLoading = false;
+                this.upgradeDialog = false;
                 this.$notify({
-                  type: 'success',
-                  title: '版本升级',
-                  message: '升级开始, 请等待全部组件就绪'
-                })
+                  type: "success",
+                  title: "版本升级",
+                  message: "升级开始, 请等待全部组件就绪"
+                });
               }
             })
             .catch(err => {
-              this.upgradeLoading = false
-              let msg = ''
-              const { code } = err
+              this.upgradeLoading = false;
+              let msg = "";
+              const { code } = err;
               if (code) {
                 switch (code) {
                   case 1000:
-                    msg = '版本格式有误'
-                    break
+                    msg = "版本格式有误";
+                    break;
                   case 1001:
-                    msg = '当前版本不存在'
-                    break
+                    msg = "当前版本不存在";
+                    break;
                   case 1002:
-                    msg = '当前版本格式有误'
-                    break
+                    msg = "当前版本格式有误";
+                    break;
                   case 1003:
-                    msg = '不支持降级'
-                    break
+                    msg = "不支持降级";
+                    break;
                   case 1004:
-                    msg = '版本不存在'
-                    break
+                    msg = "版本不存在";
+                    break;
                   case 1005:
-                    msg = '无法获取升级信息'
-                    break
+                    msg = "无法获取升级信息";
+                    break;
                   default:
-                    break
+                    break;
                 }
               }
               if (msg) {
                 this.$message({
                   message: msg,
-                  type: 'warning'
-                })
+                  type: "warning"
+                });
               } else {
-                this.upgradeDialog = false
+                this.upgradeDialog = false;
               }
-            })
+            });
         }
-      })
+      });
     },
-    fetchAccessAddress () {
-      this.$store.dispatch('fetchAccessAddress').then(res => {
+    fetchAccessAddress() {
+      this.$store.dispatch("fetchAccessAddress").then(res => {
         if (res && res.code === 200) {
-          this.recordInfo.message = res.data
-          this.accessAddress = res.data
+          this.recordInfo.message = res.data;
+          this.accessAddress = res.data;
         }
-      })
+      });
     },
-    fetchUpVersions () {
-      this.$store.dispatch('fetchUpVersions').then(res => {
+    fetchUpVersions() {
+      this.$store.dispatch("fetchUpVersions").then(res => {
         if (res && res.code === 200) {
-          this.upVersionInfo = res.data
-          const { upgradeableVersions } = res.data
+          this.upVersionInfo = res.data;
+          const { upgradeableVersions } = res.data;
           if (upgradeableVersions && upgradeableVersions.length > 0) {
-            this.upgradeableVersions = true
-            this.upVersionInfo.version = upgradeableVersions[0]
+            this.upgradeableVersions = true;
+            this.upVersionInfo.version = upgradeableVersions[0];
           } else {
-            this.upgradeableVersions = false
+            this.upgradeableVersions = false;
           }
         }
-      })
+      });
     },
-    fetchClusterInstallResultsState (isloading) {
-      this.$store.dispatch('fetchClusterInstallResultsState').then(res => {
+    fetchClusterInstallResultsState(isloading) {
+      this.$store.dispatch("fetchClusterInstallResultsState").then(res => {
         if (isloading) {
-          this.loading = false
+          this.loading = false;
         }
         if (res && res.code === 200) {
-          this.componentList = res.data
+          this.componentList = res.data;
         }
         this.timers = setTimeout(() => {
-          this.fetchClusterInstallResultsState()
-        }, 5000)
-      })
+          this.fetchClusterInstallResultsState();
+        }, 5000);
+      });
     }
   }
-}
+};
 </script>
 <style lang="scss" scoped>
 .d2-h-30 {
