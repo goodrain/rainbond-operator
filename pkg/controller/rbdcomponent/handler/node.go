@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
-
+	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
-
-	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -285,7 +283,6 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 							Args:            args,
 							VolumeMounts:    volumeMounts,
 							ReadinessProbe:  readinessProbe,
-
 						},
 					},
 					Volumes: volumes,
