@@ -37,6 +37,7 @@ type db struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
+	affinity  *corev1.VolumeNodeAffinity
 
 	secret                   *corev1.Secret
 	mysqlUser, mysqlPassword string
@@ -94,6 +95,12 @@ func (d *db) Before() error {
 	if err := setStorageCassName(d.ctx, d.client, d.component.Namespace, d); err != nil {
 		return err
 	}
+
+	affinity, err := nodeAffnityNodesForChaos(d.cluster)
+	if err != nil {
+		return err
+	}
+	d.affinity = affinity
 
 	return nil
 }
@@ -406,6 +413,8 @@ func (d *db) pv() *corev1.PersistentVolume {
 		},
 		StorageClassName: "manual",
 	}
+
+	spec.NodeAffinity = d.affinity
 
 	hostPath := &corev1.HostPathVolumeSource{
 		Path: "/opt/rainbond/data/db" + time.Now().Format("20060102150405"),

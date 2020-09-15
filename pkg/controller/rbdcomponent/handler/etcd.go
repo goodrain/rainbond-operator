@@ -26,6 +26,7 @@ type etcd struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
+	affinity  *corev1.VolumeNodeAffinity
 
 	pvcParametersRWO *pvcParameters
 	storageRequest   int64
@@ -57,6 +58,12 @@ func (e *etcd) Before() error {
 	if err := setStorageCassName(e.ctx, e.client, e.component.Namespace, e); err != nil {
 		return err
 	}
+
+	affinity, err := nodeAffnityNodesForChaos(e.cluster)
+	if err != nil {
+		return err
+	}
+	e.affinity = affinity
 
 	return nil
 }
@@ -523,6 +530,7 @@ func (e *etcd) pv() *corev1.PersistentVolume {
 			corev1.ResourceStorage: *size,
 		},
 		StorageClassName: "manual",
+		NodeAffinity:     e.affinity,
 	}
 
 	hostPath := &corev1.HostPathVolumeSource{
