@@ -250,7 +250,14 @@ func (r *rainbondClusteMgr) createImagePullSecret() error {
 	}
 
 	err := r.client.Create(r.ctx, secret)
-	if err != nil && !k8sErrors.IsAlreadyExists(err) {
+	if err != nil {
+		if k8sErrors.IsAlreadyExists(err) {
+			r.log.V(7).Info("update image pull secret", "name", RdbHubCredentialsName)
+			err = r.client.Update(r.ctx, secret)
+			if err == nil {
+				return nil
+			}
+		}
 		return fmt.Errorf("create secret for pulling images: %v", err)
 	}
 
