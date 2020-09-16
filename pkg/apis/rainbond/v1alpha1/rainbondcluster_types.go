@@ -11,12 +11,12 @@ import (
 type InstallMode string
 
 const (
-	// InstallationModeWithPackage means some Rainbond images are from the specified image repository, some are from the installation package.
-	InstallationModeWithPackage InstallMode = "WithPackage"
 	// InstallationModeWithoutPackage means all Rainbond images are from the specified image repository, but still needs rainbond package.
-	InstallationModeWithoutPackage InstallMode = "WithoutPackage"
+	InstallationModeWithoutPackage InstallMode = "Online"
 	// InstallationModeFullOnline means all Rainbond images are from the specified image repository.
 	InstallationModeFullOnline InstallMode = "FullOnline"
+	// InstallationModeFullOffline means all Rainbond images are from the specified image repository.
+	InstallationModeOffline InstallMode = "Offline"
 
 	// LabelNodeRolePrefix is a label prefix for node roles
 	// It's copied over to here until it's merged in core: https://github.com/kubernetes/kubernetes/pull/39112
@@ -38,6 +38,7 @@ const (
 	RainbondClusterConditionTypeStorage           = "Storage"
 	RainbondClusterConditionTypeDNS               = "DNS"
 	RainbondClusterConditionTypeContainerNetwork  = "ContainerNetwork"
+	RainbondClusterConditionTypeRunning           = "Running"
 	RainbondClusterConditionTypeMemory            = "Memory"
 )
 
@@ -106,9 +107,6 @@ type RainbondClusterSpec struct {
 	InstallMode InstallMode `json:"installMode,omitempty"`
 	// User-specified private image repository, replacing goodrain.me.
 	ImageHub *ImageHub `json:"imageHub,omitempty"`
-	// the storage class that rainbond component will be used.
-	// rainbond-operator will create one if StorageClassName is empty
-	StorageClassName string `json:"storageClassName,omitempty"`
 	// the region database information that rainbond component will be used.
 	// rainbond-operator will create one if DBInfo is empty
 	RegionDatabase *Database `json:"regionDatabase,omitempty"`
@@ -122,14 +120,15 @@ type RainbondClusterSpec struct {
 	InstallVersion string `json:"installVersion,omitempty"`
 	// Whether the configuration has been completed
 	ConfigCompleted bool `json:"configCompleted,omitempty"`
-	// Deprecated. InstallPackageConfig define install package download config
-	InstallPackageConfig InstallPackageConfig `json:"installPackageConfig,omitempty"`
 
 	RainbondVolumeSpecRWX *RainbondVolumeSpec `json:"rainbondVolumeSpecRWX,omitempty"`
 	RainbondVolumeSpecRWO *RainbondVolumeSpec `json:"rainbondVolumeSpecRWO,omitempty"`
 
 	// SentinelImage is the image for rainbond operator sentinel
 	SentinelImage string `json:"sentinelImage,omitempty"`
+
+	// RbdComponents is a list of rainbond cluster components
+	RbdComponents []*RbdComponent `json:"rbdComponents,omitempty"`
 }
 
 //InstallPackageConfig define install package download config
@@ -209,6 +208,17 @@ type RainbondClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&RainbondCluster{}, &RainbondClusterList{})
+}
+
+// InnerGatewayIngressIP -
+func (in *RainbondCluster) InnerGatewayIngressIP() string {
+	if len(in.Spec.NodesForGateway) > 0 {
+		return in.Spec.NodesForGateway[0].InternalIP
+	}
+	if len(in.Spec.GatewayIngressIPs) > 0 && in.Spec.GatewayIngressIPs[0] != "" {
+		return in.Spec.GatewayIngressIPs[0]
+	}
+	return ""
 }
 
 // GatewayIngressIP returns the gateway ip, or take the internal ip

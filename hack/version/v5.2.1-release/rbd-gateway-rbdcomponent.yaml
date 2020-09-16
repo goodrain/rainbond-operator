@@ -1,0 +1,8 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RbdComponent
+metadata:
+  name: rbd-gateway
+spec:
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-gateway:v5.2.1-release
+  imagePullPolicy: IfNotPresent
+  priorityComponent: true

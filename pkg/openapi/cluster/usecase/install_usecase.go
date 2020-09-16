@@ -5,7 +5,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/config"
 	"github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
@@ -72,13 +72,9 @@ func parseComponentClaim(claim *componentClaim) *v1alpha1.RbdComponent {
 	component := &v1alpha1.RbdComponent{}
 	component.Namespace = claim.namespace
 	component.Name = claim.name
-	component.Spec.Version = claim.version
 	component.Spec.Image = claim.image()
 	component.Spec.ImagePullPolicy = corev1.PullIfNotPresent
 	component.Spec.Replicas = claim.replicas
-	component.Spec.Configs = claim.Configs
-	component.Spec.LogLevel = v1alpha1.ParseLogLevel(claim.logLevel)
-	component.Spec.Type = claim.name
 	labels := rbdutil.LabelsForRainbond(map[string]string{"name": claim.name})
 	if claim.isInit {
 		component.Spec.PriorityComponent = true
@@ -90,7 +86,7 @@ func parseComponentClaim(claim *componentClaim) *v1alpha1.RbdComponent {
 
 // InstallUseCaseImpl install case
 type InstallUseCaseImpl struct {
-	cfg                *option.Config
+	cfg                *config.Config
 	namespace          string
 	rainbondKubeClient versioned.Interface
 
@@ -99,7 +95,7 @@ type InstallUseCaseImpl struct {
 }
 
 // NewInstallUseCase new install case
-func NewInstallUseCase(cfg *option.Config, rainbondKubeClient versioned.Interface, componentUsecase cluster.ComponentUsecase, clusterUcase cluster.Usecase) *InstallUseCaseImpl {
+func NewInstallUseCase(cfg *config.Config, rainbondKubeClient versioned.Interface, componentUsecase cluster.ComponentUsecase, clusterUcase cluster.Usecase) *InstallUseCaseImpl {
 	return &InstallUseCaseImpl{
 		cfg:                cfg,
 		namespace:          cfg.Namespace,

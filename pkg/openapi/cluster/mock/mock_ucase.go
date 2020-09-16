@@ -285,6 +285,20 @@ func (mr *MockGlobalConfigUseCaseMockRecorder) Address() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Address", reflect.TypeOf((*MockGlobalConfigUseCase)(nil).Address))
 }
 
+// UpdateGatewayIP mocks base method
+func (m *MockGlobalConfigUseCase) UpdateGatewayIP(gatewayIP string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateGatewayIP", gatewayIP)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateGatewayIP indicates an expected call of UpdateGatewayIP
+func (mr *MockGlobalConfigUseCaseMockRecorder) UpdateGatewayIP(gatewayIP interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGatewayIP", reflect.TypeOf((*MockGlobalConfigUseCase)(nil).UpdateGatewayIP), gatewayIP)
+}
+
 // MockComponentUsecase is a mock of ComponentUsecase interface
 type MockComponentUsecase struct {
 	ctrl     *gomock.Controller

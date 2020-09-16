@@ -244,3 +244,8 @@ type ClusterPreCheckCondition struct {
 	Reason  string `json:"reason"`
 	Message string `json:"message"`
 }
+
+// ClusterPreCheckCondition -
+type UpdateGatewayIPReq struct {
+	GatewayIP string `json:"gatewayIP"`
+}

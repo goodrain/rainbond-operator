@@ -116,7 +116,6 @@ func (w *worker) deployment() interface{} {
 		},
 	}
 	args := []string{
-		fmt.Sprintf("--log-level=%s", w.component.LogLevel()),
 		"--host-ip=$(POD_IP)",
 		"--node-name=$(HOST_IP)",
 		w.db.RegionDataSource(),
@@ -166,6 +165,8 @@ func (w *worker) deployment() interface{} {
 			Value: imageHub.Password,
 		})
 	}
+	args = mergeArgs(args, w.component.Spec.Args)
+	env = mergeEnvs(env, w.component.Spec.Env)
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/worker/health", 6369)
@@ -198,6 +199,7 @@ func (w *worker) deployment() interface{} {
 							Args:            args,
 							VolumeMounts:    volumeMounts,
 							ReadinessProbe:  readinessProbe,
+							Resources:       w.component.Spec.Resources,
 						},
 					},
 					Volumes: volumes,

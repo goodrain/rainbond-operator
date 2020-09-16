@@ -1,0 +1,13 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RbdComponent
+metadata:
+  labels:
+    belongTo: rainbond-operator
+    creator: Rainbond
+    name: dashboard-metrics-scraper
+  name: dashboard-metrics-scraper
+spec:
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/metrics-scraper:v1.0.4
+  imagePullPolicy: IfNotPresent
+  priorityComponent: false
+  replicas: 1

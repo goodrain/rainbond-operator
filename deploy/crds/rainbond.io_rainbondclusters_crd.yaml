@@ -71,15 +71,6 @@ spec:
             installMode:
               description: InstallMode is the mode of Rainbond cluster installation.
               type: string
-            installPackageConfig:
-              description: Deprecated. InstallPackageConfig define install package
-                download config
-              properties:
-                md5:
-                  type: string
-                url:
-                  type: string
-              type: object
             installVersion:
               description: define install rainbond version, This is usually image
                 tag
@@ -279,6 +270,230 @@ spec:
               required:
               - imageRepository
               type: object
+            rbdComponents:
+              description: RbdComponents is a list of rainbond cluster components
+              items:
+                description: RbdComponent is the Schema for the rbdcomponents API
+                properties:
+                  apiVersion:
+                    description: 'APIVersion defines the versioned schema of this
+                      representation of an object. Servers should convert recognized
+                      schemas to the latest internal value, and may reject unrecognized
+                      values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                    type: string
+                  kind:
+                    description: 'Kind is a string value representing the REST resource
+                      this object represents. Servers may infer this from the endpoint
+                      the client submits requests to. Cannot be updated. In CamelCase.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  metadata:
+                    type: object
+                  spec:
+                    description: RbdComponentSpec defines the desired state of RbdComponent
+                    properties:
+                      args:
+                        description: 'Arguments to the entrypoint. The docker image''s
+                          CMD is used if this is not provided. Variable references
+                          $(VAR_NAME) are expanded using the container''s environment.
+                          If a variable cannot be resolved, the reference in the input
+                          string will be unchanged. The $(VAR_NAME) syntax can be
+                          escaped with a double $$, ie: $$(VAR_NAME). Escaped references
+                          will never be expanded, regardless of whether the variable
+                          exists or not. Cannot be updated.'
+                        items:
+                          type: string
+                        type: array
+                      env:
+                        description: List of environment variables to set in the container.
+                          Cannot be updated.
+                        items:
+                          description: EnvVar represents an environment variable present
+                            in a Container.
+                          properties:
+                            name:
+                              description: Name of the environment variable. Must
+                                be a C_IDENTIFIER.
+                              type: string
+                            value:
+                              description: 'Variable references $(VAR_NAME) are expanded
+                                using the previous defined environment variables in
+                                the container and any service environment variables.
+                                If a variable cannot be resolved, the reference in
+                                the input string will be unchanged. The $(VAR_NAME)
+                                syntax can be escaped with a double $$, ie: $$(VAR_NAME).
+                                Escaped references will never be expanded, regardless
+                                of whether the variable exists or not. Defaults to
+                                "".'
+                              type: string
+                            valueFrom:
+                              description: Source for the environment variable's value.
+                                Cannot be used if value is not empty.
+                              properties:
+                                configMapKeyRef:
+                                  description: Selects a key of a ConfigMap.
+                                  properties:
+                                    key:
+                                      description: The key to select.
+                                      type: string
+                                    name:
+                                      description: 'Name of the referent. More info:
+                                        https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                        TODO: Add other useful fields. apiVersion,
+                                        kind, uid?'
+                                      type: string
+                                    optional:
+                                      description: Specify whether the ConfigMap or
+                                        its key must be defined
+                                      type: boolean
+                                  required:
+                                  - key
+                                  type: object
+                                fieldRef:
+                                  description: 'Selects a field of the pod: supports
+                                    metadata.name, metadata.namespace, metadata.labels,
+                                    metadata.annotations, spec.nodeName, spec.serviceAccountName,
+                                    status.hostIP, status.podIP.'
+                                  properties:
+                                    apiVersion:
+                                      description: Version of the schema the FieldPath
+                                        is written in terms of, defaults to "v1".
+                                      type: string
+                                    fieldPath:
+                                      description: Path of the field to select in
+                                        the specified API version.
+                                      type: string
+                                  required:
+                                  - fieldPath
+                                  type: object
+                                resourceFieldRef:
+                                  description: 'Selects a resource of the container:
+                                    only resources limits and requests (limits.cpu,
+                                    limits.memory, limits.ephemeral-storage, requests.cpu,
+                                    requests.memory and requests.ephemeral-storage)
+                                    are currently supported.'
+                                  properties:
+                                    containerName:
+                                      description: 'Container name: required for volumes,
+                                        optional for env vars'
+                                      type: string
+                                    divisor:
+                                      description: Specifies the output format of
+                                        the exposed resources, defaults to "1"
+                                      type: string
+                                    resource:
+                                      description: 'Required: resource to select'
+                                      type: string
+                                  required:
+                                  - resource
+                                  type: object
+                                secretKeyRef:
+                                  description: Selects a key of a secret in the pod's
+                                    namespace
+                                  properties:
+                                    key:
+                                      description: The key of the secret to select
+                                        from.  Must be a valid secret key.
+                                      type: string
+                                    name:
+                                      description: 'Name of the referent. More info:
+                                        https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                        TODO: Add other useful fields. apiVersion,
+                                        kind, uid?'
+                                      type: string
+                                    optional:
+                                      description: Specify whether the Secret or its
+                                        key must be defined
+                                      type: boolean
+                                  required:
+                                  - key
+                                  type: object
+                              type: object
+                          required:
+                          - name
+                          type: object
+                        type: array
+                      image:
+                        description: Docker image name.
+                        type: string
+                      imagePullPolicy:
+                        description: Image pull policy. One of Always, Never, IfNotPresent.
+                          Defaults to Always if :latest tag is specified, or IfNotPresent
+                          otherwise. Cannot be updated.
+                        type: string
+                      priorityComponent:
+                        description: ' Whether this component needs to be created
+                          first'
+                        type: boolean
+                      replicas:
+                        description: Number of desired pods. This is a pointer to
+                          distinguish between explicit zero and not specified. Defaults
+                          to 1.
+                        format: int32
+                        type: integer
+                    required:
+                    - priorityComponent
+                    type: object
+                  status:
+                    description: RbdComponentStatus defines the observed state of
+                      RbdComponent
+                    properties:
+                      conditions:
+                        description: Current state of rainbond component.
+                        items:
+                          description: RbdComponentCondition contains details for
+                            the current condition of this rbdcomponent.
+                          properties:
+                            lastTransitionTime:
+                              description: Last time the condition transitioned from
+                                one status to another.
+                              format: date-time
+                              type: string
+                            message:
+                              description: Human-readable message indicating details
+                                about last transition.
+                              type: string
+                            reason:
+                              description: Unique, one-word, CamelCase reason for
+                                the condition's last transition.
+                              type: string
+                            status:
+                              description: 'Status is the status of the condition.
+                                Can be True, False, Unknown. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-conditions'
+                              type: string
+                            type:
+                              description: Type is the type of the condition.
+                              type: string
+                          required:
+                          - status
+                          - type
+                          type: object
+                        type: array
+                      pods:
+                        description: A list of pods
+                        items:
+                          description: LocalObjectReference contains enough information
+                            to let you locate the referenced object inside the same
+                            namespace.
+                          properties:
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                          type: object
+                        type: array
+                      readyReplicas:
+                        description: Total number of ready pods targeted by this deployment.
+                        format: int32
+                        type: integer
+                      replicas:
+                        description: Total number of non-terminated pods targeted
+                          by this deployment (their labels match the selector).
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
+              type: array
             regionDatabase:
               description: the region database information that rainbond component
                 will be used. rainbond-operator will create one if DBInfo is empty
@@ -296,10 +511,6 @@ spec:
               type: object
             sentinelImage:
               description: SentinelImage is the image for rainbond operator sentinel
-              type: string
-            storageClassName:
-              description: the storage class that rainbond component will be used.
-                rainbond-operator will create one if StorageClassName is empty
               type: string
             suffixHTTPHost:
               description: Suffix of component default domain name

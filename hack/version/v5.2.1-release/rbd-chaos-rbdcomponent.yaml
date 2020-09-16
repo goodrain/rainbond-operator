@@ -1,0 +1,8 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RbdComponent
+metadata:
+  name: rbd-chaos
+spec:
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-chaos:v5.2.1-release
+  imagePullPolicy: IfNotPresent
+  priorityComponent: false

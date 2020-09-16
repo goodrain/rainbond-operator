@@ -97,6 +97,22 @@ func (h *hub) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 }
 
 func (h *hub) deployment() interface{} {
+	env := []corev1.EnvVar{
+		{
+			Name:  "REGISTRY_AUTH",
+			Value: "htpasswd",
+		},
+		{
+			Name:  "REGISTRY_AUTH_HTPASSWD_REALM",
+			Value: "Registry Realm",
+		},
+		{
+			Name:  "REGISTRY_AUTH_HTPASSWD_PATH",
+			Value: "/auth/htpasswd",
+		},
+	}
+	env = mergeEnvs(env, h.component.Spec.Env)
+
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
@@ -121,20 +137,7 @@ func (h *hub) deployment() interface{} {
 							Name:            "rbd-hub",
 							Image:           h.component.Spec.Image,
 							ImagePullPolicy: h.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name:  "REGISTRY_AUTH",
-									Value: "htpasswd",
-								},
-								{
-									Name:  "REGISTRY_AUTH_HTPASSWD_REALM",
-									Value: "Registry Realm",
-								},
-								{
-									Name:  "REGISTRY_AUTH_HTPASSWD_PATH",
-									Value: "/auth/htpasswd",
-								},
-							},
+							Env:             env,
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "hubdata",
@@ -146,6 +149,7 @@ func (h *hub) deployment() interface{} {
 									ReadOnly:  true,
 								},
 							},
+							Resources: h.component.Spec.Resources,
 						},
 					},
 					Volumes: []corev1.Volume{

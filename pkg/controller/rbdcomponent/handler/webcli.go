@@ -68,7 +68,6 @@ func (w *webcli) deployment() interface{} {
 	volumes := []corev1.Volume{}
 	args := []string{
 		"--hostIP=$(POD_IP)",
-		fmt.Sprintf("--log-level=%s", w.component.LogLevel()),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(w.cluster), ","),
 	}
 	if w.etcdSecret != nil {
@@ -78,6 +77,7 @@ func (w *webcli) deployment() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
+	args = mergeArgs(args, w.component.Spec.Args)
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      WebCliName,
@@ -115,6 +115,7 @@ func (w *webcli) deployment() interface{} {
 							},
 							Args:         args,
 							VolumeMounts: volumeMounts,
+							Resources:    w.component.Spec.Resources,
 						},
 					},
 					Volumes: volumes,

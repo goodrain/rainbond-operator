@@ -43,6 +43,7 @@ func NewClusterController(g *gin.Engine, clusterCase cluster.IClusterUcase) {
 
 	clusterEngine.GET("/configs", corsMidle(u.Configs))
 	clusterEngine.PUT("/configs", corsMidle(u.UpdateConfig))
+	clusterEngine.PUT("/updateGatewayIP", corsMidle(u.updateGatewayIP))
 
 	clusterEngine.GET("/address", corsMidle(u.Address))
 
@@ -108,6 +109,19 @@ func (cc *ClusterController) Configs(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, map[string]interface{}{"code": http.StatusOK, "msg": "success", "data": configs})
+}
+
+func (cc *ClusterController) updateGatewayIP(c *gin.Context) {
+	var req v1.UpdateGatewayIPReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ginutil.JSON(c, nil, err)
+		return
+	}
+
+	if err := cc.clusterUcase.GlobalConfigs().UpdateGatewayIP(req.GatewayIP); err != nil {
+		ginutil.JSON(c, nil, err)
+		return
+	}
 }
 
 // UpdateConfig update cluster config info

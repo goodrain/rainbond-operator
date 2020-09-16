@@ -7,7 +7,6 @@ import (
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,7 +63,6 @@ func (m *mq) ListPods() ([]corev1.Pod, error) {
 
 func (m *mq) deployment() interface{} {
 	args := []string{
-		"--log-level=" + string(m.component.Spec.LogLevel),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(m.cluster), ","),
 		"--hostIP=$(POD_IP)",
 	}
@@ -76,7 +74,19 @@ func (m *mq) deployment() interface{} {
 		volumes = append(volumes, volume)
 		args = append(args, etcdSSLArgs()...)
 	}
+	env := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+	}
+	env = mergeEnvs(env, m.component.Spec.Env)
 
+	args = mergeArgs(args, m.component.Spec.Args)
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MQName,
@@ -101,18 +111,10 @@ func (m *mq) deployment() interface{} {
 							Name:            MQName,
 							Image:           m.component.Spec.Image,
 							ImagePullPolicy: m.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
-								},
-							},
-							Args:         args,
-							VolumeMounts: volumeMounts,
+							Env:             env,
+							Args:            args,
+							VolumeMounts:    volumeMounts,
+							Resources:       m.component.Spec.Resources,
 						},
 					},
 					Volumes: volumes,

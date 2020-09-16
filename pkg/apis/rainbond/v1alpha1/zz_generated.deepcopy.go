@@ -380,7 +380,6 @@ func (in *RainbondClusterSpec) DeepCopyInto(out *RainbondClusterSpec) {
 		*out = new(EtcdConfig)
 		(*in).DeepCopyInto(*out)
 	}
-	out.InstallPackageConfig = in.InstallPackageConfig
 	if in.RainbondVolumeSpecRWX != nil {
 		in, out := &in.RainbondVolumeSpecRWX, &out.RainbondVolumeSpecRWX
 		*out = new(RainbondVolumeSpec)
@@ -390,6 +389,17 @@ func (in *RainbondClusterSpec) DeepCopyInto(out *RainbondClusterSpec) {
 		in, out := &in.RainbondVolumeSpecRWO, &out.RainbondVolumeSpecRWO
 		*out = new(RainbondVolumeSpec)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.RbdComponents != nil {
+		in, out := &in.RbdComponents, &out.RbdComponents
+		*out = make([]*RbdComponent, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(RbdComponent)
+				(*in).DeepCopyInto(*out)
+			}
+		}
 	}
 	return
 }
@@ -796,11 +806,16 @@ func (in *RbdComponentSpec) DeepCopyInto(out *RbdComponentSpec) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.Configs != nil {
-		in, out := &in.Configs, &out.Configs
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
+	if in.Args != nil {
+		in, out := &in.Args, &out.Args
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Env != nil {
+		in, out := &in.Env, &out.Env
+		*out = make([]v1.EnvVar, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	return

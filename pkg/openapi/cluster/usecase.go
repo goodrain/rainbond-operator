@@ -31,6 +31,7 @@ type GlobalConfigUseCase interface {
 	GlobalConfigs() (*model.GlobalConfigs, error)
 	UpdateGlobalConfig(config *v1.GlobalConfigs) error
 	Address() (string, error)
+	UpdateGatewayIP(gatewayIP string) error
 }
 
 // ComponentUsecase cluster componse case

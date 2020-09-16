@@ -122,6 +122,7 @@ func (k *k8sdashbaord) deploymentForKubernetesDashboard() interface{} {
 									MountPath: "/certs",
 								},
 							},
+							Resources: k.component.Spec.Resources,
 						},
 					},
 					Volumes: []corev1.Volume{

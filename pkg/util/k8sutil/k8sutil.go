@@ -223,6 +223,7 @@ func CreateOrUpdateRbdComponent(clientset rainbondversiond.Interface, cpt *rainb
 
 	logrus.Infof("[CreateOrUpdateRbdComponent] update rbdcomponent %s/%s", cpt.Namespace, cpt.Name)
 	cpt.ResourceVersion = old.ResourceVersion
+	cpt.Spec.Replicas = old.Spec.Replicas
 	_, err = clientset.RainbondV1alpha1().RbdComponents(cpt.Namespace).Update(cpt)
 	if err != nil {
 		return err

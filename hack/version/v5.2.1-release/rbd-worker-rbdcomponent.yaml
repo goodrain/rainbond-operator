@@ -1,0 +1,8 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RbdComponent
+metadata:
+  name: rbd-worker
+spec:
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-worker:v5.2.1-release
+  imagePullPolicy: IfNotPresent
+  priorityComponent: false

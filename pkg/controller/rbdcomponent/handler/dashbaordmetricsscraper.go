@@ -108,6 +108,7 @@ func (k *dashboardMetricsScraper) deploymentForDashboardMetricsScraper() interfa
 									MountPath: "/tmp",
 								},
 							},
+							Resources: k.component.Spec.Resources,
 						},
 					},
 					Volumes: []corev1.Volume{

@@ -102,6 +102,22 @@ export function getAccessAddress () {
     method: 'get'
   })
 }
+//  获取可升级版本
+export function getUpVersions () {
+  return request({
+    url: `/upgrade/versions`,
+    method: 'get'
+  })
+}
+//  升级版本
+export function postUpVersions (data) {
+  return request({
+    url: `/upgrade/versions`,
+    method: 'post',
+    data
+  })
+}
+
 //  平台安装包卸载
 export function deleteUnloadingPlatform () {
   return request({

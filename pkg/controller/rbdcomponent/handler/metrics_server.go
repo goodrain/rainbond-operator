@@ -102,12 +102,27 @@ func (m *metricsServer) After() error {
 		return nil
 	}
 
+	if !apiServiceNeedUpgrade(apiservice, newAPIService) {
+		return nil
+	}
+
 	log.Info(fmt.Sprintf("an old api service(%s) has been found, update it.", newAPIService.GetName()))
 	newAPIService.ResourceVersion = apiservice.ResourceVersion
 	if err := m.client.Update(m.ctx, newAPIService); err != nil {
 		return fmt.Errorf("update api service: %v", err)
 	}
 	return nil
+}
+
+func apiServiceNeedUpgrade(old, new *kubeaggregatorv1beta1.APIService) bool {
+	if old.Spec.Service == nil {
+		return true
+	}
+	oldService, newService := old.Spec.Service, new.Spec.Service
+	if oldService.Name != newService.Name || oldService.Namespace != newService.Namespace {
+		return true
+	}
+	return false
 }
 
 func (m *metricsServer) ListPods() ([]corev1.Pod, error) {
@@ -196,6 +211,7 @@ func (m *metricsServer) deployment() interface{} {
 									MountPath: "/tmp",
 								},
 							},
+							Resources: m.component.Spec.Resources,
 						},
 					},
 					Volumes: []corev1.Volume{

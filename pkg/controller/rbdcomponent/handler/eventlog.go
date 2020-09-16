@@ -37,6 +37,8 @@ type eventlog struct {
 
 var _ ComponentHandler = &eventlog{}
 var _ StorageClassRWXer = &eventlog{}
+var _ ResourcesCreator = &eventlog{}
+var _ ResourcesDeleter = &eventlog{}
 
 // NewEventLog creates a new rbd-eventlog handler.
 func NewEventLog(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -75,7 +77,7 @@ func (e *eventlog) Before() error {
 
 func (e *eventlog) Resources() []interface{} {
 	return []interface{}{
-		e.deployment(),
+		e.statefulset(),
 	}
 }
 
@@ -98,7 +100,21 @@ func (e *eventlog) ResourcesCreateIfNotExists() []interface{} {
 	}
 }
 
-func (e *eventlog) deployment() interface{} {
+func (e *eventlog) ResourcesNeedDelete() []interface{} {
+	// delete deploy which created in rainbond 5.2.0
+	sts := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      EventLogName,
+			Namespace: e.component.Namespace,
+			Labels:    e.labels,
+		},
+	}
+	return []interface{}{
+		sts,
+	}
+}
+
+func (e *eventlog) statefulset() interface{} {
 	args := []string{
 		"--cluster.bind.ip=$(POD_IP)",
 		"--cluster.instance.ip=$(POD_IP)",
@@ -107,6 +123,10 @@ func (e *eventlog) deployment() interface{} {
 		"--db.url=" + strings.Replace(e.db.RegionDataSource(), "--mysql=", "", 1),
 		"--discover.etcd.addr=" + strings.Join(etcdEndpoints(e.cluster), ","),
 	}
+	if !strings.Contains(e.component.Spec.Image, "5.2.0") {
+		args = append(args, "--node-id=$(NODE_ID)")
+	}
+
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "grdata",
@@ -130,15 +150,44 @@ func (e *eventlog) deployment() interface{} {
 		args = append(args, eventLogEtcdArgs()...)
 	}
 
+	env := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{
+			Name: "NODE_ID",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+		{
+			Name:  "K8S_MASTER",
+			Value: "kubernetes",
+		},
+		{
+			Name:  "DOCKER_LOG_SAVE_DAY",
+			Value: "7",
+		},
+	}
+	env = mergeEnvs(env, e.component.Spec.Env)
+
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeTCP("", 6363)
-	ds := &appsv1.Deployment{
+	args = mergeArgs(args, e.component.Spec.Args)
+	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EventLogName,
 			Namespace: e.component.Namespace,
 			Labels:    e.labels,
 		},
-		Spec: appsv1.DeploymentSpec{
+		Spec: appsv1.StatefulSetSpec{
 			Replicas: e.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: e.labels,
@@ -156,27 +205,11 @@ func (e *eventlog) deployment() interface{} {
 							Name:            EventLogName,
 							Image:           e.component.Spec.Image,
 							ImagePullPolicy: e.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
-								},
-								{
-									Name:  "K8S_MASTER",
-									Value: "kubernetes",
-								},
-								{
-									Name:  "DOCKER_LOG_SAVE_DAY",
-									Value: "7",
-								},
-							},
-							Args:           args,
-							VolumeMounts:   volumeMounts,
-							ReadinessProbe: readinessProbe,
+							Env:             env,
+							Args:            args,
+							VolumeMounts:    volumeMounts,
+							ReadinessProbe:  readinessProbe,
+							Resources:       e.component.Spec.Resources,
 						},
 					},
 					Volumes: volumes,
@@ -185,7 +218,7 @@ func (e *eventlog) deployment() interface{} {
 		},
 	}
 
-	return ds
+	return sts
 }
 
 func eventLogEtcdArgs() []string {

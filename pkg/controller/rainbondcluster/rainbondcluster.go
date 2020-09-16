@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"sort"
 	"time"
 
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/controller/rainbondcluster/precheck"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
@@ -250,7 +250,14 @@ func (r *rainbondClusteMgr) createImagePullSecret() error {
 	}
 
 	err := r.client.Create(r.ctx, secret)
-	if err != nil && !k8sErrors.IsAlreadyExists(err) {
+	if err != nil {
+		if k8sErrors.IsAlreadyExists(err) {
+			r.log.V(7).Info("update image pull secret", "name", RdbHubCredentialsName)
+			err = r.client.Update(r.ctx, secret)
+			if err == nil {
+				return nil
+			}
+		}
 		return fmt.Errorf("create secret for pulling images: %v", err)
 	}
 
@@ -342,9 +349,11 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 	storageCondition := storagePreChecker.Check()
 	r.cluster.Status.UpdateCondition(&storageCondition)
 
-	dnsPrechecker := precheck.NewDNSPrechecker(r.cluster, r.log)
-	dnsCondition := dnsPrechecker.Check()
-	r.cluster.Status.UpdateCondition(&dnsCondition)
+	if r.cluster.Spec.InstallMode != rainbondv1alpha1.InstallationModeOffline {
+		dnsPrechecker := precheck.NewDNSPrechecker(r.cluster, r.log)
+		dnsCondition := dnsPrechecker.Check()
+		r.cluster.Status.UpdateCondition(&dnsCondition)
+	}
 
 	k8sStatusPrechecker := precheck.NewK8sStatusPrechecker(r.ctx, r.cluster, r.client, r.log)
 	k8sStatusCondition := k8sStatusPrechecker.Check()
@@ -359,6 +368,11 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 		containerNetworkPrechecker := precheck.NewContainerNetworkPrechecker(r.ctx, r.client, r.scheme, r.log, r.cluster)
 		containerNetworkCondition := containerNetworkPrechecker.Check()
 		r.cluster.Status.UpdateCondition(&containerNetworkCondition)
+	}
+
+	if idx, condition := r.cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeRunning); idx == -1 || condition.Status != corev1.ConditionTrue {
+		running := r.runningCondition()
+		r.cluster.Status.UpdateCondition(&running)
 	}
 
 	return r.cluster.Status.Conditions
@@ -435,4 +449,51 @@ func (r *rainbondClusteMgr) falseConditionNow(typ3 rainbondv1alpha1.RainbondClus
 		Reason:            "InProgress",
 		Message:           fmt.Sprintf("precheck for %s is in progress", string(typ3)),
 	}
+}
+
+func (r *rainbondClusteMgr) runningCondition() rainbondv1alpha1.RainbondClusterCondition {
+	condition := rainbondv1alpha1.RainbondClusterCondition{
+		Type:              rainbondv1alpha1.RainbondClusterConditionTypeRunning,
+		Status:            corev1.ConditionTrue,
+		LastHeartbeatTime: metav1.NewTime(time.Now()),
+	}
+
+	// list all rbdcomponents
+	rbdcomponents, err := r.listRbdComponents()
+	if err != nil {
+		return rbdutil.FailCondition(condition, "ListRbdComponentFailed", err.Error())
+	}
+
+	if len(rbdcomponents) < 10 {
+		return rbdutil.FailCondition(condition, "InsufficientRbdComponent",
+			fmt.Sprintf("insufficient number of rbdcomponents. expect %d rbdcomponents, but got %d", 10, len(rbdcomponents)))
+	}
+
+	for _, cpt := range rbdcomponents {
+		if cpt.Status == nil {
+			return rbdutil.FailCondition(condition, "RbdComponentStatusNotInit",
+				fmt.Sprintf("status of rbdcomponent(%s) is not initilized", cpt.GetName()))
+		}
+
+		idx, c := cpt.Status.GetCondition(rainbondv1alpha1.RbdComponentReady)
+		if idx == -1 {
+			return rbdutil.FailCondition(condition, "RbdComponentReadyNotFound",
+				fmt.Sprintf("condition 'RbdComponentReady' not found for %s", cpt.GetName()))
+		}
+		if c.Status == corev1.ConditionFalse {
+			return rbdutil.FailCondition(condition, "RbdComponentNotReady",
+				fmt.Sprintf("rbdcomponent(%s) not ready", cpt.GetName()))
+		}
+	}
+
+	return condition
+}
+
+func (r *rainbondClusteMgr) listRbdComponents() ([]rainbondv1alpha1.RbdComponent, error) {
+	rbdcomponentList := &rainbondv1alpha1.RbdComponentList{}
+	err := r.client.List(r.ctx, rbdcomponentList, client.InNamespace(r.cluster.Namespace))
+	if err != nil {
+		return nil, err
+	}
+	return rbdcomponentList.Items, nil
 }

@@ -9,6 +9,8 @@ import {
   getClusterInstallResults,
   getClusterInstallResultsState,
   getAccessAddress,
+  getUpVersions,
+  postUpVersions,
   deleteUnloadingPlatform,
   putInit,
   putRecord,
@@ -155,9 +157,31 @@ const installProcess = {
           })
       })
     },
-    fetchAccessAddress ({ commit }, resdata) {
+    fetchAccessAddress (_, resdata) {
       return new Promise((resolve, reject) => {
         getAccessAddress(resdata)
+          .then(response => {
+            resolve(response)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
+    fetchUpVersions (_, resdata) {
+      return new Promise((resolve, reject) => {
+        getUpVersions(resdata)
+          .then(response => {
+            resolve(response)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
+    upgradeVersion (_, resdata) {
+      return new Promise((resolve, reject) => {
+        postUpVersions(resdata)
           .then(response => {
             resolve(response)
           })

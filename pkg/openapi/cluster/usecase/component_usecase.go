@@ -6,7 +6,7 @@ import (
 
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster/store"
 
-	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/config"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	v1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
@@ -21,12 +21,12 @@ import (
 var log = logf.Log.WithName("usecase_cluster")
 
 type componentUsecase struct {
-	cfg    *option.Config
+	cfg    *config.Config
 	storer store.Storer
 }
 
 // NewComponentUsecase new component usecase.
-func NewComponentUsecase(cfg *option.Config, storer store.Storer) cluster.ComponentUsecase {
+func NewComponentUsecase(cfg *config.Config, storer store.Storer) cluster.ComponentUsecase {
 	return &componentUsecase{cfg: cfg, storer: storer}
 }
 

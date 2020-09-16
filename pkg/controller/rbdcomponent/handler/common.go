@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
@@ -325,7 +326,7 @@ func hostsAliases(cluster *rainbondv1alpha1.RainbondCluster) []corev1.HostAlias 
 	var hostAliases []corev1.HostAlias
 	if rbdutil.GetImageRepository(cluster) == constants.DefImageRepository {
 		hostAliases = append(hostAliases, corev1.HostAlias{
-			IP:        cluster.GatewayIngressIP(),
+			IP:        cluster.InnerGatewayIngressIP(),
 			Hostnames: []string{rbdutil.GetImageRepository(cluster)},
 		})
 	}
@@ -384,4 +385,43 @@ func imagePullSecrets(cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alp
 	return []corev1.LocalObjectReference{
 		cluster.Status.ImagePullSecret,
 	}
+}
+
+func mergeArgs(commonArgs, priorityArgs []string) []string {
+	prioritySet := make(map[string]struct{})
+	for _, arg := range priorityArgs {
+		prioritySet[strings.Split(arg, "=")[0]] = struct{}{}
+	}
+	for _, arg := range commonArgs {
+		key := strings.Split(arg, "=")[0]
+		if _, ok := prioritySet[key]; ok {
+			continue
+		}
+		priorityArgs = append(priorityArgs, arg)
+	}
+	return priorityArgs
+}
+
+func mergeEnvs(commonEnvs, priorityEnvs []corev1.EnvVar) []corev1.EnvVar {
+	envSet := make(map[string]struct{})
+	for _, env := range priorityEnvs {
+		envSet[env.Name] = struct{}{}
+	}
+	for _, env := range commonEnvs {
+		if _, ok := envSet[env.Name]; ok {
+			continue
+		}
+		priorityEnvs = append(priorityEnvs, env)
+	}
+	return priorityEnvs
+}
+
+func mergeResources(commonResources, priorityResources corev1.ResourceRequirements) corev1.ResourceRequirements {
+	if priorityResources.Requests != nil {
+		commonResources.Requests = priorityResources.Requests
+	}
+	if priorityResources.Limits != nil {
+		commonResources.Limits = priorityResources.Limits
+	}
+	return commonResources
 }

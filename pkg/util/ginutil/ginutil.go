@@ -3,6 +3,7 @@ package ginutil
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
+	"github.com/sirupsen/logrus"
 )
 
 // Result represents a response for restful api.
@@ -20,5 +21,11 @@ func JSON(c *gin.Context, data interface{}, err error) {
 		Msg:  bc.Msg(),
 		Data: data,
 	}
+
+	if bc == bcode.ServerErr {
+		logrus.Error(err)
+		result.Msg = err.Error()
+	}
+
 	c.JSON(bc.Status(), result)
 }

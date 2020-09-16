@@ -143,7 +143,6 @@ func (a *api) deployment() interface{} {
 	args := []string{
 		"--api-addr=0.0.0.0:8888",
 		"--enable-feature=privileged",
-		fmt.Sprintf("--log-level=%s", a.component.LogLevel()),
 		a.db.RegionDataSource(),
 		"--etcd=" + strings.Join(etcdEndpoints(a.cluster), ","),
 	}
@@ -166,6 +165,23 @@ func (a *api) deployment() interface{} {
 		)
 	}
 	a.labels["name"] = APIName
+	envs := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{
+			Name:  "EX_DOMAIN",
+			Value: a.cluster.Spec.SuffixHTTPHost,
+		},
+	}
+
+	args = mergeArgs(args, a.component.Spec.Args)
+	envs = mergeEnvs(envs, a.component.Spec.Env)
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/health", 8888)
@@ -193,23 +209,11 @@ func (a *api) deployment() interface{} {
 							Name:            APIName,
 							Image:           a.component.Spec.Image,
 							ImagePullPolicy: a.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
-								},
-								{
-									Name:  "EX_DOMAIN",
-									Value: a.cluster.Spec.SuffixHTTPHost,
-								},
-							},
-							Args:           args,
-							VolumeMounts:   volumeMounts,
-							ReadinessProbe: readinessProbe,
+							Env:             envs,
+							Args:            args,
+							VolumeMounts:    volumeMounts,
+							ReadinessProbe:  readinessProbe,
+							Resources:       a.component.Spec.Resources,
 						},
 					},
 					ServiceAccountName: "rainbond-operator",
@@ -263,7 +267,27 @@ func (a *api) createService() []interface{} {
 		},
 	}
 
-	return []interface{}{svcAPI, svcWebsocket}
+	inner := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      APIName + "-api-inner",
+			Namespace: a.component.Namespace,
+			Labels:    a.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "https",
+					Port: 8888,
+					TargetPort: intstr.IntOrString{
+						IntVal: 8888,
+					},
+				},
+			},
+			Selector: a.labels,
+		},
+	}
+
+	return []interface{}{svcAPI, svcWebsocket, inner}
 }
 
 func (a *api) getSecret(name string) (*corev1.Secret, error) {

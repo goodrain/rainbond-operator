@@ -6,7 +6,7 @@
             "language": "切换语言"
         },
         "overview": {
-            "title": "Rainbond V5.2.0-cloud 集群安装控制器",
+            "title": "Rainbond Cloud v5.2 集群安装控制器",
             "description": "企业技术中台解决方案",
             "install": "开始安装",
             "init": "集群初始化中",
@@ -68,6 +68,7 @@
                 "gatewayIPDesc": "默认域名默认解析到首个网关节点的 IP 地址，而当填写了网关公网 IP 时，会解析到网关公网IP。",
                 "chaosNode": "构建服务运行节点",
                 "ipsearch": "根据IP搜索可用节点",
+                "upgrade":"请选择版本",
                 "chaosNodeDesc": "构建服务运行节点需要拉取镜像、拉取源代码，执行镜像构建任务，一般选择具有访问公网能力的节点，搜索IP可设置集群中任意节点",
                 "shareStorage": "共享存储",
                 "newNFSServer": "新部署NFS-Server",

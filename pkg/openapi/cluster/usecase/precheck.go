@@ -3,7 +3,6 @@ package usecase
 import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	v1 "github.com/goodrain/rainbond-operator/pkg/openapi/types/v1"
-	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -30,8 +29,10 @@ func convertClusterConditions(cluster *rainbondv1alpha1.RainbondCluster) []*v1.C
 	resp = append(resp, clusterInitialized)
 
 	for _, cdt := range cluster.Status.Conditions {
-		if cdt.Type == rainbondv1alpha1.RainbondClusterConditionTypeImageRepository &&
-			cluster.Spec.ImageHub != nil && cluster.Spec.ImageHub.Domain == constants.DefImageRepository {
+		if cdt.Type == rainbondv1alpha1.RainbondClusterConditionTypeImageRepository && cdt.Reason == "DefaultImageRepoFailed" {
+			continue
+		}
+		if cdt.Type == rainbondv1alpha1.RainbondClusterConditionTypeRunning {
 			continue
 		}
 

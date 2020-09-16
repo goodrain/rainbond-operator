@@ -19,7 +19,7 @@ rainbondOperator:
   name: rainbond-operator
   image:
     repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator
-    tag: v1.0.1-cloud
+    tag: v1.1.0-cloud
     pullPolicy: IfNotPresent
   regionDBName: region
   logLevel: 4
@@ -29,12 +29,12 @@ openapi:
   name: openapi
   image:
     repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui
-    tag: v1.0.1-cloud 
+    tag: v1.1.0-cloud
     pullPolicy: IfNotPresent
   port: 8080
   nodePort: 30008
-  installMode: WithoutPackage
-  onlyRegion: false
+  installMode: Online
+  onlyRegion: true
   sentinelImage: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator-sentinel
 
 rainbond:

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/config"
 	v1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
 	"github.com/goodrain/rainbond-operator/pkg/openapi/cluster"
@@ -26,11 +26,11 @@ import (
 
 // GlobalConfigUseCaseImpl case
 type GlobalConfigUseCaseImpl struct {
-	cfg *option.Config
+	cfg *config.Config
 }
 
 // NewGlobalConfigUseCase new global config case
-func NewGlobalConfigUseCase(cfg *option.Config) cluster.GlobalConfigUseCase {
+func NewGlobalConfigUseCase(cfg *config.Config) cluster.GlobalConfigUseCase {
 	return &GlobalConfigUseCaseImpl{cfg: cfg}
 }
 
@@ -64,6 +64,34 @@ func (cc *GlobalConfigUseCaseImpl) UpdateGlobalConfig(data *v1.GlobalConfigs) er
 		}
 		return nil
 	})
+}
+
+func (cc *GlobalConfigUseCaseImpl) UpdateGatewayIP(gatewayIP string) error {
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		cls, err := cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Get(cc.cfg.ClusterName, metav1.GetOptions{})
+		if err != nil {
+			if k8sErrors.IsNotFound(err) {
+				// ignore not found
+				return nil
+			}
+			return err
+		}
+
+		cls.Spec.GatewayIngressIPs = []string{gatewayIP}
+
+		_, err = cc.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(cc.cfg.Namespace).Update(cls)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil
+	}
+
+	// TODO: update * domain
+	return nil
 }
 
 func (cc *GlobalConfigUseCaseImpl) genSuffixHTTPHost(ip string) (domain string, err error) {

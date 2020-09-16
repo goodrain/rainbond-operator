@@ -3,13 +3,13 @@ package handler
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -57,7 +57,7 @@ func (g *gateway) Before() error {
 
 func (g *gateway) Resources() []interface{} {
 	return []interface{}{
-		g.deployment(),
+		g.daemonset(),
 	}
 }
 
@@ -73,10 +73,10 @@ func (g *gateway) Replicas() *int32 {
 	return commonutil.Int32(int32(len(g.cluster.Spec.NodesForGateway)))
 }
 
-func (g *gateway) deployment() interface{} {
+func (g *gateway) daemonset() interface{} {
 	args := []string{
-		fmt.Sprintf("--log-level=%s", g.component.LogLevel()),
-		"--error-log=/dev/stderr error",
+		"--error-log=/dev/stderr",
+		"--errlog-level=error",
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(g.cluster), ","),
 	}
 
@@ -102,6 +102,19 @@ func (g *gateway) deployment() interface{} {
 		return nil
 	}
 
+	resources := corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("256Mi"),
+			corev1.ResourceCPU:    resource.MustParse("0m"),
+		},
+		Limits: corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("1024Mi"),
+			corev1.ResourceCPU:    resource.MustParse("1000m"),
+		},
+	}
+	resources = mergeResources(resources, g.component.Spec.Resources)
+
+	args = mergeArgs(args, g.component.Spec.Args)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayName,
@@ -136,16 +149,7 @@ func (g *gateway) deployment() interface{} {
 							ImagePullPolicy: g.component.ImagePullPolicy(),
 							Args:            args,
 							VolumeMounts:    volumeMounts,
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("256Mi"),
-									corev1.ResourceCPU:    resource.MustParse("0m"),
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("1024Mi"),
-									corev1.ResourceCPU:    resource.MustParse("1000m"),
-								},
-							},
+							Resources:       resources,
 						},
 					},
 					Volumes: volumes,

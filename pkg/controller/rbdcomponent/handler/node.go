@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
-
+	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
 	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
-
-	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +37,7 @@ type node struct {
 
 var _ ComponentHandler = &node{}
 var _ StorageClassRWXer = &node{}
-var _ K8sResourcesInterface = &node{}
+var _ ResourcesCreator = &node{}
 var _ Replicaser = &node{}
 
 // NewNode creates a new rbd-node handler.
@@ -200,7 +198,6 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 		},
 	}
 	args := []string{
-		fmt.Sprintf("--log-level=%s", n.component.LogLevel()),
 		"--etcd=" + strings.Join(etcdEndpoints(n.cluster), ","),
 		"--hostIP=$(POD_IP)",
 		"--run-mode master",
@@ -244,9 +241,11 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 			Value: hubImageRepository,
 		})
 	}
+	envs = mergeEnvs(envs, n.component.Spec.Env)
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/ping", 6100)
+	args = mergeArgs(args, n.component.Spec.Args)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      NodeName,

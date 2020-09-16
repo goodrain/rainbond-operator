@@ -306,8 +306,6 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 		p.version = c.Spec.InstallVersion
 	}
 	p.localPackagePath = p.pkg.Spec.PkgPath
-	p.downloadPackageURL = c.Spec.InstallPackageConfig.URL
-	p.downloadPackageMD5 = c.Spec.InstallPackageConfig.MD5
 	p.cluster = c
 	// TODO: Is it possible to handle the tag when packaging
 	p.images = map[string]string{
@@ -352,10 +350,7 @@ func (p *pkg) checkClusterConfig() error {
 		return err
 	}
 	switch cluster.Spec.InstallMode {
-	case rainbondv1alpha1.InstallationModeWithPackage:
-		p.downloadPackage = true
 	default:
-		p.downloadPackage = false
 		p.downloadImageDomain = cluster.Spec.RainbondImageRepository
 		if p.downloadImageDomain == "" {
 			p.downloadImageDomain = "rainbond"
@@ -574,7 +569,7 @@ func (p *pkg) donwnloadPackage() error {
 
 //handle
 func (p *pkg) handle() error {
-	p.log.V(4).Info("start handling rainbond package.")
+	p.log.V(6).Info("start handling rainbond package.")
 	// check prerequisites
 	if err := p.checkClusterConfig(); err != nil {
 		p.log.V(6).Info(fmt.Sprintf("check cluster config: %v", err))

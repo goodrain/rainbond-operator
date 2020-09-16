@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/goodrain/rainbond-operator/cmd/openapi/option"
+	"github.com/goodrain/rainbond-operator/cmd/openapi/config"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/generated/clientset/versioned"
 	"github.com/goodrain/rainbond-operator/pkg/library/bcode"
@@ -25,7 +25,7 @@ import (
 )
 
 type clusterUsecase struct {
-	cfg            *option.Config
+	cfg            *config.Config
 	clientset      kubernetes.Interface
 	rainbondClient versioned.Interface
 	namespace      string
@@ -37,7 +37,7 @@ type clusterUsecase struct {
 }
 
 // NewClusterUsecase creates a new cluster.Usecase.
-func NewClusterUsecase(cfg *option.Config, repo cluster.Repository, cptUcase cluster.ComponentUsecase, nodestorer nodestore.Interface) cluster.Usecase {
+func NewClusterUsecase(cfg *config.Config, repo cluster.Repository, cptUcase cluster.ComponentUsecase, nodestorer nodestore.Interface) cluster.Usecase {
 	return &clusterUsecase{
 		cfg:            cfg,
 		clientset:      cfg.KubeClient,
@@ -287,6 +287,8 @@ func (c *clusterUsecase) hackClusterInfo(rainbondCluster *rainbondv1alpha1.Rainb
 
 	// get enterprise from repo
 	status.ClusterInfo.EnterpriseID = c.repo.EnterpriseID(eid)
+
+	status.ClusterInfo.HighAvailability = rainbondCluster.Spec.EnableHA
 }
 
 // no rainbondcluster cr means cluster status is waiting
@@ -380,24 +382,12 @@ func (c *clusterUsecase) handleComponentStatus(cluster *rainbondv1alpha1.Rainbon
 	}
 	status.FinalStatus = model.Installing
 
-	readyCount := 0
-	terminal := false
-	for _, component := range componentList {
-		if component.Status == v1.ComponentStatusRunning {
-			readyCount++
-		}
-		if component.Status == v1.ComponentStatusTerminating { //TODO terminal uninstalling
-			terminal = true
-		}
-	}
-	if terminal {
-		status.FinalStatus = model.UnInstalling
+	idx, condition := cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeRunning)
+	if idx != -1 && condition.Status == corev1.ConditionTrue {
+		status.FinalStatus = model.Running
 		return status
 	}
-	if readyCount != len(componentList) {
-		return status
-	}
-	status.FinalStatus = model.Running
+
 	return status
 }
 
@@ -413,35 +403,33 @@ func (c *clusterUsecase) getCluster() (*rainbondv1alpha1.RainbondCluster, error)
 
 func (c *clusterUsecase) createCluster() (*rainbondv1alpha1.RainbondCluster, error) {
 	installMode := rainbondv1alpha1.InstallationModeWithoutPackage
-	if c.cfg.InstallMode == string(rainbondv1alpha1.InstallationModeWithPackage) {
-		installMode = rainbondv1alpha1.InstallationModeWithPackage
-	}
 	if c.cfg.InstallMode == string(rainbondv1alpha1.InstallationModeFullOnline) {
 		installMode = rainbondv1alpha1.InstallationModeFullOnline
 	}
+	if c.cfg.InstallMode == string(rainbondv1alpha1.InstallationModeOffline) {
+		installMode = rainbondv1alpha1.InstallationModeOffline
+	}
 
-	cluster := &rainbondv1alpha1.RainbondCluster{
+	cls := &rainbondv1alpha1.RainbondCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: c.cfg.Namespace,
 			Name:      c.cfg.ClusterName,
 		},
 		Spec: rainbondv1alpha1.RainbondClusterSpec{
 			RainbondImageRepository: c.cfg.RainbondImageRepository,
-			InstallPackageConfig: rainbondv1alpha1.InstallPackageConfig{
-				URL: c.cfg.DownloadURL,
-				MD5: c.cfg.DownloadMD5,
-			},
-			InstallMode:   installMode,
-			SentinelImage: c.cfg.SentinelImage,
+			InstallMode:             installMode,
+			SentinelImage:           c.cfg.SentinelImage,
+			InstallVersion:          c.cfg.RainbondVersion,
+			EnableHA:                false,
 		},
 	}
 
 	annotations := make(map[string]string)
 	annotations["install_id"] = uuidutil.NewUUID()
 	annotations["enterprise_id"] = c.repo.EnterpriseID("")
-	cluster.Annotations = annotations
+	cls.Annotations = annotations
 
-	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cluster)
+	return c.cfg.RainbondKubeClient.RainbondV1alpha1().RainbondClusters(c.cfg.Namespace).Create(cls)
 }
 
 func (c *clusterUsecase) getRainbondPackage() (*rainbondv1alpha1.RainbondPackage, error) {

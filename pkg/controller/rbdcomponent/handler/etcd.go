@@ -3,6 +3,9 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"time"
 
 	etcdv1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	"github.com/docker/distribution/reference"
@@ -23,6 +26,7 @@ type etcd struct {
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
 	labels    map[string]string
+	affinity  *corev1.VolumeNodeAffinity
 
 	pvcParametersRWO *pvcParameters
 	storageRequest   int64
@@ -31,6 +35,7 @@ type etcd struct {
 var _ ComponentHandler = &etcd{}
 var _ StorageClassRWOer = &etcd{}
 var _ Replicaser = &etcd{}
+var _ ClusterScopedResourcesCreator = &etcd{}
 
 // NewETCD creates a new rbd-etcd handler.
 func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -53,6 +58,12 @@ func (e *etcd) Before() error {
 	if err := setStorageCassName(e.ctx, e.client, e.component.Namespace, e); err != nil {
 		return err
 	}
+
+	affinity, err := nodeAffnityNodesForChaos(e.cluster)
+	if err != nil {
+		return err
+	}
+	e.affinity = affinity
 
 	return nil
 }
@@ -90,9 +101,22 @@ func (e *etcd) Replicas() *int32 {
 	return commonutil.Int32(1)
 }
 
+func (e *etcd) CreateClusterScoped() []interface{} {
+	return []interface{}{
+		e.pv(),
+	}
+}
+
 func (e *etcd) statefulsetForEtcd() interface{} {
-	claimName := "data"
-	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO, e.labels, e.storageRequest)
+	env := []corev1.EnvVar{
+		{
+			Name:  "ETCD_QUOTA_BACKEND_BYTES",
+			Value: "4294967296", // 4 Gi
+		},
+	}
+	env = mergeEnvs(env, e.component.Spec.Env)
+
+	pvc := e.pvc()
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EtcdName,
@@ -140,12 +164,7 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 								"--auto-compaction-retention",
 								"1",
 							},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "ETCD_QUOTA_BACKEND_BYTES",
-									Value: "4294967296", // 4 Gi
-								},
-							},
+							Env: env,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "client",
@@ -158,10 +177,11 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      claimName,
+									Name:      pvc.GetName(),
 									MountPath: "/var/run/etcd",
 								},
 							},
+							Resources: e.component.Spec.Resources,
 						},
 					},
 				},
@@ -491,4 +511,58 @@ func (e *etcd) etcdCluster() *etcdv1beta2.EtcdCluster {
 	}
 
 	return ec
+}
+
+func (e *etcd) pv() *corev1.PersistentVolume {
+	pv := &corev1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   EtcdName,
+			Labels: e.labels,
+		},
+	}
+
+	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
+	spec := corev1.PersistentVolumeSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{
+			corev1.ReadWriteOnce,
+		},
+		Capacity: corev1.ResourceList{
+			corev1.ResourceStorage: *size,
+		},
+		StorageClassName: "manual",
+		NodeAffinity:     e.affinity,
+	}
+
+	hostPath := &corev1.HostPathVolumeSource{
+		Path: "/opt/rainbond/data/etcd" + time.Now().Format("20060102150405"),
+		Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+	}
+	spec.HostPath = hostPath
+
+	pv.Spec = spec
+
+	return pv
+}
+
+func (e *etcd) pvc() *corev1.PersistentVolumeClaim {
+	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   EtcdName,
+			Labels: e.labels,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+			Resources: corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceStorage: *size,
+				},
+			},
+			VolumeName:       EtcdName,
+			StorageClassName: commonutil.String("manual"),
+		},
+	}
+	return pvc
 }

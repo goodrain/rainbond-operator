@@ -100,6 +100,7 @@ func (r *repo) statefulset() interface{} {
 									MountPath: "/var/opt/jfrog/artifactory",
 								},
 							},
+							Resources: r.component.Spec.Resources,
 						},
 					},
 				},

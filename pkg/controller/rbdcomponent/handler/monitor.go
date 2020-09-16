@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
@@ -92,7 +93,6 @@ func (m *monitor) statefulset() interface{} {
 		"--storage.tsdb.path=/prometheusdata",
 		"--storage.tsdb.no-lockfile",
 		"--storage.tsdb.retention=7d",
-		fmt.Sprintf("--log.level=%s", m.component.LogLevel()),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(m.cluster), ","),
 	}
 	volumeMounts := []corev1.VolumeMount{
@@ -108,9 +108,29 @@ func (m *monitor) statefulset() interface{} {
 		volumes = append(volumes, volume)
 		args = append(args, etcdSSLArgs()...)
 	}
+	env := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+	}
+	env = mergeEnvs(env, m.component.Spec.Env)
+
+	resources := corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("1024Mi"),
+			corev1.ResourceCPU:    resource.MustParse("1000m"),
+		},
+	}
+	resources = mergeResources(resources, m.component.Spec.Resources)
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/monitor/health", 3329)
+	args = mergeArgs(args, m.component.Spec.Args)
 	ds := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MonitorName,
@@ -136,19 +156,11 @@ func (m *monitor) statefulset() interface{} {
 							Name:            MonitorName,
 							Image:           m.component.Spec.Image,
 							ImagePullPolicy: m.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
-								},
-							},
-							Args:           args,
-							VolumeMounts:   volumeMounts,
-							ReadinessProbe: readinessProbe,
+							Env:             env,
+							Args:            args,
+							VolumeMounts:    volumeMounts,
+							ReadinessProbe:  readinessProbe,
+							Resources:       resources,
 						},
 					},
 					Volumes: volumes,
