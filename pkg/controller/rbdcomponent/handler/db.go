@@ -182,9 +182,51 @@ func (d *db) statefulsetForDB() interface{} {
 			Value: regionDBName,
 		},
 	}
-	env = mergeEnvs(env, d.component.Spec.Env)
 
 	pvc := d.pvc()
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      pvc.GetName(),
+			MountPath: "/var/lib/mysql",
+			SubPath:   "mysql",
+		},
+		{
+			Name:      "initdb",
+			MountPath: "/docker-entrypoint-initdb.d",
+		},
+		{
+			Name:      mycnf,
+			MountPath: "/etc/my.cnf",
+			SubPath:   "my.cnf",
+		},
+	}
+	volumes := []corev1.Volume{
+		{
+			Name: "initdb",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "rbd-db-initdb",
+					},
+				},
+			},
+		},
+		{
+			Name: mycnf,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: mycnf,
+					},
+				},
+			},
+		},
+	}
+
+	env = mergeEnvs(env, d.component.Spec.Env)
+	volumeMounts = mergeVolumeMounts(volumeMounts, d.component.Spec.VolumeMounts)
+	volumes = mergeVolumes(volumes, d.component.Spec.Volumes)
+
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
@@ -210,22 +252,7 @@ func (d *db) statefulsetForDB() interface{} {
 							Image:           d.component.Spec.Image,
 							ImagePullPolicy: d.component.ImagePullPolicy(),
 							Env:             env,
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      pvc.GetName(),
-									MountPath: "/var/lib/mysql",
-									SubPath:   "mysql",
-								},
-								{
-									Name:      "initdb",
-									MountPath: "/docker-entrypoint-initdb.d",
-								},
-								{
-									Name:      mycnf,
-									MountPath: "/etc/my.cnf",
-									SubPath:   "my.cnf",
-								},
-							},
+							VolumeMounts:    volumeMounts,
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									Exec: &corev1.ExecAction{Command: []string{"mysql", "-u" + d.mysqlUser, "-p" + d.mysqlPassword, "-e", "SELECT 1"}},
@@ -248,28 +275,7 @@ func (d *db) statefulsetForDB() interface{} {
 							},
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "initdb",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "rbd-db-initdb",
-									},
-								},
-							},
-						},
-						{
-							Name: mycnf,
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: mycnf,
-									},
-								},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*pvc},

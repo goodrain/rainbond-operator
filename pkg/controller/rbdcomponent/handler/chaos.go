@@ -215,11 +215,14 @@ func (c *chaos) deployment() interface{} {
 			Value: imageHub.Password,
 		})
 	}
+
 	env = mergeEnvs(env, c.component.Spec.Env)
+	volumeMounts = mergeVolumeMounts(volumeMounts, c.component.Spec.VolumeMounts)
+	volumes = mergeVolumes(volumes, c.component.Spec.Volumes)
+	args = mergeArgs(args, c.component.Spec.Args)
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/builder/health", 3228)
-	args = mergeArgs(args, c.component.Spec.Args)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ChaosName,

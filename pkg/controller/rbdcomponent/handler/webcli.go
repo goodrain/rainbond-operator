@@ -77,7 +77,10 @@ func (w *webcli) deployment() interface{} {
 		args = append(args, etcdSSLArgs()...)
 	}
 
+	volumeMounts = mergeVolumeMounts(volumeMounts, w.component.Spec.VolumeMounts)
+	volumes = mergeVolumes(volumes, w.component.Spec.Volumes)
 	args = mergeArgs(args, w.component.Spec.Args)
+
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      WebCliName,

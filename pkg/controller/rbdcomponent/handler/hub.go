@@ -111,7 +111,45 @@ func (h *hub) deployment() interface{} {
 			Value: "/auth/htpasswd",
 		},
 	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "hubdata",
+			MountPath: "/var/lib/registry",
+		},
+		{
+			Name:      "htpasswd",
+			MountPath: "/auth",
+			ReadOnly:  true,
+		},
+	}
+	volumes := []corev1.Volume{
+		{
+			Name: "hubdata",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: hubDataPvcName,
+				},
+			},
+		},
+		{
+			Name: "htpasswd",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: "hub-image-repository",
+					Items: []corev1.KeyToPath{
+						{
+							Key:  "HTPASSWD",
+							Path: "htpasswd",
+						},
+					},
+				},
+			},
+		},
+	}
+
 	env = mergeEnvs(env, h.component.Spec.Env)
+	volumeMounts = mergeVolumeMounts(volumeMounts, h.component.Spec.VolumeMounts)
+	volumes = mergeVolumes(volumes, h.component.Spec.Volumes)
 
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -138,44 +176,11 @@ func (h *hub) deployment() interface{} {
 							Image:           h.component.Spec.Image,
 							ImagePullPolicy: h.component.ImagePullPolicy(),
 							Env:             env,
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "hubdata",
-									MountPath: "/var/lib/registry",
-								},
-								{
-									Name:      "htpasswd",
-									MountPath: "/auth",
-									ReadOnly:  true,
-								},
-							},
-							Resources: h.component.Spec.Resources,
+							VolumeMounts:    volumeMounts,
+							Resources:       h.component.Spec.Resources,
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "hubdata",
-							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: hubDataPvcName,
-								},
-							},
-						},
-						{
-							Name: "htpasswd",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: "hub-image-repository",
-									Items: []corev1.KeyToPath{
-										{
-											Key:  "HTPASSWD",
-											Path: "htpasswd",
-										},
-									},
-								},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 		},

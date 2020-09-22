@@ -70,6 +70,15 @@ func (r *repo) statefulset() interface{} {
 	claimName := "data"
 	repoDataPVC := createPersistentVolumeClaimRWO(r.component.Namespace, claimName, r.pvcParametersRWO, r.labels, r.storageRequest)
 
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      claimName,
+			MountPath: "/var/opt/jfrog/artifactory",
+		},
+	}
+
+	volumeMounts = mergeVolumeMounts(volumeMounts, r.component.Spec.VolumeMounts)
+
 	ds := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      RepoName,
@@ -94,13 +103,8 @@ func (r *repo) statefulset() interface{} {
 							Name:            RepoName,
 							Image:           r.component.Spec.Image,
 							ImagePullPolicy: r.component.ImagePullPolicy(),
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      claimName,
-									MountPath: "/var/opt/jfrog/artifactory",
-								},
-							},
-							Resources: r.component.Spec.Resources,
+							VolumeMounts:    volumeMounts,
+							Resources:       r.component.Spec.Resources,
 						},
 					},
 				},

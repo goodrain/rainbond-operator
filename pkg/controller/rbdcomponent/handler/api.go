@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
@@ -182,6 +181,8 @@ func (a *api) deployment() interface{} {
 
 	args = mergeArgs(args, a.component.Spec.Args)
 	envs = mergeEnvs(envs, a.component.Spec.Env)
+	volumeMounts = mergeVolumeMounts(volumeMounts, a.component.Spec.VolumeMounts)
+	volumes = mergeVolumes(volumes, a.component.Spec.Volumes)
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/health", 8888)

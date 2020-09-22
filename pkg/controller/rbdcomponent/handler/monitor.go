@@ -118,7 +118,6 @@ func (m *monitor) statefulset() interface{} {
 			},
 		},
 	}
-	env = mergeEnvs(env, m.component.Spec.Env)
 
 	resources := corev1.ResourceRequirements{
 		Limits: corev1.ResourceList{
@@ -126,11 +125,15 @@ func (m *monitor) statefulset() interface{} {
 			corev1.ResourceCPU:    resource.MustParse("1000m"),
 		},
 	}
+
+	env = mergeEnvs(env, m.component.Spec.Env)
 	resources = mergeResources(resources, m.component.Spec.Resources)
+	args = mergeArgs(args, m.component.Spec.Args)
+	volumeMounts = mergeVolumeMounts(volumeMounts, m.component.Spec.VolumeMounts)
+	volumes = mergeVolumes(volumes, m.component.Spec.Volumes)
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/monitor/health", 3329)
-	args = mergeArgs(args, m.component.Spec.Args)
 	ds := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MonitorName,

@@ -163,7 +163,44 @@ func (a *appui) deploymentForAppUI() interface{} {
 			Value: a.cluster.Spec.ImageHub.Domain,
 		},
 	}
+	volumes := []corev1.Volume{
+		{
+			Name: "ssl",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: apiClientSecretName,
+				},
+			},
+		},
+		{
+			Name: "app",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: a.pvcName,
+				},
+			},
+		},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "ssl",
+			MountPath: "/app/region/ssl",
+		},
+		{
+			Name:      "app",
+			MountPath: "/app/logs/",
+			SubPath:   "logs",
+		},
+		{
+			Name:      "app",
+			MountPath: "/app/lock",
+			SubPath:   "lock",
+		},
+	}
+
 	envs = mergeEnvs(envs, a.component.Spec.Env)
+	volumeMounts = mergeVolumeMounts(volumeMounts, a.component.Spec.VolumeMounts)
+	volumes = mergeVolumes(volumes, a.component.Spec.Volumes)
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeTCP("", 7070)
@@ -192,44 +229,12 @@ func (a *appui) deploymentForAppUI() interface{} {
 							Image:           cpt.Spec.Image,
 							ImagePullPolicy: cpt.ImagePullPolicy(),
 							Env:             envs,
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "ssl",
-									MountPath: "/app/region/ssl",
-								},
-								{
-									Name:      "app",
-									MountPath: "/app/logs/",
-									SubPath:   "logs",
-								},
-								{
-									Name:      "app",
-									MountPath: "/app/lock",
-									SubPath:   "lock",
-								},
-							},
-							ReadinessProbe: readinessProbe,
-							Resources:      a.component.Spec.Resources,
+							VolumeMounts:    volumeMounts,
+							ReadinessProbe:  readinessProbe,
+							Resources:       a.component.Spec.Resources,
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "ssl",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: apiClientSecretName,
-								},
-							},
-						},
-						{
-							Name: "app",
-							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: a.pvcName,
-								},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 		},

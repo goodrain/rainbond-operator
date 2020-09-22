@@ -6,12 +6,10 @@ import (
 	"path"
 	"strings"
 
-	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
-
-	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	"github.com/goodrain/rainbond-operator/pkg/util/constants"
+	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -176,11 +174,14 @@ func (e *eventlog) statefulset() interface{} {
 			Value: "7",
 		},
 	}
+
 	env = mergeEnvs(env, e.component.Spec.Env)
+	volumeMounts = mergeVolumeMounts(volumeMounts, e.component.Spec.VolumeMounts)
+	volumes = mergeVolumes(volumes, e.component.Spec.Volumes)
+	args = mergeArgs(args, e.component.Spec.Args)
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeTCP("", 6363)
-	args = mergeArgs(args, e.component.Spec.Args)
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EventLogName,

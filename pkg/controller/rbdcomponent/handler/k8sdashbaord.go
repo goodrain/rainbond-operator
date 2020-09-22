@@ -68,6 +68,36 @@ func (k *k8sdashbaord) deploymentForKubernetesDashboard() interface{} {
 	labels := copyLabels(k.labels)
 	labels["name"] = KubernetesDashboardName
 
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "tmp-volume",
+			MountPath: "/tmp",
+		},
+		{
+			Name:      "kubernetes-dashboard-certs",
+			MountPath: "/certs",
+		},
+	}
+	volumes := []corev1.Volume{
+		{
+			Name: "tmp-volume",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: "kubernetes-dashboard-certs",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: "kubernetes-dashboard-certs",
+				},
+			},
+		},
+	}
+
+	volumeMounts = mergeVolumeMounts(volumeMounts, k.component.Spec.VolumeMounts)
+	volumes = mergeVolumes(volumes, k.component.Spec.Volumes)
+
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      KubernetesDashboardName,
@@ -112,35 +142,11 @@ func (k *k8sdashbaord) deploymentForKubernetesDashboard() interface{} {
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),
 							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "tmp-volume",
-									MountPath: "/tmp",
-								},
-								{
-									Name:      "kubernetes-dashboard-certs",
-									MountPath: "/certs",
-								},
-							},
-							Resources: k.component.Spec.Resources,
+							VolumeMounts: volumeMounts,
+							Resources:    k.component.Spec.Resources,
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "tmp-volume",
-							VolumeSource: corev1.VolumeSource{
-								EmptyDir: &corev1.EmptyDirVolumeSource{},
-							},
-						},
-						{
-							Name: "kubernetes-dashboard-certs",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: "kubernetes-dashboard-certs",
-								},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 		},

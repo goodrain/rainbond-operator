@@ -112,9 +112,13 @@ func (g *gateway) daemonset() interface{} {
 			corev1.ResourceCPU:    resource.MustParse("1000m"),
 		},
 	}
-	resources = mergeResources(resources, g.component.Spec.Resources)
 
+	// merge attributes
+	volumeMounts = mergeVolumeMounts(volumeMounts, g.component.Spec.VolumeMounts)
+	volumes = mergeVolumes(volumes, g.component.Spec.Volumes)
+	resources = mergeResources(resources, g.component.Spec.Resources)
 	args = mergeArgs(args, g.component.Spec.Args)
+
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayName,

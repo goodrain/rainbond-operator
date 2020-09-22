@@ -84,9 +84,12 @@ func (m *mq) deployment() interface{} {
 			},
 		},
 	}
-	env = mergeEnvs(env, m.component.Spec.Env)
 
+	env = mergeEnvs(env, m.component.Spec.Env)
 	args = mergeArgs(args, m.component.Spec.Args)
+	volumeMounts = mergeVolumeMounts(volumeMounts, m.component.Spec.VolumeMounts)
+	volumes = mergeVolumes(volumes, m.component.Spec.Volumes)
+
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MQName,
