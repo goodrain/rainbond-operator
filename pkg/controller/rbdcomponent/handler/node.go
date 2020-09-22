@@ -213,6 +213,9 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 		volumes = append(volumes, volume)
 		args = append(args, etcdSSLArgs()...)
 	}
+	volumeMounts = mergeVolumeMounts(volumeMounts, n.component.Spec.VolumeMounts)
+	volumes = mergeVolumes(volumes, n.component.Spec.Volumes)
+
 	envs := []corev1.EnvVar{
 		{
 			Name: "POD_IP",

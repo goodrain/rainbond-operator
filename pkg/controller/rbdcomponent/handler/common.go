@@ -425,3 +425,31 @@ func mergeResources(commonResources, priorityResources corev1.ResourceRequiremen
 	}
 	return commonResources
 }
+
+func mergeVolumes(commonVolumes, priorityVolumes []corev1.Volume) []corev1.Volume {
+	set := make(map[string]struct{})
+	for _, vol := range priorityVolumes {
+		set[vol.Name] = struct{}{}
+	}
+	for _, vol := range commonVolumes {
+		if _, ok := set[vol.Name]; ok {
+			continue
+		}
+		priorityVolumes = append(priorityVolumes, vol)
+	}
+	return priorityVolumes
+}
+
+func mergeVolumeMounts(commonMountVolumes, priorityMountVolumes []corev1.VolumeMount) []corev1.VolumeMount {
+	set := make(map[string]struct{})
+	for _, vol := range priorityMountVolumes {
+		set[vol.Name] = struct{}{}
+	}
+	for _, vol := range commonMountVolumes {
+		if _, ok := set[vol.Name]; ok {
+			continue
+		}
+		priorityMountVolumes = append(priorityMountVolumes, vol)
+	}
+	return priorityMountVolumes
+}
