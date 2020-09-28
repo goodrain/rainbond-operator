@@ -141,7 +141,7 @@ func (c *chaos) deployment() interface{} {
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/var/run/docker.sock",
-					Type: k8sutil.HostPath(corev1.HostPathFile),
+					Type: k8sutil.HostPath(corev1.HostPathSocket),
 				},
 			},
 		},
