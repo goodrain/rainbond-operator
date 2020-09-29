@@ -297,20 +297,65 @@ func (c *chaos) service() *corev1.Service {
 }
 
 func (c *chaos) defaultMavenSetting() *corev1.ConfigMap {
-	var mavensetting = `
-	<?xml version="1.0" encoding="UTF-8"?>
-    <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-              xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
-        <mirrors>
-            <mirror>
+	var mavensetting = `<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                      http://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <localRepository/>
+  <interactiveMode/>
+  <usePluginRegistry/>
+  <offline/>
+  <pluginGroups/>
+  <servers/>
+  <mirrors>
+    <mirror>
+     <id>aliyunmaven</id>
+     <mirrorOf>central</mirrorOf>
+     <name>阿里云公共仓库</name>
+     <url>https://maven.aliyun.com/repository/central</url>
+    </mirror>
+    <mirror>
+      <id>repo1</id>
+      <mirrorOf>central</mirrorOf>
+      <name>central repo</name>
+      <url>http://repo1.maven.org/maven2/</url>
+    </mirror>
+    <mirror>
+     <id>aliyunmaven</id>
+     <mirrorOf>apache snapshots</mirrorOf>
+     <name>阿里云阿帕奇仓库</name>
+     <url>https://maven.aliyun.com/repository/apache-snapshots</url>
+    </mirror>
+  </mirrors>
+  <proxies/>
+  <activeProfiles/>
+  <profiles>
+    <profile>  
+        <repositories>
+           <repository>
                 <id>aliyunmaven</id>
-                <mirrorOf>central</mirrorOf>
-                <name>阿里云公共仓库</name>
+                <name>aliyunmaven</name>
                 <url>https://maven.aliyun.com/repository/public</url>
-            </mirror>
-        </mirrors>
-    </settings>
+                <layout>default</layout>
+                <releases>
+                        <enabled>true</enabled>
+                </releases>
+                <snapshots>
+                        <enabled>true</enabled>
+                </snapshots>
+            </repository>
+            <repository>
+                <id>MavenCentral</id>
+                <url>http://repo1.maven.org/maven2/</url>
+            </repository>
+            <repository>
+                <id>aliyunmavenApache</id>
+                <url>https://maven.aliyun.com/repository/apache-snapshots</url>
+            </repository>
+        </repositories>             
+     </profile>
+  </profiles>
+</settings>
 	`
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -318,6 +363,7 @@ func (c *chaos) defaultMavenSetting() *corev1.ConfigMap {
 			Namespace: c.component.Namespace,
 			Labels: rbdutil.LabelsForRainbond(map[string]string{
 				"configtype": "mavensetting",
+				"default":    "true",
 			}),
 		},
 		Data: map[string]string{
