@@ -4,5 +4,5 @@ metadata:
   name: rbd-app-ui
   namespace: rbd-system
 spec:
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-app-ui:V5.2-dev
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-app-ui:master-dev
   priorityComponent: true

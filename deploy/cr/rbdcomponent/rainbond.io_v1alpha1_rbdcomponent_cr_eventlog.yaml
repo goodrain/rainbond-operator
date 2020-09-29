@@ -4,5 +4,5 @@ metadata:
   name: rbd-eventlog
   namespace: rbd-system
 spec:
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-eventlog:V5.2-dev
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-eventlog:master-dev
   priorityComponent: true

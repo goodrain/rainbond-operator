@@ -3,6 +3,8 @@ package handler
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
@@ -11,10 +13,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// RepoName name for rbd-repo.
-var RepoName = "rbd-repo"
+// ResourceProxyName name for rbd-resource-proxy.
+var ResourceProxyName = "rbd-resource-proxy"
 
-type repo struct {
+type resourceProxy struct {
 	ctx       context.Context
 	client    client.Client
 	component *rainbondv1alpha1.RbdComponent
@@ -25,74 +27,84 @@ type repo struct {
 	storageRequest   int64
 }
 
-var _ ComponentHandler = &repo{}
-var _ StorageClassRWOer = &repo{}
+var _ ComponentHandler = &resourceProxy{}
+var _ StorageClassRWOer = &resourceProxy{}
 
-// NewRepo creates a new rbd-repo hanlder.
-func NewRepo(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
-	return &repo{
+// NewResourceProxy creates a new rbd-resourceProxy hanlder.
+func NewResourceProxy(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+	return &resourceProxy{
 		ctx:            ctx,
 		client:         client,
 		component:      component,
 		cluster:        cluster,
 		labels:         LabelsForRainbondComponent(component),
-		storageRequest: getStorageRequest("REPO_DATA_STORAGE_REQUEST", 21),
+		storageRequest: getStorageRequest("RESOURCE_PROXY_DATA_STORAGE_REQUEST", 21),
 	}
 }
 
-func (r *repo) Before() error {
+func (r *resourceProxy) Before() error {
 	if err := setStorageCassName(r.ctx, r.client, r.component.Namespace, r); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *repo) Resources() []interface{} {
-	return []interface{}{
-		r.statefulset(),
-		r.serviceForRepo(),
-	}
+func (r *resourceProxy) Resources() []interface{} {
+	return r.resource()
 }
 
-func (r *repo) After() error {
+func (r *resourceProxy) After() error {
 	return nil
 }
 
-func (r *repo) ListPods() ([]corev1.Pod, error) {
+func (r *resourceProxy) ListPods() ([]corev1.Pod, error) {
 	return listPods(r.ctx, r.client, r.component.Namespace, r.labels)
 }
 
-func (r *repo) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
+func (r *resourceProxy) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
 	r.pvcParametersRWO = pvcParameters
 }
 
-func (r *repo) statefulset() interface{} {
+func (r *resourceProxy) resource() []interface{} {
 	claimName := "data"
-	repoDataPVC := createPersistentVolumeClaimRWO(r.component.Namespace, claimName, r.pvcParametersRWO, r.labels, r.storageRequest)
+	resourceProxyDataPVC := createPersistentVolumeClaimRWO(r.component.Namespace, claimName, r.pvcParametersRWO, r.labels, r.storageRequest)
 
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      claimName,
-			MountPath: "/var/opt/jfrog/artifactory",
+			MountPath: "/data/nginx/cache",
 		},
 	}
 
 	volumeMounts = mergeVolumeMounts(volumeMounts, r.component.Spec.VolumeMounts)
 
-	ds := &appsv1.StatefulSet{
+	resources := corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("512Mi"),
+			corev1.ResourceCPU:    resource.MustParse("1000m"),
+		},
+		Requests: corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("64Mi"),
+			corev1.ResourceCPU:    resource.MustParse("100m"),
+		},
+	}
+
+	resources = mergeResources(resources, r.component.Spec.Resources)
+
+	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      RepoName,
+			Name:      ResourceProxyName,
 			Namespace: r.component.Namespace,
 			Labels:    r.labels,
 		},
-		Spec: appsv1.StatefulSetSpec{
+		Spec: appsv1.DeploymentSpec{
 			Replicas: r.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: r.labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   RepoName,
+					Name:   ResourceProxyName,
 					Labels: r.labels,
 				},
 				Spec: corev1.PodSpec{
@@ -100,28 +112,32 @@ func (r *repo) statefulset() interface{} {
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{
-							Name:            RepoName,
+							Name:            ResourceProxyName,
 							Image:           r.component.Spec.Image,
 							ImagePullPolicy: r.component.ImagePullPolicy(),
 							VolumeMounts:    volumeMounts,
-							Resources:       r.component.Spec.Resources,
+							Resources:       resources,
+							Args:            r.component.Spec.Args,
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: claimName,
+							VolumeSource: corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: claimName,
+								},
+							},
 						},
 					},
 				},
 			},
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
-				*repoDataPVC,
-			},
 		},
 	}
 
-	return ds
-}
-
-func (r *repo) serviceForRepo() interface{} {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      RepoName,
+			Name:      ResourceProxyName,
 			Namespace: r.component.Namespace,
 			Labels:    r.labels,
 		},
@@ -135,5 +151,5 @@ func (r *repo) serviceForRepo() interface{} {
 			Selector: r.labels,
 		},
 	}
-	return svc
+	return []interface{}{ds, resourceProxyDataPVC, svc}
 }

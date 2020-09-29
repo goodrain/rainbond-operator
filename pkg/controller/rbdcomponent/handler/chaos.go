@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
@@ -82,6 +83,7 @@ func (c *chaos) Resources() []interface{} {
 	return []interface{}{
 		c.deployment(),
 		c.service(),
+		c.defaultMavenSetting(),
 	}
 }
 
@@ -161,6 +163,7 @@ func (c *chaos) deployment() interface{} {
 		"--pvc-grdata-name=" + constants.GrDataPVC,
 		"--pvc-cache-name=" + constants.CachePVC,
 		"--rbd-namespace=" + c.component.Namespace,
+		"--rbd-repo=" + ResourceProxyName,
 	}
 
 	if c.etcdSecret != nil {
@@ -291,4 +294,34 @@ func (c *chaos) service() *corev1.Service {
 		},
 	}
 	return svc
+}
+
+func (c *chaos) defaultMavenSetting() *corev1.ConfigMap {
+	var mavensetting = `
+	<?xml version="1.0" encoding="UTF-8"?>
+    <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+        <mirrors>
+            <mirror>
+                <id>aliyunmaven</id>
+                <mirrorOf>central</mirrorOf>
+                <name>阿里云公共仓库</name>
+                <url>https://maven.aliyun.com/repository/public</url>
+            </mirror>
+        </mirrors>
+    </settings>
+	`
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "java-maven-aliyun",
+			Namespace: c.component.Namespace,
+			Labels: rbdutil.LabelsForRainbond(map[string]string{
+				"configtype": "mavensetting",
+			}),
+		},
+		Data: map[string]string{
+			"mavensetting": mavensetting,
+		},
+	}
 }

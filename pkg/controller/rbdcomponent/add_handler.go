@@ -16,7 +16,7 @@ func init() {
 	AddHandlerFunc(handler.MonitorName, handler.NewMonitor)
 	AddHandlerFunc(handler.WorkerName, handler.NewWorker)
 	AddHandlerFunc(handler.MQName, handler.NewMQ)
-	AddHandlerFunc(handler.RepoName, handler.NewRepo)
+	AddHandlerFunc(handler.ResourceProxyName, handler.NewResourceProxy)
 	AddHandlerFunc(handler.NodeName, handler.NewNode)
 	AddHandlerFunc(handler.DBName, handler.NewDB)
 	AddHandlerFunc(handler.WebCliName, handler.NewWebCli)
