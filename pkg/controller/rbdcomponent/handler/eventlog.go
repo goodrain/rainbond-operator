@@ -76,6 +76,7 @@ func (e *eventlog) Before() error {
 func (e *eventlog) Resources() []interface{} {
 	return []interface{}{
 		e.statefulset(),
+		e.service(),
 	}
 }
 
@@ -109,6 +110,37 @@ func (e *eventlog) ResourcesNeedDelete() []interface{} {
 	}
 	return []interface{}{
 		sts,
+	}
+}
+
+func (e *eventlog) service() interface{} {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      EventLogName,
+			Namespace: e.component.Namespace,
+			Labels:    e.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "websocket",
+					Port: 6363,
+				},
+				{
+					Name: "dockerlog",
+					Port: 6362,
+				},
+				{
+					Name: "dockerlog",
+					Port: 6362,
+				},
+				{
+					Name: "monitorlog",
+					Port: 6166,
+				},
+			},
+			Selector: e.labels,
+		},
 	}
 }
 
