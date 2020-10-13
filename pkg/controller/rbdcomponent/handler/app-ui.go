@@ -183,6 +183,11 @@ func (a *appui) deploymentForAppUI() interface{} {
 	}
 	volumeMounts := []corev1.VolumeMount{
 		{
+			Name:      "app",
+			MountPath: "/data",
+			SubPath:   "data",
+		},
+		{
 			Name:      "ssl",
 			MountPath: "/app/region/ssl",
 		},
