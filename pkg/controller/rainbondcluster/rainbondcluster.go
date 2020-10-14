@@ -101,6 +101,9 @@ func (r *rainbondClusteMgr) listStorageClasses() []*rainbondv1alpha1.StorageClas
 
 	var storageClasses []*rainbondv1alpha1.StorageClass
 	for _, sc := range storageClassList.Items {
+		if sc.Name == "rainbondsssc" || sc.Name == "rainbondslsc" {
+			continue
+		}
 		storageClass := &rainbondv1alpha1.StorageClass{
 			Name:        sc.Name,
 			Provisioner: sc.Provisioner,
