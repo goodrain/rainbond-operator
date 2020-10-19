@@ -1,0 +1,8 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RbdComponent
+metadata:
+  name: rbd-eventlog
+spec:
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-eventlog:v5.2.2-release
+  imagePullPolicy: IfNotPresent
+  priorityComponent: false
