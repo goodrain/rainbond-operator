@@ -203,6 +203,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *v1.Global
 	clusterInfo.Spec.ConfigCompleted = true
 	clusterInfo.Spec.EnableHA = source.EnableHA
 
+	clusterInfo.Spec.ImageHub = nil
 	if source.ImageHub.Domain != "" {
 		clusterInfo.Spec.ImageHub = &v1alpha1.ImageHub{
 			Domain:    source.ImageHub.Domain,
@@ -212,6 +213,7 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *v1.Global
 		}
 	}
 
+	clusterInfo.Spec.RegionDatabase = nil
 	if source.RegionDatabase.Host != "" {
 		clusterInfo.Spec.RegionDatabase = &v1alpha1.Database{
 			Host:     source.RegionDatabase.Host,
@@ -220,6 +222,8 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *v1.Global
 			Password: source.RegionDatabase.Password,
 		}
 	}
+
+	clusterInfo.Spec.UIDatabase = nil
 	if source.UIDatabase.Host != "" {
 		clusterInfo.Spec.UIDatabase = &v1alpha1.Database{
 			Host:     source.UIDatabase.Host,
@@ -228,6 +232,8 @@ func (cc *GlobalConfigUseCaseImpl) formatRainbondClusterConfig(source *v1.Global
 			Password: source.UIDatabase.Password,
 		}
 	}
+
+	clusterInfo.Spec.EtcdConfig = nil
 	if len(source.EtcdConfig.Endpoints) > 0 {
 		clusterInfo.Spec.EtcdConfig = &v1alpha1.EtcdConfig{
 			Endpoints: source.EtcdConfig.Endpoints,
