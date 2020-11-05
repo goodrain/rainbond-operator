@@ -174,7 +174,7 @@ func (c *chaos) deployment() interface{} {
 	for _, node := range c.cluster.Spec.NodesForChaos {
 		nodeNames = append(nodeNames, node.Name)
 	}
-	var affinity *corev1.Affinity
+	affinity := c.component.Spec.Affinity
 	if len(nodeNames) > 0 {
 		affinity = affinityForRequiredNodes(nodeNames)
 	}

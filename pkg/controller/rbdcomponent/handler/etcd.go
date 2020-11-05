@@ -189,6 +189,7 @@ func (e *etcd) statefulsetForEtcd() interface{} {
 							Resources: e.component.Spec.Resources,
 						},
 					},
+					Affinity: e.component.Spec.Affinity,
 				},
 			},
 			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*pvc},

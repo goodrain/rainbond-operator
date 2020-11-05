@@ -222,6 +222,7 @@ func (m *metricsServer) deployment() interface{} {
 							},
 						},
 					},
+					Affinity: m.component.Spec.Affinity,
 				},
 			},
 		},

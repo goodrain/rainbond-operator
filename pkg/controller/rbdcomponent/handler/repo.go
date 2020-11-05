@@ -107,6 +107,7 @@ func (r *repo) statefulset() interface{} {
 							Resources:       r.component.Spec.Resources,
 						},
 					},
+					Affinity: r.component.Spec.Affinity,
 				},
 			},
 			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{

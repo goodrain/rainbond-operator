@@ -219,6 +219,7 @@ func (a *api) deployment() interface{} {
 					},
 					ServiceAccountName: "rainbond-operator",
 					Volumes:            volumes,
+					Affinity: a.component.Spec.Affinity,
 				},
 			},
 		},

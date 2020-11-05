@@ -181,6 +181,7 @@ func (h *hub) deployment() interface{} {
 						},
 					},
 					Volumes: volumes,
+					Affinity: h.component.Spec.Affinity,
 				},
 			},
 		},

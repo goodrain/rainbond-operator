@@ -3,14 +3,15 @@ package handler
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -58,6 +59,7 @@ func (g *gateway) Before() error {
 func (g *gateway) Resources() []interface{} {
 	return []interface{}{
 		g.daemonset(),
+		g.service(),
 	}
 }
 
@@ -93,8 +95,8 @@ func (g *gateway) daemonset() interface{} {
 	for _, node := range g.cluster.Spec.NodesForGateway {
 		nodeNames = append(nodeNames, node.Name)
 	}
-	var affinity *corev1.Affinity
-	if len(nodeNames) > 0 {
+	affinity := g.component.Spec.Affinity
+	if affinity == nil && len(nodeNames) > 0 {
 		affinity = affinityForRequiredNodes(nodeNames)
 	}
 	if affinity == nil {
@@ -163,4 +165,28 @@ func (g *gateway) daemonset() interface{} {
 	}
 
 	return ds
+}
+
+func (g *gateway) service() interface{} {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      HubName,
+			Namespace: g.component.Namespace,
+			Labels:    g.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "main",
+					Port: 80,
+					TargetPort: intstr.IntOrString{
+						IntVal: 80,
+					},
+				},
+			},
+			Selector: g.labels,
+		},
+	}
+
+	return svc
 }

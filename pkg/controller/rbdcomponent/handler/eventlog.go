@@ -214,6 +214,7 @@ func (e *eventlog) statefulset() interface{} {
 						},
 					},
 					Volumes: volumes,
+					Affinity: e.component.Spec.Affinity,
 				},
 			},
 		},

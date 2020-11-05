@@ -121,6 +121,7 @@ func (m *mq) deployment() interface{} {
 						},
 					},
 					Volumes: volumes,
+					Affinity: m.component.Spec.Affinity,
 				},
 			},
 		},

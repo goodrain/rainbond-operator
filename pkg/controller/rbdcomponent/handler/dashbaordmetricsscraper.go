@@ -119,6 +119,7 @@ func (k *dashboardMetricsScraper) deploymentForDashboardMetricsScraper() interfa
 							},
 						},
 					},
+					Affinity: k.component.Spec.Affinity,
 				},
 			},
 		},
