@@ -110,6 +110,10 @@ func (h *hub) deployment() interface{} {
 			Name:  "REGISTRY_AUTH_HTPASSWD_PATH",
 			Value: "/auth/htpasswd",
 		},
+		{
+			Name:  "REGISTRY_STORAGE_DELETE_ENABLED",
+			Value: "true",
+		},
 	}
 	volumeMounts := []corev1.VolumeMount{
 		{
@@ -180,7 +184,7 @@ func (h *hub) deployment() interface{} {
 							Resources:       h.component.Spec.Resources,
 						},
 					},
-					Volumes: volumes,
+					Volumes:  volumes,
 					Affinity: h.component.Spec.Affinity,
 				},
 			},
