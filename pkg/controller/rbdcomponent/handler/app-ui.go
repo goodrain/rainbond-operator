@@ -123,6 +123,10 @@ func (a *appui) deploymentForAppUI() interface{} {
 
 	envs := []corev1.EnvVar{
 		{
+			Name:  "CRYPTOGRAPHY_ALLOW_OPENSSL_102",
+			Value: "true",
+		},
+		{
 			Name:  "MYSQL_HOST",
 			Value: a.db.Host,
 		},
@@ -304,6 +308,55 @@ func (a *appui) migrationsJob() *batchv1.Job {
 	name := "rbd-app-ui-migrations"
 	labels := copyLabels(a.labels)
 	labels["name"] = name
+
+	envs := []corev1.EnvVar{
+		{
+			Name:  "CRYPTOGRAPHY_ALLOW_OPENSSL_102",
+			Value: "true",
+		},
+		{
+			Name:  "MYSQL_HOST",
+			Value: a.db.Host,
+		},
+		{
+			Name:  "MYSQL_PORT",
+			Value: strconv.Itoa(a.db.Port),
+		},
+		{
+			Name:  "MYSQL_USER",
+			Value: a.db.Username,
+		},
+		{
+			Name:  "MYSQL_PASS",
+			Value: a.db.Password,
+		},
+		{
+			Name:  "MYSQL_DB",
+			Value: "console",
+		},
+		{
+			Name:  "REGION_URL",
+			Value: "https://rbd-api-api:8443",
+		},
+		{
+			Name:  "REGION_WS_URL",
+			Value: fmt.Sprintf("ws://%s:6060", a.cluster.GatewayIngressIP()),
+		},
+		{
+			Name:  "REGION_HTTP_DOMAIN",
+			Value: a.cluster.Spec.SuffixHTTPHost,
+		},
+		{
+			Name:  "REGION_TCP_DOMAIN",
+			Value: a.cluster.GatewayIngressIP(),
+		},
+		{
+			Name:  "IMAGE_REPO",
+			Value: a.cluster.Spec.ImageHub.Domain,
+		},
+	}
+	envs = mergeEnvs(envs, a.component.Spec.Env)
+
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -326,48 +379,7 @@ func (a *appui) migrationsJob() *batchv1.Job {
 							Image:           a.component.Spec.Image,
 							ImagePullPolicy: a.component.ImagePullPolicy(),
 							Command:         []string{"./entrypoint.sh", "init"},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "MYSQL_HOST",
-									Value: a.db.Host,
-								},
-								{
-									Name:  "MYSQL_PORT",
-									Value: strconv.Itoa(a.db.Port),
-								},
-								{
-									Name:  "MYSQL_USER",
-									Value: a.db.Username,
-								},
-								{
-									Name:  "MYSQL_PASS",
-									Value: a.db.Password,
-								},
-								{
-									Name:  "MYSQL_DB",
-									Value: "console",
-								},
-								{
-									Name:  "REGION_URL",
-									Value: "https://rbd-api-api:8443",
-								},
-								{
-									Name:  "REGION_WS_URL",
-									Value: fmt.Sprintf("ws://%s:6060", a.cluster.GatewayIngressIP()),
-								},
-								{
-									Name:  "REGION_HTTP_DOMAIN",
-									Value: a.cluster.Spec.SuffixHTTPHost,
-								},
-								{
-									Name:  "REGION_TCP_DOMAIN",
-									Value: a.cluster.GatewayIngressIP(),
-								},
-								{
-									Name:  "IMAGE_REPO",
-									Value: a.cluster.Spec.ImageHub.Domain,
-								},
-							},
+							Env:             envs,
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "ssl",
