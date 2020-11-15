@@ -246,7 +246,7 @@ func (ic *InstallUseCaseImpl) genComponentClaims(cluster *v1alpha1.RainbondClust
 		"rbd-mq":             newClaim("rbd-mq"),
 		"rbd-worker":         newClaim("rbd-worker"),
 		"rbd-webcli":         newClaim("rbd-webcli"),
-		"rbd-resource-proxy": newClaim("resource-proxy"),
+		"rbd-resource-proxy": newClaim("rbd-resource-proxy"),
 	}
 	if !ic.cfg.OnlyInstallRegion {
 		name2Claim["rbd-app-ui"] = newClaim("rbd-app-ui")
