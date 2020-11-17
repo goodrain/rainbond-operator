@@ -1,18 +1,35 @@
 // import store from '@/store'
-import axios from 'axios'
-import { Message } from 'element-ui'
+import axios from "axios";
+import { Message } from "element-ui";
 // import util from '@/libs/util'
-import qs from 'qs'
+import qs from "qs";
 
-function handleResponseCode (res) {
+function handleResponseCode(res) {
   Message({
-    message: res.msg,
-    type: 'error',
+    message: res && res.data && res.data.msg,
+    type: "error",
     duration: 3 * 1000
-  })
-  return Promise.reject(res)
+  });
+  return Promise.reject(handleParameters(res));
 }
-
+function handleParameters(info) {
+  if (
+    info &&
+    info.status &&
+    info.config &&
+    info.config.url &&
+    info.data &&
+    info.config.method
+  ) {
+    info = {
+      url: info.config.url,
+      method: info.config.method,
+      status: info.status,
+      data: info.data
+    };
+  }
+  return info;
+}
 // 创建一个错误
 // function errorCreate (msg) {
 //   const error = new Error(msg)
@@ -46,8 +63,8 @@ function handleResponseCode (res) {
 const service = axios.create({
   baseURL: process.env.VUE_APP_API,
   timeout: 90000 // 请求超时时间
-})
-axios.defaults.withCredentials = true
+});
+axios.defaults.withCredentials = true;
 
 // 请求拦截器
 service.interceptors.request.use(
@@ -64,61 +81,61 @@ service.interceptors.request.use(
     //   ...config.headers
     // }
     // config.headers['Authorization'] = token
-    if (config.method === 'PUT') {
+    if (config.method === "PUT") {
       // const qs = requrie('qs')
-      config.data = qs.stringify(config.data)
+      config.data = qs.stringify(config.data);
     }
     // }
 
-    return config
+    return config;
   },
   error => {
     // 发送失败
-    console.log(error)
-    return Promise.reject(error)
+    console.log('发送失败',error);
+    return Promise.reject(handleParameters(error.response));
   }
-)
+);
 
 // 响应拦截器
 service.interceptors.response.use(
   response => {
     // dataAxios 是 axios 返回数据中的 data
-    const dataAxios = response.data
+    const dataAxios = response.data;
     // 这个状态码是和后端约定的
-    const { code } = dataAxios
+    const { code } = dataAxios;
 
     // 根据 code 进行判断
     if (code === undefined) {
       // 如果没有 code 代表这不是项目后端开发的接口 比如可能是 D2Admin 请求最新版本
-      return dataAxios
+      return dataAxios;
     } else {
       if (code >= 300 && code <= 500) {
-        return handleResponseCode(dataAxios)
+        return handleResponseCode(response);
       } else {
-        return dataAxios
+        return dataAxios;
       }
     }
   },
   error => {
     if (error.response && error.response.data) {
-      const dataAxios = error.response.data
+      const dataAxios = error.response.data;
       if (
         dataAxios &&
         dataAxios.code &&
         dataAxios.code >= 1000 &&
         dataAxios.code <= 1005
       ) {
-        return Promise.reject(dataAxios)
+        return Promise.reject(handleParameters(error.response));
       }
-      return handleResponseCode(dataAxios)
+      return handleResponseCode(error.response);
     }
     Message({
-      message: '数据请求发生错误',
-      type: 'error',
+      message: "数据请求发生错误",
+      type: "error",
       duration: 3 * 1000
-    })
-    return Promise.reject(error.response)
+    });
+    return Promise.reject(handleParameters(error.response));
   }
-)
+);
 
-export default service
+export default service;
