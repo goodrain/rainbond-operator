@@ -2,7 +2,7 @@
   <div
     class="d2-layout-header-aside-group"
     :style="styleLayoutMainGroup"
-    :class="{grayMode: grayActive}"
+    :class="{ grayMode: grayActive }"
   >
     <!-- 半透明遮罩 -->
     <div class="d2-layout-header-aside-mask"></div>
@@ -12,7 +12,7 @@
       <div
         class="d2-theme-header"
         :style="{
-          opacity: this.searchActive ? 0.5 : 1
+          opacity: this.searchActive ? 0.5 : 1,
         }"
         flex-box="0"
         flex
@@ -20,22 +20,45 @@
         <router-link
           to="/index"
           class="logo-group"
-          :style="{width: asideCollapse ? asideWidthCollapse : asideWidth}"
+          :style="{ width: asideCollapse ? asideWidthCollapse : asideWidth }"
           flex-box="0"
         >
-          <img v-if="asideCollapse" :src="`${$baseUrl}image/minLogo.png`" style="width:40px" />
+          <img
+            v-if="asideCollapse"
+            :src="`${$baseUrl}image/minLogo.png`"
+            style="width: 40px"
+          />
           <img
             v-else
             :src="`${$baseUrl}image/rainbondLogo.png`"
-            :style="{width: asideCollapse ? asideWidthCollapse : '180px'}"
+            :style="{ width: asideCollapse ? asideWidthCollapse : '180px' }"
           />
         </router-link>
         <div class="toggle-aside-btn" @click="handleToggleAside" flex-box="0">
           <d2-icon name="bars" />
         </div>
         <d2-menu-header flex-box="1" />
-        <div class="d2-header-right"  flex-box="0">
-          <d2-header-locales />
+        <div class="d2-header-right" flex-box="0" style="margin-right:10px;">
+          <el-popover
+            placement="bottom-start"
+            title=""
+            width="200"
+            trigger="hover"
+          >
+            <img
+              :src="`${$baseUrl}image/contact.jpeg`"
+              style="width: 200px; height: 200px"
+            />
+            <el-link
+              :underline="false"
+              slot="reference"
+              style="color: #409eff; font-weight: 400; margin-top: 3px"
+            >
+              安装受阻、请联系好雨科技官方工程师
+              
+            </el-link>
+          </el-popover>
+          <!-- <d2-header-locales /> -->
         </div>
       </div>
       <!-- 下面 主体 -->
@@ -62,7 +85,11 @@
           </transition> -->
           <!-- 内容 -->
           <transition name="fade-scale">
-            <div v-if="!searchActive" class="d2-theme-container-main-layer" flex="dir:top">
+            <div
+              v-if="!searchActive"
+              class="d2-theme-container-main-layer"
+              flex="dir:top"
+            >
               <!-- tab -->
               <!-- <div class="d2-theme-container-main-header" flex-box="0">
                 <d2-tabs/>
@@ -85,27 +112,27 @@
 
 <script>
 // import d2MenuSide from './components/menu-side'
-import d2MenuHeader from './components/menu-header'
+import d2MenuHeader from "./components/menu-header";
 // import d2Tabs from './components/tabs'
 // import d2HeaderFullscreen from './components/header-fullscreen'
-import d2HeaderLocales from './components/header-locales'
+import d2HeaderLocales from "./components/header-locales";
 // import d2HeaderSearch from './components/header-search'
 // import d2HeaderSize from './components/header-size'
 // import d2HeaderTheme from './components/header-theme'
 // import d2HeaderUser from './components/header-user'
 // import d2HeaderLog from './components/header-log'
 // import d2HeaderColor from './components/header-color'
-import { mapState, mapGetters, mapActions } from 'vuex'
-import mixinSearch from './mixins/search'
+import { mapState, mapGetters, mapActions } from "vuex";
+import mixinSearch from "./mixins/search";
 export default {
-  name: 'd2-layout-header-aside',
+  name: "d2-layout-header-aside",
   mixins: [mixinSearch],
   components: {
     // d2MenuSide,
     d2MenuHeader,
     // d2Tabs,
     // d2HeaderFullscreen,
-    d2HeaderLocales
+    d2HeaderLocales,
     // d2HeaderSearch,
     // d2HeaderSize,
     // d2HeaderTheme,
@@ -113,47 +140,47 @@ export default {
     // d2HeaderLog,
     // d2HeaderColor
   },
-  data () {
+  data() {
     return {
       // [侧边栏宽度] 正常状态
-      asideWidth: '200px',
+      asideWidth: "200px",
       // [侧边栏宽度] 折叠状态
-      asideWidthCollapse: '65px'
-    }
+      asideWidthCollapse: "65px",
+    };
   },
   computed: {
-    ...mapState('d2admin', {
-      keepAlive: state => state.page.keepAlive,
-      grayActive: state => state.gray.active,
-      transitionActive: state => state.transition.active,
-      asideCollapse: state => state.menu.asideCollapse
+    ...mapState("d2admin", {
+      keepAlive: (state) => state.page.keepAlive,
+      grayActive: (state) => state.gray.active,
+      transitionActive: (state) => state.transition.active,
+      asideCollapse: (state) => state.menu.asideCollapse,
     }),
-    ...mapGetters('d2admin', {
-      themeActiveSetting: 'theme/activeSetting'
+    ...mapGetters("d2admin", {
+      themeActiveSetting: "theme/activeSetting",
     }),
     /**
      * @description 最外层容器的背景图片样式
      */
-    styleLayoutMainGroup () {
+    styleLayoutMainGroup() {
       return {
         ...(this.themeActiveSetting.backgroundImage
           ? {
-            backgroundImage: `url('${this.$baseUrl}${this.themeActiveSetting.backgroundImage}')`
-          }
-          : {})
-      }
-    }
+              backgroundImage: `url('${this.$baseUrl}${this.themeActiveSetting.backgroundImage}')`,
+            }
+          : {}),
+      };
+    },
   },
   methods: {
-    ...mapActions('d2admin/menu', ['asideCollapseToggle']),
+    ...mapActions("d2admin/menu", ["asideCollapseToggle"]),
     /**
      * 接收点击切换侧边栏的按钮
      */
-    handleToggleAside () {
-      this.asideCollapseToggle()
-    }
-  }
-}
+    handleToggleAside() {
+      this.asideCollapseToggle();
+    },
+  },
+};
 </script>
 
 <style lang="scss">
