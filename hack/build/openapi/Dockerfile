@@ -11,7 +11,7 @@ ARG GOARCH
 ARG LDFLAGS
 RUN go build -ldflags "$LDFLAGS" -o /openapi $PWD/cmd/openapi
 
-FROM registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui-base:latest
+FROM registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-op-ui-base:VERSION
 COPY --from=builder openapi /app
 ADD hack/version /app/version
 ENV RELEASE_DESC __RELEASE_DESC__
