@@ -120,7 +120,7 @@ func (m *mq) deployment() interface{} {
 							Resources:       m.component.Spec.Resources,
 						},
 					},
-					Volumes: volumes,
+					Volumes:  volumes,
 					Affinity: m.component.Spec.Affinity,
 				},
 			},

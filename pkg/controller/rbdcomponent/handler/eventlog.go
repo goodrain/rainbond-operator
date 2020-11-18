@@ -213,7 +213,7 @@ func (e *eventlog) statefulset() interface{} {
 							Resources:       e.component.Spec.Resources,
 						},
 					},
-					Volumes: volumes,
+					Volumes:  volumes,
 					Affinity: e.component.Spec.Affinity,
 				},
 			},

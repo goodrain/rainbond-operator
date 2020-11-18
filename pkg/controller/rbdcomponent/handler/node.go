@@ -288,7 +288,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 							ReadinessProbe:  readinessProbe,
 						},
 					},
-					Volumes: volumes,
+					Volumes:  volumes,
 					Affinity: n.component.Spec.Affinity,
 				},
 			},
