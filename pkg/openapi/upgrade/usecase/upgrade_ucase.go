@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var validVersion = regexp.MustCompile(`^v[0-9]+.[0-9]+.[0-9]+-release$`)
+var validVersion = regexp.MustCompile(`^v[0-9]+.[0-9]+.[0-9]+-(release|cloud)$`)
 
 type upgradeUsecase struct {
 	rainbondClient rainbondversiond.Interface
@@ -232,7 +232,7 @@ func higherVersion(currentVersion, version string) bool {
 	currentVersion, version = strings.ReplaceAll(currentVersion, "v", ""), strings.ReplaceAll(version, "v", "")
 	current := strings.Split(currentVersion, ".")
 	target := strings.Split(version, ".")
-	return target[0] >= current[0] && target[1] >= current[1] && target[2] > current[2]
+	return target[0] > current[0] || target[1] > current[1] || target[2] > current[2]
 }
 
 func versionValid(version string) bool {
