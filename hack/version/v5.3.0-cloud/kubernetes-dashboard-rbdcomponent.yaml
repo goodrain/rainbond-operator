@@ -1,0 +1,13 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RbdComponent
+metadata:
+  labels:
+    belongTo: rainbond-operator
+    creator: Rainbond
+    name: kubernetes-dashboard
+  name: kubernetes-dashboard
+spec:
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/kubernetes-dashboard:v2.0.1-3
+  imagePullPolicy: IfNotPresent
+  priorityComponent: false
+  replicas: 1
