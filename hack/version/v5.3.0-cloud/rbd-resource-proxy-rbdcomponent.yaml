@@ -1,7 +1,7 @@
 apiVersion: rainbond.io/v1alpha1
 kind: RbdComponent
 metadata:
-  name: rbd-worker
+  name: rbd-resource-proxy
 spec:
   image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-resource-proxy:v5.3.0-cloud
   imagePullPolicy: IfNotPresent
