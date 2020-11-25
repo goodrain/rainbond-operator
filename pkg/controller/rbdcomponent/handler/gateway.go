@@ -170,7 +170,7 @@ func (g *gateway) daemonset() interface{} {
 func (g *gateway) service() interface{} {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      HubName,
+			Name:      GatewayName,
 			Namespace: g.component.Namespace,
 			Labels:    g.labels,
 		},
