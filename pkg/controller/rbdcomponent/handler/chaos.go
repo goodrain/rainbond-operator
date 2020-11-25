@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/probeutil"
+	"github.com/goodrain/rainbond-operator/pkg/util/rbdutil"
 
 	"github.com/goodrain/rainbond-operator/pkg/util/commonutil"
 
@@ -82,6 +83,7 @@ func (c *chaos) Resources() []interface{} {
 	return []interface{}{
 		c.deployment(),
 		c.service(),
+		c.defaultMavenSetting(),
 	}
 }
 
@@ -161,6 +163,7 @@ func (c *chaos) deployment() interface{} {
 		"--pvc-grdata-name=" + constants.GrDataPVC,
 		"--pvc-cache-name=" + constants.CachePVC,
 		"--rbd-namespace=" + c.component.Namespace,
+		"--rbd-repo=" + ResourceProxyName,
 	}
 
 	if c.etcdSecret != nil {
@@ -291,4 +294,80 @@ func (c *chaos) service() *corev1.Service {
 		},
 	}
 	return svc
+}
+
+func (c *chaos) defaultMavenSetting() *corev1.ConfigMap {
+	var mavensetting = `<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                      http://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <localRepository/>
+  <interactiveMode/>
+  <usePluginRegistry/>
+  <offline/>
+  <pluginGroups/>
+  <servers/>
+  <mirrors>
+    <mirror>
+     <id>aliyunmaven</id>
+     <mirrorOf>central</mirrorOf>
+     <name>阿里云公共仓库</name>
+     <url>https://maven.aliyun.com/repository/central</url>
+    </mirror>
+    <mirror>
+      <id>repo1</id>
+      <mirrorOf>central</mirrorOf>
+      <name>central repo</name>
+      <url>http://repo1.maven.org/maven2/</url>
+    </mirror>
+    <mirror>
+     <id>aliyunmaven</id>
+     <mirrorOf>apache snapshots</mirrorOf>
+     <name>阿里云阿帕奇仓库</name>
+     <url>https://maven.aliyun.com/repository/apache-snapshots</url>
+    </mirror>
+  </mirrors>
+  <proxies/>
+  <activeProfiles/>
+  <profiles>
+    <profile>  
+        <repositories>
+           <repository>
+                <id>aliyunmaven</id>
+                <name>aliyunmaven</name>
+                <url>https://maven.aliyun.com/repository/public</url>
+                <layout>default</layout>
+                <releases>
+                        <enabled>true</enabled>
+                </releases>
+                <snapshots>
+                        <enabled>true</enabled>
+                </snapshots>
+            </repository>
+            <repository>
+                <id>MavenCentral</id>
+                <url>http://repo1.maven.org/maven2/</url>
+            </repository>
+            <repository>
+                <id>aliyunmavenApache</id>
+                <url>https://maven.aliyun.com/repository/apache-snapshots</url>
+            </repository>
+        </repositories>             
+     </profile>
+  </profiles>
+</settings>
+	`
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "java-maven-aliyun",
+			Namespace: c.component.Namespace,
+			Labels: rbdutil.LabelsForRainbond(map[string]string{
+				"configtype": "mavensetting",
+				"default":    "true",
+			}),
+		},
+		Data: map[string]string{
+			"mavensetting": mavensetting,
+		},
+	}
 }

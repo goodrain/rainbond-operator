@@ -4,5 +4,5 @@ metadata:
   name: rbd-mq
   namespace: rbd-system
 spec:
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-mq:V5.2-dev
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-mq:master-dev
   priorityComponent: true

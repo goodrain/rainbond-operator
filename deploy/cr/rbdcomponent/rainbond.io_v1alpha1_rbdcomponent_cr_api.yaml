@@ -4,5 +4,5 @@ metadata:
   name: rbd-api
   namespace: rbd-system
 spec:
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-api:V5.2-dev
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-api:master-dev
   priorityComponent: true
