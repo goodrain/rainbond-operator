@@ -131,10 +131,6 @@ func (e *eventlog) service() interface{} {
 					Port: 6362,
 				},
 				{
-					Name: "dockerlog",
-					Port: 6362,
-				},
-				{
 					Name: "monitorlog",
 					Port: 6166,
 				},
