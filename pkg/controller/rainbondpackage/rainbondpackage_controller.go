@@ -309,8 +309,8 @@ func (p *pkg) setCluster(c *rainbondv1alpha1.RainbondCluster) error {
 	p.cluster = c
 	// TODO: Is it possible to handle the tag when packaging
 	p.images = map[string]string{
-		"/builder:5.2.0":                    "/builder",
-		"/runner":                           "/runner",
+		"/builder:v5.3.0":                   "/builder",
+		"/runner:v5.3.0":                    "/runner",
 		"/rbd-init-probe:" + p.version:      "/rbd-init-probe",      // TODO: delete p.version
 		"/rbd-mesh-data-panel:" + p.version: "/rbd-mesh-data-panel", // TODO: delete p.version
 		"/plugins-tcm:5.1.7":                "/tcm",
