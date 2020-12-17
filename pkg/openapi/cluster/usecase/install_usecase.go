@@ -108,12 +108,14 @@ func NewInstallUseCase(cfg *config.Config, rainbondKubeClient versioned.Interfac
 // Install install
 func (ic *InstallUseCaseImpl) Install() error {
 	// make sure precheck passes
-	preCheck, err := ic.clusterUcase.PreCheck()
-	if err != nil {
-		return err
-	}
-	if preCheck.Pass == false {
-		return bcode.ErrClusterPreCheckNotPass
+	if ic.clusterUcase != nil {
+		preCheck, err := ic.clusterUcase.PreCheck()
+		if err != nil {
+			return err
+		}
+		if preCheck.Pass == false {
+			return bcode.ErrClusterPreCheckNotPass
+		}
 	}
 
 	cls, err := ic.rainbondKubeClient.RainbondV1alpha1().RainbondClusters(ic.namespace).Get(ic.cfg.ClusterName, metav1.GetOptions{})
