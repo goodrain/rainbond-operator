@@ -245,6 +245,14 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 		})
 	}
 	envs = mergeEnvs(envs, n.component.Spec.Env)
+	tolerations := []corev1.Toleration{
+		{
+			Operator: corev1.TolerationOpExists, // tolerate everything.
+		},
+	}
+	if len(n.component.Spec.Tolerations) != 0 {
+		tolerations = n.component.Spec.Tolerations
+	}
 
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/ping", 6100)
@@ -272,11 +280,7 @@ func (n *node) daemonSetForRainbondNode() interface{} {
 					HostPID:                       true,
 					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 					HostNetwork:                   true,
-					Tolerations: []corev1.Toleration{
-						{
-							Operator: corev1.TolerationOpExists, // tolerate everything.
-						},
-					},
+					Tolerations:                   tolerations,
 					Containers: []corev1.Container{
 						{
 							Name:            NodeName,
