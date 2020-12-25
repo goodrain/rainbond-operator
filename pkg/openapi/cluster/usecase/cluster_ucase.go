@@ -61,7 +61,7 @@ func (c *clusterUsecase) PreCheck() (*v1.ClusterPreCheckResp, error) {
 	conditions := convertClusterConditions(cls)
 	pass := true
 	for _, condition := range conditions {
-		if condition.Status != "True" {
+		if !c.cfg.DisablePrechek && condition.Status != "True" {
 			pass = false
 			break
 		}

@@ -16,6 +16,7 @@ var C *Config
 // Config config for openapi
 type Config struct {
 	TestMode                bool
+	DisablePrechek          bool
 	RainbondVersion         string
 	KubeconfigPath          string
 	Namespace               string
@@ -43,6 +44,7 @@ type Config struct {
 // AddFlags add flag
 func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&c.TestMode, "test-mode", false, "The trigger of test mode.")
+	fs.BoolVar(&c.DisablePrechek, "disable-precheck", false, "The trigger of disable precheck.")
 	fs.StringVar(&c.RainbondVersion, "rainbond-version", "V5.2.0-beta1", "The version of Rainbond.")
 	fs.StringVar(&c.LogLevel, "log-level", "info", "the api log level")
 	fs.StringVar(&c.KubeconfigPath, "kube-config", "", "kubernets admin config path, default /root/.kube/config")
