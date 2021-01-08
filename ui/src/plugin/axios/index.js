@@ -129,6 +129,12 @@ service.interceptors.response.use(
       }
       return handleResponseCode(error.response);
     }
+    if (
+      error.config &&
+      error.config.url === "https://log.rainbond.com/log/install"
+    ) {
+      return null;
+    }
     Message({
       message: "数据请求发生错误",
       type: "error",
