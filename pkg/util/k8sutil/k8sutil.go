@@ -24,12 +24,19 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/reference"
-	"k8s.io/kubectl/pkg/describe"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var once sync.Once
 var clientset kubernetes.Interface
+var (
+	// LabelNodeRolePrefix is a label prefix for node roles
+	// It's copied over to here until it's merged in core: https://github.com/kubernetes/kubernetes/pull/39112
+	LabelNodeRolePrefix = "node-role.kubernetes.io/"
+
+	// NodeLabelRole specifies the role of a node
+	NodeLabelRole = "kubernetes.io/role"
+)
 
 func GetClientSet() kubernetes.Interface {
 	if clientset == nil {
@@ -116,11 +123,11 @@ func UpdateCRStatus(client client.Client, obj runtime.Object) error {
 func MaterRoleLabel(key string) map[string]string {
 	var labels map[string]string
 	switch key {
-	case describe.LabelNodeRolePrefix + "master":
+	case LabelNodeRolePrefix + "master":
 		labels = map[string]string{
 			key: "",
 		}
-	case describe.NodeLabelRole:
+	case NodeLabelRole:
 		labels = map[string]string{
 			key: "master",
 		}

@@ -7,12 +7,12 @@ import (
 	. "github.com/onsi/gomega"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/pkg/apis/rainbond/v1alpha1"
+	"github.com/goodrain/rainbond-operator/pkg/util/k8sutil"
 	core "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 )
 
 // WaitForPodsReady waits for a given amount of time until a group of Pods is running in the given namespace.
@@ -47,7 +47,7 @@ func podRunningReady(p *core.Pod) (bool, error) {
 			p.ObjectMeta.Name, p.Spec.NodeName, core.PodRunning, p.Status.Phase)
 	}
 	// Check the ready condition is true.
-	if !podutil.IsPodReady(p) {
+	if !k8sutil.IsPodReady(p) {
 		return false, fmt.Errorf("pod '%s' on '%s' didn't have condition {%v %v}; conditions: %v",
 			p.ObjectMeta.Name, p.Spec.NodeName, core.PodReady, core.ConditionTrue, p.Status.Conditions)
 	}
