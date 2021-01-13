@@ -1,7 +1,0 @@
-apiVersion: rainbond.io/v1alpha1
-kind: RbdComponent
-metadata:
-  name: rbd-resource-proxy
-  namespace: rbd-system
-spec:
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-resource-proxy:master-dev

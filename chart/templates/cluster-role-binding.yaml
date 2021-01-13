@@ -2,10 +2,10 @@
 apiVersion: rbac.authorization.k8s.io/{{ required "A valid .Values.rbac.apiVersion entry required!" .Values.rbac.apiVersion }}
 kind: ClusterRoleBinding
 metadata:
-  name: {{ template "rainbond-operator.name" . }}
+  name: {{ .Values.serviceAccount.name }}
   labels:
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    name: {{ template "rainbond-operator.name" . }}
+    name: {{ .Values.serviceAccount.name }}
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
 roleRef:
@@ -14,6 +14,6 @@ roleRef:
   name: cluster-admin
 subjects:
   - kind: ServiceAccount
-    name: {{ template "rainbond-operator.serviceAccountName" . }}
+    name: {{ .Values.serviceAccount.name }}
     namespace: {{ .Release.Namespace }}
 {{- end}}

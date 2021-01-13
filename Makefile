@@ -1,106 +1,125 @@
-ifdef IMAGE_NAMESPACE
-    IMAGE_NAMESPACE ?= ${IMAGE_NAMESPACE}
+# Current Operator version
+VERSION ?= 2.0.0
+# Default bundle image tag
+BUNDLE_IMG ?= controller-bundle:$(VERSION)
+# Options for 'bundle-build'
+ifneq ($(origin CHANNELS), undefined)
+BUNDLE_CHANNELS := --channels=$(CHANNELS)
+endif
+ifneq ($(origin DEFAULT_CHANNEL), undefined)
+BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
+endif
+BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
+
+# Image URL to use all building/pushing image targets
+IMG ?= registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator:v$(VERSION)
+# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
+CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
+
+# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
+ifeq (,$(shell go env GOBIN))
+GOBIN=$(shell go env GOPATH)/bin
 else
-    IMAGE_NAMESPACE=goodrain
+GOBIN=$(shell go env GOBIN)
 endif
 
-ifdef IMAGE_DOMAIN
-    IMAGE_DOMAIN ?= ${IMAGE_DOMAIN}
-else
-    IMAGE_DOMAIN=registry.cn-hangzhou.aliyuncs.com
-endif
+all: manager
 
-ifdef VERSION
-	VERSION ?= ${VERSION}
-else ifdef TRAVIS_COMMIT
-	VERSION ?= v1.0.0-beta2-${TRAVIS_COMMIT}
-else 
-	VERSION ?= $(shell git describe --always --dirty)
-endif
+# Run tests
+ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
+test: generate fmt vet manifests
+	mkdir -p ${ENVTEST_ASSETS_DIR}
+	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.7.0/hack/setup-envtest.sh
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
 
-buildTime=$(shell date +%F-%H)
-git_commit=$(shell git log -n 1 --pretty --format=%h)
-release_desc=${VERSION}-${git_commit}-${buildTime}
+# Build manager binary
+manager: generate fmt vet
+	go build -o bin/manager main.go
 
-GROUP=rainbond
-APIVERSION=v1alpha1
+# Run against the configured Kubernetes cluster in ~/.kube/config
+run: generate fmt vet manifests
+	go run ./main.go
 
-PKG             := github.com/goodrain/rainbond-operator
-SRC_DIRS        := cmd pkg
+# Install CRDs into a cluster
+install: manifests kustomize
+	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
-.PHONY: test
-test:
-	@echo "Testing: $(SRC_DIRS)"
-	./hack/unit_test
-	PKG=$(PKG) ./hack/test $(SRC_DIRS)
+# Uninstall CRDs from a cluster
+uninstall: manifests kustomize
+	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
-.PHONY: build-dirs
-build-dirs:
-	@echo "Creating build directories"
-	@mkdir -p bin/
+# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+deploy: manifests kustomize
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
-.PHONY: gen
-gen: crds-gen openapi-gen sdk-gen
-crds-gen:
-	operator-sdk generate crds
-openapi-gen:
-	# Build the latest openapi-gen from source
-	which ./bin/openapi-gen > /dev/null || go build -o ./bin/openapi-gen k8s.io/kube-openapi/cmd/openapi-gen
-    # Run openapi-gen for each of your API group/version packages
-	./bin/openapi-gen --logtostderr=true \
-    -o "" -i ./pkg/apis/$(GROUP)/$(APIVERSION) \
-    -O zz_generated.openapi \
-    -p ./pkg/apis/$(GROUP)/$(APIVERSION) \
-    -h ./hack/k8s/codegen/boilerplate.go.txt -r "-"
-sdk-gen:
-	chmod +x vendor/k8s.io/code-generator/generate-groups.sh
-	./hack/k8s/codegen/update-generated.sh
-sdk-verify:
-	./hack/k8s/codegen/verify-generated.sh
+# UnDeploy controller from the configured Kubernetes cluster in ~/.kube/config
+undeploy:
+	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
-api-add:
-	operator-sdk add api --api-version=rainbond.io/$(APIVERSION) --kind=$(KIND)
+# Generate manifests e.g. CRD, RBAC etc.
+manifests: controller-gen
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-ctrl-add:
-	operator-sdk add controller --api-version=rainbond.io/$(APIVERSION) --kind=$(KIND)
+# Run go fmt against code
+fmt:
+	go fmt ./...
 
-.PHONY: golangci-lint
-golangci-lint: build-dirs
-	which ./bin/golangci-lint > /dev/null || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.23.6
+# Run go vet against code
+vet:
+	go vet ./...
 
-	@bin/golangci-lint run
+# Generate code
+generate: controller-gen
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
+# Build the docker image
+docker-build:
+	docker build -t ${IMG} .
 
+# Push the docker image
+docker-push: docker-build
+	docker push ${IMG}
 
-.PHONY: mock
-mock:
-	./hack/mockgen.sh
+# Download controller-gen locally if necessary
+CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
+controller-gen:
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
 
-.PHONY: build
-build-ui:
-	docker build . -f hack/build/ui/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui-base:$(VERSION)
-build-api:
-	sed -i 's/IMAGE_DOMAIN/$(IMAGE_DOMAIN)/' hack/build/openapi/Dockerfile
-	sed -i 's/IMAGE_NAMESPACE/$(IMAGE_NAMESPACE)/' hack/build/openapi/Dockerfile
-	sed -i 's/VERSION/$(VERSION)/' hack/build/openapi/Dockerfile
-	sed -i 's/__RELEASE_DESC__/$(release_desc)/' hack/build/openapi/Dockerfile
-	docker build . -f hack/build/openapi/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(VERSION)
-build-operator:
-	docker build . -f hack/build/operator/Dockerfile -t $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)
-build: build-ui build-api build-operator
+# Download kustomize locally if necessary
+KUSTOMIZE = $(shell pwd)/bin/kustomize
+kustomize:
+	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
 
-docker-login:
-	docker login $(IMAGE_DOMAIN) -u $(DOCKER_USER) -p $(DOCKER_PASS)
+# go-get-tool will 'go get' any package $2 and install it to $1.
+PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+define go-get-tool
+@[ -f $(1) ] || { \
+set -e ;\
+TMP_DIR=$$(mktemp -d) ;\
+cd $$TMP_DIR ;\
+go mod init tmp ;\
+echo "Downloading $(2)" ;\
+GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
+rm -rf $$TMP_DIR ;\
+}
+endef
 
-.PHONY: push
-push-ui: build-ui
-	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui-base:$(VERSION)
-push-api: build-api
-	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rbd-op-ui:$(VERSION)
-push-operator: build-operator
-	docker push $(IMAGE_DOMAIN)/$(IMAGE_NAMESPACE)/rainbond-operator:$(VERSION)
-push: docker-login push-ui push-api push-operator
+# Generate bundle manifests and metadata, then validate generated files.
+.PHONY: bundle
+bundle: manifests kustomize
+	operator-sdk generate kustomize manifests -q
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+	operator-sdk bundle validate ./bundle
 
-charts:
-	tar -cvf rainbond-operator-chart-$(VERSION).tgz ./chart
+# Build the bundle image.
+.PHONY: bundle-build
+bundle-build:
+	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+
+.PHONY: chart
+
+chart: manifests kustomize
+	cp -r config/crd/bases/* chart/templates/crd
 	

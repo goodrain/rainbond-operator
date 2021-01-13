@@ -1,8 +1,0 @@
-apiVersion: rainbond.io/v1alpha1
-kind: RbdComponent
-metadata:
-  name: rbd-monitor
-spec:
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-monitor:v5.2.1-release
-  imagePullPolicy: IfNotPresent
-  priorityComponent: false
