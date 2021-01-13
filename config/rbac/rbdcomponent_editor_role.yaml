@@ -1,0 +1,24 @@
+# permissions for end users to edit rbdcomponents.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rbdcomponent-editor-role
+rules:
+- apiGroups:
+  - rainbond.io.rainbond.io
+  resources:
+  - rbdcomponents
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rainbond.io.rainbond.io
+  resources:
+  - rbdcomponents/status
+  verbs:
+  - get
