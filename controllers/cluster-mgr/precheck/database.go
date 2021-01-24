@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
-
+	_ "github.com/go-sql-driver/mysql"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
