@@ -21,7 +21,7 @@ type storage struct {
 	ns     string
 	rwx    *rainbondv1alpha1.RainbondVolumeSpec
 }
-
+//NewStorage -
 func NewStorage(ctx context.Context, client client.Client, ns string, rwx *rainbondv1alpha1.RainbondVolumeSpec) PreChecker {
 	return &storage{
 		ctx:    ctx,

@@ -66,7 +66,8 @@ func (s k8sNodesSortByName) Len() int           { return len(s) }
 func (s k8sNodesSortByName) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s k8sNodesSortByName) Less(i, j int) bool { return s[i].Name < s[j].Name }
 
-type rainbondClusteMgr struct {
+//RainbondClusteMgr -
+type RainbondClusteMgr struct {
 	ctx    context.Context
 	client client.Client
 	scheme *runtime.Scheme
@@ -76,8 +77,8 @@ type rainbondClusteMgr struct {
 }
 
 //NewClusterMgr new Cluster Mgr
-func NewClusterMgr(ctx context.Context, client client.Client, log logr.Logger, cluster *rainbondv1alpha1.RainbondCluster, scheme *runtime.Scheme) *rainbondClusteMgr {
-	mgr := &rainbondClusteMgr{
+func NewClusterMgr(ctx context.Context, client client.Client, log logr.Logger, cluster *rainbondv1alpha1.RainbondCluster, scheme *runtime.Scheme) *RainbondClusteMgr {
+	mgr := &RainbondClusteMgr{
 		ctx:     ctx,
 		client:  client,
 		log:     log,
@@ -87,7 +88,7 @@ func NewClusterMgr(ctx context.Context, client client.Client, log logr.Logger, c
 	return mgr
 }
 
-func (r *rainbondClusteMgr) listStorageClasses() []*rainbondv1alpha1.StorageClass {
+func (r *RainbondClusteMgr) listStorageClasses() []*rainbondv1alpha1.StorageClass {
 	r.log.V(6).Info("start listing available storage classes")
 
 	storageClassList := &storagev1.StorageClassList{}
@@ -112,7 +113,7 @@ func (r *rainbondClusteMgr) listStorageClasses() []*rainbondv1alpha1.StorageClas
 
 // GenerateRainbondClusterStatus creates the final rainbondcluster status for a rainbondcluster, given the
 // internal rainbondcluster status.
-func (r *rainbondClusteMgr) GenerateRainbondClusterStatus() (*rainbondv1alpha1.RainbondClusterStatus, error) {
+func (r *RainbondClusteMgr) GenerateRainbondClusterStatus() (*rainbondv1alpha1.RainbondClusterStatus, error) {
 	r.log.V(6).Info("start generating status")
 
 	masterRoleLabel, err := r.getMasterRoleLabel()
@@ -150,7 +151,7 @@ func (r *rainbondClusteMgr) GenerateRainbondClusterStatus() (*rainbondv1alpha1.R
 	return s, nil
 }
 
-func (r *rainbondClusteMgr) getMasterRoleLabel() (string, error) {
+func (r *RainbondClusteMgr) getMasterRoleLabel() (string, error) {
 	nodes := &corev1.NodeList{}
 	if err := r.client.List(r.ctx, nodes); err != nil {
 		r.log.Error(err, "list nodes: %v", err)
@@ -170,7 +171,7 @@ func (r *rainbondClusteMgr) getMasterRoleLabel() (string, error) {
 	return label, nil
 }
 
-func (r *rainbondClusteMgr) listSpecifiedGatewayNodes() []*rainbondv1alpha1.K8sNode {
+func (r *RainbondClusteMgr) listSpecifiedGatewayNodes() []*rainbondv1alpha1.K8sNode {
 	nodes := r.listNodesByLabels(map[string]string{
 		constants.SpecialGatewayLabelKey: "",
 	})
@@ -179,13 +180,13 @@ func (r *rainbondClusteMgr) listSpecifiedGatewayNodes() []*rainbondv1alpha1.K8sN
 	return rbdutil.FilterNodesWithPortConflicts(nodes)
 }
 
-func (r *rainbondClusteMgr) listSpecifiedChaosNodes() []*rainbondv1alpha1.K8sNode {
+func (r *RainbondClusteMgr) listSpecifiedChaosNodes() []*rainbondv1alpha1.K8sNode {
 	return r.listNodesByLabels(map[string]string{
 		constants.SpecialChaosLabelKey: "",
 	})
 }
 
-func (r *rainbondClusteMgr) listNodesByLabels(labels map[string]string) []*rainbondv1alpha1.K8sNode {
+func (r *RainbondClusteMgr) listNodesByLabels(labels map[string]string) []*rainbondv1alpha1.K8sNode {
 	nodeList := &corev1.NodeList{}
 	listOpts := []client.ListOption{
 		client.MatchingLabels(labels),
@@ -219,20 +220,20 @@ func (r *rainbondClusteMgr) listNodesByLabels(labels map[string]string) []*rainb
 	return k8sNodes
 }
 
-func (r *rainbondClusteMgr) listMasterNodesForGateway(masterLabel string) []*rainbondv1alpha1.K8sNode {
+func (r *RainbondClusteMgr) listMasterNodesForGateway(masterLabel string) []*rainbondv1alpha1.K8sNode {
 	nodes := r.listMasterNodes(masterLabel)
 	// Filtering nodes with port conflicts
 	// check gateway ports
 	return rbdutil.FilterNodesWithPortConflicts(nodes)
 }
 
-func (r *rainbondClusteMgr) listMasterNodes(masterRoleLabelKey string) []*rainbondv1alpha1.K8sNode {
+func (r *RainbondClusteMgr) listMasterNodes(masterRoleLabelKey string) []*rainbondv1alpha1.K8sNode {
 	labels := k8sutil.MaterRoleLabel(masterRoleLabelKey)
 	return r.listNodesByLabels(labels)
 }
 
 //CreateImagePullSecret create image pull secret
-func (r *rainbondClusteMgr) CreateImagePullSecret() error {
+func (r *RainbondClusteMgr) CreateImagePullSecret() error {
 	var secret corev1.Secret
 	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: RdbHubCredentialsName}, &secret); err != nil {
 		if !k8sErrors.IsNotFound(err) {
@@ -273,7 +274,7 @@ func (r *rainbondClusteMgr) CreateImagePullSecret() error {
 	return nil
 }
 
-func (r *rainbondClusteMgr) checkIfImagePullSecretExists() bool {
+func (r *RainbondClusteMgr) checkIfImagePullSecretExists() bool {
 	secret := &corev1.Secret{}
 	err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: RdbHubCredentialsName}, secret)
 	if err != nil {
@@ -285,7 +286,7 @@ func (r *rainbondClusteMgr) checkIfImagePullSecretExists() bool {
 	return true
 }
 
-func (r *rainbondClusteMgr) generateDockerConfig() []byte {
+func (r *RainbondClusteMgr) generateDockerConfig() []byte {
 	type dockerConfig struct {
 		Auths map[string]map[string]string `json:"auths"`
 	}
@@ -307,7 +308,7 @@ func (r *rainbondClusteMgr) generateDockerConfig() []byte {
 	return bytes
 }
 
-func (r *rainbondClusteMgr) checkIfRbdNodeReady() error {
+func (r *RainbondClusteMgr) checkIfRbdNodeReady() error {
 	cpt := &rainbondv1alpha1.RbdComponent{}
 	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: "rbd-node"}, cpt); err != nil {
 		return err
@@ -320,7 +321,7 @@ func (r *rainbondClusteMgr) checkIfRbdNodeReady() error {
 	return nil
 }
 
-func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClusterCondition {
+func (r *RainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClusterCondition {
 	// region database
 	spec := r.cluster.Spec
 	if spec.RegionDatabase != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseRegion) {
@@ -383,7 +384,7 @@ func (r *rainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 	return r.cluster.Status.Conditions
 }
 
-func (r *rainbondClusteMgr) isConditionTrue(typ3 rainbondv1alpha1.RainbondClusterConditionType) bool {
+func (r *RainbondClusteMgr) isConditionTrue(typ3 rainbondv1alpha1.RainbondClusterConditionType) bool {
 
 	_, condition := r.cluster.Status.GetCondition(typ3)
 
@@ -394,7 +395,7 @@ func (r *rainbondClusteMgr) isConditionTrue(typ3 rainbondv1alpha1.RainbondCluste
 }
 
 //CreateFoobarPVCIfNotExists -
-func (r *rainbondClusteMgr) CreateFoobarPVCIfNotExists() error {
+func (r *RainbondClusteMgr) CreateFoobarPVCIfNotExists() error {
 	var storageClassName string
 	if r.cluster.Spec.RainbondVolumeSpecRWX != nil && r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName != "" {
 		storageClassName = r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName
@@ -426,7 +427,7 @@ func (r *rainbondClusteMgr) CreateFoobarPVCIfNotExists() error {
 	return nil
 }
 
-func (r *rainbondClusteMgr) createPVCForFoobar(storageClassName string) error {
+func (r *RainbondClusteMgr) createPVCForFoobar(storageClassName string) error {
 	if storageClassName == "" {
 		return nil
 	}
@@ -440,7 +441,7 @@ func (r *rainbondClusteMgr) createPVCForFoobar(storageClassName string) error {
 	return r.client.Create(r.ctx, pvc)
 }
 
-func (r *rainbondClusteMgr) falseConditionNow(typ3 rainbondv1alpha1.RainbondClusterConditionType) *rainbondv1alpha1.RainbondClusterCondition {
+func (r *RainbondClusteMgr) falseConditionNow(typ3 rainbondv1alpha1.RainbondClusterConditionType) *rainbondv1alpha1.RainbondClusterCondition {
 	idx, _ := r.cluster.Status.GetCondition(typ3)
 	if idx != -1 {
 		return nil
@@ -454,7 +455,7 @@ func (r *rainbondClusteMgr) falseConditionNow(typ3 rainbondv1alpha1.RainbondClus
 	}
 }
 
-func (r *rainbondClusteMgr) runningCondition() rainbondv1alpha1.RainbondClusterCondition {
+func (r *RainbondClusteMgr) runningCondition() rainbondv1alpha1.RainbondClusterCondition {
 	condition := rainbondv1alpha1.RainbondClusterCondition{
 		Type:              rainbondv1alpha1.RainbondClusterConditionTypeRunning,
 		Status:            corev1.ConditionTrue,
@@ -487,7 +488,7 @@ func (r *rainbondClusteMgr) runningCondition() rainbondv1alpha1.RainbondClusterC
 	return condition
 }
 
-func (r *rainbondClusteMgr) listRbdComponents() ([]rainbondv1alpha1.RbdComponent, error) {
+func (r *RainbondClusteMgr) listRbdComponents() ([]rainbondv1alpha1.RbdComponent, error) {
 	rbdcomponentList := &rainbondv1alpha1.RbdComponentList{}
 	err := r.client.List(r.ctx, rbdcomponentList, client.InNamespace(r.cluster.Namespace))
 	if err != nil {

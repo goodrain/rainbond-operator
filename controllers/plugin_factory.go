@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// NewCSIPlugin creates a new csi plugin
+//NewCSIPlugin creates a new csi plugin
 func NewCSIPlugin(ctx context.Context, cli client.Client, volume *rainbondv1alpha1.RainbondVolume) (plugin.CSIPlugin, error) {
 	cp := volume.Spec.CSIPlugin
 	var p plugin.CSIPlugin

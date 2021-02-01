@@ -34,6 +34,7 @@ var (
 	NodeLabelRole = "kubernetes.io/role"
 )
 
+//GetClientSet -
 func GetClientSet() kubernetes.Interface {
 	if clientset == nil {
 		once.Do(func() {
@@ -44,6 +45,7 @@ func GetClientSet() kubernetes.Interface {
 	return clientset
 }
 
+//MustNewKubeConfig -
 func MustNewKubeConfig(kubeconfigPath string) *rest.Config {
 	if kubeconfigPath != "" {
 		cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
@@ -60,6 +62,7 @@ func MustNewKubeConfig(kubeconfigPath string) *rest.Config {
 	return cfg
 }
 
+//NewKubeConfig -
 func NewKubeConfig() (*rest.Config, error) {
 	cfg, err := InClusterConfig()
 	if err != nil {
@@ -68,6 +71,7 @@ func NewKubeConfig() (*rest.Config, error) {
 	return cfg, nil
 }
 
+//InClusterConfig -
 func InClusterConfig() (*rest.Config, error) {
 	// Work around https://github.com/kubernetes/kubernetes/issues/40973
 	// See https://github.com/coreos/etcd-operator/issues/731#issuecomment-283804819
@@ -117,6 +121,7 @@ func UpdateCRStatus(client client.Client, obj client.Object) error {
 	return nil
 }
 
+//MaterRoleLabel -
 func MaterRoleLabel(key string) map[string]string {
 	var labels map[string]string
 	switch key {
@@ -132,6 +137,7 @@ func MaterRoleLabel(key string) map[string]string {
 	return labels
 }
 
+//PersistentVolumeClaimForGrdata -
 func PersistentVolumeClaimForGrdata(ns, claimName string, accessModes []corev1.PersistentVolumeAccessMode, labels map[string]string, storageClassName string, storageRequest int64) *corev1.PersistentVolumeClaim {
 	size := resource.NewQuantity(storageRequest*1024*1024*1024, resource.BinarySI)
 	pvc := &corev1.PersistentVolumeClaim{
@@ -154,6 +160,7 @@ func PersistentVolumeClaimForGrdata(ns, claimName string, accessModes []corev1.P
 	return pvc
 }
 
+//GetFoobarPVC -
 func GetFoobarPVC(ctx context.Context, client client.Client, ns string) (*corev1.PersistentVolumeClaim, error) {
 	pvc := corev1.PersistentVolumeClaim{}
 	err := client.Get(ctx, types.NamespacedName{Namespace: ns, Name: constants.FoobarPVC}, &pvc)

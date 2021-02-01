@@ -331,6 +331,7 @@ func (r *RainbondClusterStatus) UpdateCondition(condition *RainbondClusterCondit
 	// Return true if one of the fields have changed.
 	return !isEqual
 }
+//DeleteCondition -
 func (r *RainbondClusterStatus) DeleteCondition(typ3 RainbondClusterConditionType) {
 	idx, _ := r.GetCondition(typ3)
 	if idx == -1 {

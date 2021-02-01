@@ -110,7 +110,7 @@ func (listener *DownloadWithProgress) CheckMD5(target *os.File) error {
 	}
 	return nil
 }
-
+//GetWanted -
 func (listener *DownloadWithProgress) GetWanted() string {
 	return listener.Wanted
 }
@@ -121,6 +121,7 @@ type OnlineMD5 struct {
 	URL    string
 }
 
+//GetWanted -
 func (h *OnlineMD5) GetWanted() string {
 	resp, err := http.Get(h.URL)
 	if err != nil {

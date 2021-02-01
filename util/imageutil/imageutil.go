@@ -5,14 +5,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
-	"io"
 )
 
+//CheckIfImageExists -
 func CheckIfImageExists(pctx context.Context, dockerClient *client.Client, image string) (bool, error) {
 	repo, err := reference.Parse(image)
 	if err != nil {
@@ -43,6 +45,7 @@ func CheckIfImageExists(pctx context.Context, dockerClient *client.Client, image
 	return len(imageSummarys) > 0, nil
 }
 
+//ImagePull -
 func ImagePull(ctx context.Context, dockerClient *client.Client, image string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -80,6 +83,7 @@ func ImagePull(ctx context.Context, dockerClient *client.Client, image string) e
 	return nil
 }
 
+//ImagePush -
 func ImagePush(ctx context.Context, dockerClient *client.Client, image, repo, user, pass string) error {
 	var opts types.ImagePushOptions
 	authConfig := types.AuthConfig{

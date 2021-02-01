@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// Pod returns a string representing a pod in a consistent human readable format,
+//RainbondCluster Pod returns a string representing a pod in a consistent human readable format,
 // with pod UID as part of the string.
 func RainbondCluster(rc *rainbondv1alpha1.RainbondCluster) string {
 	return RainbondClusterDesc(rc.Name, rc.Namespace, rc.UID)
