@@ -77,6 +77,11 @@ func (r *rbdcomponentMgr) SetPackageReadyCondition(pkg *rainbondv1alpha1.Rainbon
 		return
 	}
 	_, pkgcondition := pkg.Status.GetCondition(rainbondv1alpha1.Ready)
+	if pkgcondition == nil {
+		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionFalse, "PackageNotReady", "")
+		_ = r.cpt.Status.UpdateCondition(condition)
+		return
+	}
 	if pkgcondition.Status != rainbondv1alpha1.Completed {
 		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionFalse, "PackageNotReady", pkgcondition.Message)
 		_ = r.cpt.Status.UpdateCondition(condition)
