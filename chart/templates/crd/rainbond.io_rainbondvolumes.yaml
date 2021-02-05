@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: rainbondvolumes.rainbond.io.rainbond.io
+  name: rainbondvolumes.rainbond.io
 spec:
-  group: rainbond.io.rainbond.io
+  group: rainbond.io
   names:
     kind: RainbondVolume
     listKind: RainbondVolumeList

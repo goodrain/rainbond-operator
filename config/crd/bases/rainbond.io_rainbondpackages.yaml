@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: rainbondpackages.rainbond.io.rainbond.io
+  name: rainbondpackages.rainbond.io
 spec:
-  group: rainbond.io.rainbond.io
+  group: rainbond.io
   names:
     kind: RainbondPackage
     listKind: RainbondPackageList
@@ -36,10 +36,18 @@ spec:
           spec:
             description: RainbondPackageSpec defines the desired state of RainbondPackage
             properties:
+              imageHubPass:
+                description: install source image hub password
+                type: string
+              imageHubUser:
+                description: install source image hub user
+                type: string
               pkgPath:
                 description: 'Deprecated: The path where the rainbond package is located.'
                 type: string
             required:
+            - imageHubPass
+            - imageHubUser
             - pkgPath
             type: object
           status:

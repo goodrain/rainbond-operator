@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: rbdcomponents.rainbond.io.rainbond.io
+  name: rbdcomponents.rainbond.io
 spec:
-  group: rainbond.io.rainbond.io
+  group: rainbond.io
   names:
     kind: RbdComponent
     listKind: RbdComponentList

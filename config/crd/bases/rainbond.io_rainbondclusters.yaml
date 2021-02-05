@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: rainbondclusters.rainbond.io.rainbond.io
+  name: rainbondclusters.rainbond.io
 spec:
-  group: rainbond.io.rainbond.io
+  group: rainbond.io
   names:
     kind: RainbondCluster
     listKind: RainbondClusterList
@@ -36,6 +36,9 @@ spec:
           spec:
             description: RainbondClusterSpec defines the desired state of RainbondCluster
             properties:
+              ciVersion:
+                description: CIVersion define builder and runner version
+                type: string
               configCompleted:
                 description: Whether the configuration has been completed
                 type: boolean

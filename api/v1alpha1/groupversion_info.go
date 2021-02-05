@@ -16,7 +16,7 @@ limitations under the License.
 
 // Package v1alpha1 contains API Schema definitions for the rainbond.io v1alpha1 API group
 // +kubebuilder:object:generate=true
-// +groupName=rainbond.io.rainbond.io
+// +groupName=rainbond.io
 package v1alpha1
 
 import (
@@ -26,7 +26,7 @@ import (
 
 var (
 	// GroupVersion is group version used to register these objects
-	GroupVersion = schema.GroupVersion{Group: "rainbond.io.rainbond.io", Version: "v1alpha1"}
+	GroupVersion = schema.GroupVersion{Group: "rainbond.io", Version: "v1alpha1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}

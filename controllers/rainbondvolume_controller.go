@@ -51,9 +51,9 @@ type RainbondVolumeReconciler struct {
 //ErrCSIPluginNotReady -
 var ErrCSIPluginNotReady = errors.New("csi plugin not ready")
 
-// +kubebuilder:rbac:groups=rainbond.io.rainbond.io,resources=rainbondvolumes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=rainbond.io.rainbond.io,resources=rainbondvolumes/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=rainbond.io.rainbond.io,resources=rainbondvolumes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=rainbond.io,resources=rainbondvolumes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rainbond.io,resources=rainbondvolumes/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=rainbond.io,resources=rainbondvolumes/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

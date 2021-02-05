@@ -66,9 +66,9 @@ type RainbondPackageReconciler struct {
 	Recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=rainbond.io.rainbond.io,resources=rainbondpackages,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=rainbond.io.rainbond.io,resources=rainbondpackages/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=rainbond.io.rainbond.io,resources=rainbondpackages/finalizers,verbs=update
+// +kubebuilder:rbac:groups=rainbond.io,resources=rainbondpackages,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rainbond.io,resources=rainbondpackages/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=rainbond.io,resources=rainbondpackages/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
