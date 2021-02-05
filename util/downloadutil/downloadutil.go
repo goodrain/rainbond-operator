@@ -110,6 +110,7 @@ func (listener *DownloadWithProgress) CheckMD5(target *os.File) error {
 	}
 	return nil
 }
+
 //GetWanted -
 func (listener *DownloadWithProgress) GetWanted() string {
 	return listener.Wanted

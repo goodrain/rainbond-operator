@@ -155,6 +155,9 @@ func (g *gateway) daemonset() client.Object {
 							Args:            args,
 							VolumeMounts:    volumeMounts,
 							Resources:       resources,
+							SecurityContext: &corev1.SecurityContext{
+								Privileged: commonutil.Bool(true),
+							},
 						},
 					},
 					Volumes: volumes,
