@@ -36,11 +36,6 @@ func CheckIfImageExists(pctx context.Context, dockerClient *client.Client, image
 	if err != nil {
 		return false, fmt.Errorf("list images: %v", err)
 	}
-	for _, imageSummary := range imageSummarys {
-		fmt.Printf("%#v", imageSummary.RepoTags)
-	}
-
-	_ = imageSummarys
 
 	return len(imageSummarys) > 0, nil
 }

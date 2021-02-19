@@ -408,7 +408,11 @@ func (in *RainbondClusterStatus) DeepCopyInto(out *RainbondClusterStatus) {
 		*out = new(AvailableNodes)
 		(*in).DeepCopyInto(*out)
 	}
-	out.ImagePullSecret = in.ImagePullSecret
+	if in.ImagePullSecret != nil {
+		in, out := &in.ImagePullSecret, &out.ImagePullSecret
+		*out = new(v1.LocalObjectReference)
+		**out = **in
+	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]RainbondClusterCondition, len(*in))

@@ -127,7 +127,7 @@ func (r *RainbondClusteMgr) GenerateRainbondClusterStatus() (*rainbondv1alpha1.R
 	}
 
 	if r.checkIfImagePullSecretExists() {
-		s.ImagePullSecret = corev1.LocalObjectReference{Name: RdbHubCredentialsName}
+		s.ImagePullSecret = &corev1.LocalObjectReference{Name: RdbHubCredentialsName}
 	}
 
 	var masterNodesForGateway []*rainbondv1alpha1.K8sNode

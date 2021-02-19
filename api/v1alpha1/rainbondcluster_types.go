@@ -112,7 +112,7 @@ type RainbondClusterSpec struct {
 	// +optional
 	RainbondImageRepository string `json:"rainbondImageRepository,omitempty"`
 	// Suffix of component default domain name
-	SuffixHTTPHost string `json:"suffixHTTPHost"`
+	SuffixHTTPHost string `json:"suffixHTTPHost,omitempty"`
 	// Ingress IP addresses of rbd-gateway. If not specified,
 	// the IP of the node where the rbd-gateway is located will be used.
 	GatewayIngressIPs []string `json:"gatewayIngressIPs,omitempty"`
@@ -194,7 +194,7 @@ type RainbondClusterStatus struct {
 	// Deprecated. ImagePullPassword is the password to pull any of images used by PodSpec
 	ImagePullPassword string `json:"imagePullPassword,omitempty"`
 	// ImagePullSecret is an optional references to secret in the same namespace to use for pulling any of the images used by PodSpec.
-	ImagePullSecret corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	ImagePullSecret *corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
 	Conditions []RainbondClusterCondition `json:"conditions,omitempty"`
 }

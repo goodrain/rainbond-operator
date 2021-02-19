@@ -147,8 +147,13 @@ func (w *worker) deployment() client.Object {
 			},
 		},
 		{
-			Name:  "IMAGE_PULL_SECRET",
-			Value: w.cluster.Status.ImagePullSecret.Name,
+			Name: "IMAGE_PULL_SECRET",
+			Value: func() string {
+				if w.cluster.Status.ImagePullSecret != nil {
+					return w.cluster.Status.ImagePullSecret.Name
+				}
+				return ""
+			}(),
 		},
 	}
 	if imageHub := w.cluster.Spec.ImageHub; imageHub != nil {

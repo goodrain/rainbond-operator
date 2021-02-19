@@ -200,8 +200,13 @@ func (c *chaos) deployment() client.Object {
 			Value: "/cache",
 		},
 		{
-			Name:  "IMAGE_PULL_SECRET",
-			Value: c.cluster.Status.ImagePullSecret.Name,
+			Name: "IMAGE_PULL_SECRET",
+			Value: func() string {
+				if c.cluster.Status.ImagePullSecret != nil {
+					return c.cluster.Status.ImagePullSecret.Name
+				}
+				return ""
+			}(),
 		},
 	}
 	if imageHub := c.cluster.Spec.ImageHub; imageHub != nil {

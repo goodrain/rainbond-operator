@@ -149,7 +149,7 @@ func volumeByEtcd(etcdSecret *corev1.Secret) (corev1.Volume, corev1.VolumeMount)
 		}}
 	mount := corev1.VolumeMount{
 		Name:      "etcdssl",
-		MountPath: "/run/ssl/etcd",
+		MountPath: EtcdSSLPath,
 	}
 	return volume, mount
 }
@@ -373,9 +373,11 @@ func imagePullSecrets(cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alp
 	if cpt.Spec.PriorityComponent {
 		return nil
 	}
-
+	if cluster.Status.ImagePullSecret == nil {
+		return nil
+	}
 	return []corev1.LocalObjectReference{
-		cluster.Status.ImagePullSecret,
+		*cluster.Status.ImagePullSecret,
 	}
 }
 
