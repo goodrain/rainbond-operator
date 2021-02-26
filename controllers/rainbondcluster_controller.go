@@ -86,9 +86,13 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 			reqLogger.V(6).Info(fmt.Sprintf("set image hub info: %v", err))
 			return reconcile.Result{RequeueAfter: time.Second * 1}, nil
 		}
-		rainbondcluster.Spec.ImageHub = imageHub
 		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			return r.Update(ctx, rainbondcluster)
+			rc := &rainbondv1alpha1.RainbondCluster{}
+			if err := r.Get(ctx, request.NamespacedName, rc); err != nil {
+				return err
+			}
+			rc.Spec.ImageHub = imageHub
+			return r.Update(ctx, rc)
 		}); err != nil {
 			reqLogger.Error(err, "update rainbondcluster")
 			return reconcile.Result{RequeueAfter: time.Second * 1}, err

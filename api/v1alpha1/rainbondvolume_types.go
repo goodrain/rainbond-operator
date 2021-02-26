@@ -88,7 +88,7 @@ type RainbondVolumeSpec struct {
 	// CSIPlugin holds the image
 	CSIPlugin       *CSIPluginSource `json:"csiPlugin,omitempty"`
 	StorageRequest  *int32           `json:"storageRequest,omitempty"`
-	ImageRepository string           `json:"imageRepository"`
+	ImageRepository string           `json:"imageRepository,omitempty"`
 }
 
 // RainbondVolumeConditionType -
