@@ -112,7 +112,7 @@ type RainbondClusterSpec struct {
 	// +optional
 	RainbondImageRepository string `json:"rainbondImageRepository,omitempty"`
 	// Suffix of component default domain name
-	SuffixHTTPHost string `json:"suffixHTTPHost,omitempty"`
+	SuffixHTTPHost string `json:"suffixHTTPHost"`
 	// Ingress IP addresses of rbd-gateway. If not specified,
 	// the IP of the node where the rbd-gateway is located will be used.
 	GatewayIngressIPs []string `json:"gatewayIngressIPs,omitempty"`
