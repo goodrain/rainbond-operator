@@ -92,6 +92,7 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 				return err
 			}
 			rc.Spec.ImageHub = imageHub
+			rainbondcluster = rc
 			return r.Update(ctx, rc)
 		}); err != nil {
 			reqLogger.Error(err, "update rainbondcluster")
