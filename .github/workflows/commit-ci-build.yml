@@ -2,7 +2,7 @@ name: commit-ci-build
 
 on:
   push:
-    branches: [master, V5.3]
+    branches: [master]
 
 jobs:
   build:
@@ -31,6 +31,6 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator:v2.0.0
+          tags: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator:v2.0.0-dev
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

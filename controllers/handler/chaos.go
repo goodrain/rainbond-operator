@@ -150,8 +150,9 @@ func (c *chaos) deployment() client.Object {
 		{
 			Name: "cache",
 			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: constants.CachePVC,
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/cache",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 				},
 			},
 		},
@@ -164,6 +165,7 @@ func (c *chaos) deployment() client.Object {
 		"--pvc-cache-name=" + constants.CachePVC,
 		"--rbd-namespace=" + c.component.Namespace,
 		"--rbd-repo=" + ResourceProxyName,
+		"--cache-mode=hostpath",
 	}
 
 	if c.etcdSecret != nil {
@@ -188,6 +190,14 @@ func (c *chaos) deployment() client.Object {
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
 					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{
+			Name: "HOST_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "spec.nodeName",
 				},
 			},
 		},

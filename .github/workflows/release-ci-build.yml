@@ -2,7 +2,8 @@ name: release-ci-build
 
 on:
   release:
-    branches: [master, V5.3]
+    branches: [master]
+  workflow_dispatch:
 
 jobs:
   build:
