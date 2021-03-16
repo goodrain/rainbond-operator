@@ -98,6 +98,8 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 			reqLogger.Error(err, "update rainbondcluster")
 			return reconcile.Result{RequeueAfter: time.Second * 1}, err
 		}
+		// Put it back in the queue.
+		return reconcile.Result{Requeue: true}, err
 	}
 
 	// create secret for pulling images.

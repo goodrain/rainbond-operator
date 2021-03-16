@@ -123,8 +123,8 @@ func (r *RainbondVolumeReconciler) Reconcile(ctx context.Context, request ctrl.R
 		}
 		if err := r.applyCSIPlugin(ctx, csiplugin, volume); err != nil {
 			if err == ErrCSIPluginNotReady {
-				log.V(6).Info(err.Error())
-				return reconcile.Result{RequeueAfter: 3 * time.Second}, err
+				log.Info(err.Error())
+				return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 			}
 			if err := r.updateVolumeStatus(ctx, volume); err != nil {
 				return reconcile.Result{}, err
