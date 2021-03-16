@@ -165,7 +165,7 @@ func (c *chaos) deployment() client.Object {
 		"--pvc-cache-name=" + constants.CachePVC,
 		"--rbd-namespace=" + c.component.Namespace,
 		"--rbd-repo=" + ResourceProxyName,
-		"--cache-mode=hostpath",
+		// "--cache-mode=hostpath",
 	}
 
 	if c.etcdSecret != nil {
