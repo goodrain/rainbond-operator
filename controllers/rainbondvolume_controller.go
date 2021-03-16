@@ -236,7 +236,15 @@ func (r *RainbondVolumeReconciler) updateVolumeStatusRetryOnConflict(ctx context
 
 func (r *RainbondVolumeReconciler) updateVolumeRetryOnConflict(ctx context.Context, volume *rainbondv1alpha1.RainbondVolume) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		return r.Update(ctx, volume)
+		old := &rainbondv1alpha1.RainbondVolume{}
+		err := r.Get(ctx, types.NamespacedName{Namespace: volume.Namespace, Name: volume.Name}, old)
+		if err != nil {
+			return err
+		}
+		old.Labels = volume.Labels
+		old.Annotations = volume.Annotations
+		old.Spec = volume.Spec
+		return r.Update(ctx, old)
 	})
 }
 
