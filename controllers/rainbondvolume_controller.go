@@ -108,7 +108,7 @@ func (r *RainbondVolumeReconciler) Reconcile(ctx context.Context, request ctrl.R
 			return reconcile.Result{}, err
 		}
 		log.Info("rainbond volume storage class is sync success", "provisioner", volume.Spec.StorageClassParameters.Provisioner)
-		return reconcile.Result{Requeue: true}, nil
+		return reconcile.Result{}, nil
 	}
 
 	useCSIPlugin := volume.Spec.CSIPlugin != nil
@@ -178,37 +178,13 @@ func (r *RainbondVolumeReconciler) applyCSIPlugin(ctx context.Context, plugin pl
 		if err := controllerutil.SetControllerReference(volume, res.(metav1.Object), r.Scheme); err != nil {
 			return err
 		}
-		if err := r.updateOrCreateResource(ctx, res); err != nil {
+		if err := r.createIfNotExists(ctx, res); err != nil {
 			return err
 		}
 	}
 
 	// requeue the volume with error
 	return ErrCSIPluginNotReady
-}
-
-func (r *RainbondVolumeReconciler) updateOrCreateResource(ctx context.Context, obj client.Object) error {
-	log := r.Log.WithValues("namespace", obj.GetNamespace(), "name", obj.GetName())
-
-	err := r.Get(ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj)
-	if err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			return err
-		}
-
-		log.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind))
-		err = r.Create(ctx, obj)
-		if err != nil {
-			log.Error(err, "Failed to create new", obj.GetObjectKind())
-			return err
-		}
-		return nil
-	}
-
-	log.V(5).Info("Object exists.", "Kind", obj.GetObjectKind().GroupVersionKind().Kind)
-	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		return r.Status().Update(ctx, obj)
-	})
 }
 
 func (r *RainbondVolumeReconciler) createIfNotExists(ctx context.Context, obj client.Object) error {

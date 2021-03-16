@@ -59,7 +59,15 @@ func (p *nfsPlugin) IsPluginReady() bool {
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			log.Error(err, "get statefulset for nfs plugin")
-			return false
+		}
+		return false
+	}
+
+	service := &corev1.Service{}
+	err = p.cli.Get(p.ctx, types.NamespacedName{Namespace: p.volume.Namespace, Name: p.name}, service)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			log.Error(err, "get service for nfs plugin")
 		}
 		return false
 	}
