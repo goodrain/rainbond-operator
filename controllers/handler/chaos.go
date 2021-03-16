@@ -147,7 +147,9 @@ func (c *chaos) deployment() client.Object {
 				},
 			},
 		},
-		{
+	}
+	if c.cluster.Spec.CacheMode == "hostpath" {
+		volumes = append(volumes, corev1.Volume{
 			Name: "cache",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
@@ -155,7 +157,16 @@ func (c *chaos) deployment() client.Object {
 					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 				},
 			},
-		},
+		})
+	} else {
+		volumes = append(volumes, corev1.Volume{
+			Name: "cache",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: constants.CachePVC,
+				},
+			},
+		})
 	}
 	args := []string{
 		"--hostIP=$(POD_IP)",
@@ -165,7 +176,9 @@ func (c *chaos) deployment() client.Object {
 		"--pvc-cache-name=" + constants.CachePVC,
 		"--rbd-namespace=" + c.component.Namespace,
 		"--rbd-repo=" + ResourceProxyName,
-		// "--cache-mode=hostpath",
+	}
+	if c.cluster.Spec.CacheMode == "hostpath" {
+		args = append(args, "--cache-mode=hostpath")
 	}
 
 	if c.etcdSecret != nil {

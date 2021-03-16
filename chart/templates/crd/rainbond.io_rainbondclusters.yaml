@@ -36,6 +36,8 @@ spec:
           spec:
             description: RainbondClusterSpec defines the desired state of RainbondCluster
             properties:
+              cacheMode:
+                type: string
               ciVersion:
                 description: CIVersion define builder and runner version
                 type: string

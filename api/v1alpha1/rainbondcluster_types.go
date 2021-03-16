@@ -145,6 +145,8 @@ type RainbondClusterSpec struct {
 
 	// SentinelImage is the image for rainbond operator sentinel
 	SentinelImage string `json:"sentinelImage,omitempty"`
+
+	CacheMode string `json:"cacheMode,omitempty"`
 }
 
 //InstallPackageConfig define install package download config
