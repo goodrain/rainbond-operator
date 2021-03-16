@@ -89,11 +89,13 @@ func (r *RainbondVolumeReconciler) Reconcile(ctx context.Context, request ctrl.R
 		if err := r.updateVolumeStatus(ctx, volume); err != nil {
 			return reconcile.Result{}, err
 		}
+		log.Info("rainbond volume storage class is ready", "storageclass", useStorageClassName)
 		return reconcile.Result{}, nil
 	}
 
 	useStorageClassParameters := volume.Spec.StorageClassParameters != nil && volume.Spec.StorageClassParameters.Provisioner != ""
 	if useStorageClassParameters {
+		log.Info("rainbond volume storage class is config, will sync storageclass", "provisioner", volume.Spec.StorageClassParameters.Provisioner)
 		className, err := r.createIfNotExistStorageClass(ctx, volume)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -105,12 +107,13 @@ func (r *RainbondVolumeReconciler) Reconcile(ctx context.Context, request ctrl.R
 		if err := r.updateVolumeStatus(ctx, volume); err != nil {
 			return reconcile.Result{}, err
 		}
-
+		log.Info("rainbond volume storage class is sync success", "provisioner", volume.Spec.StorageClassParameters.Provisioner)
 		return reconcile.Result{Requeue: true}, nil
 	}
 
 	useCSIPlugin := volume.Spec.CSIPlugin != nil
 	if useCSIPlugin {
+		log.Info("rainbond volume will sync csiplugin")
 		csiplugin, err := NewCSIPlugin(ctx, r.Client, volume)
 		if err != nil {
 			if err := r.updateVolumeStatus(ctx, volume); err != nil {
@@ -131,6 +134,8 @@ func (r *RainbondVolumeReconciler) Reconcile(ctx context.Context, request ctrl.R
 		if err := r.updateVolumeRetryOnConflict(ctx, volume); err != nil {
 			return reconcile.Result{}, err
 		}
+		log.Info("rainbond volume sync csiplugin resource success")
+		return reconcile.Result{Requeue: true}, nil
 	}
 
 	return reconcile.Result{}, nil

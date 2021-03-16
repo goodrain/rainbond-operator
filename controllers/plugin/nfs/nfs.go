@@ -79,8 +79,8 @@ func (p *nfsPlugin) GetClusterScopedResources() []client.Object {
 
 func (p *nfsPlugin) GetSubResources() []client.Object {
 	return []client.Object{
-		p.statefulset(),
 		p.service(),
+		p.statefulset(),
 	}
 }
 
