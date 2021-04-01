@@ -11,7 +11,7 @@ import (
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
+	nwv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -388,7 +388,7 @@ func (a *api) secretAndConfigMapForAPI() []client.Object {
 }
 
 func (a *api) ingressForAPI() client.Object {
-	ing := &extensions.Ingress{
+	ing := &nwv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      APIName,
 			Namespace: a.component.Namespace,
@@ -399,19 +399,14 @@ func (a *api) ingressForAPI() client.Object {
 			},
 			Labels: a.labels,
 		},
-		Spec: extensions.IngressSpec{
-			Backend: &extensions.IngressBackend{
-				ServiceName: APIName + "-api",
-				ServicePort: intstr.FromString("https"),
-			},
-		},
+		Spec: createIngressSpec(APIName+"-api", "https", intstr.FromString("https").IntVal),
 	}
 
 	return ing
 }
 
 func (a *api) ingressForWebsocket() client.Object {
-	ing := &extensions.Ingress{
+	ing := &nwv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      APIName + "-websocket",
 			Namespace: a.component.Namespace,
@@ -422,12 +417,21 @@ func (a *api) ingressForWebsocket() client.Object {
 			},
 			Labels: a.labels,
 		},
-		Spec: extensions.IngressSpec{
-			Backend: &extensions.IngressBackend{
-				ServiceName: APIName + "-websocket",
-				ServicePort: intstr.FromString("ws"),
+		Spec: createIngressSpec(APIName+"-websocket", "ws", intstr.FromString("ws").IntVal),
+	}
+	return ing
+}
+
+func createIngressSpec(name, portName string, port int32) nwv1.IngressSpec {
+	return nwv1.IngressSpec{
+		DefaultBackend: &nwv1.IngressBackend{
+			Service: &nwv1.IngressServiceBackend{
+				Name: name,
+				Port: nwv1.ServiceBackendPort{
+					Name:   portName,
+					Number: port,
+				},
 			},
 		},
 	}
-	return ing
 }
