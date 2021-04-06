@@ -422,11 +422,11 @@ func (a *api) ingressForWebsocket() client.Object {
 	return ing
 }
 
-func createIngressSpec(name, portName string, port int32) nwv1.IngressSpec {
+func createIngressSpec(serviceName, portName string, port int32) nwv1.IngressSpec {
 	return nwv1.IngressSpec{
 		DefaultBackend: &nwv1.IngressBackend{
 			Service: &nwv1.IngressServiceBackend{
-				Name: name,
+				Name: serviceName,
 				Port: nwv1.ServiceBackendPort{
 					Name:   portName,
 					Number: port,
