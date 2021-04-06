@@ -294,17 +294,7 @@ func (a *appui) ingressForAppUI() client.Object {
 			},
 			Labels: a.labels,
 		},
-		Spec: nwv1.IngressSpec{
-			DefaultBackend: &nwv1.IngressBackend{
-				Service: &nwv1.IngressServiceBackend{
-					Name: AppUIName,
-					Port: nwv1.ServiceBackendPort{
-						Name:   "http",
-						Number: intstr.FromString("http").IntVal,
-					},
-				},
-			},
-		},
+		Spec: createIngressSpec(AppUIName, "http", intstr.FromString("http").IntVal),
 	}
 	return ing
 }
