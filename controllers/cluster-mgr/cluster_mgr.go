@@ -93,7 +93,9 @@ func (r *RainbondClusteMgr) listStorageClasses() []*rainbondv1alpha1.StorageClas
 
 	storageClassList := &storagev1.StorageClassList{}
 	var opts []client.ListOption
-	if err := r.client.List(r.ctx, storageClassList, opts...); err != nil {
+	ctx, cancel := context.WithTimeout(r.ctx, time.Second*10)
+	defer cancel()
+	if err := r.client.List(ctx, storageClassList, opts...); err != nil {
 		r.log.Error(err, "list storageclass")
 		return nil
 	}
@@ -107,7 +109,7 @@ func (r *RainbondClusteMgr) listStorageClasses() []*rainbondv1alpha1.StorageClas
 		}
 		storageClasses = append(storageClasses, storageClass)
 	}
-
+	r.log.V(6).Info("listing available storage classes success")
 	return storageClasses
 }
 
@@ -147,7 +149,7 @@ func (r *RainbondClusteMgr) GenerateRainbondClusterStatus() (*rainbondv1alpha1.R
 
 	// conditions for rainbond cluster status
 	s.Conditions = r.generateConditions()
-
+	r.log.V(6).Info("generating status success")
 	return s, nil
 }
 
@@ -191,7 +193,9 @@ func (r *RainbondClusteMgr) listNodesByLabels(labels map[string]string) []*rainb
 	listOpts := []client.ListOption{
 		client.MatchingLabels(labels),
 	}
-	if err := r.client.List(r.ctx, nodeList, listOpts...); err != nil {
+	ctx, cancel := context.WithTimeout(r.ctx, time.Second*10)
+	defer cancel()
+	if err := r.client.List(ctx, nodeList, listOpts...); err != nil {
 		r.log.Error(err, "list nodes")
 		return nil
 	}
