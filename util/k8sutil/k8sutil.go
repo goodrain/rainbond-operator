@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -90,6 +91,12 @@ func InClusterConfig() (*rest.Config, error) {
 		return nil, err
 	}
 	return cfg, nil
+}
+
+// GetKubeVersion returns the version of k8s
+func GetKubeVersion() *utilversion.Version {
+	var serverVersion, _ = GetClientSet().Discovery().ServerVersion()
+	return utilversion.MustParseSemantic(serverVersion.GitVersion)
 }
 
 // HostPath returns a pointer to the HostPathType value passed in.
