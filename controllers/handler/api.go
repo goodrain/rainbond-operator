@@ -8,12 +8,13 @@ import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
+	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	nwv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -388,50 +389,17 @@ func (a *api) secretAndConfigMapForAPI() []client.Object {
 }
 
 func (a *api) ingressForAPI() client.Object {
-	ing := &nwv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      APIName,
-			Namespace: a.component.Namespace,
-			Annotations: map[string]string{
-				"nginx.ingress.kubernetes.io/l4-enable": "true",
-				"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
-				"nginx.ingress.kubernetes.io/l4-port":   "8443",
-			},
-			Labels: a.labels,
-		},
-		Spec: createIngressSpec(APIName+"-api", "https", intstr.FromString("https").IntVal),
+	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
+		return createIngress(APIName, a.component.Namespace, "8443", a.labels, APIName+"-api", "https", intstr.FromString("https").IntVal)
+	} else {
+		return createLegacyIngress(APIName, a.component.Namespace, "8443", a.labels, APIName+"-api", intstr.FromString("https"))
 	}
-
-	return ing
 }
 
 func (a *api) ingressForWebsocket() client.Object {
-	ing := &nwv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      APIName + "-websocket",
-			Namespace: a.component.Namespace,
-			Annotations: map[string]string{
-				"nginx.ingress.kubernetes.io/l4-enable": "true",
-				"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
-				"nginx.ingress.kubernetes.io/l4-port":   "6060",
-			},
-			Labels: a.labels,
-		},
-		Spec: createIngressSpec(APIName+"-websocket", "ws", intstr.FromString("ws").IntVal),
-	}
-	return ing
-}
-
-func createIngressSpec(serviceName, portName string, port int32) nwv1.IngressSpec {
-	return nwv1.IngressSpec{
-		DefaultBackend: &nwv1.IngressBackend{
-			Service: &nwv1.IngressServiceBackend{
-				Name: serviceName,
-				Port: nwv1.ServiceBackendPort{
-					Name:   portName,
-					Number: port,
-				},
-			},
-		},
+	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
+		return createIngress(APIName+"-websocket", a.component.Namespace, "6060", a.labels, APIName+"-websocket", "ws", intstr.FromString("ws").IntVal)
+	} else {
+		return createLegacyIngress(APIName+"-websocket", a.component.Namespace, "6060", a.labels, APIName+"-websocket", intstr.FromString("ws"))
 	}
 }
