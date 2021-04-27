@@ -131,6 +131,10 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 			Name:      "etc",
 			MountPath: "/newetc",
 		},
+		{
+			Name:      "grlocaldata",
+			MountPath: "/grlocaldata",
+		},
 	}
 	volumes := []corev1.Volume{
 		{
@@ -193,6 +197,15 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/etc",
 					Type: k8sutil.HostPath(corev1.HostPathDirectory),
+				},
+			},
+		},
+		{
+			Name: "grlocaldata",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/grlocaldata",
+					Type: k8sutil.HostPathDirectoryOrCreate(),
 				},
 			},
 		},
