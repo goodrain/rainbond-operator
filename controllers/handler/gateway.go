@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/resource"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
@@ -103,21 +101,9 @@ func (g *gateway) daemonset() client.Object {
 		return nil
 	}
 
-	resources := corev1.ResourceRequirements{
-		Requests: corev1.ResourceList{
-			corev1.ResourceMemory: resource.MustParse("256Mi"),
-			corev1.ResourceCPU:    resource.MustParse("0m"),
-		},
-		Limits: corev1.ResourceList{
-			corev1.ResourceMemory: resource.MustParse("1024Mi"),
-			corev1.ResourceCPU:    resource.MustParse("1000m"),
-		},
-	}
-
 	// merge attributes
 	volumeMounts = mergeVolumeMounts(volumeMounts, g.component.Spec.VolumeMounts)
 	volumes = mergeVolumes(volumes, g.component.Spec.Volumes)
-	resources = mergeResources(resources, g.component.Spec.Resources)
 	args = mergeArgs(args, g.component.Spec.Args)
 
 	ds := &appsv1.DaemonSet{
@@ -154,7 +140,6 @@ func (g *gateway) daemonset() client.Object {
 							ImagePullPolicy: g.component.ImagePullPolicy(),
 							Args:            args,
 							VolumeMounts:    volumeMounts,
-							Resources:       resources,
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),
 							},
