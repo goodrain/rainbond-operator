@@ -266,7 +266,7 @@ func (h *hub) ingressForHub() client.Object {
 
 func (h *hub) secretForHub() client.Object {
 	secret, _ := h.getSecret(hubImageRepository)
-	if secret != nil {
+	if secret != nil && string(secret.Data["HTPASSWD"]) == string(h.htpasswd) {
 		return nil
 	}
 	labels := copyLabels(h.labels)

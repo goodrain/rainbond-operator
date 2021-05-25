@@ -188,7 +188,6 @@ func (d *db) statefulsetForDB() client.Object {
 		{
 			Name:      pvc.GetName(),
 			MountPath: "/var/lib/mysql",
-			SubPath:   "mysql",
 		},
 		{
 			Name:      "initdb",
