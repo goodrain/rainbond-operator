@@ -143,6 +143,7 @@ func (g *gateway) daemonset() client.Object {
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),
 							},
+							Env: g.component.Spec.Env,
 						},
 					},
 					Volumes: volumes,
