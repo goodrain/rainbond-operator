@@ -16,10 +16,13 @@ import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	extensions "k8s.io/api/extensions/v1beta1"
+	nwv1 "k8s.io/api/networking/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -446,4 +449,50 @@ func mergeVolumeMounts(commonMountVolumes, priorityMountVolumes []corev1.VolumeM
 		priorityMountVolumes = append(priorityMountVolumes, vol)
 	}
 	return priorityMountVolumes
+}
+
+func createIngress(name, namespace, l4port string, labels map[string]string, serviceName, servicePortName string, servicePort int32) *nwv1.Ingress {
+	ing := &nwv1.Ingress{
+		ObjectMeta: createIngressMeta(name, namespace, l4port, labels),
+		Spec: nwv1.IngressSpec{
+			DefaultBackend: &nwv1.IngressBackend{
+				Service: &nwv1.IngressServiceBackend{
+					Name: serviceName,
+					Port: nwv1.ServiceBackendPort{
+						Name:   servicePortName,
+						Number: servicePort,
+					},
+				},
+			},
+		},
+	}
+
+	return ing
+}
+
+func createLegacyIngress(name, namespace, l4port string, labels map[string]string, serviceName string, servicePort intstr.IntOrString) *extensions.Ingress {
+	ing := &extensions.Ingress{
+		ObjectMeta: createIngressMeta(name, namespace, l4port, labels),
+		Spec: extensions.IngressSpec{
+			Backend: &extensions.IngressBackend{
+				ServiceName: serviceName,
+				ServicePort: servicePort,
+			},
+		},
+	}
+
+	return ing
+}
+
+func createIngressMeta(name, namespace, l4port string, labels map[string]string) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:      name,
+		Namespace: namespace,
+		Annotations: map[string]string{
+			"nginx.ingress.kubernetes.io/l4-enable": "true",
+			"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
+			"nginx.ingress.kubernetes.io/l4-port":   l4port,
+		},
+		Labels: labels,
+	}
 }

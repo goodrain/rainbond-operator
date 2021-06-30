@@ -12,7 +12,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
+	nwv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -218,7 +218,7 @@ func (h *hub) persistentVolumeClaimForHub() *corev1.PersistentVolumeClaim {
 }
 
 func (h *hub) ingressForHub() client.Object {
-	ing := &extensions.Ingress{
+	ing := &nwv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
 			Namespace: h.component.Namespace,
@@ -233,18 +233,23 @@ func (h *hub) ingressForHub() client.Object {
 			},
 			Labels: h.labels,
 		},
-		Spec: extensions.IngressSpec{
-			Rules: []extensions.IngressRule{
+		Spec: nwv1.IngressSpec{
+			Rules: []nwv1.IngressRule{
 				{
 					Host: constants.DefImageRepository,
-					IngressRuleValue: extensions.IngressRuleValue{
-						HTTP: &extensions.HTTPIngressRuleValue{
-							Paths: []extensions.HTTPIngressPath{
+					IngressRuleValue: nwv1.IngressRuleValue{
+						HTTP: &nwv1.HTTPIngressRuleValue{
+							Paths: []nwv1.HTTPIngressPath{
 								{
 									Path: "/v2/",
-									Backend: extensions.IngressBackend{
-										ServiceName: HubName,
-										ServicePort: intstr.FromInt(5000),
+									Backend: nwv1.IngressBackend{
+										Service: &nwv1.IngressServiceBackend{
+											Name: HubName,
+											Port: nwv1.ServiceBackendPort{
+												Name:   "main",
+												Number: 5000,
+											},
+										},
 									},
 								},
 							},
@@ -252,7 +257,7 @@ func (h *hub) ingressForHub() client.Object {
 					},
 				},
 			},
-			TLS: []extensions.IngressTLS{
+			TLS: []nwv1.IngressTLS{
 				{
 					Hosts:      []string{rbdutil.GetImageRepository(h.cluster)},
 					SecretName: hubImageRepository,
