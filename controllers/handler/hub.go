@@ -9,10 +9,11 @@ import (
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
-
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,6 +23,7 @@ import (
 var HubName = "rbd-hub"
 var hubDataPvcName = "rbd-hub"
 var hubImageRepository = "hub-image-repository"
+var hubPasswordSecret = "hub-password"
 
 type hub struct {
 	ctx       context.Context
@@ -77,6 +79,7 @@ func (h *hub) Before() error {
 func (h *hub) Resources() []client.Object {
 	return []client.Object{
 		h.secretForHub(), // important! create secret before ingress.
+		h.passwordSecret(),
 		h.deployment(),
 		h.serviceForHub(),
 		h.persistentVolumeClaimForHub(),
@@ -135,7 +138,7 @@ func (h *hub) deployment() client.Object {
 			Name: "htpasswd",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: "hub-image-repository",
+					SecretName: hubPasswordSecret,
 					Items: []corev1.KeyToPath{
 						{
 							Key:  "HTPASSWD",
@@ -265,29 +268,46 @@ func (h *hub) ingressForHub() client.Object {
 }
 
 func (h *hub) secretForHub() client.Object {
-	secret, _ := h.getSecret(hubImageRepository)
+	secret, err := h.getSecret(hubImageRepository)
 	if secret != nil {
+		// never update hub secret
+		return nil
+	}
+	if err != nil && !k8sErrors.IsNotFound(err) {
+		logrus.Errorf("get secret %s: %v", hubImageRepository, err)
 		return nil
 	}
 	labels := copyLabels(h.labels)
 	labels["name"] = hubImageRepository
 	_, pem, key, _ := commonutil.DomainSign(nil, rbdutil.GetImageRepository(h.cluster))
-	secret = &corev1.Secret{
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      hubImageRepository,
 			Namespace: h.component.Namespace,
 			Labels:    labels,
 		},
 		Data: map[string][]byte{
-			"tls.crt":  pem,
-			"tls.key":  key,
-			"cert":     pem,
+			"tls.crt": pem,
+			"tls.key": key,
+			"cert":    pem,
+		},
+	}
+}
+
+func (h *hub) passwordSecret() client.Object {
+	labels := copyLabels(h.labels)
+	labels["name"] = hubPasswordSecret
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      hubPasswordSecret,
+			Namespace: h.component.Namespace,
+			Labels:    labels,
+		},
+		Data: map[string][]byte{
 			"HTPASSWD": h.htpasswd,
 			"password": []byte(h.password),
 		},
 	}
-
-	return secret
 }
 
 func (h *hub) getSecret(name string) (*corev1.Secret, error) {

@@ -241,9 +241,6 @@ func objectCanUpdate(obj client.Object) bool {
 	if _, ok := obj.(*batchv1.Job); ok {
 		return false
 	}
-	if _, ok := obj.(*corev1.Secret); ok {
-		return false
-	}
 	if obj.GetName() == "rbd-db" || obj.GetName() == "rbd-etcd" {
 		return false
 	}
