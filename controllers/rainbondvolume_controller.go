@@ -278,7 +278,7 @@ func storageClassForRainbondVolume(volume *rainbondv1alpha1.RainbondVolume) *sto
 		ReclaimPolicy: k8sutil.PersistentVolumeReclaimPolicy(corev1.PersistentVolumeReclaimRetain),
 	}
 
-	if volume.Spec.CSIPlugin != nil && volume.Spec.CSIPlugin.AliyunNas != nil && class.MountOptions == nil {
+	if volume.Spec.CSIPlugin != nil && volume.Spec.CSIPlugin.AliyunNas != nil && len(class.MountOptions) == 0 {
 		class.MountOptions = []string{
 			"nolock,tcp,noresvport",
 			"vers=4",

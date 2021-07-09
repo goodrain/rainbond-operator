@@ -117,7 +117,7 @@ func (w *worker) deployment() client.Object {
 	}
 	args := []string{
 		"--host-ip=$(POD_IP)",
-		"--node-name=$(HOST_IP)",
+		"--node-name=$(POD_IP)",
 		w.db.RegionDataSource(),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(w.cluster), ","),
 		"--rbd-system-namespace=" + w.component.Namespace,

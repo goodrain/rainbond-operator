@@ -71,7 +71,6 @@ func (r *RbdcomponentMgr) UpdateStatus() error {
 func (r *RbdcomponentMgr) SetConfigCompletedCondition() {
 	condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.ClusterConfigCompeleted, corev1.ConditionTrue, "ConfigCompleted", "")
 	_ = r.cpt.Status.UpdateCondition(condition)
-	return
 }
 
 //SetPackageReadyCondition -
@@ -94,7 +93,6 @@ func (r *RbdcomponentMgr) SetPackageReadyCondition(pkg *rainbondv1alpha1.Rainbon
 	}
 	condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionTrue, "PackageReady", "")
 	_ = r.cpt.Status.UpdateCondition(condition)
-	return
 }
 
 //CheckPrerequisites -

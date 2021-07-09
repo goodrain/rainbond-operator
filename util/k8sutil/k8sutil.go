@@ -97,6 +97,12 @@ func HostPath(hostpath corev1.HostPathType) *corev1.HostPathType {
 	return &hostpath
 }
 
+// HostPathDirectoryOrCreate returns a pointer to the HostPathType value passed in.
+func HostPathDirectoryOrCreate() *corev1.HostPathType {
+	var hpdoc = corev1.HostPathDirectoryOrCreate
+	return &hpdoc
+}
+
 // MountPropagationMode returns a pointer to the MountPropagationMode value passed in.
 func MountPropagationMode(moundPropagationMode corev1.MountPropagationMode) *corev1.MountPropagationMode {
 	return &moundPropagationMode
