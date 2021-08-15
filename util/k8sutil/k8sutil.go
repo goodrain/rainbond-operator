@@ -11,6 +11,7 @@ import (
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -95,6 +96,11 @@ func InClusterConfig() (*rest.Config, error) {
 // HostPath returns a pointer to the HostPathType value passed in.
 func HostPath(hostpath corev1.HostPathType) *corev1.HostPathType {
 	return &hostpath
+}
+
+// IngressPathType returns a pointer to the PathType value passed in.
+func IngressPathType(pathType networkingv1.PathType) *networkingv1.PathType {
+	return &pathType
 }
 
 // HostPathDirectoryOrCreate returns a pointer to the HostPathType value passed in.
