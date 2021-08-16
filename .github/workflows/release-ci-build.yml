@@ -1,4 +1,4 @@
-name: release-ci-build
+name: v2.0.3
 
 on:
   release:
