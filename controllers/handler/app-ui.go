@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/goodrain/rainbond-operator/util/probeutil"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
-
+	"github.com/goodrain/rainbond-operator/util/probeutil"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -283,7 +281,7 @@ func (a *appui) serviceForAppUI() client.Object {
 }
 
 func (a *appui) ingressForAppUI() client.Object {
-	ing := &extensions.Ingress{
+	ing := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      AppUIName,
 			Namespace: a.component.Namespace,
@@ -294,10 +292,14 @@ func (a *appui) ingressForAppUI() client.Object {
 			},
 			Labels: a.labels,
 		},
-		Spec: extensions.IngressSpec{
-			Backend: &extensions.IngressBackend{
-				ServiceName: AppUIName,
-				ServicePort: intstr.FromString("http"),
+		Spec: networkingv1.IngressSpec{
+			DefaultBackend: &networkingv1.IngressBackend{
+				Service: &networkingv1.IngressServiceBackend{
+					Name: AppUIName,
+					Port: networkingv1.ServiceBackendPort{
+						Name: "http",
+					},
+				},
 			},
 		},
 	}
