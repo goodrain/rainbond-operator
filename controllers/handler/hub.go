@@ -8,11 +8,12 @@ import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
+	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -221,7 +222,7 @@ func (h *hub) persistentVolumeClaimForHub() *corev1.PersistentVolumeClaim {
 }
 
 func (h *hub) ingressForHub() client.Object {
-	ing := &extensions.Ingress{
+	ing := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
 			Namespace: h.component.Namespace,
@@ -236,18 +237,23 @@ func (h *hub) ingressForHub() client.Object {
 			},
 			Labels: h.labels,
 		},
-		Spec: extensions.IngressSpec{
-			Rules: []extensions.IngressRule{
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
 				{
 					Host: constants.DefImageRepository,
-					IngressRuleValue: extensions.IngressRuleValue{
-						HTTP: &extensions.HTTPIngressRuleValue{
-							Paths: []extensions.HTTPIngressPath{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
 								{
-									Path: "/v2/",
-									Backend: extensions.IngressBackend{
-										ServiceName: HubName,
-										ServicePort: intstr.FromInt(5000),
+									Path:     "/v2/",
+									PathType: k8sutil.IngressPathType(networkingv1.PathTypeExact),
+									Backend: networkingv1.IngressBackend{
+										Service: &networkingv1.IngressServiceBackend{
+											Name: HubName,
+											Port: networkingv1.ServiceBackendPort{
+												Number: 5000,
+											},
+										},
 									},
 								},
 							},
@@ -255,7 +261,7 @@ func (h *hub) ingressForHub() client.Object {
 					},
 				},
 			},
-			TLS: []extensions.IngressTLS{
+			TLS: []networkingv1.IngressTLS{
 				{
 					Hosts:      []string{rbdutil.GetImageRepository(h.cluster)},
 					SecretName: hubImageRepository,
