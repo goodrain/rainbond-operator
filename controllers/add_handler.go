@@ -25,7 +25,6 @@ func init() {
 	AddHandlerFunc(handler.ResourceProxyName, handler.NewResourceProxy)
 	AddHandlerFunc(handler.NodeName, handler.NewNode)
 	AddHandlerFunc(handler.DBName, handler.NewDB)
-	AddHandlerFunc(handler.WebCliName, handler.NewWebCli)
 	AddHandlerFunc(handler.MetricsServerName, handler.NewMetricsServer)
 	AddHandlerFunc(handler.NFSName, handler.NewNFS)
 	AddHandlerFunc(handler.KubernetesDashboardName, handler.NewK8sDashboard)

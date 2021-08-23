@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -18,52 +17,35 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// NodeName name for rbd-node
-var NodeName = "rbd-node"
+// NodeName name for rbd-node-proxy
+var NodeName = "rbd-node-proxy"
 
 type node struct {
-	ctx    context.Context
-	client client.Client
-	log    logr.Logger
-
-	labels     map[string]string
-	etcdSecret *corev1.Secret
-	cluster    *rainbondv1alpha1.RainbondCluster
-	component  *rainbondv1alpha1.RbdComponent
-
-	pvcParametersRWX     *pvcParameters
-	grdataStorageRequest int64
+	ctx       context.Context
+	client    client.Client
+	log       logr.Logger
+	labels    map[string]string
+	cluster   *rainbondv1alpha1.RainbondCluster
+	component *rainbondv1alpha1.RbdComponent
 }
 
 var _ ComponentHandler = &node{}
-var _ StorageClassRWXer = &node{}
 var _ ResourcesCreator = &node{}
 var _ Replicaser = &node{}
 
 // NewNode creates a new rbd-node handler.
 func NewNode(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &node{
-		ctx:                  ctx,
-		client:               client,
-		log:                  log.WithValues("Name: %s", component.Name),
-		component:            component,
-		cluster:              cluster,
-		labels:               LabelsForRainbondComponent(component),
-		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
+		ctx:       ctx,
+		client:    client,
+		log:       log.WithValues("Name: %s", component.Name),
+		component: component,
+		cluster:   cluster,
+		labels:    LabelsForRainbondComponent(component),
 	}
 }
 
 func (n *node) Before() error {
-	secret, err := etcdSecret(n.ctx, n.client, n.cluster)
-	if err != nil {
-		return fmt.Errorf("failed to get etcd secret: %v", err)
-	}
-	n.etcdSecret = secret
-
-	if err := setStorageCassName(n.ctx, n.client, n.component.Namespace, n); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -81,17 +63,9 @@ func (n *node) ListPods() ([]corev1.Pod, error) {
 	return listPods(n.ctx, n.client, n.component.Namespace, n.labels)
 }
 
-func (n *node) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
-	n.pvcParametersRWX = pvcParameters
-}
-
 func (n *node) ResourcesCreateIfNotExists() []client.Object {
-	return []client.Object{
-		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(n.component.Namespace, constants.GrDataPVC, n.pvcParametersRWX, n.labels),
-	}
+	return []client.Object{}
 }
-
 func (n *node) Replicas() *int32 {
 	nodeList := &corev1.NodeList{}
 	if err := n.client.List(n.ctx, nodeList); err != nil {
@@ -103,10 +77,6 @@ func (n *node) Replicas() *int32 {
 
 func (n *node) daemonSetForRainbondNode() client.Object {
 	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      "grdata",
-			MountPath: "/grdata",
-		},
 		{
 			Name:      "sys",
 			MountPath: "/sys",
@@ -137,14 +107,6 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 		},
 	}
 	volumes := []corev1.Volume{
-		{
-			Name: "grdata",
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: constants.GrDataPVC,
-				},
-			},
-		},
 		{
 			Name: "sys",
 			VolumeSource: corev1.VolumeSource{
@@ -211,20 +173,8 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 		},
 	}
 	args := []string{
-		"--etcd=" + strings.Join(etcdEndpoints(n.cluster), ","),
-		"--hostIP=$(POD_IP)",
-		"--run-mode master",
-		"--noderule manage,compute", // TODO: Let rbd-node recognize itself
-		"--nodeid=$(NODE_NAME)",
 		"--image-repo-host=" + rbdutil.GetImageRepository(n.cluster),
-		"--hostsfile=/newetc/hosts",
 		"--rbd-ns=" + n.component.Namespace,
-	}
-	if n.etcdSecret != nil {
-		volume, mount := volumeByEtcd(n.etcdSecret)
-		volumeMounts = append(volumeMounts, mount)
-		volumes = append(volumes, volume)
-		args = append(args, etcdSSLArgs()...)
 	}
 	volumeMounts = mergeVolumeMounts(volumeMounts, n.component.Spec.VolumeMounts)
 	volumes = mergeVolumes(volumes, n.component.Spec.Volumes)
