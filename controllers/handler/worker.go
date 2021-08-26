@@ -210,7 +210,7 @@ func (w *worker) deployment() client.Object {
 func (w *worker) serviceForWorker() client.Object {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      NodeName,
+			Name:      WorkerName,
 			Namespace: w.component.Namespace,
 			Labels:    w.labels,
 		},
