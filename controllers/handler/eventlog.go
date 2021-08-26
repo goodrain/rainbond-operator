@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-	"path"
 	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -21,14 +20,12 @@ import (
 var EventLogName = "rbd-eventlog"
 
 type eventlog struct {
-	ctx        context.Context
-	client     client.Client
-	component  *rainbondv1alpha1.RbdComponent
-	cluster    *rainbondv1alpha1.RainbondCluster
-	labels     map[string]string
-	db         *rainbondv1alpha1.Database
-	etcdSecret *corev1.Secret
-
+	ctx              context.Context
+	client           client.Client
+	component        *rainbondv1alpha1.RbdComponent
+	cluster          *rainbondv1alpha1.RainbondCluster
+	labels           map[string]string
+	db               *rainbondv1alpha1.Database
 	pvcParametersRWX *pvcParameters
 	storageRequest   int64
 }
@@ -59,12 +56,6 @@ func (e *eventlog) Before() error {
 		db.Name = RegionDatabaseName
 	}
 	e.db = db
-
-	secret, err := etcdSecret(e.ctx, e.client, e.cluster)
-	if err != nil {
-		return fmt.Errorf("failed to get etcd secret: %v", err)
-	}
-	e.etcdSecret = secret
 
 	if err := setStorageCassName(e.ctx, e.client, e.component.Namespace, e); err != nil {
 		return err
@@ -135,6 +126,11 @@ func (e *eventlog) service() client.Object {
 					Port:     6166,
 					Protocol: corev1.ProtocolUDP,
 				},
+				{
+					Name:     "grpc",
+					Port:     6366,
+					Protocol: corev1.ProtocolTCP,
+				},
 			},
 			Selector: e.labels,
 		},
@@ -148,10 +144,6 @@ func (e *eventlog) statefulset() client.Object {
 		"--eventlog.bind.ip=$(POD_IP)",
 		"--websocket.bind.ip=$(POD_IP)",
 		"--db.url=" + strings.Replace(e.db.RegionDataSource(), "--mysql=", "", 1),
-		"--discover.etcd.addr=" + strings.Join(etcdEndpoints(e.cluster), ","),
-	}
-	if !strings.Contains(e.component.Spec.Image, "5.2.0") {
-		args = append(args, "--node-id=$(NODE_ID)")
 	}
 
 	volumeMounts := []corev1.VolumeMount{
@@ -169,12 +161,6 @@ func (e *eventlog) statefulset() client.Object {
 				},
 			},
 		},
-	}
-	if e.etcdSecret != nil {
-		volume, mount := volumeByEtcd(e.etcdSecret)
-		volumeMounts = append(volumeMounts, mount)
-		volumes = append(volumes, volume)
-		args = append(args, eventLogEtcdArgs()...)
 	}
 
 	env := []corev1.EnvVar{
@@ -249,12 +235,4 @@ func (e *eventlog) statefulset() client.Object {
 	}
 
 	return sts
-}
-
-func eventLogEtcdArgs() []string {
-	return []string{
-		"--discover.etcd.ca=" + path.Join(EtcdSSLPath, "ca-file"),
-		"--discover.etcd.cert=" + path.Join(EtcdSSLPath, "cert-file"),
-		"--discover.etcd.key=" + path.Join(EtcdSSLPath, "key-file"),
-	}
 }

@@ -114,8 +114,10 @@ type RainbondClusterSpec struct {
 	// Suffix of component default domain name
 	SuffixHTTPHost string `json:"suffixHTTPHost"`
 	// Ingress IP addresses of rbd-gateway. If not specified,
-	// the IP of the node where the rbd-gateway is located will be used.
+	// the GatewayVIP or IP of the node where the rbd-gateway is located will be used.
 	GatewayIngressIPs []string `json:"gatewayIngressIPs,omitempty"`
+	// GatewayVIP VIP addresses of rbd-gateway. Used in domain name resolution scenarios
+	GatewayVIP string `json:"gatewayVIP,omitempty"`
 	// Specify the nodes where the rbd-gateway will running.
 	NodesForGateway []*K8sNode `json:"nodesForGateway,omitempty"`
 	// Specify the nodes where the rbd-gateway will running.
@@ -127,9 +129,6 @@ type RainbondClusterSpec struct {
 	// the region database information that rainbond component will be used.
 	// rainbond-operator will create one if DBInfo is empty
 	RegionDatabase *Database `json:"regionDatabase,omitempty"`
-	// the ui database information that rainbond component will be used.
-	// rainbond-operator will create one if DBInfo is empty
-	UIDatabase *Database `json:"uiDatabase,omitempty"`
 	// the etcd connection information that rainbond component will be used.
 	// rainbond-operator will create one if EtcdConfig is empty
 	EtcdConfig *EtcdConfig `json:"etcdConfig,omitempty"`
@@ -139,6 +138,8 @@ type RainbondClusterSpec struct {
 	CIVersion string `json:"ciVersion,omitempty"`
 	// Whether the configuration has been completed
 	ConfigCompleted bool `json:"configCompleted,omitempty"`
+	// PrometheusURL Prometheus access address, which will be automatically populated if the Monitor addon is installed.
+	PrometheusURL string `json:"prometheusURL,omitempty"`
 
 	RainbondVolumeSpecRWX *RainbondVolumeSpec `json:"rainbondVolumeSpecRWX,omitempty"`
 	RainbondVolumeSpecRWO *RainbondVolumeSpec `json:"rainbondVolumeSpecRWO,omitempty"`
@@ -147,12 +148,33 @@ type RainbondClusterSpec struct {
 	SentinelImage string `json:"sentinelImage,omitempty"`
 
 	CacheMode string `json:"cacheMode,omitempty"`
+
+	// CoreComponent core components are required for initial installation.
+	CoreComponent CoreComponent `json:"coreComponent,omitempty"`
+	// AddonComponent Installation is optional.
+	AddonComponent AddonComponent `json:"addonComponent,omitempty"`
 }
 
-//InstallPackageConfig define install package download config
-type InstallPackageConfig struct {
-	URL string `json:"url,omitempty"`
-	MD5 string `json:"md5,omitempty"`
+//CoreComponent Define deployment parameters for Rainbond region core components
+type CoreComponent struct {
+	RegionAPI RbdComponentSpec `json:"regionAPI"`
+	Worker    RbdComponentSpec `json:"worker"`
+	Chaos     RbdComponentSpec `json:"chaos"`
+	MQ        RbdComponentSpec `json:"mq"`
+	NodeProxy RbdComponentSpec `json:"nodeProxy"`
+	DB        RbdComponentSpec `json:"db"`
+	Gateway   RbdComponentSpec `json:"gateway"`
+	EventLog  RbdComponentSpec `json:"eventLog"`
+}
+
+//AddonComponent Define deployment parameters for Rainbond region addon components
+type AddonComponent struct {
+	Monitor                 RbdComponentSpec `json:"monitor,omitempty"`
+	ImageHub                RbdComponentSpec `json:"imageHub,omitempty"`
+	KubeDashboard           RbdComponentSpec `json:"kubeDashboard,omitempty"`
+	DashboardMetricsScraper RbdComponentSpec `json:"dashboardMetricsScraper,omitempty"`
+	MetricsServer           RbdComponentSpec `json:"metricsServer,omitempty"`
+	ResourceProxy           RbdComponentSpec `json:"resourceProxy,omitempty"`
 }
 
 // StorageClass storage class

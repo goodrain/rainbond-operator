@@ -34,6 +34,7 @@ import (
 
 	rainbondiov1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/controllers"
+	mv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -48,6 +49,8 @@ func init() {
 	utilruntime.Must(rainbondiov1alpha1.AddToScheme(scheme))
 
 	utilruntime.Must(kubeaggregatorv1beta1.AddToScheme(scheme))
+
+	utilruntime.Must(mv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 

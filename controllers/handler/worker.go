@@ -16,6 +16,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -23,14 +24,12 @@ import (
 var WorkerName = "rbd-worker"
 
 type worker struct {
-	ctx        context.Context
-	client     client.Client
-	component  *rainbondv1alpha1.RbdComponent
-	cluster    *rainbondv1alpha1.RainbondCluster
-	labels     map[string]string
-	db         *rainbondv1alpha1.Database
-	etcdSecret *corev1.Secret
-
+	ctx              context.Context
+	client           client.Client
+	component        *rainbondv1alpha1.RbdComponent
+	cluster          *rainbondv1alpha1.RainbondCluster
+	labels           map[string]string
+	db               *rainbondv1alpha1.Database
 	pvcParametersRWX *pvcParameters
 	storageRequest   int64
 }
@@ -60,12 +59,6 @@ func (w *worker) Before() error {
 	}
 	w.db = db
 
-	secret, err := etcdSecret(w.ctx, w.client, w.cluster)
-	if err != nil {
-		return fmt.Errorf("failed to get etcd secret: %v", err)
-	}
-	w.etcdSecret = secret
-
 	if err := setStorageCassName(w.ctx, w.client, w.component.Namespace, w); err != nil {
 		return err
 	}
@@ -76,6 +69,7 @@ func (w *worker) Before() error {
 func (w *worker) Resources() []client.Object {
 	return []client.Object{
 		w.deployment(),
+		w.serviceForWorker(),
 	}
 }
 
@@ -121,12 +115,6 @@ func (w *worker) deployment() client.Object {
 		w.db.RegionDataSource(),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(w.cluster), ","),
 		"--rbd-system-namespace=" + w.component.Namespace,
-	}
-	if w.etcdSecret != nil {
-		volume, mount := volumeByEtcd(w.etcdSecret)
-		volumeMounts = append(volumeMounts, mount)
-		volumes = append(volumes, volume)
-		args = append(args, etcdSSLArgs()...)
 	}
 
 	env := []corev1.EnvVar{
@@ -217,4 +205,27 @@ func (w *worker) deployment() client.Object {
 	}
 
 	return ds
+}
+
+func (w *worker) serviceForWorker() client.Object {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      NodeName,
+			Namespace: w.component.Namespace,
+			Labels:    w.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "grpc",
+					Port: 6535,
+					TargetPort: intstr.IntOrString{
+						IntVal: 6535,
+					},
+				},
+			},
+			Selector: w.labels,
+		},
+	}
+	return svc
 }

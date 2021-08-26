@@ -11,9 +11,11 @@ import (
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	mv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -52,6 +54,9 @@ func (n *node) Before() error {
 func (n *node) Resources() []client.Object {
 	return []client.Object{
 		n.daemonSetForRainbondNode(),
+		n.serviceForNode(),
+		n.serviceMonitorForNode(),
+		n.prometheusRuleForNode(),
 	}
 }
 
@@ -176,6 +181,9 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 		"--image-repo-host=" + rbdutil.GetImageRepository(n.cluster),
 		"--rbd-ns=" + n.component.Namespace,
 	}
+	if n.cluster.Spec.GatewayVIP != "" {
+		args = append(args, "--gateway-vip="+n.cluster.Spec.GatewayVIP)
+	}
 	volumeMounts = mergeVolumeMounts(volumeMounts, n.component.Spec.VolumeMounts)
 	volumes = mergeVolumes(volumes, n.component.Spec.Volumes)
 
@@ -258,4 +266,141 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 	}
 
 	return ds
+}
+
+func (n *node) serviceForNode() client.Object {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      NodeName,
+			Namespace: n.component.Namespace,
+			Labels:    n.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "api",
+					Port: 6100,
+					TargetPort: intstr.IntOrString{
+						IntVal: 6100,
+					},
+				},
+			},
+			Selector: n.labels,
+		},
+	}
+	return svc
+}
+
+func (n *node) serviceMonitorForNode() client.Object {
+	return &mv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        NodeName,
+			Namespace:   n.component.Namespace,
+			Labels:      n.labels,
+			Annotations: map[string]string{"ignore_controller_update": "true"},
+		},
+		Spec: mv1.ServiceMonitorSpec{
+			NamespaceSelector: mv1.NamespaceSelector{
+				MatchNames: []string{n.component.Namespace},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"name": NodeName,
+				},
+			},
+			Endpoints: []mv1.Endpoint{
+				{
+					Port:          "api",
+					Path:          "/app/metrics",
+					Interval:      "5s",
+					ScrapeTimeout: "4s",
+				},
+				{
+					Port:          "api",
+					Path:          "/node/metrics",
+					Interval:      "30s",
+					ScrapeTimeout: "30s",
+				},
+			},
+			JobLabel: "name",
+		},
+	}
+}
+
+func (n *node) prometheusRuleForNode() client.Object {
+	region := n.cluster.Annotations["regionName"]
+	if region == "" {
+		region = "default"
+	}
+	alertName := n.cluster.Annotations["alertName"]
+	if alertName == "" {
+		alertName = "rainbond"
+	}
+	commonLables := map[string]string{
+		"Alert":  alertName,
+		"Region": region,
+	}
+	getseverityLables := func(severity string) map[string]string {
+		commonLables["severity"] = severity
+		return commonLables
+	}
+	return &mv1.PrometheusRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      NodeName,
+			Namespace: n.component.Namespace,
+			Labels:    n.labels,
+		},
+		Spec: mv1.PrometheusRuleSpec{
+			Groups: []mv1.RuleGroup{
+				{
+					Name:     "node-default-rule",
+					Interval: "20s",
+					Rules: []mv1.Rule{
+						{
+							Alert:       "HighCpuUsageOnNode",
+							Expr:        intstr.FromString("sum by(instance) (rate(process_cpu_seconds_total[5m])) * 100 > 70"),
+							For:         "5m",
+							Labels:      getseverityLables("warning"),
+							Annotations: map[string]string{"description": "{{ $labels.instance }} is using a LOT of CPU. CPU usage is {{ humanize $value}}%.", "summary": "HIGH CPU USAGE WARNING ON '{{ $labels.instance }}'"},
+						},
+						{
+							Alert:       "HighLoadOnNode",
+							Expr:        intstr.FromString("sum by (instance, job) (node_load5) / count by (instance, job) (node_cpu_seconds_total{mode=\"idle\"}) > 0.95"),
+							For:         "5m",
+							Labels:      getseverityLables("warning"),
+							Annotations: map[string]string{"description": "{{ $labels.instance }} has a high load average. Load Average 5m is {{ humanize $value}}.", "summary": "HIGH LOAD AVERAGE WARNING ON '{{ $labels.instance }}'"},
+						},
+						{
+							Alert:       "InodeFreerateLow",
+							Expr:        intstr.FromString("node_filesystem_files_free{fstype=~\"ext4|xfs\"} / node_filesystem_files{fstype=~\"ext4|xfs\"} < 0.3"),
+							For:         "5m",
+							Labels:      getseverityLables("warning"),
+							Annotations: map[string]string{"description": "the inode free rate is low of node {{ $labels.instance }}, current value is {{ humanize $value}}."},
+						},
+						{
+							Alert:       "HighRootdiskUsageOnNode",
+							Expr:        intstr.FromString("(node_filesystem_size_bytes{mountpoint='/'} - node_filesystem_free_bytes{mountpoint='/'}) * 100 / node_filesystem_size_bytes{mountpoint='/'} > 85"),
+							For:         "5m",
+							Labels:      getseverityLables("warning"),
+							Annotations: map[string]string{"description": "More than 85% of disk used. Disk usage {{ humanize $value }} mountpoint {{ $labels.mountpoint }}%.", "summary": "LOW DISK SPACE WARING:NODE '{{ $labels.instance }}"},
+						},
+						{
+							Alert:       "HighDockerdiskUsageOnNode",
+							Expr:        intstr.FromString("(node_filesystem_size_bytes{mountpoint='/var/lib/docker'} - node_filesystem_free_bytes{mountpoint='/var/lib/docker'}) * 100 / node_filesystem_size_bytes{mountpoint='/var/lib/docker'} > 85"),
+							For:         "5m",
+							Labels:      getseverityLables("warning"),
+							Annotations: map[string]string{"description": "More than 85% of disk used. Disk usage {{ humanize $value }} mountpoint {{ $labels.mountpoint }}%.", "summary": "LOW DISK SPACE WARING:NODE '{{ $labels.instance }}"},
+						},
+						{
+							Alert:       "HighMemoryUsageOnNode",
+							Expr:        intstr.FromString("((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes) * 100 > 80"),
+							For:         "5m",
+							Labels:      getseverityLables("warning"),
+							Annotations: map[string]string{"description": "{{ $labels.instance }} is using a LOT of MEMORY. MEMORY usage is over {{ humanize $value}}%.", "summary": "HIGH MEMORY USAGE WARNING TASK ON '{{ $labels.instance }}'"},
+						},
+					},
+				},
+			},
+		},
+	}
 }

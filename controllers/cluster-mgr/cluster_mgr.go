@@ -334,13 +334,6 @@ func (r *RainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 		r.cluster.Status.UpdateCondition(&condition)
 	}
 
-	// console database
-	if spec.UIDatabase != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseConsole) {
-		preChecker := precheck.NewDatabasePrechecker(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseConsole, spec.UIDatabase)
-		condition := preChecker.Check()
-		r.cluster.Status.UpdateCondition(&condition)
-	}
-
 	// image repository
 	if spec.ImageHub != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository) {
 		preChecker := precheck.NewImageRepoPrechecker(r.ctx, r.log, r.cluster)

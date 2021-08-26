@@ -12,6 +12,7 @@ import (
 	"github.com/goodrain/rainbond-operator/controllers/handler"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	mv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -198,7 +199,7 @@ func (r *RbdcomponentMgr) UpdateOrCreateResource(obj client.Object) (reconcile.R
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	if !objectCanUpdate(obj) {
+	if !objectCanUpdate(oldOjb) {
 		return reconcile.Result{}, nil
 	}
 
@@ -224,10 +225,19 @@ func (r *RbdcomponentMgr) updateRuntimeObject(old, new client.Object) client.Obj
 		n.Spec.ClusterIP = o.Spec.ClusterIP
 		return n
 	}
+	if n, ok := new.(*mv1.ServiceMonitor); ok {
+		r.log.V(6).Info("copy necessary fields from old service before updating")
+		o := old.(*corev1.Service)
+		n.ResourceVersion = o.ResourceVersion
+		return n
+	}
 	return new
 }
 
 func objectCanUpdate(obj client.Object) bool {
+	if obj.GetAnnotations()["ignore_controller_update"] == "true" {
+		return false
+	}
 	// do not use 'obj.GetObjectKind().GroupVersionKind().Kind', because it may be empty
 	if _, ok := obj.(*corev1.PersistentVolumeClaim); ok {
 		return false
