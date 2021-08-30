@@ -61,6 +61,7 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 	mgr := clustermgr.NewClusterMgr(ctx, r.Client, reqLogger, rainbondcluster, r.Scheme)
 
 	// generate status for rainbond cluster
+	reqLogger.V(6).Info("start generate status")
 	status, err := mgr.GenerateRainbondClusterStatus()
 	if err != nil {
 		reqLogger.Error(err, "failed to generate rainbondcluster status")
@@ -78,9 +79,11 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 		reqLogger.Error(err, "update rainbondcluster status")
 		return reconcile.Result{RequeueAfter: time.Second * 2}, err
 	}
+	reqLogger.V(6).Info("update status success")
 
 	// setup imageHub if empty
 	if rainbondcluster.Spec.ImageHub == nil {
+		reqLogger.V(6).Info("create new image hub info")
 		imageHub, err := r.getImageHub(rainbondcluster)
 		if err != nil {
 			reqLogger.V(6).Info(fmt.Sprintf("set image hub info: %v", err))
@@ -98,6 +101,7 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 			reqLogger.Error(err, "update rainbondcluster")
 			return reconcile.Result{RequeueAfter: time.Second * 1}, err
 		}
+		reqLogger.V(6).Info("create new image hub info success")
 		// Put it back in the queue.
 		return reconcile.Result{Requeue: true}, err
 	}

@@ -2,8 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -11,6 +9,7 @@ import (
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
+	mv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -23,14 +22,11 @@ import (
 var MonitorName = "rbd-monitor"
 
 type monitor struct {
-	ctx        context.Context
-	client     client.Client
-	etcdSecret *corev1.Secret
-
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
-	labels    map[string]string
-
+	ctx              context.Context
+	client           client.Client
+	component        *rainbondv1alpha1.RbdComponent
+	cluster          *rainbondv1alpha1.RainbondCluster
+	labels           map[string]string
 	pvcParametersRWO *pvcParameters
 	storageRequest   int64
 }
@@ -41,9 +37,8 @@ var _ StorageClassRWOer = &monitor{}
 // NewMonitor returns a new rbd-monitor handler.
 func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &monitor{
-		ctx:    ctx,
-		client: client,
-
+		ctx:            ctx,
+		client:         client,
 		component:      component,
 		cluster:        cluster,
 		labels:         LabelsForRainbondComponent(component),
@@ -52,11 +47,6 @@ func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1
 }
 
 func (m *monitor) Before() error {
-	secret, err := etcdSecret(m.ctx, m.client, m.cluster)
-	if err != nil {
-		return fmt.Errorf("failed to get etcd secret: %v", err)
-	}
-	m.etcdSecret = secret
 
 	if err := setStorageCassName(m.ctx, m.client, m.component.Namespace, m); err != nil {
 		return err
@@ -69,6 +59,7 @@ func (m *monitor) Resources() []client.Object {
 	return []client.Object{
 		m.statefulset(),
 		m.serviceForMonitor(),
+		m.serviceMonitorForMonitor(),
 	}
 }
 
@@ -89,12 +80,10 @@ func (m *monitor) statefulset() client.Object {
 	promDataPVC := createPersistentVolumeClaimRWO(m.component.Namespace, claimName, m.pvcParametersRWO, m.labels, m.storageRequest)
 
 	args := []string{
-		"--advertise-addr=$(POD_IP):9999",
 		"--alertmanager-address=$(POD_IP):9093",
 		"--storage.tsdb.path=/prometheusdata",
 		"--storage.tsdb.no-lockfile",
 		"--storage.tsdb.retention=7d",
-		"--etcd-endpoints=" + strings.Join(etcdEndpoints(m.cluster), ","),
 	}
 	volumeMounts := []corev1.VolumeMount{
 		{
@@ -103,12 +92,6 @@ func (m *monitor) statefulset() client.Object {
 		},
 	}
 	var volumes []corev1.Volume
-	if m.etcdSecret != nil {
-		volume, mount := volumeByEtcd(m.etcdSecret)
-		volumeMounts = append(volumeMounts, mount)
-		volumes = append(volumes, volume)
-		args = append(args, etcdSSLArgs()...)
-	}
 	env := []corev1.EnvVar{
 		{
 			Name: "POD_IP",
@@ -157,7 +140,7 @@ func (m *monitor) statefulset() client.Object {
 				},
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(m.component, m.cluster),
-					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					TerminationGracePeriodSeconds: commonutil.Int64(30),
 					ServiceAccountName:            "rainbond-operator",
 					Containers: []corev1.Container{
 						{
@@ -203,4 +186,34 @@ func (m *monitor) serviceForMonitor() client.Object {
 	}
 
 	return svc
+}
+
+func (m *monitor) serviceMonitorForMonitor() client.Object {
+	return &mv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        MonitorName,
+			Namespace:   m.component.Namespace,
+			Labels:      m.labels,
+			Annotations: map[string]string{"ignore_controller_update": "true"},
+		},
+		Spec: mv1.ServiceMonitorSpec{
+			NamespaceSelector: mv1.NamespaceSelector{
+				MatchNames: []string{m.component.Namespace},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"name": MonitorName,
+				},
+			},
+			Endpoints: []mv1.Endpoint{
+				{
+					Port:          "http",
+					Path:          "/metrics",
+					Interval:      "1m",
+					ScrapeTimeout: "30s",
+				},
+			},
+			JobLabel: "name",
+		},
+	}
 }

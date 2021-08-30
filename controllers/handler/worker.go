@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"path"
-	"strings"
 
 	"github.com/goodrain/rainbond-operator/util/probeutil"
+	mv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
@@ -16,6 +16,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -23,14 +24,12 @@ import (
 var WorkerName = "rbd-worker"
 
 type worker struct {
-	ctx        context.Context
-	client     client.Client
-	component  *rainbondv1alpha1.RbdComponent
-	cluster    *rainbondv1alpha1.RainbondCluster
-	labels     map[string]string
-	db         *rainbondv1alpha1.Database
-	etcdSecret *corev1.Secret
-
+	ctx              context.Context
+	client           client.Client
+	component        *rainbondv1alpha1.RbdComponent
+	cluster          *rainbondv1alpha1.RainbondCluster
+	labels           map[string]string
+	db               *rainbondv1alpha1.Database
 	pvcParametersRWX *pvcParameters
 	storageRequest   int64
 }
@@ -60,12 +59,6 @@ func (w *worker) Before() error {
 	}
 	w.db = db
 
-	secret, err := etcdSecret(w.ctx, w.client, w.cluster)
-	if err != nil {
-		return fmt.Errorf("failed to get etcd secret: %v", err)
-	}
-	w.etcdSecret = secret
-
 	if err := setStorageCassName(w.ctx, w.client, w.component.Namespace, w); err != nil {
 		return err
 	}
@@ -76,6 +69,8 @@ func (w *worker) Before() error {
 func (w *worker) Resources() []client.Object {
 	return []client.Object{
 		w.deployment(),
+		w.serviceForWorker(),
+		w.serviceMonitorForWorker(),
 	}
 }
 
@@ -119,14 +114,7 @@ func (w *worker) deployment() client.Object {
 		"--host-ip=$(POD_IP)",
 		"--node-name=$(POD_IP)",
 		w.db.RegionDataSource(),
-		"--etcd-endpoints=" + strings.Join(etcdEndpoints(w.cluster), ","),
 		"--rbd-system-namespace=" + w.component.Namespace,
-	}
-	if w.etcdSecret != nil {
-		volume, mount := volumeByEtcd(w.etcdSecret)
-		volumeMounts = append(volumeMounts, mount)
-		volumes = append(volumes, volume)
-		args = append(args, etcdSSLArgs()...)
 	}
 
 	env := []corev1.EnvVar{
@@ -217,4 +205,65 @@ func (w *worker) deployment() client.Object {
 	}
 
 	return ds
+}
+
+func (w *worker) serviceForWorker() client.Object {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      WorkerName,
+			Namespace: w.component.Namespace,
+			Labels:    w.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "grpc",
+					Port: 6535,
+					TargetPort: intstr.IntOrString{
+						IntVal: 6535,
+					},
+				},
+				{
+					Name: "metric",
+					Port: 6369,
+					TargetPort: intstr.IntOrString{
+						IntVal: 6369,
+					},
+				},
+			},
+			Selector: w.labels,
+		},
+	}
+	return svc
+}
+
+func (w *worker) serviceMonitorForWorker() client.Object {
+	svc := &mv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        WorkerName,
+			Namespace:   w.component.Namespace,
+			Labels:      w.labels,
+			Annotations: map[string]string{"ignore_controller_update": "true"},
+		},
+		Spec: mv1.ServiceMonitorSpec{
+			NamespaceSelector: mv1.NamespaceSelector{
+				MatchNames: []string{w.component.Namespace},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"name": WorkerName,
+				},
+			},
+			Endpoints: []mv1.Endpoint{
+				{
+					Port:          "metric",
+					Path:          "/metrics",
+					Interval:      "3m",
+					ScrapeTimeout: "4s",
+				},
+			},
+			JobLabel: "name",
+		},
+	}
+	return svc
 }

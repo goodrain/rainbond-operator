@@ -289,7 +289,7 @@ func (p *pkg) configByCluster(c *rainbondv1alpha1.RainbondCluster) error {
 	p.localPackagePath = p.pkg.Spec.PkgPath
 	ciVersion := c.Spec.CIVersion
 	if ciVersion == "" {
-		ciVersion = "v5.3.0"
+		ciVersion = "v5.3.3"
 	}
 	p.images = map[string]string{
 		"/builder:" + ciVersion:             "/builder",

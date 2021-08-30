@@ -74,7 +74,7 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 }
 
 func (d *db) Before() error {
-	if d.cluster.Spec.RegionDatabase != nil && d.cluster.Spec.UIDatabase != nil {
+	if d.cluster.Spec.RegionDatabase != nil {
 		return NewIgnoreError("use custom database")
 	}
 
@@ -188,7 +188,6 @@ func (d *db) statefulsetForDB() client.Object {
 		{
 			Name:      pvc.GetName(),
 			MountPath: "/var/lib/mysql",
-			SubPath:   "mysql",
 		},
 		{
 			Name:      "initdb",

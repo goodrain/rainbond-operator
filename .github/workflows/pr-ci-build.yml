@@ -25,4 +25,4 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: false
-          tags: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator:v2.0.1-dev
+          tags: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator:v3.0.0-dev

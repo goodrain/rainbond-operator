@@ -14,7 +14,6 @@ import (
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -46,47 +45,6 @@ func LabelsForRainbondComponent(cpt *rainbondv1alpha1.RbdComponent) map[string]s
 	labels := rbdutil.LabelsForRainbond(nil)
 	labels["name"] = cpt.Name
 	return labels
-}
-
-func isUIDBReady(ctx context.Context, cli client.Client, cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) error {
-	if cluster.Spec.UIDatabase != nil {
-		return nil
-	}
-
-	dbcpt := &rainbondv1alpha1.RbdComponent{}
-	if err := cli.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: DBName}, dbcpt); err != nil {
-		return err
-	}
-
-	if dbcpt.Status.ReadyReplicas == 0 {
-		return errors.New("no ready replicas for rbdcomponent rbd-db")
-	}
-
-	return nil
-}
-
-func isUIDBMigrateOK(ctx context.Context, cli client.Client, cpt *rainbondv1alpha1.RbdComponent) error {
-	job := &batchv1.Job{}
-	if err := cli.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: AppUIDBMigrationsName}, job); err != nil {
-		if k8sErrors.IsNotFound(err) {
-			return NewIgnoreError(fmt.Sprintf("job %s not found", AppUIDBMigrationsName))
-		}
-		return err
-	}
-
-	var complete bool
-	for _, cond := range job.Status.Conditions {
-		if cond.Type == batchv1.JobComplete && cond.Status == corev1.ConditionTrue {
-			complete = true
-			break
-		}
-	}
-
-	if !complete {
-		return NewIgnoreError(fmt.Sprintf("job %s not complete", AppUIDBMigrationsName))
-	}
-
-	return nil
 }
 
 func getDefaultDBInfo(ctx context.Context, cli client.Client, in *rainbondv1alpha1.Database, namespace, name string) (*rainbondv1alpha1.Database, error) {

@@ -26,6 +26,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.50.0
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.6.1
@@ -36,4 +37,5 @@ require (
 	k8s.io/client-go v0.20.1
 	k8s.io/kube-aggregator v0.20.1
 	sigs.k8s.io/controller-runtime v0.7.0
+	sigs.k8s.io/yaml v1.2.0
 )

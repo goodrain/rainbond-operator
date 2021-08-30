@@ -1,4 +1,4 @@
-name: release-ci-build
+name: v2.0.3
 
 on:
   release:
@@ -32,6 +32,6 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator:v2.0.1
+          tags: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator:v3.0.0
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

@@ -145,10 +145,10 @@ func init() {
 	SchemeBuilder.Register(&RbdComponent{}, &RbdComponentList{})
 }
 
-// ImagePullPolicy returns the ImagePullPolicy, or  return PullAlways if it is empty.
+// ImagePullPolicy returns the ImagePullPolicy, or  return PullIfNotPresent if it is empty.
 func (in *RbdComponent) ImagePullPolicy() corev1.PullPolicy {
 	if in.Spec.ImagePullPolicy == "" {
-		return corev1.PullAlways
+		return corev1.PullIfNotPresent
 	}
 	return in.Spec.ImagePullPolicy
 }
