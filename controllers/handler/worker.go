@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"path"
-	"strings"
 
 	"github.com/goodrain/rainbond-operator/util/probeutil"
+	mv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
@@ -70,6 +70,7 @@ func (w *worker) Resources() []client.Object {
 	return []client.Object{
 		w.deployment(),
 		w.serviceForWorker(),
+		w.serviceMonitorForWorker(),
 	}
 }
 
@@ -113,7 +114,6 @@ func (w *worker) deployment() client.Object {
 		"--host-ip=$(POD_IP)",
 		"--node-name=$(POD_IP)",
 		w.db.RegionDataSource(),
-		"--etcd-endpoints=" + strings.Join(etcdEndpoints(w.cluster), ","),
 		"--rbd-system-namespace=" + w.component.Namespace,
 	}
 
@@ -223,8 +223,46 @@ func (w *worker) serviceForWorker() client.Object {
 						IntVal: 6535,
 					},
 				},
+				{
+					Name: "metric",
+					Port: 6369,
+					TargetPort: intstr.IntOrString{
+						IntVal: 6369,
+					},
+				},
 			},
 			Selector: w.labels,
+		},
+	}
+	return svc
+}
+
+func (w *worker) serviceMonitorForWorker() client.Object {
+	svc := &mv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        WorkerName,
+			Namespace:   w.component.Namespace,
+			Labels:      w.labels,
+			Annotations: map[string]string{"ignore_controller_update": "true"},
+		},
+		Spec: mv1.ServiceMonitorSpec{
+			NamespaceSelector: mv1.NamespaceSelector{
+				MatchNames: []string{w.component.Namespace},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"name": WorkerName,
+				},
+			},
+			Endpoints: []mv1.Endpoint{
+				{
+					Port:          "metric",
+					Path:          "/metrics",
+					Interval:      "3m",
+					ScrapeTimeout: "4s",
+				},
+			},
+			JobLabel: "name",
 		},
 	}
 	return svc

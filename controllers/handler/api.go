@@ -9,6 +9,7 @@ import (
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/probeutil"
+	mv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -87,6 +88,7 @@ func (a *api) Resources() []client.Object {
 	resources = append(resources, a.createService()...)
 	resources = append(resources, a.ingressForAPI())
 	resources = append(resources, a.ingressForWebsocket())
+	resources = append(resources, a.serviceMonitor())
 	return resources
 }
 
@@ -277,7 +279,7 @@ func (a *api) createService() []client.Object {
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
-					Name: "https",
+					Name: "inner",
 					Port: 8888,
 					TargetPort: intstr.IntOrString{
 						IntVal: 8888,
@@ -289,6 +291,37 @@ func (a *api) createService() []client.Object {
 	}
 
 	return []client.Object{svcAPI, svcWebsocket, inner}
+}
+
+func (a *api) serviceMonitor() *mv1.ServiceMonitor {
+	svc := &mv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        APIName,
+			Namespace:   a.component.Namespace,
+			Labels:      a.labels,
+			Annotations: map[string]string{"ignore_controller_update": "true"},
+		},
+		Spec: mv1.ServiceMonitorSpec{
+			NamespaceSelector: mv1.NamespaceSelector{
+				MatchNames: []string{a.component.Namespace},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"name": APIName,
+				},
+			},
+			Endpoints: []mv1.Endpoint{
+				{
+					Port:          "inner",
+					Path:          "/metrics",
+					Interval:      "1m",
+					ScrapeTimeout: "4s",
+				},
+			},
+			JobLabel: "name",
+		},
+	}
+	return svc
 }
 
 func (a *api) getSecret(name string) (*corev1.Secret, error) {
