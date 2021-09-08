@@ -3,6 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
+	networkingv1beta1 "k8s.io/api/networking/v1beta1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"os/exec"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -10,11 +14,9 @@ import (
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
-	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -222,37 +224,31 @@ func (h *hub) persistentVolumeClaimForHub() *corev1.PersistentVolumeClaim {
 }
 
 func (h *hub) ingressForHub() client.Object {
-	ing := &networkingv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      HubName,
-			Namespace: h.component.Namespace,
-			Annotations: map[string]string{
-				"nginx.ingress.kubernetes.io/weight":                       "100",
-				"nginx.ingress.kubernetes.io/upstream-hash-by":             "$remote_addr", // consistent hashing
-				"nginx.ingress.kubernetes.io/proxy-body-size":              "0",
-				"nginx.ingress.kubernetes.io/set-header-Host":              "$http_host",
-				"nginx.ingress.kubernetes.io/set-header-X-Forwarded-Host":  "$http_host",
-				"nginx.ingress.kubernetes.io/set-header-X-Forwarded-Proto": "https",
-				"nginx.ingress.kubernetes.io/set-header-X-Scheme":          "$scheme",
-			},
-			Labels: h.labels,
-		},
-		Spec: networkingv1.IngressSpec{
-			Rules: []networkingv1.IngressRule{
-				{
-					Host: constants.DefImageRepository,
-					IngressRuleValue: networkingv1.IngressRuleValue{
-						HTTP: &networkingv1.HTTPIngressRuleValue{
-							Paths: []networkingv1.HTTPIngressPath{
-								{
-									Path:     "/v2/",
-									PathType: k8sutil.IngressPathType(networkingv1.PathTypeExact),
-									Backend: networkingv1.IngressBackend{
-										Service: &networkingv1.IngressServiceBackend{
-											Name: HubName,
-											Port: networkingv1.ServiceBackendPort{
-												Number: 5000,
-											},
+	annotations := map[string]string{
+		"nginx.ingress.kubernetes.io/weight":                       "100",
+		"nginx.ingress.kubernetes.io/upstream-hash-by":             "$remote_addr", // consistent hashing
+		"nginx.ingress.kubernetes.io/proxy-body-size":              "0",
+		"nginx.ingress.kubernetes.io/set-header-Host":              "$http_host",
+		"nginx.ingress.kubernetes.io/set-header-X-Forwarded-Host":  "$http_host",
+		"nginx.ingress.kubernetes.io/set-header-X-Forwarded-Proto": "https",
+		"nginx.ingress.kubernetes.io/set-header-X-Scheme":          "$scheme",
+	}
+	objectMeta := createIngressMeta(HubName, h.component.Namespace, annotations, h.labels)
+	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
+		rules := []networkingv1.IngressRule{
+			{
+				Host: constants.DefImageRepository,
+				IngressRuleValue: networkingv1.IngressRuleValue{
+					HTTP: &networkingv1.HTTPIngressRuleValue{
+						Paths: []networkingv1.HTTPIngressPath{
+							{
+								Path:     "/v2/",
+								PathType: k8sutil.IngressPathType(networkingv1.PathTypeExact),
+								Backend: networkingv1.IngressBackend{
+									Service: &networkingv1.IngressServiceBackend{
+										Name: HubName,
+										Port: networkingv1.ServiceBackendPort{
+											Number: 5000,
 										},
 									},
 								},
@@ -261,7 +257,37 @@ func (h *hub) ingressForHub() client.Object {
 					},
 				},
 			},
-			TLS: []networkingv1.IngressTLS{
+		}
+		tls := []networkingv1.IngressTLS{
+			{
+				Hosts:      []string{rbdutil.GetImageRepository(h.cluster)},
+				SecretName: hubImageRepository,
+			},
+		}
+		return &networkingv1.Ingress{ObjectMeta: objectMeta, Spec: networkingv1.IngressSpec{Rules: rules, TLS: tls}}
+	}
+	return &networkingv1beta1.Ingress{
+		ObjectMeta: objectMeta,
+		Spec: networkingv1beta1.IngressSpec{
+			Rules: []networkingv1beta1.IngressRule{
+				{
+					Host: constants.DefImageRepository,
+					IngressRuleValue: networkingv1beta1.IngressRuleValue{
+						HTTP: &networkingv1beta1.HTTPIngressRuleValue{
+							Paths: []networkingv1beta1.HTTPIngressPath{
+								{
+									Path: "/v2/",
+									Backend: networkingv1beta1.IngressBackend{
+										ServiceName: HubName,
+										ServicePort: intstr.FromInt(5000),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			TLS: []networkingv1beta1.IngressTLS{
 				{
 					Hosts:      []string{rbdutil.GetImageRepository(h.cluster)},
 					SecretName: hubImageRepository,
@@ -269,8 +295,6 @@ func (h *hub) ingressForHub() client.Object {
 			},
 		},
 	}
-
-	return ing
 }
 
 func (h *hub) secretForHub() client.Object {

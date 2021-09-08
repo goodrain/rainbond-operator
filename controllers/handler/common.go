@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"os"
 	"path"
 	"strconv"
@@ -16,6 +17,8 @@ import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -446,4 +449,42 @@ func mergeVolumeMounts(commonMountVolumes, priorityMountVolumes []corev1.VolumeM
 		priorityMountVolumes = append(priorityMountVolumes, vol)
 	}
 	return priorityMountVolumes
+}
+
+func createIngress(name, namespace string, annotations, labels map[string]string, serviceName, servicePortName string) *networkingv1.Ingress {
+	return &networkingv1.Ingress{
+		ObjectMeta: createIngressMeta(name, namespace, annotations, labels),
+		Spec: networkingv1.IngressSpec{
+			DefaultBackend: &networkingv1.IngressBackend{
+				Service: &networkingv1.IngressServiceBackend{
+					Name: serviceName,
+					Port: networkingv1.ServiceBackendPort{
+						Name: servicePortName,
+					},
+				},
+			},
+		},
+	}
+
+}
+
+func createLegacyIngress(name, namespace string, annotations, labels map[string]string, serviceName string, servicePort intstr.IntOrString) *networkingv1beta1.Ingress {
+	return &networkingv1beta1.Ingress{
+		ObjectMeta: createIngressMeta(name, namespace, annotations, labels),
+		Spec: networkingv1beta1.IngressSpec{
+			Backend: &networkingv1beta1.IngressBackend{
+				ServiceName: serviceName,
+				ServicePort: servicePort,
+			},
+		},
+	}
+}
+
+func createIngressMeta(name, namespace string, annotations, labels map[string]string) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:        name,
+		Namespace:   namespace,
+		Annotations: annotations,
+		Labels:      labels,
+	}
 }

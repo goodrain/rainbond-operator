@@ -22,6 +22,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/reference"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 )
 
 var once sync.Once
@@ -236,4 +237,10 @@ func ListNodes(ctx context.Context, c client.Client) ([]corev1.Node, error) {
 		return nil, err
 	}
 	return nodeList.Items, nil
+}
+
+// GetKubeVersion returns the version of k8s
+func GetKubeVersion() *utilversion.Version {
+	var serverVersion, _ = GetClientSet().Discovery().ServerVersion()
+	return utilversion.MustParseSemantic(serverVersion.GitVersion)
 }

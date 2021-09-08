@@ -3,6 +3,8 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"strconv"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -11,7 +13,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -281,29 +282,15 @@ func (a *appui) serviceForAppUI() client.Object {
 }
 
 func (a *appui) ingressForAppUI() client.Object {
-	ing := &networkingv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      AppUIName,
-			Namespace: a.component.Namespace,
-			Annotations: map[string]string{
-				"nginx.ingress.kubernetes.io/l4-enable": "true",
-				"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
-				"nginx.ingress.kubernetes.io/l4-port":   "7070",
-			},
-			Labels: a.labels,
-		},
-		Spec: networkingv1.IngressSpec{
-			DefaultBackend: &networkingv1.IngressBackend{
-				Service: &networkingv1.IngressServiceBackend{
-					Name: AppUIName,
-					Port: networkingv1.ServiceBackendPort{
-						Name: "http",
-					},
-				},
-			},
-		},
+	annotations := map[string]string{
+		"nginx.ingress.kubernetes.io/l4-enable": "true",
+		"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
+		"nginx.ingress.kubernetes.io/l4-port":   "7070",
 	}
-	return ing
+	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
+		return createIngress(AppUIName, a.component.Namespace, annotations, a.labels, AppUIName, "http")
+	}
+	return createLegacyIngress(AppUIName, a.component.Namespace, annotations, a.labels, AppUIName, intstr.FromString("http"))
 }
 
 func (a *appui) migrationsJob() *batchv1.Job {
