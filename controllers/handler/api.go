@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	"github.com/sirupsen/logrus"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"strings"
 
@@ -395,8 +396,10 @@ func (a *api) ingressForAPI() client.Object {
 		"nginx.ingress.kubernetes.io/l4-port":   "8443",
 	}
 	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
+		logrus.Info("create networking v1 ingress for api")
 		return createIngress(APIName, a.component.Namespace, annotations, a.labels, APIName+"-api", "https")
 	}
+	logrus.Info("create networking beta v1 ingress for api")
 	return createLegacyIngress(APIName, a.component.Namespace, annotations, a.labels, APIName+"-api", intstr.FromString("https"))
 }
 
@@ -407,7 +410,9 @@ func (a *api) ingressForWebsocket() client.Object {
 		"nginx.ingress.kubernetes.io/l4-port":   "6060",
 	}
 	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
+		logrus.Info("create networking v1 ingress for websocket")
 		return createIngress(APIName + "-websocket", a.component.Namespace, annotations, a.labels, APIName + "-websocket", "ws")
 	}
+	logrus.Info("create networking beta v1 ingress for api")
 	return createLegacyIngress(APIName + "-websocket", a.component.Namespace, annotations, a.labels, APIName + "-websocket", intstr.FromString("ws"))
 }
