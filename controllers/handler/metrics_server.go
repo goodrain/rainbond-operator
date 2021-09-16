@@ -19,7 +19,7 @@ import (
 	plabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	kubeaggregatorv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
+	kubeaggregatorv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -37,7 +37,7 @@ type metricsServer struct {
 	labels     map[string]string
 	component  *rainbondv1alpha1.RbdComponent
 	cluster    *rainbondv1alpha1.RainbondCluster
-	apiservice *kubeaggregatorv1beta1.APIService
+	apiservice *kubeaggregatorv1.APIService
 
 	pods []corev1.Pod
 }
@@ -57,7 +57,7 @@ func NewMetricsServer(ctx context.Context, client client.Client, component *rain
 }
 
 func (m *metricsServer) Before() error {
-	apiservice := &kubeaggregatorv1beta1.APIService{}
+	apiservice := &kubeaggregatorv1.APIService{}
 	if err := m.client.Get(m.ctx, types.NamespacedName{Name: metricsGroupAPI}, apiservice); err != nil {
 		if !k8sErrors.IsNotFound(err) {
 			return fmt.Errorf("get apiservice(%s/%s): %v", MetricsServerName, m.cluster.Namespace, err)
@@ -92,7 +92,7 @@ func (m *metricsServer) After() error {
 	}
 
 	newAPIService := m.apiserviceForMetricsServer()
-	apiservice := &kubeaggregatorv1beta1.APIService{}
+	apiservice := &kubeaggregatorv1.APIService{}
 	if err := m.client.Get(m.ctx, types.NamespacedName{Name: metricsGroupAPI}, apiservice); err != nil {
 		if !k8sErrors.IsNotFound(err) {
 			return fmt.Errorf("get apiservice(%s/%s): %v", MetricsServerName, m.cluster.Namespace, err)
@@ -115,7 +115,7 @@ func (m *metricsServer) After() error {
 	return nil
 }
 
-func apiServiceNeedUpgrade(old, new *kubeaggregatorv1beta1.APIService) bool {
+func apiServiceNeedUpgrade(old, new *kubeaggregatorv1.APIService) bool {
 	if old.Spec.Service == nil {
 		return true
 	}
@@ -259,13 +259,13 @@ func (m *metricsServer) serviceForMetricsServer() client.Object {
 	return svc
 }
 
-func (m *metricsServer) apiserviceForMetricsServer() *kubeaggregatorv1beta1.APIService {
-	return &kubeaggregatorv1beta1.APIService{
+func (m *metricsServer) apiserviceForMetricsServer() *kubeaggregatorv1.APIService {
+	return &kubeaggregatorv1.APIService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: metricsGroupAPI,
 		},
-		Spec: kubeaggregatorv1beta1.APIServiceSpec{
-			Service: &kubeaggregatorv1beta1.ServiceReference{
+		Spec: kubeaggregatorv1.APIServiceSpec{
+			Service: &kubeaggregatorv1.ServiceReference{
 				Name:      MetricsServerName,
 				Namespace: m.cluster.Namespace,
 			},
