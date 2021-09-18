@@ -291,13 +291,8 @@ func (p *pkg) configByCluster(c *rainbondv1alpha1.RainbondCluster) error {
 	if ciVersion == "" {
 		ciVersion = "v5.3.3"
 	}
-	p.images = map[string]string{
-		"/builder:" + ciVersion:             "/builder",
-		"/runner:" + ciVersion:              "/runner",
-		"/rbd-init-probe:" + p.version:      "/rbd-init-probe",
-		"/rbd-mesh-data-panel:" + p.version: "/rbd-mesh-data-panel",
-		"/plugins-tcm:5.1.7":                "/tcm",
-	}
+
+	p.images = map[string]string{}
 	return nil
 }
 
