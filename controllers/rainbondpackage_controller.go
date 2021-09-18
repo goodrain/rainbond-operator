@@ -289,10 +289,13 @@ func (p *pkg) configByCluster(c *rainbondv1alpha1.RainbondCluster) error {
 	p.localPackagePath = p.pkg.Spec.PkgPath
 	ciVersion := c.Spec.CIVersion
 	if ciVersion == "" {
-		ciVersion = "v5.3.3"
+		ciVersion = "v5.4.0"
 	}
 
-	p.images = map[string]string{}
+	p.images = map[string]string{
+		"/rbd-init-probe:" + p.version:      "/rbd-init-probe",
+		"/rbd-mesh-data-panel:" + p.version: "/rbd-mesh-data-panel",
+	}
 	return nil
 }
 
