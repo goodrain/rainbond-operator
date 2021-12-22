@@ -2,6 +2,9 @@ package suffixdomain
 
 import (
 	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"net/http"
 	"net/url"
 )
@@ -25,3 +28,19 @@ func GenerateDomain(iip, id, secretKey string) (string, error) {
 	}
 	return string(data), nil
 }
+
+// GenerateSuffixConfigMap -
+func GenerateSuffixConfigMap(name, namespace string) *v1.ConfigMap {
+	cm := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"uuid": string(uuid.NewUUID()),
+			"auth": string(uuid.NewUUID()),
+		},
+	}
+	return cm
+}
+

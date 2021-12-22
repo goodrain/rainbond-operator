@@ -66,11 +66,16 @@ func (w *worker) Before() error {
 	}
 	w.etcdSecret = secret
 
-	if err := setStorageCassName(w.ctx, w.client, w.component.Namespace, w); err != nil {
-		return err
+	if w.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
+		sc, err := storageClassNameFromRainbondVolumeRWO(w.ctx, w.client, w.component.Namespace)
+		if err != nil {
+			return err
+		}
+		w.SetStorageClassNameRWX(sc)
+		return nil
 	}
 
-	return nil
+	return setStorageCassName(w.ctx, w.client, w.component.Namespace, w)
 }
 
 func (w *worker) Resources() []client.Object {
@@ -92,6 +97,11 @@ func (w *worker) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 }
 
 func (w *worker) ResourcesCreateIfNotExists() []client.Object {
+	if w.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
+		return []client.Object{
+			createPersistentVolumeClaimRWO(w.component.Namespace, constants.GrDataPVC, w.pvcParametersRWX, w.labels, w.storageRequest),
+		}
+	}
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
 		createPersistentVolumeClaimRWX(w.component.Namespace, constants.GrDataPVC, w.pvcParametersRWX, w.labels),

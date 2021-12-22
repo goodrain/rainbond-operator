@@ -72,11 +72,15 @@ func (c *chaos) Before() error {
 	}
 	c.etcdSecret = secret
 
-	if err := setStorageCassName(c.ctx, c.client, c.component.Namespace, c); err != nil {
-		return err
+	if c.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
+		sc, err := storageClassNameFromRainbondVolumeRWO(c.ctx, c.client, c.component.Namespace)
+		if err != nil {
+			return err
+		}
+		c.SetStorageClassNameRWX(sc)
+		return nil
 	}
-
-	return nil
+	return setStorageCassName(c.ctx, c.client, c.component.Namespace, c)
 }
 
 func (c *chaos) Resources() []client.Object {
@@ -99,6 +103,12 @@ func (c *chaos) SetStorageClassNameRWX(pvcParametersRWX *pvcParameters) {
 }
 
 func (c *chaos) ResourcesCreateIfNotExists() []client.Object {
+	if c.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
+		return []client.Object{
+			createPersistentVolumeClaimRWO(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX, c.labels, c.grdataStorageRequest),
+			createPersistentVolumeClaimRWO(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels, c.cacheStorageRequest),
+		}
+	}
 	return []client.Object{
 		createPersistentVolumeClaimRWX(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX, c.labels),
 		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels),

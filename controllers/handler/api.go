@@ -76,11 +76,15 @@ func (a *api) Before() error {
 	}
 	a.etcdSecret = secret
 
-	if err := setStorageCassName(a.ctx, a.client, a.component.Namespace, a); err != nil {
-		return err
+	if a.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
+		sc, err := storageClassNameFromRainbondVolumeRWO(a.ctx, a.client, a.component.Namespace)
+		if err != nil {
+			return err
+		}
+		a.SetStorageClassNameRWX(sc)
+		return nil
 	}
-
-	return nil
+	return setStorageCassName(a.ctx, a.client, a.component.Namespace, a)
 }
 
 func (a *api) Resources() []client.Object {
@@ -105,6 +109,12 @@ func (a *api) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 }
 
 func (a *api) ResourcesCreateIfNotExists() []client.Object {
+	if a.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
+		return []client.Object{
+			createPersistentVolumeClaimRWO(a.component.Namespace, constants.GrDataPVC, a.pvcParametersRWX, a.labels, a.grdataStorageRequest),
+			createPersistentVolumeClaimRWO(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels, a.dataStorageRequest),
+		}
+	}
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
 		createPersistentVolumeClaimRWX(a.component.Namespace, constants.GrDataPVC, a.pvcParametersRWX, a.labels),
@@ -411,8 +421,8 @@ func (a *api) ingressForWebsocket() client.Object {
 	}
 	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
 		logrus.Info("create networking v1 ingress for websocket")
-		return createIngress(APIName + "-websocket", a.component.Namespace, annotations, a.labels, APIName + "-websocket", "ws")
+		return createIngress(APIName+"-websocket", a.component.Namespace, annotations, a.labels, APIName+"-websocket", "ws")
 	}
 	logrus.Info("create networking beta v1 ingress for api")
-	return createLegacyIngress(APIName + "-websocket", a.component.Namespace, annotations, a.labels, APIName + "-websocket", intstr.FromString("ws"))
+	return createLegacyIngress(APIName+"-websocket", a.component.Namespace, annotations, a.labels, APIName+"-websocket", intstr.FromString("ws"))
 }
