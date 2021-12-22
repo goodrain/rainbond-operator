@@ -354,6 +354,15 @@ func (p *nfsPlugin) pv() *corev1.PersistentVolume {
 							},
 						},
 					},
+					{
+						MatchExpressions: []corev1.NodeSelectorRequirement{
+							{
+								Key:      "k3s.io/hostname",
+								Operator: corev1.NodeSelectorOpIn,
+								Values:   []string{largeStorageNode.Name},
+							},
+						},
+					},
 				},
 			},
 		}

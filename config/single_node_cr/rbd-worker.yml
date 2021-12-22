@@ -1,0 +1,18 @@
+apiVersion: rainbond.io/v1alpha1
+kind: RbdComponent
+metadata:
+  name: rbd-worker
+  namespace: rbd-system
+  labels:
+    belongTo: rainbond-operator
+    creator: Rainbond
+    name: rbd-worker
+    persistentVolumeClaimAccessModes: ReadWriteOnce
+spec:
+  env:
+  - name: ALLINONE_MODE
+    value: "true"
+  replicas: 1
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-worker:v5.5.0-release
+  imagePullPolicy: IfNotPresent
+  priorityComponent: false

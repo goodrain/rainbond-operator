@@ -62,10 +62,6 @@ func (h *hub) Before() error {
 		return NewIgnoreError("use custom image repository")
 	}
 
-	if err := setStorageCassName(h.ctx, h.client, h.component.Namespace, h); err != nil {
-		return err
-	}
-
 	if h.cluster.Spec.ImageHub == nil {
 		return NewIgnoreError("imageHub is empty")
 	}
@@ -76,7 +72,16 @@ func (h *hub) Before() error {
 	}
 	h.htpasswd = htpasswd
 
-	return nil
+	if h.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
+		sc, err := storageClassNameFromRainbondVolumeRWO(h.ctx, h.client, h.component.Namespace)
+		if err != nil {
+			return err
+		}
+		h.SetStorageClassNameRWX(sc)
+		return nil
+	}
+
+	return setStorageCassName(h.ctx, h.client, h.component.Namespace, h)
 }
 
 func (h *hub) Resources() []client.Object {
@@ -220,6 +225,9 @@ func (h *hub) serviceForHub() client.Object {
 }
 
 func (h *hub) persistentVolumeClaimForHub() *corev1.PersistentVolumeClaim {
+	if h.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
+		return createPersistentVolumeClaimRWO(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels, h.storageRequest)
+	}
 	return createPersistentVolumeClaimRWX(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels)
 }
 

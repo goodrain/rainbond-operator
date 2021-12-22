@@ -306,6 +306,15 @@ func affinityForRequiredNodes(nodeNames []string) *corev1.Affinity {
 							},
 						},
 					},
+					{
+						MatchExpressions: []corev1.NodeSelectorRequirement{
+							{
+								Key:      "k3s.io/hostname",
+								Operator: corev1.NodeSelectorOpIn,
+								Values:   nodeNames,
+							},
+						},
+					},
 				},
 			},
 		},

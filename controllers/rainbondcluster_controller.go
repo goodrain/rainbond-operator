@@ -3,6 +3,11 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/util/retryutil"
+	"github.com/goodrain/rainbond-operator/util/suffixdomain"
+	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/types"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -106,6 +111,37 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 		return reconcile.Result{Requeue: true}, err
 	}
 
+	if rainbondcluster.Spec.SuffixHTTPHost == "" {
+		var ip string
+		if len(rainbondcluster.Spec.NodesForGateway) > 0 {
+			ip = rainbondcluster.Spec.NodesForGateway[0].InternalIP
+		}
+		if len(rainbondcluster.Spec.GatewayIngressIPs) > 0 && rainbondcluster.Spec.GatewayIngressIPs[0] != "" {
+			ip = rainbondcluster.Spec.GatewayIngressIPs[0]
+		}
+		if ip != "" {
+			err := retryutil.Retry(1*time.Second, 3, func() (bool, error) {
+				domain, err := r.genSuffixHTTPHost(ip, rainbondcluster)
+				if err != nil {
+					return false, err
+				}
+				rainbondcluster.Spec.SuffixHTTPHost = domain
+				if !strings.HasSuffix(domain, constants.DefHTTPDomainSuffix) {
+					rainbondcluster.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
+				}
+				return true, nil
+			})
+			if err != nil {
+				logrus.Warningf("generate suffix http host: %v", err)
+				rainbondcluster.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
+			}
+			return reconcile.Result{}, r.Update(ctx, rainbondcluster)
+		}
+		logrus.Infof("rainbondcluster.Spec.SuffixHTTPHost ip is empty %s", ip)
+		rainbondcluster.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
+		return reconcile.Result{}, r.Update(ctx, rainbondcluster)
+	}
+
 	// create secret for pulling images.
 	if rainbondcluster.Spec.ImageHub != nil && rainbondcluster.Spec.ImageHub.Username != "" && rainbondcluster.Spec.ImageHub.Password != "" {
 		err := mgr.CreateImagePullSecret()
@@ -141,4 +177,34 @@ func (r *RainbondClusterReconciler) getImageHub(cluster *rainbondv1alpha1.Rainbo
 		Username: "admin",
 		Password: uuidutil.NewUUID()[0:8],
 	}, nil
+}
+
+func (r *RainbondClusterReconciler) genSuffixHTTPHost(ip string, rainbondcluster *rainbondv1alpha1.RainbondCluster) (domain string, err error) {
+	id, auth, err := r.getOrCreateUUIDAndAuth(rainbondcluster)
+	if err != nil {
+		return "", err
+	}
+	domain, err = suffixdomain.GenerateDomain(ip, id, auth)
+	if err != nil {
+		return "", err
+	}
+	return domain, nil
+}
+
+func (r *RainbondClusterReconciler) getOrCreateUUIDAndAuth(rainbondcluster *rainbondv1alpha1.RainbondCluster) (id, auth string, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	cm := &corev1.ConfigMap{}
+	err = r.Client.Get(context.Background(), types.NamespacedName{Name: "rbd-suffix-host", Namespace: rainbondcluster.Namespace}, cm)
+	if err != nil && !strings.Contains(err.Error(), "not found") {
+		return "", "", err
+	}
+	if err != nil && strings.Contains(err.Error(), "not found") {
+		logrus.Info("not found configmap rbd-suffix-host, create it")
+		cm = suffixdomain.GenerateSuffixConfigMap("rbd-suffix-host", rainbondcluster.Namespace)
+		if err = r.Client.Create(ctx, cm); err != nil {
+			return "", "", err
+		}
+	}
+	return cm.Data["uuid"], cm.Data["auth"], nil
 }
