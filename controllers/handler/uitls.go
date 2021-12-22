@@ -25,6 +25,15 @@ func nodeAffnityNodesForChaos(cluster *rainbondv1alpha1.RainbondCluster) (*corev
 						},
 					},
 				},
+				{
+					MatchExpressions: []corev1.NodeSelectorRequirement{
+						{
+							Key:      "k3s.io/hostname",
+							Operator: corev1.NodeSelectorOpIn,
+							Values:   []string{cluster.Spec.NodesForChaos[0].Name},
+						},
+					},
+				},
 			},
 		},
 	}, nil
