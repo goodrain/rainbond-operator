@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
@@ -112,6 +113,12 @@ func (e *etcd) statefulsetForEtcd() client.Object {
 			Name:  "ETCD_QUOTA_BACKEND_BYTES",
 			Value: "4294967296", // 4 Gi
 		},
+	}
+	if runtime.GOARCH == "arm64" {
+		env = append(env, corev1.EnvVar{
+			Name:  "ETCD_UNSUPPORTED_ARCH",
+			Value: "arm64",
+		})
 	}
 	env = mergeEnvs(env, e.component.Spec.Env)
 
