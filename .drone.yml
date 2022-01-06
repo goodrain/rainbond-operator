@@ -7,8 +7,8 @@ platform:
 
 trigger:
   event:
-    exclude:
-    - promote
+    include:
+    - custom
 steps:
 - name: build operator
   image: docker:dind
@@ -36,9 +36,8 @@ steps:
   - docker push $IMAGE_REGISTRY/$IMAGE_NAMESPACE/$IMAGE_NAME:$IMAGE_TAG
   when:
     event:
-    - push
-    - pull_request
-    - tag
+      include:
+      - custom
 volumes:
 - name: dockersock
   host:
