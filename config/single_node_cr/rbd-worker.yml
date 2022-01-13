@@ -12,6 +12,10 @@ spec:
   env:
   - name: ALLINONE_MODE
     value: "true"
+  - name: TCPMESH_DEFAULT_IMAGE_NAME
+    value: "registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-mesh-data-panel:v5.5.0-release"
+  - name: PROBE_MESH_IMAGE_NAME
+    value: "registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-init-probe:v5.5.0-release"
   replicas: 1
   image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-worker:v5.5.0-release
   imagePullPolicy: IfNotPresent
