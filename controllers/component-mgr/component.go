@@ -2,13 +2,16 @@ package componentmgr
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/logutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"os"
 	"reflect"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -188,10 +191,11 @@ func (r *RbdcomponentMgr) CollectStatus() {
 		}
 	}
 
+	// handle region status
 	regionStatus := "RegionFailed"
-	regionStatusBytes, err := json.Marshal(r.cpt.Status)
-	if regionStatusBytes != nil {
-		regionStatus = string(regionStatusBytes)
+	regionPods, isReady := handleRegionInfo()
+	if isReady {
+		regionStatus = "RegionReady"
 	}
 	log := &logutil.LogCollectRequest{
 		EID:           os.Getenv("ENTERPRISE_ID"),
@@ -201,9 +205,63 @@ func (r *RbdcomponentMgr) CollectStatus() {
 		DockerInfo:    dockerInfo,
 		KernelVersion: kernelVersion,
 		ClusterInfo:   &logutil.ClusterInfo{Status: clusterStatus},
-		RegionInfo:    &logutil.RegionInfo{Status: regionStatus},
+		RegionInfo:    &logutil.RegionInfo{Status: regionStatus, Pods: regionPods},
 	}
 	logutil.SendLog(log)
+}
+
+func handleRegionInfo() (regionPods []*logutil.Pod, isReady bool) {
+	clientSet := k8sutil.GetClientSet()
+	podList, err := clientSet.CoreV1().Pods(constants.Namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, false
+	}
+	podInfos := make(map[string]*logutil.Pod)
+	for _, po := range podList.Items {
+		podName := po.Name
+		var events []*logutil.PodEvent
+		var readyContainers int
+
+		pod := &logutil.Pod{
+			Name:   podName,
+			Status: string(po.Status.Phase),
+		}
+		for _, container := range po.Status.ContainerStatuses {
+			if container.Ready {
+				readyContainers += 1
+			}
+		}
+		pod.Ready = fmt.Sprintf("%d/%d", readyContainers, len(po.Status.ContainerStatuses))
+		podInfos[podName] = pod
+
+		eventLists, err := clientSet.CoreV1().Events(constants.Namespace).List(context.Background(), metav1.ListOptions{FieldSelector: fields.Set{"involvedObject.name": podName}.String()})
+		if err != nil {
+			return nil, false
+		}
+		for _, eve := range eventLists.Items {
+			event := &logutil.PodEvent{
+				Type:    eve.Type,
+				Reason:  eve.Reason,
+				Message: eve.Message,
+				From:    eve.Source.Component,
+				Age:     eve.LastTimestamp.Time.Sub(eve.FirstTimestamp.Time).String(),
+			}
+			events = append(events, event)
+			podInfos[podName].Events = events
+		}
+	}
+
+	// handle Pod
+	var pods []*logutil.Pod
+	for _, value := range podInfos {
+		pods = append(pods, value)
+		if strings.Contains(value.Name, "rbd-api") {
+			if value.Status == string(corev1.PodRunning) && value.Ready == "1/1" {
+				return pods, true
+			}
+		}
+	}
+	return pods, false
 }
 
 //IsRbdComponentReady -

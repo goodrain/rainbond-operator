@@ -32,6 +32,23 @@ type ClusterInfo struct {
 
 type RegionInfo struct {
 	Status string `json:"status"`
+	Pods   []*Pod `json:"pods"`
+}
+
+type PodEvent struct {
+	Type    string `json:"type"`
+	Reason  string `json:"reason"`
+	Message string `json:"message"`
+	From    string `json:"from"`
+	Age     string `json:"age"`
+}
+
+type Pod struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
+	Ready  string `json:"ready"`
+	Log    string      `json:"log"`
+	Events []*PodEvent `json:"events"`
 }
 
 type DockerServer struct {
