@@ -7,6 +7,7 @@ import (
 	"github.com/goodrain/rainbond-operator/util/suffixdomain"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
 	"strings"
 	"time"
 
@@ -86,6 +87,17 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 	}
 	reqLogger.V(6).Info("update status success")
 
+	if rainbondcluster.Annotations != nil {
+		if _, ok := rainbondcluster.Annotations["meta.helm.sh/release-name"]; ok {
+			if _, ok := rainbondcluster.Annotations["enterprise_id"]; !ok {
+				if os.Getenv("ENTERPRISE_ID") == "" {
+					rainbondcluster.Annotations["enterprise_id"] = uuidutil.NewUUID()
+					os.Setenv("ENTERPRISE_ID", rainbondcluster.Annotations["enterprise_id"])
+				}
+			}
+			os.Setenv("INSTALL_VERSION", rainbondcluster.Spec.InstallVersion)
+		}
+	}
 	// setup imageHub if empty
 	if rainbondcluster.Spec.ImageHub == nil {
 		reqLogger.V(6).Info("create new image hub info")

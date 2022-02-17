@@ -2,9 +2,13 @@ package componentmgr
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/util/logutil"
+	"os"
 	"reflect"
+	"runtime"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -153,6 +157,53 @@ func (r *RbdcomponentMgr) GenerateStatus(pods []corev1.Pod) {
 	}
 
 	r.cpt.Status = *status
+}
+
+func (r *RbdcomponentMgr) CollectStatus() {
+	if os.Getenv("ENTERPRISE_ID") == "" || os.Getenv("DISABLE_LOG") == "true" {
+		return
+	}
+	dockerInfo, err := logutil.GetDockerInfo()
+	kernelVersion := "UnKnown"
+	if dockerInfo != nil {
+		kernelVersion = dockerInfo.Server.KernelVersion
+	}
+	nodes := corev1.NodeList{}
+	err = r.client.List(context.Background(), &nodes)
+	clusterStatus := "ClusterFailed"
+	var clusterVersionSuffix string
+	clusterVersion, _ := k8sutil.GetClientSet().Discovery().ServerVersion()
+	if clusterVersion != nil {
+		clusterVersionSuffix = clusterVersion.GitVersion
+	}
+	clusterStatus = clusterStatus + "-" + clusterVersionSuffix
+	if err == nil {
+		for _, node := range nodes.Items {
+			for _, con := range node.Status.Conditions {
+				if con.Type == corev1.NodeReady && con.Status == corev1.ConditionTrue {
+					clusterStatus = "ClusterReady" + "-" + clusterVersionSuffix
+					break
+				}
+			}
+		}
+	}
+
+	regionStatus := "RegionFailed"
+	regionStatusBytes, err := json.Marshal(r.cpt.Status)
+	if regionStatusBytes != nil {
+		regionStatus = string(regionStatusBytes)
+	}
+	log := &logutil.LogCollectRequest{
+		EID:           os.Getenv("ENTERPRISE_ID"),
+		Version:       os.Getenv("INSTALL_VERSION"),
+		OS:            runtime.GOOS,
+		OSArch:        runtime.GOARCH,
+		DockerInfo:    dockerInfo,
+		KernelVersion: kernelVersion,
+		ClusterInfo:   &logutil.ClusterInfo{Status: clusterStatus},
+		RegionInfo:    &logutil.RegionInfo{Status: regionStatus},
+	}
+	logutil.SendLog(log)
 }
 
 //IsRbdComponentReady -

@@ -294,6 +294,7 @@ func (r *RbdComponentReconciler) Reconcile(ctx context.Context, request ctrl.Req
 	}
 
 	mgr.GenerateStatus(pods)
+	mgr.CollectStatus()
 
 	if err := mgr.UpdateStatus(); err != nil {
 		log.Error(err, "update rainbond component status failure %s")
