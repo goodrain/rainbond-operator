@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	dclient "github.com/docker/docker/client"
 	"net/http"
 	"strings"
@@ -67,10 +66,8 @@ func GetDockerInfo() (info *DockerInfo, err error) {
 			msg := strings.Split(err.Error(), " ")
 			if len(msg) > 0 {
 				apiVersion = msg[len(msg)-1]
-				fmt.Println("apiVersion---------", apiVersion)
 				cli, err = dclient.NewClientWithOpts(dclient.WithVersion(apiVersion))
 				if err != nil {
-					fmt.Println("apiVersion-err--------", err)
 					return nil, err
 				}
 			}

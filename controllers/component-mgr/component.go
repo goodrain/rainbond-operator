@@ -243,7 +243,7 @@ func (r *RbdcomponentMgr) UpdateOrCreateResource(obj client.Object) (reconcile.R
 		r.log.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", obj.GetNamespace(), "Name", obj.GetName())
 		err = r.client.Create(ctx, obj)
 		if err != nil {
-			r.log.Error(err, "Failed to create new", obj.GetObjectKind(), "Namespace", obj.GetNamespace(), "Name", obj.GetName())
+			r.log.Error(err, fmt.Sprintf("Failed to create new %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", obj.GetNamespace(), "Name", obj.GetName())
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{Requeue: true}, nil

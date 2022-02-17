@@ -7,6 +7,7 @@ import (
 	"github.com/goodrain/rainbond-operator/util/suffixdomain"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/types"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -87,6 +88,7 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 	}
 	reqLogger.V(6).Info("update status success")
 
+	// handle enterprise ID
 	if rainbondcluster.Annotations != nil {
 		if _, ok := rainbondcluster.Annotations["meta.helm.sh/release-name"]; ok {
 			if _, ok := rainbondcluster.Annotations["enterprise_id"]; !ok {
@@ -98,6 +100,52 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 			os.Setenv("INSTALL_VERSION", rainbondcluster.Spec.InstallVersion)
 		}
 	}
+
+	// setup nodesForGateway nodesForChaos gatewayIngressIP if empty
+	if rainbondcluster.Spec.NodesForGateway == nil || rainbondcluster.Spec.NodesForChaos == nil || rainbondcluster.Spec.GatewayIngressIPs == nil {
+		gatewayNodes, chaosNodes := r.GetRainbondGatewayNodeAndChaosNodes()
+		if gatewayNodes == nil || chaosNodes == nil {
+			return reconcile.Result{RequeueAfter: time.Second * 3}, err
+		}
+		if rainbondcluster.Spec.NodesForGateway == nil {
+			rainbondcluster.Spec.NodesForGateway = gatewayNodes
+		}
+		if rainbondcluster.Spec.NodesForChaos == nil {
+			rainbondcluster.Spec.NodesForChaos = chaosNodes
+		}
+		if rainbondcluster.Spec.GatewayIngressIPs == nil {
+			rainbondcluster.Spec.GatewayIngressIPs = func() (re []string) {
+				for _, n := range rainbondcluster.Spec.NodesForGateway {
+					if n.ExternalIP != "" {
+						re = append(re, n.ExternalIP)
+					}
+				}
+				if len(re) == 0 {
+					for _, n := range rainbondcluster.Spec.NodesForGateway {
+						if n.InternalIP != "" {
+							re = append(re, n.InternalIP)
+						}
+					}
+				}
+				return
+			}()
+		}
+		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			rc := &rainbondv1alpha1.RainbondCluster{}
+			if err := r.Get(ctx, request.NamespacedName, rc); err != nil {
+				return err
+			}
+			rc.Spec.GatewayIngressIPs = rainbondcluster.Spec.GatewayIngressIPs
+			rc.Spec.NodesForGateway = rainbondcluster.Spec.NodesForChaos
+			rc.Spec.NodesForChaos = rainbondcluster.Spec.NodesForChaos
+			return r.Update(ctx, rc)
+		}); err != nil {
+			reqLogger.Error(err, "update rainbondcluster")
+			return reconcile.Result{RequeueAfter: time.Second * 1}, err
+		}
+		return reconcile.Result{Requeue: true}, err
+	}
+
 	// setup imageHub if empty
 	if rainbondcluster.Spec.ImageHub == nil {
 		reqLogger.V(6).Info("create new image hub info")
@@ -219,4 +267,91 @@ func (r *RainbondClusterReconciler) getOrCreateUUIDAndAuth(rainbondcluster *rain
 		}
 	}
 	return cm.Data["uuid"], cm.Data["auth"], nil
+}
+
+//GetRainbondGatewayNodeAndChaosNodes get gateway nodes
+func (r *RainbondClusterReconciler) GetRainbondGatewayNodeAndChaosNodes() (gatewayNodes, chaosNodes []*rainbondv1alpha1.K8sNode) {
+	nodeList := &corev1.NodeList{}
+	reqLogger := r.Log.WithValues("rainbondcluster", types.NamespacedName{Name: "rbd-system"})
+	err := r.Client.List(context.Background(), nodeList)
+	if err != nil {
+		reqLogger.V(4).Error(err, "get rainbond gatewayNodes or ChaosNodes")
+		return
+	}
+	nodes := nodeList.Items
+	for _, node := range nodes {
+		if node.Annotations["rainbond.io/gateway-node"] == "true" {
+			gatewayNodes = append(gatewayNodes, getK8sNode(node))
+		}
+		if node.Annotations["rainbond.io/chaos-node"] == "true" {
+			chaosNodes = append(chaosNodes, getK8sNode(node))
+		}
+	}
+	if len(gatewayNodes) == 0 {
+		if len(nodes) < 2 {
+			gatewayNodes = []*rainbondv1alpha1.K8sNode{
+				getK8sNode(nodes[0]),
+			}
+		} else {
+			gatewayNodes = []*rainbondv1alpha1.K8sNode{
+				getK8sNode(nodes[0]),
+				getK8sNode(nodes[1]),
+			}
+		}
+	}
+	if len(chaosNodes) == 0 {
+		if len(nodes) < 2 {
+			chaosNodes = []*rainbondv1alpha1.K8sNode{
+				getK8sNode(nodes[0]),
+			}
+		} else {
+			chaosNodes = []*rainbondv1alpha1.K8sNode{
+				getK8sNode(nodes[0]),
+				getK8sNode(nodes[1]),
+			}
+		}
+	}
+	gatewayNodes = r.ChoiceAvailableGatewayNode(gatewayNodes)
+	return
+}
+
+func getK8sNode(node corev1.Node) *rainbondv1alpha1.K8sNode {
+	var Knode rainbondv1alpha1.K8sNode
+	for _, address := range node.Status.Addresses {
+		if address.Type == corev1.NodeInternalIP {
+			Knode.InternalIP = address.Address
+		}
+		if address.Type == corev1.NodeExternalIP {
+			Knode.ExternalIP = address.Address
+		}
+		if address.Type == corev1.NodeHostName {
+			Knode.Name = address.Address
+		}
+	}
+	return &Knode
+}
+
+func (r *RainbondClusterReconciler) ChoiceAvailableGatewayNode(nodes []*rainbondv1alpha1.K8sNode) []*rainbondv1alpha1.K8sNode {
+	var availableGatewayNodes []*rainbondv1alpha1.K8sNode
+	portOccupiedNode := make(map[string]struct{})
+	ports := []string{"80", "443", "7070", "6060", "8443"}
+	for _, node := range nodes {
+		for _, port := range ports {
+			address := net.JoinHostPort(node.InternalIP, port)
+			conn, err := net.DialTimeout("tcp", address, 1*time.Second)
+			if err != nil {
+				continue
+			}
+			if conn != nil {
+				r.Log.Info(fmt.Sprintf("Node [%s] port [%s] is already in use and cannot be used as a gateway node", node.Name, port))
+				portOccupiedNode[node.Name] = struct{}{}
+				_ = conn.Close()
+				break
+			}
+		}
+		if _, portOccupied := portOccupiedNode[node.Name]; !portOccupied {
+			availableGatewayNodes = append(availableGatewayNodes, node)
+		}
+	}
+	return availableGatewayNodes
 }
