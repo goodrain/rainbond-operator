@@ -16,7 +16,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	storagev1beta1 "k8s.io/api/storage/v1beta1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -82,15 +82,15 @@ func (p *aliyunnasPlugin) GetSubResources() []client.Object {
 	}
 }
 
-func (p *aliyunnasPlugin) csiDriver() *storagev1beta1.CSIDriver {
-	return &storagev1beta1.CSIDriver{
+func (p *aliyunnasPlugin) csiDriver() *storagev1.CSIDriver {
+	return &storagev1.CSIDriver{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: provisioner,
 			Labels: rbdutil.LabelsForRainbond(map[string]string{
 				"name": provisioner,
 			}),
 		},
-		Spec: storagev1beta1.CSIDriverSpec{
+		Spec: storagev1.CSIDriverSpec{
 			AttachRequired: commonutil.Bool(false),
 		},
 	}
