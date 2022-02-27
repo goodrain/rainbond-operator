@@ -4,7 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/util/constants"
+	"github.com/goodrain/rainbond-operator/util/logutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"os"
 	"reflect"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -155,6 +162,108 @@ func (r *RbdcomponentMgr) GenerateStatus(pods []corev1.Pod) {
 	r.cpt.Status = *status
 }
 
+func (r *RbdcomponentMgr) CollectStatus() {
+	if os.Getenv("ENTERPRISE_ID") == "" || os.Getenv("DISABLE_LOG") == "true" {
+		return
+	}
+	dockerInfo, err := logutil.GetDockerInfo()
+	kernelVersion := "UnKnown"
+	if dockerInfo != nil {
+		kernelVersion = dockerInfo.Server.KernelVersion
+	}
+	nodes := corev1.NodeList{}
+	err = r.client.List(context.Background(), &nodes)
+	clusterStatus := "ClusterFailed"
+	var clusterVersionSuffix string
+	clusterVersion, _ := k8sutil.GetClientSet().Discovery().ServerVersion()
+	if clusterVersion != nil {
+		clusterVersionSuffix = clusterVersion.GitVersion
+	}
+	clusterStatus = clusterStatus + "-" + clusterVersionSuffix
+	if err == nil {
+		for _, node := range nodes.Items {
+			for _, con := range node.Status.Conditions {
+				if con.Type == corev1.NodeReady && con.Status == corev1.ConditionTrue {
+					clusterStatus = "ClusterReady" + "-" + clusterVersionSuffix
+					break
+				}
+			}
+		}
+	}
+
+	// handle region status
+	regionStatus := "RegionFailed"
+	regionPods, isReady := handleRegionInfo()
+	if isReady {
+		regionStatus = "RegionReady"
+	}
+	log := &logutil.LogCollectRequest{
+		EID:           os.Getenv("ENTERPRISE_ID"),
+		Version:       os.Getenv("INSTALL_VERSION"),
+		OS:            runtime.GOOS,
+		OSArch:        runtime.GOARCH,
+		DockerInfo:    dockerInfo,
+		KernelVersion: kernelVersion,
+		ClusterInfo:   &logutil.ClusterInfo{Status: clusterStatus},
+		RegionInfo:    &logutil.RegionInfo{Status: regionStatus, Pods: regionPods},
+	}
+	logutil.SendLog(log)
+}
+
+func handleRegionInfo() (regionPods []*logutil.Pod, isReady bool) {
+	clientSet := k8sutil.GetClientSet()
+	podList, err := clientSet.CoreV1().Pods(constants.Namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, false
+	}
+	podInfos := make(map[string]*logutil.Pod)
+	for _, po := range podList.Items {
+		podName := po.Name
+		var events []*logutil.PodEvent
+		var readyContainers int
+
+		pod := &logutil.Pod{
+			Name:   podName,
+			Status: string(po.Status.Phase),
+		}
+		for _, container := range po.Status.ContainerStatuses {
+			if container.Ready {
+				readyContainers += 1
+			}
+		}
+		pod.Ready = fmt.Sprintf("%d/%d", readyContainers, len(po.Status.ContainerStatuses))
+		podInfos[podName] = pod
+
+		eventLists, err := clientSet.CoreV1().Events(constants.Namespace).List(context.Background(), metav1.ListOptions{FieldSelector: fields.Set{"involvedObject.name": podName}.String()})
+		if err != nil {
+			return nil, false
+		}
+		for _, eve := range eventLists.Items {
+			event := &logutil.PodEvent{
+				Type:    eve.Type,
+				Reason:  eve.Reason,
+				Message: eve.Message,
+				From:    eve.Source.Component,
+				Age:     eve.LastTimestamp.Time.Sub(eve.FirstTimestamp.Time).String(),
+			}
+			events = append(events, event)
+			podInfos[podName].Events = events
+		}
+	}
+
+	// handle Pod
+	var pods []*logutil.Pod
+	for _, value := range podInfos {
+		pods = append(pods, value)
+		if strings.Contains(value.Name, "rbd-api") {
+			if value.Status == string(corev1.PodRunning) && value.Ready == "1/1" {
+				return pods, true
+			}
+		}
+	}
+	return pods, false
+}
+
 //IsRbdComponentReady -
 func (r *RbdcomponentMgr) IsRbdComponentReady() bool {
 	_, condition := r.cpt.Status.GetCondition(rainbondv1alpha1.RbdComponentReady)
@@ -192,7 +301,7 @@ func (r *RbdcomponentMgr) UpdateOrCreateResource(obj client.Object) (reconcile.R
 		r.log.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", obj.GetNamespace(), "Name", obj.GetName())
 		err = r.client.Create(ctx, obj)
 		if err != nil {
-			r.log.Error(err, "Failed to create new", obj.GetObjectKind(), "Namespace", obj.GetNamespace(), "Name", obj.GetName())
+			r.log.Error(err, fmt.Sprintf("Failed to create new %s", obj.GetObjectKind().GroupVersionKind().Kind), "Namespace", obj.GetNamespace(), "Name", obj.GetName())
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{Requeue: true}, nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
+	"os"
 	"strconv"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -251,6 +252,9 @@ func (a *appui) deploymentForAppUI() client.Object {
 	if a.cluster.Annotations != nil {
 		if enterpriseID, ok := a.cluster.Annotations["enterprise_id"]; ok {
 			deploy.Spec.Template.Spec.Containers[0].Env = append(deploy.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{Name: "ENTERPRISE_ID", Value: enterpriseID})
+		}
+		if os.Getenv("ENTERPRISE_ID") != "" {
+			deploy.Spec.Template.Spec.Containers[0].Env = append(deploy.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{Name: "ENTERPRISE_ID", Value: os.Getenv("ENTERPRISE_ID")})
 		}
 	}
 
