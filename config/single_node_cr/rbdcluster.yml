@@ -17,6 +17,6 @@ spec:
     internalIP: single_node_internal_ip
     externalIP: single_node_external_ip
   installMode: WithoutPackage
-  installVersion: v5.5.0-release
+  installVersion: v5.6.0-release
   configCompleted: true
   cacheMode: hostpath
