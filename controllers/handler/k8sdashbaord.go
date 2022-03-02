@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,22 +19,22 @@ var KubernetesDashboardName = "kubernetes-dashboard"
 type k8sdashbaord struct {
 	ctx       context.Context
 	client    client.Client
-	db        *rainbondv1alpha1.Database
+	db        *wutongv1alpha1.Database
 	labels    map[string]string
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
+	component *wutongv1alpha1.WutongComponent
+	cluster   *wutongv1alpha1.WutongCluster
 }
 
 var _ ComponentHandler = &k8sdashbaord{}
 
 // NewK8sDashboard -
-func NewK8sDashboard(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewK8sDashboard(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &k8sdashbaord{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
+		labels:    LabelsForWutongComponent(component),
 	}
 }
 
@@ -115,7 +115,7 @@ func (k *k8sdashbaord) deploymentForKubernetesDashboard() client.Object {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: "rainbond-operator",
+					ServiceAccountName: "wutong-operator",
 					Tolerations: []corev1.Toleration{
 						{
 							Operator: corev1.TolerationOpExists, // tolerate everything.

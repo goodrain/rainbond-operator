@@ -5,14 +5,14 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/controllers/cluster-mgr/precheck"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/controllers/cluster-mgr/precheck"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 )
 
 func TestDatabasePreChecker(t *testing.T) {
-	db := &rainbondv1alpha1.Database{
+	db := &wutongv1alpha1.Database{
 		Host:     "127.0.0.1",
 		Port:     3306,
 		Username: "foo",
@@ -20,11 +20,11 @@ func TestDatabasePreChecker(t *testing.T) {
 		Name:     "foobar",
 	}
 
-	preChecker := precheck.NewDatabasePrechecker(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseRegion, db)
+	preChecker := precheck.NewDatabasePrechecker(wutongv1alpha1.WutongClusterConditionTypeDatabaseRegion, db)
 
 	condition := preChecker.Check()
 
-	assert.Equal(t, rainbondv1alpha1.RainbondClusterConditionType(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseRegion), condition.Type)
+	assert.Equal(t, wutongv1alpha1.WutongClusterConditionType(wutongv1alpha1.WutongClusterConditionTypeDatabaseRegion), condition.Type)
 	assert.Equal(t, corev1.ConditionFalse, condition.Status)
 	assert.Equal(t, "DatabaseFailed", condition.Reason)
 }

@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/constants"
+	"github.com/wutong/wutong-operator/util/wtutil"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -44,31 +44,31 @@ type pvcParameters struct {
 	storageRequest   *int32
 }
 
-// LabelsForRainbondComponent returns the labels for the sub resources of rbdcomponent.
-func LabelsForRainbondComponent(cpt *rainbondv1alpha1.RbdComponent) map[string]string {
-	labels := rbdutil.LabelsForRainbond(nil)
+// LabelsForWutongComponent returns the labels for the sub resources of WutongComponent.
+func LabelsForWutongComponent(cpt *wutongv1alpha1.WutongComponent) map[string]string {
+	labels := wtutil.LabelsForWutong(nil)
 	labels["name"] = cpt.Name
 	return labels
 }
 
-func isUIDBReady(ctx context.Context, cli client.Client, cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) error {
+func isUIDBReady(ctx context.Context, cli client.Client, cpt *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) error {
 	if cluster.Spec.UIDatabase != nil {
 		return nil
 	}
 
-	dbcpt := &rainbondv1alpha1.RbdComponent{}
+	dbcpt := &wutongv1alpha1.WutongComponent{}
 	if err := cli.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: DBName}, dbcpt); err != nil {
 		return err
 	}
 
 	if dbcpt.Status.ReadyReplicas == 0 {
-		return errors.New("no ready replicas for rbdcomponent rbd-db")
+		return errors.New("no ready replicas for WutongComponent wt-db")
 	}
 
 	return nil
 }
 
-func isUIDBMigrateOK(ctx context.Context, cli client.Client, cpt *rainbondv1alpha1.RbdComponent) error {
+func isUIDBMigrateOK(ctx context.Context, cli client.Client, cpt *wutongv1alpha1.WutongComponent) error {
 	job := &batchv1.Job{}
 	if err := cli.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: AppUIDBMigrationsName}, job); err != nil {
 		if k8sErrors.IsNotFound(err) {
@@ -92,7 +92,7 @@ func isUIDBMigrateOK(ctx context.Context, cli client.Client, cpt *rainbondv1alph
 	return nil
 }
 
-func getDefaultDBInfo(ctx context.Context, cli client.Client, in *rainbondv1alpha1.Database, namespace, name string) (*rainbondv1alpha1.Database, error) {
+func getDefaultDBInfo(ctx context.Context, cli client.Client, in *wutongv1alpha1.Database, namespace, name string) (*wutongv1alpha1.Database, error) {
 	if in != nil {
 		// use custom db
 		return in, nil
@@ -108,7 +108,7 @@ func getDefaultDBInfo(ctx context.Context, cli client.Client, in *rainbondv1alph
 	user := string(secret.Data[mysqlUserKey])
 	pass := string(secret.Data[mysqlPasswordKey])
 
-	return &rainbondv1alpha1.Database{
+	return &wutongv1alpha1.Database{
 		Host:     dbhost,
 		Port:     3306,
 		Username: user,
@@ -116,7 +116,7 @@ func getDefaultDBInfo(ctx context.Context, cli client.Client, in *rainbondv1alph
 	}, nil
 }
 
-func etcdSecret(ctx context.Context, cli client.Client, cluster *rainbondv1alpha1.RainbondCluster) (*corev1.Secret, error) {
+func etcdSecret(ctx context.Context, cli client.Client, cluster *wutongv1alpha1.WutongCluster) (*corev1.Secret, error) {
 	if cluster.Spec.EtcdConfig == nil || cluster.Spec.EtcdConfig.SecretName == "" {
 		// SecretName is empty, not using TLS.
 		return nil, nil
@@ -135,9 +135,9 @@ func getSecret(ctx context.Context, client client.Client, namespace, name string
 	return secret, nil
 }
 
-func etcdEndpoints(cluster *rainbondv1alpha1.RainbondCluster) []string {
+func etcdEndpoints(cluster *wutongv1alpha1.WutongCluster) []string {
 	if cluster.Spec.EtcdConfig == nil {
-		return []string{"http://rbd-etcd:2379"}
+		return []string{"http://wt-etcd:2379"}
 	}
 	return cluster.Spec.EtcdConfig.Endpoints
 }
@@ -167,7 +167,7 @@ func volumeByAPISecret(apiServerSecret *corev1.Secret) (corev1.Volume, corev1.Vo
 		}}
 	mount := corev1.VolumeMount{
 		Name:      "region-api-ssl",
-		MountPath: "/etc/goodrain/region.goodrain.me/ssl/",
+		MountPath: "/etc/wutong/region.wutong.me/ssl/",
 	}
 	return volume, mount
 }
@@ -180,29 +180,29 @@ func etcdSSLArgs() []string {
 	}
 }
 
-func storageClassNameFromRainbondVolumeRWX(ctx context.Context, cli client.Client, ns string) (*pvcParameters, error) {
-	return storageClassNameFromRainbondVolume(ctx, cli, ns, false)
+func storageClassNameFromWutongVolumeRWX(ctx context.Context, cli client.Client, ns string) (*pvcParameters, error) {
+	return storageClassNameFromWutongVolume(ctx, cli, ns, false)
 }
 
-func storageClassNameFromRainbondVolumeRWO(ctx context.Context, cli client.Client, ns string) (*pvcParameters, error) {
-	pvcParameters, err := storageClassNameFromRainbondVolume(ctx, cli, ns, true)
+func storageClassNameFromWutongVolumeRWO(ctx context.Context, cli client.Client, ns string) (*pvcParameters, error) {
+	pvcParameters, err := storageClassNameFromWutongVolume(ctx, cli, ns, true)
 	if err != nil {
-		if !IsRainbondVolumeNotFound(err) {
+		if !IsWutongVolumeNotFound(err) {
 			return nil, err
 		}
-		return storageClassNameFromRainbondVolumeRWX(ctx, cli, ns)
+		return storageClassNameFromWutongVolumeRWX(ctx, cli, ns)
 	}
 	return pvcParameters, nil
 }
 
-func storageClassNameFromRainbondVolume(ctx context.Context, cli client.Client, ns string, rwo bool) (*pvcParameters, error) {
+func storageClassNameFromWutongVolume(ctx context.Context, cli client.Client, ns string, rwo bool) (*pvcParameters, error) {
 	var labels map[string]string
 	if rwo {
-		labels = rbdutil.LabelsForAccessModeRWO()
+		labels = wtutil.LabelsForAccessModeRWO()
 	} else {
-		labels = rbdutil.LabelsForAccessModeRWX()
+		labels = wtutil.LabelsForAccessModeRWX()
 	}
-	volumeList := &rainbondv1alpha1.RainbondVolumeList{}
+	volumeList := &wutongv1alpha1.WutongVolumeList{}
 	var opts []client.ListOption
 	opts = append(opts, client.InNamespace(ns))
 	opts = append(opts, client.MatchingLabels(labels))
@@ -211,7 +211,7 @@ func storageClassNameFromRainbondVolume(ctx context.Context, cli client.Client, 
 	}
 
 	if len(volumeList.Items) == 0 {
-		return nil, NewIgnoreError(rainbondVolumeNotFound)
+		return nil, NewIgnoreError(WutongVolumeNotFound)
 	}
 
 	volume := volumeList.Items[0]
@@ -231,7 +231,7 @@ func storageClassNameFromRainbondVolume(ctx context.Context, cli client.Client, 
 func setStorageCassName(ctx context.Context, cli client.Client, ns string, obj interface{}) error {
 	storageClassRWXer, ok := obj.(StorageClassRWXer)
 	if ok {
-		sc, err := storageClassNameFromRainbondVolumeRWX(ctx, cli, ns)
+		sc, err := storageClassNameFromWutongVolumeRWX(ctx, cli, ns)
 		if err != nil {
 			return err
 		}
@@ -240,7 +240,7 @@ func setStorageCassName(ctx context.Context, cli client.Client, ns string, obj i
 
 	storageClassRWOer, ok := obj.(StorageClassRWOer)
 	if ok {
-		sc, err := storageClassNameFromRainbondVolumeRWO(ctx, cli, ns)
+		sc, err := storageClassNameFromWutongVolumeRWO(ctx, cli, ns)
 		if err != nil {
 			return err
 		}
@@ -330,12 +330,12 @@ func copyLabels(m map[string]string) map[string]string {
 	return cp
 }
 
-func hostsAliases(cluster *rainbondv1alpha1.RainbondCluster) []corev1.HostAlias {
+func hostsAliases(cluster *wutongv1alpha1.WutongCluster) []corev1.HostAlias {
 	var hostAliases []corev1.HostAlias
-	if rbdutil.GetImageRepository(cluster) == constants.DefImageRepository {
+	if wtutil.GetImageRepository(cluster) == constants.DefImageRepository {
 		hostAliases = append(hostAliases, corev1.HostAlias{
 			IP:        cluster.InnerGatewayIngressIP(),
-			Hostnames: []string{rbdutil.GetImageRepository(cluster)},
+			Hostnames: []string{wtutil.GetImageRepository(cluster)},
 		})
 	}
 	return hostAliases
@@ -355,18 +355,18 @@ func listPods(ctx context.Context, cli client.Client, namespace string, labels m
 	return podList.Items, nil
 }
 
-func isEtcdAvailable(ctx context.Context, cli client.Client, cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) error {
+func isEtcdAvailable(ctx context.Context, cli client.Client, cpt *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) error {
 	if cluster.Spec.EtcdConfig != nil {
 		return nil
 	}
 
-	dbcpt := &rainbondv1alpha1.RbdComponent{}
+	dbcpt := &wutongv1alpha1.WutongComponent{}
 	if err := cli.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: EtcdName}, dbcpt); err != nil {
 		return err
 	}
 
 	if dbcpt.Status.ReadyReplicas == 0 {
-		return errors.New("no ready replicas for rbdcomponent rbd-etcd")
+		return errors.New("no ready replicas for WutongComponent wt-etcd")
 	}
 
 	return nil
@@ -380,7 +380,7 @@ func getStorageRequest(env string, defSize int64) int64 {
 	return storageRequest
 }
 
-func imagePullSecrets(cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) []corev1.LocalObjectReference {
+func imagePullSecrets(cpt *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) []corev1.LocalObjectReference {
 	// pirority component does not support pulling images with credentials
 	if cpt.Spec.PriorityComponent {
 		return nil

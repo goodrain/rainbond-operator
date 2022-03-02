@@ -4,12 +4,12 @@ import (
 	"context"
 	"path"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/controllers/plugin"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/controllers/plugin"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/constants"
+	"github.com/wutong/wutong-operator/util/k8sutil"
+	"github.com/wutong/wutong-operator/util/wtutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,8 +28,8 @@ const (
 )
 
 // CSIPlugins is the primary entrypoint for csi plugins.
-func CSIPlugins(ctx context.Context, cli client.Client, volume *rainbondv1alpha1.RainbondVolume) plugin.CSIPlugin {
-	labels := rbdutil.LabelsForRainbond(nil)
+func CSIPlugins(ctx context.Context, cli client.Client, volume *wutongv1alpha1.WutongVolume) plugin.CSIPlugin {
+	labels := wtutil.LabelsForWutong(nil)
 	return &aliyunnasPlugin{
 		ctx:             ctx,
 		cli:             cli,
@@ -43,7 +43,7 @@ func CSIPlugins(ctx context.Context, cli client.Client, volume *rainbondv1alpha1
 type aliyunnasPlugin struct {
 	ctx                         context.Context
 	cli                         client.Client
-	volume                      *rainbondv1alpha1.RainbondVolume
+	volume                      *wutongv1alpha1.WutongVolume
 	labels                      map[string]string
 	pluginName, provisionerName string
 }
@@ -86,7 +86,7 @@ func (p *aliyunnasPlugin) csiDriver() *storagev1beta1.CSIDriver {
 	return &storagev1beta1.CSIDriver{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: provisioner,
-			Labels: rbdutil.LabelsForRainbond(map[string]string{
+			Labels: wtutil.LabelsForWutong(map[string]string{
 				"name": provisioner,
 			}),
 		},
@@ -115,7 +115,7 @@ func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            "wutong-operator",
 					HostNetwork:                   true,
 					HostPID:                       true,
 					Tolerations: []corev1.Toleration{
@@ -319,7 +319,7 @@ func (p *aliyunnasPlugin) statefulset() client.Object {
 							},
 						},
 					},
-					ServiceAccountName: "rainbond-operator",
+					ServiceAccountName: "wutong-operator",
 					HostNetwork:        true,
 					Containers: []corev1.Container{
 						{

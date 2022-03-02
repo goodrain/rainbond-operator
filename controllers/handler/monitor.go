@@ -7,10 +7,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/goodrain/rainbond-operator/util/probeutil"
+	"github.com/wutong/wutong-operator/util/probeutil"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,16 +19,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// MonitorName name for rbd-monitor.
-var MonitorName = "rbd-monitor"
+// MonitorName name for wt-monitor.
+var MonitorName = "wt-monitor"
 
 type monitor struct {
 	ctx        context.Context
 	client     client.Client
 	etcdSecret *corev1.Secret
 
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
+	component *wutongv1alpha1.WutongComponent
+	cluster   *wutongv1alpha1.WutongCluster
 	labels    map[string]string
 
 	pvcParametersRWO *pvcParameters
@@ -38,15 +38,15 @@ type monitor struct {
 var _ ComponentHandler = &monitor{}
 var _ StorageClassRWOer = &monitor{}
 
-// NewMonitor returns a new rbd-monitor handler.
-func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+// NewMonitor returns a new wt-monitor handler.
+func NewMonitor(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &monitor{
 		ctx:    ctx,
 		client: client,
 
 		component:      component,
 		cluster:        cluster,
-		labels:         LabelsForRainbondComponent(component),
+		labels:         LabelsForWutongComponent(component),
 		storageRequest: getStorageRequest("MONITOR_DATA_STORAGE_REQUEST", 21),
 	}
 }
@@ -158,7 +158,7 @@ func (m *monitor) statefulset() client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(m.component, m.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            "wutong-operator",
 					Containers: []corev1.Container{
 						{
 							Name:            MonitorName,

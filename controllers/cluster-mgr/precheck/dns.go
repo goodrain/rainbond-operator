@@ -7,32 +7,32 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/go-logr/logr"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type dns struct {
 	log     logr.Logger
-	cluster *rainbondv1alpha1.RainbondCluster
+	cluster *wutongv1alpha1.WutongCluster
 }
 
 // NewDNSPrechecker creates a new prechecker.
-func NewDNSPrechecker(cluster *rainbondv1alpha1.RainbondCluster, log logr.Logger) PreChecker {
+func NewDNSPrechecker(cluster *wutongv1alpha1.WutongCluster, log logr.Logger) PreChecker {
 	return &dns{
 		log:     log.WithName("DNSPreChecker"),
 		cluster: cluster,
 	}
 }
 
-func (d *dns) Check() rainbondv1alpha1.RainbondClusterCondition {
-	condition := rainbondv1alpha1.RainbondClusterCondition{
-		Type:              rainbondv1alpha1.RainbondClusterConditionTypeDNS,
+func (d *dns) Check() wutongv1alpha1.WutongClusterCondition {
+	condition := wutongv1alpha1.WutongClusterCondition{
+		Type:              wutongv1alpha1.WutongClusterConditionTypeDNS,
 		Status:            corev1.ConditionTrue,
 		LastHeartbeatTime: metav1.NewTime(time.Now()),
 	}
 
-	ref, err := reference.Parse(d.cluster.Spec.RainbondImageRepository)
+	ref, err := reference.Parse(d.cluster.Spec.WutongImageRepository)
 	if err != nil {
 		return d.failCondition(condition, err.Error())
 	}
@@ -54,6 +54,6 @@ func nslookup(target string) error {
 	return nil
 }
 
-func (d *dns) failCondition(condition rainbondv1alpha1.RainbondClusterCondition, msg string) rainbondv1alpha1.RainbondClusterCondition {
+func (d *dns) failCondition(condition wutongv1alpha1.WutongClusterCondition, msg string) wutongv1alpha1.WutongClusterCondition {
 	return failConditoin(condition, "DNSFailed", msg)
 }

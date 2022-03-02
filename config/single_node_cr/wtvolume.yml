@@ -1,0 +1,13 @@
+apiVersion: wutong.io/v1alpha1
+kind: WutongVolume
+metadata:
+  name: local-path
+  namespace: wt-system
+  labels:
+    accessModes: rwo
+    belongTo: wutong-operator
+    creator: Wutong
+spec:
+  storageClassParameters:
+    provisioner: rancher.io/local-path
+  imageRepository: swr.cn-southwest-2.myhuaweicloud.com/wutong

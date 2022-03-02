@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/docker/docker/client"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/imageutil"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	"github.com/wutong/wutong-operator/util/constants"
+	"github.com/wutong/wutong-operator/util/imageutil"
+	"github.com/wutong/wutong-operator/util/wtutil"
 
 	"github.com/go-logr/logr"
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -20,11 +20,11 @@ import (
 type imagerepo struct {
 	ctx     context.Context
 	log     logr.Logger
-	cluster *rainbondv1alpha1.RainbondCluster
+	cluster *wutongv1alpha1.WutongCluster
 }
 
 // NewImageRepoPrechecker creates a new prechecker.
-func NewImageRepoPrechecker(ctx context.Context, log logr.Logger, cluster *rainbondv1alpha1.RainbondCluster) PreChecker {
+func NewImageRepoPrechecker(ctx context.Context, log logr.Logger, cluster *wutongv1alpha1.WutongCluster) PreChecker {
 	l := log.WithName("ImageRepoPreChecker")
 	return &imagerepo{
 		ctx:     ctx,
@@ -33,23 +33,23 @@ func NewImageRepoPrechecker(ctx context.Context, log logr.Logger, cluster *rainb
 	}
 }
 
-func (d *imagerepo) Check() rainbondv1alpha1.RainbondClusterCondition {
-	condition := rainbondv1alpha1.RainbondClusterCondition{
-		Type:              rainbondv1alpha1.RainbondClusterConditionTypeImageRepository,
+func (d *imagerepo) Check() wutongv1alpha1.WutongClusterCondition {
+	condition := wutongv1alpha1.WutongClusterCondition{
+		Type:              wutongv1alpha1.WutongClusterConditionTypeImageRepository,
 		Status:            corev1.ConditionTrue,
 		LastHeartbeatTime: metav1.NewTime(time.Now()),
 	}
 
-	imageRepo := rbdutil.GetImageRepository(d.cluster)
+	imageRepo := wtutil.GetImageRepository(d.cluster)
 
-	if idx, cdt := d.cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository); (idx == -1 || cdt.Reason == "DefaultImageRepoFailed") && imageRepo != constants.DefImageRepository {
+	if idx, cdt := d.cluster.Status.GetCondition(wutongv1alpha1.WutongClusterConditionTypeImageRepository); (idx == -1 || cdt.Reason == "DefaultImageRepoFailed") && imageRepo != constants.DefImageRepository {
 		condition.Status = corev1.ConditionFalse
 		condition.Reason = "InProgress"
 		condition.Message =
-			fmt.Sprintf("precheck for %s is in progress", rainbondv1alpha1.RainbondClusterConditionTypeImageRepository)
+			fmt.Sprintf("precheck for %s is in progress", wutongv1alpha1.WutongClusterConditionTypeImageRepository)
 	}
 
-	localImage := path.Join(d.cluster.Spec.RainbondImageRepository, "smallimage")
+	localImage := path.Join(d.cluster.Spec.WutongImageRepository, "smallimage")
 	remoteImage := path.Join(imageRepo, "smallimage")
 
 	dockerClient, err := client.NewClientWithOpts(client.FromEnv)
@@ -86,6 +86,6 @@ func (d *imagerepo) Check() rainbondv1alpha1.RainbondClusterCondition {
 	return condition
 }
 
-func (d *imagerepo) failConditoin(condition rainbondv1alpha1.RainbondClusterCondition, err error) rainbondv1alpha1.RainbondClusterCondition {
+func (d *imagerepo) failConditoin(condition wutongv1alpha1.WutongClusterCondition, err error) wutongv1alpha1.WutongClusterCondition {
 	return failConditoin(condition, "ImageRepoFailed", err.Error())
 }

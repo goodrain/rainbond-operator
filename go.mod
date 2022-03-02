@@ -1,4 +1,4 @@
-module github.com/goodrain/rainbond-operator
+module github.com/wutong/wutong-operator
 
 go 1.15
 

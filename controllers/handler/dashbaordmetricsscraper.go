@@ -3,8 +3,8 @@ package handler
 import (
 	"context"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,22 +18,22 @@ var DashboardMetricsScraperName = "dashboard-metrics-scraper"
 type dashboardMetricsScraper struct {
 	ctx       context.Context
 	client    client.Client
-	db        *rainbondv1alpha1.Database
+	db        *wutongv1alpha1.Database
 	labels    map[string]string
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
+	component *wutongv1alpha1.WutongComponent
+	cluster   *wutongv1alpha1.WutongCluster
 }
 
 var _ ComponentHandler = &dashboardMetricsScraper{}
 
 // NewDashboardMetricsScraper -
-func NewDashboardMetricsScraper(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewDashboardMetricsScraper(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &dashboardMetricsScraper{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
+		labels:    LabelsForWutongComponent(component),
 	}
 }
 
@@ -80,7 +80,7 @@ func (k *dashboardMetricsScraper) deploymentForDashboardMetricsScraper() client.
 					},
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: "rainbond-operator",
+					ServiceAccountName: "wutong-operator",
 					Tolerations: []corev1.Toleration{
 						{
 							Operator: corev1.TolerationOpExists, // tolerate everything.

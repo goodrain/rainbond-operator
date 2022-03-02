@@ -8,7 +8,7 @@ func TestNslookup(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			target:  "www.rainbond.com",
+			target:  "www.wutong.com",
 			wantErr: false,
 		},
 		{
@@ -20,7 +20,7 @@ func TestNslookup(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			target:  "registry.cn-hangzhou.aliyuncs.com",
+			target:  "swr.cn-southwest-2.myhuaweicloud.com",
 			wantErr: false,
 		},
 	}

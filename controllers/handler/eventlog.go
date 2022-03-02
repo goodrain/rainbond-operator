@@ -6,10 +6,10 @@ import (
 	"path"
 	"strings"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/probeutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/constants"
+	"github.com/wutong/wutong-operator/util/probeutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,16 +17,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// EventLogName name for rbd-eventlog.
-var EventLogName = "rbd-eventlog"
+// EventLogName name for wt-eventlog.
+var EventLogName = "wt-eventlog"
 
 type eventlog struct {
 	ctx        context.Context
 	client     client.Client
-	component  *rainbondv1alpha1.RbdComponent
-	cluster    *rainbondv1alpha1.RainbondCluster
+	component  *wutongv1alpha1.WutongComponent
+	cluster    *wutongv1alpha1.WutongCluster
 	labels     map[string]string
-	db         *rainbondv1alpha1.Database
+	db         *wutongv1alpha1.Database
 	etcdSecret *corev1.Secret
 
 	pvcParametersRWX *pvcParameters
@@ -38,14 +38,14 @@ var _ StorageClassRWXer = &eventlog{}
 var _ ResourcesCreator = &eventlog{}
 var _ ResourcesDeleter = &eventlog{}
 
-// NewEventLog creates a new rbd-eventlog handler.
-func NewEventLog(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+// NewEventLog creates a new wt-eventlog handler.
+func NewEventLog(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &eventlog{
 		ctx:            ctx,
 		client:         client,
 		component:      component,
 		cluster:        cluster,
-		labels:         LabelsForRainbondComponent(component),
+		labels:         LabelsForWutongComponent(component),
 		storageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
 	}
 }
@@ -67,7 +67,7 @@ func (e *eventlog) Before() error {
 	e.etcdSecret = secret
 
 	if e.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		sc, err := storageClassNameFromRainbondVolumeRWO(e.ctx, e.client, e.component.Namespace)
+		sc, err := storageClassNameFromWutongVolumeRWO(e.ctx, e.client, e.component.Namespace)
 		if err != nil {
 			return err
 		}
@@ -109,7 +109,7 @@ func (e *eventlog) ResourcesCreateIfNotExists() []client.Object {
 }
 
 func (e *eventlog) ResourcesNeedDelete() []client.Object {
-	// delete deploy which created in rainbond 5.2.0
+	// delete deploy which created in wutong 5.2.0
 	sts := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EventLogName,

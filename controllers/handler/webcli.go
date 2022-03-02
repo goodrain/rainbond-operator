@@ -5,37 +5,37 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/goodrain/rainbond-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/commonutil"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// WebCliName name for rbd-webcli.
-var WebCliName = "rbd-webcli"
+// WebCliName name for wt-webcli.
+var WebCliName = "wt-webcli"
 
 type webcli struct {
 	ctx        context.Context
 	client     client.Client
-	component  *rainbondv1alpha1.RbdComponent
-	cluster    *rainbondv1alpha1.RainbondCluster
+	component  *wutongv1alpha1.WutongComponent
+	cluster    *wutongv1alpha1.WutongCluster
 	labels     map[string]string
 	etcdSecret *corev1.Secret
 }
 
 var _ ComponentHandler = &webcli{}
 
-// NewWebCli creates a new rbd-webcli handler.
-func NewWebCli(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+// NewWebCli creates a new wt-webcli handler.
+func NewWebCli(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &webcli{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
+		labels:    LabelsForWutongComponent(component),
 	}
 }
 
@@ -99,7 +99,7 @@ func (w *webcli) deployment() client.Object {
 				},
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            "wutong-operator",
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{

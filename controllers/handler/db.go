@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/docker/distribution/reference"
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -23,7 +23,7 @@ import (
 
 var (
 	// DBName name
-	DBName           = "rbd-db"
+	DBName           = "wt-db"
 	dbhost           = DBName + "-rw"
 	mycnf            = DBName + "-mycnf"
 	mysqlUser        = "root"
@@ -34,8 +34,8 @@ var (
 type db struct {
 	ctx       context.Context
 	client    client.Client
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
+	component *wutongv1alpha1.WutongComponent
+	cluster   *wutongv1alpha1.WutongCluster
 	labels    map[string]string
 	affinity  *corev1.VolumeNodeAffinity
 
@@ -53,13 +53,13 @@ var _ StorageClassRWOer = &db{}
 var _ ClusterScopedResourcesCreator = &db{}
 
 //NewDB new db
-func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewDB(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	d := &db{
 		ctx:            ctx,
 		client:         client,
 		component:      component,
 		cluster:        cluster,
-		labels:         LabelsForRainbondComponent(component),
+		labels:         LabelsForWutongComponent(component),
 		mysqlUser:      "root",
 		mysqlPassword:  string(uuid.NewUUID())[0:8],
 		databases:      []string{"console"},
@@ -150,7 +150,7 @@ func (d *db) CreateClusterScoped() []client.Object {
 func (d *db) statefulsetForDB() client.Object {
 	repo, _ := reference.Parse(d.component.Spec.Image)
 	name := repo.(reference.Named).Name()
-	exporterImage := strings.Replace(name, "rbd-db", "mysqld-exporter", 1)
+	exporterImage := strings.Replace(name, "wt-db", "mysqld-exporter", 1)
 
 	regionDBName := os.Getenv("REGION_DB_NAME")
 	if regionDBName == "" {
@@ -205,7 +205,7 @@ func (d *db) statefulsetForDB() client.Object {
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "rbd-db-initdb",
+						Name: "wt-db-initdb",
 					},
 				},
 			},
@@ -333,7 +333,7 @@ func (d *db) serviceForExporter() client.Object {
 func (d *db) initdbCMForDB() client.Object {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rbd-db-initdb",
+			Name:      "wt-db-initdb",
 			Namespace: d.component.Namespace,
 		},
 		Data: map[string]string{
@@ -427,7 +427,7 @@ func (d *db) pv() *corev1.PersistentVolume {
 	spec.NodeAffinity = d.affinity
 
 	hostPath := &corev1.HostPathVolumeSource{
-		Path: "/opt/rainbond/data/db" + time.Now().Format("20060102150405"),
+		Path: "/opt/wutong/data/db" + time.Now().Format("20060102150405"),
 		Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 	}
 	spec.HostPath = hostPath

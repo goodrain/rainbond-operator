@@ -6,14 +6,14 @@ import (
 	"path"
 	"strings"
 
-	"github.com/goodrain/rainbond-operator/util/probeutil"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	"github.com/wutong/wutong-operator/util/probeutil"
+	"github.com/wutong/wutong-operator/util/wtutil"
 
-	"github.com/goodrain/rainbond-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/commonutil"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/constants"
+	"github.com/wutong/wutong-operator/util/k8sutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -22,16 +22,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ChaosName name for rbd-chaos
-var ChaosName = "rbd-chaos"
+// ChaosName name for wt-chaos
+var ChaosName = "wt-chaos"
 
 type chaos struct {
 	ctx        context.Context
 	client     client.Client
-	component  *rainbondv1alpha1.RbdComponent
-	cluster    *rainbondv1alpha1.RainbondCluster
+	component  *wutongv1alpha1.WutongComponent
+	cluster    *wutongv1alpha1.WutongCluster
 	labels     map[string]string
-	db         *rainbondv1alpha1.Database
+	db         *wutongv1alpha1.Database
 	etcdSecret *corev1.Secret
 
 	pvcParametersRWX     *pvcParameters
@@ -43,14 +43,14 @@ var _ ComponentHandler = &chaos{}
 var _ StorageClassRWXer = &chaos{}
 var _ Replicaser = &chaos{}
 
-// NewChaos creates a new rbd-chaos handler.
-func NewChaos(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+// NewChaos creates a new wt-chaos handler.
+func NewChaos(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &chaos{
 		ctx:                  ctx,
 		client:               client,
 		component:            component,
 		cluster:              cluster,
-		labels:               LabelsForRainbondComponent(component),
+		labels:               LabelsForWutongComponent(component),
 		cacheStorageRequest:  getStorageRequest("CHAOS_CACHE_STORAGE_REQUEST", 10),
 		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
 	}
@@ -73,7 +73,7 @@ func (c *chaos) Before() error {
 	c.etcdSecret = secret
 
 	if c.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		sc, err := storageClassNameFromRainbondVolumeRWO(c.ctx, c.client, c.component.Namespace)
+		sc, err := storageClassNameFromWutongVolumeRWO(c.ctx, c.client, c.component.Namespace)
 		if err != nil {
 			return err
 		}
@@ -184,8 +184,8 @@ func (c *chaos) deployment() client.Object {
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(c.cluster), ","),
 		"--pvc-grdata-name=" + constants.GrDataPVC,
 		"--pvc-cache-name=" + constants.CachePVC,
-		"--rbd-namespace=" + c.component.Namespace,
-		"--rbd-repo=" + ResourceProxyName,
+		"--wt-namespace=" + c.component.Namespace,
+		"--wt-repo=" + ResourceProxyName,
 	}
 	if c.cluster.Spec.CacheMode == "hostpath" {
 		args = append(args, "--cache-mode=hostpath")
@@ -281,7 +281,7 @@ func (c *chaos) deployment() client.Object {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            "wutong-operator",
 					ImagePullSecrets:              imagePullSecrets(c.component, c.cluster),
 					Tolerations: []corev1.Toleration{
 						{
@@ -399,7 +399,7 @@ func (c *chaos) defaultMavenSetting() *corev1.ConfigMap {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "java-maven-aliyun",
 			Namespace: c.component.Namespace,
-			Labels: rbdutil.LabelsForRainbond(map[string]string{
+			Labels: wtutil.LabelsForWutong(map[string]string{
 				"configtype": "mavensetting",
 				"default":    "true",
 			}),

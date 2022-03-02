@@ -3,13 +3,13 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	"github.com/wutong/wutong-operator/util/k8sutil"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"strconv"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/probeutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/probeutil"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -18,19 +18,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// AppUIName name for rbd-app-ui resources.
-var AppUIName = "rbd-app-ui"
+// AppUIName name for wt-app-ui resources.
+var AppUIName = "wt-app-ui"
 
 // AppUIDBMigrationsName -
-var AppUIDBMigrationsName = "rbd-app-ui-migrations"
+var AppUIDBMigrationsName = "wt-app-ui-migrations"
 
 type appui struct {
 	ctx       context.Context
 	client    client.Client
 	labels    map[string]string
-	db        *rainbondv1alpha1.Database
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
+	db        *wutongv1alpha1.Database
+	component *wutongv1alpha1.WutongComponent
+	cluster   *wutongv1alpha1.WutongCluster
 
 	pvcParametersRWX *pvcParameters
 	pvcName          string
@@ -40,15 +40,15 @@ type appui struct {
 var _ ComponentHandler = &appui{}
 var _ StorageClassRWXer = &appui{}
 
-// NewAppUI creates a new rbd-app-ui handler.
-func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+// NewAppUI creates a new wt-app-ui handler.
+func NewAppUI(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &appui{
 		ctx:            ctx,
 		client:         client,
 		component:      component,
 		cluster:        cluster,
-		labels:         LabelsForRainbondComponent(component),
-		pvcName:        "rbd-app-ui",
+		labels:         LabelsForWutongComponent(component),
+		pvcName:        "wt-app-ui",
 		storageRequest: getStorageRequest("APP_UI_DATA_STORAGE_REQUEST", 1),
 	}
 }
@@ -147,7 +147,7 @@ func (a *appui) deploymentForAppUI() client.Object {
 		},
 		{
 			Name:  "REGION_URL",
-			Value: "https://rbd-api-api:8443",
+			Value: "https://wt-api-api:8443",
 		},
 		{
 			Name:  "REGION_WS_URL",
@@ -294,7 +294,7 @@ func (a *appui) ingressForAppUI() client.Object {
 }
 
 func (a *appui) migrationsJob() *batchv1.Job {
-	name := "rbd-app-ui-migrations"
+	name := "wt-app-ui-migrations"
 	labels := copyLabels(a.labels)
 	labels["name"] = name
 
@@ -325,7 +325,7 @@ func (a *appui) migrationsJob() *batchv1.Job {
 		},
 		{
 			Name:  "REGION_URL",
-			Value: "https://rbd-api-api:8443",
+			Value: "https://wt-api-api:8443",
 		},
 		{
 			Name:  "REGION_WS_URL",

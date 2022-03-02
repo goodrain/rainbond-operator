@@ -10,14 +10,14 @@ rbac:
 ## Service account name and whether to create it
 serviceAccount:
   create: true
-  name: rainbond-operator
+  name: wutong-operator
 
-# rainbondOperator
+# wutongOperator
 operator:
-  name: rainbond-operator
+  name: wutong-operator
   image:
-    name: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator
-    tag: v2.0.0
+    name: swr.cn-southwest-2.myhuaweicloud.com/wutong/wutong-operator
+    tag: v1.0.0
     pullPolicy: IfNotPresent
   regionDBName: region
   logLevel: 4

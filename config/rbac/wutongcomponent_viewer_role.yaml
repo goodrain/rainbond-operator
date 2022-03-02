@@ -1,0 +1,20 @@
+# permissions for end users to view WutongComponents.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: WutongComponent-viewer-role
+rules:
+- apiGroups:
+  - wutong.io.wutong.io
+  resources:
+  - WutongComponents
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - wutong.io.wutong.io
+  resources:
+  - WutongComponents/status
+  verbs:
+  - get

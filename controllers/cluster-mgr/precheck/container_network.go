@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/constants"
+	"github.com/wutong/wutong-operator/util/k8sutil"
+	"github.com/wutong/wutong-operator/util/wtutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,21 +25,21 @@ import (
 )
 
 // SentinelName -
-const SentinelName = "rainbond-operator-sentinel"
+const SentinelName = "wutong-operator-sentinel"
 
 // ErrSentinelNotReady -
-var ErrSentinelNotReady = errors.New("rainbond-operator-sentinel not ready")
+var ErrSentinelNotReady = errors.New("wutong-operator-sentinel not ready")
 
 type containerNetwork struct {
 	ctx     context.Context
 	log     logr.Logger
 	client  client.Client
 	scheme  *runtime.Scheme
-	cluster *rainbondv1alpha1.RainbondCluster
+	cluster *wutongv1alpha1.WutongCluster
 }
 
 // NewContainerNetworkPrechecker creates a new prechecker.
-func NewContainerNetworkPrechecker(ctx context.Context, client client.Client, scheme *runtime.Scheme, log logr.Logger, cluster *rainbondv1alpha1.RainbondCluster) PreChecker {
+func NewContainerNetworkPrechecker(ctx context.Context, client client.Client, scheme *runtime.Scheme, log logr.Logger, cluster *wutongv1alpha1.WutongCluster) PreChecker {
 	return &containerNetwork{
 		log:     log.WithName("ContainerNetworkPreChecker"),
 		ctx:     ctx,
@@ -49,9 +49,9 @@ func NewContainerNetworkPrechecker(ctx context.Context, client client.Client, sc
 	}
 }
 
-func (c *containerNetwork) Check() rainbondv1alpha1.RainbondClusterCondition {
-	condition := rainbondv1alpha1.RainbondClusterCondition{
-		Type:              rainbondv1alpha1.RainbondClusterConditionTypeContainerNetwork,
+func (c *containerNetwork) Check() wutongv1alpha1.WutongClusterCondition {
+	condition := wutongv1alpha1.WutongClusterCondition{
+		Type:              wutongv1alpha1.WutongClusterConditionTypeContainerNetwork,
 		Status:            corev1.ConditionTrue,
 		LastHeartbeatTime: metav1.NewTime(time.Now()),
 	}
@@ -75,7 +75,7 @@ func (c *containerNetwork) Check() rainbondv1alpha1.RainbondClusterCondition {
 	return condition
 }
 
-func (c *containerNetwork) failCondition(condition rainbondv1alpha1.RainbondClusterCondition, msg string) rainbondv1alpha1.RainbondClusterCondition {
+func (c *containerNetwork) failCondition(condition wutongv1alpha1.WutongClusterCondition, msg string) wutongv1alpha1.WutongClusterCondition {
 	return failConditoin(condition, "ContainerNetworkFailed", msg)
 }
 
@@ -100,7 +100,7 @@ func (c *containerNetwork) isSentinelReady() (string, error) {
 
 func (c *containerNetwork) communicate() error {
 	podList := corev1.PodList{}
-	labels := rbdutil.LabelsForRainbond(map[string]string{
+	labels := wtutil.LabelsForWutong(map[string]string{
 		"name": SentinelName,
 	})
 	err := c.client.List(c.ctx, &podList, client.InNamespace(c.cluster.Namespace), client.MatchingLabels(labels))
@@ -148,14 +148,14 @@ func (c *containerNetwork) createSentinel() error {
 }
 
 func (c *containerNetwork) daemonsetForSentinel() *appsv1.DaemonSet {
-	labels := rbdutil.LabelsForRainbond(map[string]string{
+	labels := wtutil.LabelsForWutong(map[string]string{
 		"name": SentinelName,
 	})
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      SentinelName,
 			Namespace: c.cluster.GetNamespace(),
-			Labels: rbdutil.LabelsForRainbond(map[string]string{
+			Labels: wtutil.LabelsForWutong(map[string]string{
 				"name": SentinelName,
 			}),
 		},

@@ -1,14 +1,14 @@
-apiVersion: rainbond.io/v1alpha1
-kind: RbdComponent
+apiVersion: wutong.io/v1alpha1
+kind: WutongComponent
 metadata:
   name: dashboard-metrics-scraper
-  namespace: rbd-system
+  namespace: wt-system
   labels:
-    belongTo: rainbond-operator
-    creator: Rainbond
+    belongTo: wutong-operator
+    creator: Wutong
     name: dashboard-metrics-scraper
 spec:
   replicas: 1
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/metrics-scraper:v1.0.4
+  image: swr.cn-southwest-2.myhuaweicloud.com/wutong/metrics-scraper:v1.0.4
   imagePullPolicy: IfNotPresent
   priorityComponent: false

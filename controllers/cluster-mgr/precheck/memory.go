@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	"github.com/wutong/wutong-operator/util/k8sutil"
 
 	"github.com/go-logr/logr"
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,9 +33,9 @@ func NewMemory(ctx context.Context, log logr.Logger, client client.Client) PreCh
 	}
 }
 
-func (m *memory) Check() rainbondv1alpha1.RainbondClusterCondition {
-	condition := rainbondv1alpha1.RainbondClusterCondition{
-		Type:              rainbondv1alpha1.RainbondClusterConditionTypeMemory,
+func (m *memory) Check() wutongv1alpha1.WutongClusterCondition {
+	condition := wutongv1alpha1.WutongClusterCondition{
+		Type:              wutongv1alpha1.WutongClusterConditionTypeMemory,
 		Status:            corev1.ConditionTrue,
 		LastHeartbeatTime: metav1.NewTime(time.Now()),
 	}
@@ -54,7 +54,7 @@ func (m *memory) Check() rainbondv1alpha1.RainbondClusterCondition {
 	return condition
 }
 
-func (m *memory) failCondition(condition rainbondv1alpha1.RainbondClusterCondition, msg string) rainbondv1alpha1.RainbondClusterCondition {
+func (m *memory) failCondition(condition wutongv1alpha1.WutongClusterCondition, msg string) wutongv1alpha1.WutongClusterCondition {
 	return failConditoin(condition, "MemoryFailed", msg)
 }
 

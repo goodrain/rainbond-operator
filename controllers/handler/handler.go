@@ -5,7 +5,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ComponentHandler will check the prerequisites, create resources for rbdcomponent.
+// ComponentHandler will check the prerequisites, create resources for WutongComponent.
 type ComponentHandler interface {
 	// Before will do something before creating component, such as checking the prerequisites, etc.
 	Before() error
@@ -15,13 +15,13 @@ type ComponentHandler interface {
 }
 
 // StorageClassRWXer provides methods to setup storageclass with
-// access mode RWX for rbdcomponent.
+// access mode RWX for WutongComponent.
 type StorageClassRWXer interface {
 	SetStorageClassNameRWX(pvcParameters *pvcParameters)
 }
 
 // StorageClassRWOer provides methods to setup storageclass with
-// access mode RWO for rbdcomponent.
+// access mode RWO for WutongComponent.
 type StorageClassRWOer interface {
 	SetStorageClassNameRWO(pvcParameters *pvcParameters)
 }
@@ -47,9 +47,9 @@ type ResourcesDeleter interface {
 	// TODO: wait until deleting successfully
 }
 
-// Replicaser provides methods to get replicas for rbdcomponent.
+// Replicaser provides methods to get replicas for WutongComponent.
 // This interface is generally used when the actual number of component is different from the spec definition.
 type Replicaser interface {
-	// return replicas for rbdcomponent.
+	// return replicas for WutongComponent.
 	Replicas() *int32
 }

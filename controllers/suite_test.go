@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	rainbondiov1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	wutongiov1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -61,16 +61,16 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = rainbondiov1alpha1.AddToScheme(scheme.Scheme)
+	err = wutongiov1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = rainbondiov1alpha1.AddToScheme(scheme.Scheme)
+	err = wutongiov1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = rainbondiov1alpha1.AddToScheme(scheme.Scheme)
+	err = wutongiov1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = rainbondiov1alpha1.AddToScheme(scheme.Scheme)
+	err = wutongiov1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme

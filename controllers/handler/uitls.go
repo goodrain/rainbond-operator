@@ -3,11 +3,11 @@ package handler
 import (
 	"fmt"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 
-func nodeAffnityNodesForChaos(cluster *rainbondv1alpha1.RainbondCluster) (*corev1.VolumeNodeAffinity, error) {
+func nodeAffnityNodesForChaos(cluster *wutongv1alpha1.WutongCluster) (*corev1.VolumeNodeAffinity, error) {
 	if len(cluster.Spec.NodesForChaos) == 0 {
 		// TODO: Is it neccessary to check NodesForChaos?
 		return nil, fmt.Errorf("nodes for chaos not found")

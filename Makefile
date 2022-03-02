@@ -1,5 +1,5 @@
 # Current Operator version
-VERSION ?= 2.0.1-dev
+VERSION ?= v1.0.0-beta
 # Default bundle image tag
 BUNDLE_IMG ?= controller-bundle:$(VERSION)
 # Options for 'bundle-build'
@@ -12,7 +12,7 @@ endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
 # Image URL to use all building/pushing image targets
-IMG ?= registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator:v$(VERSION)
+IMG ?= swr.cn-southwest-2.myhuaweicloud.com/wutong/wutong-operator:v$(VERSION)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 

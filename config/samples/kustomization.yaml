@@ -1,7 +1,7 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
-- rainbond.io_v1alpha1_rainbondcluster.yaml
-- rainbond.io_v1alpha1_rainbondpackage.yaml
-- rainbond.io_v1alpha1_rainbondvolume.yaml
-- rainbond.io_v1alpha1_rbdcomponent.yaml
+- wutong.io_v1alpha1_WutongCluster.yaml
+- wutong.io_v1alpha1_WutongPackage.yaml
+- wutong.io_v1alpha1_WutongVolume.yaml
+- wutong.io_v1alpha1_WutongComponent.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

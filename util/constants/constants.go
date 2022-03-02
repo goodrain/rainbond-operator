@@ -2,25 +2,25 @@ package constants
 
 const (
 	//Namespace namespace
-	Namespace = "rbd-system"
+	Namespace = "wt-system"
 	//DefInstallPkgDestPath  Default destination path of the installation package extraction.
 	DefInstallPkgDestPath = "/tmp/DefInstallPkgDestPath"
-	//RainbondClusterName rainbond cluster resource name
-	RainbondClusterName = "rainbondcluster"
-	//RainbondPackageName rainbond package resource name
-	RainbondPackageName = "rainbondpackage"
-	// DefImageRepository is the default domain name of the mirror repository that Rainbond is installed.
-	DefImageRepository = "goodrain.me"
+	//WutongClusterName wutong cluster resource name
+	WutongClusterName = "WutongCluster"
+	//WutongPackageName wutong package resource name
+	WutongPackageName = "WutongPackage"
+	// DefImageRepository is the default domain name of the mirror repository that Wutong is installed.
+	DefImageRepository = "wutong.me"
 	//GrDataPVC -
-	GrDataPVC = "rbd-cpt-grdata"
+	GrDataPVC = "wt-cpt-grdata"
 	// CachePVC -
-	CachePVC = "rbd-chaos-cache"
+	CachePVC = "wt-chaos-cache"
 	// FoobarPVC -
 	FoobarPVC = "foobar"
-	// SpecialGatewayLabelKey is a special node label, used to specify where to install the rbd-gateway
-	SpecialGatewayLabelKey = "rainbond.io/gateway"
-	// SpecialChaosLabelKey is a special node label, used to specify where to install the rbd-chaos
-	SpecialChaosLabelKey = "rainbond.io/chaos"
+	// SpecialGatewayLabelKey is a special node label, used to specify where to install the wt-gateway
+	SpecialGatewayLabelKey = "wutong.io/gateway"
+	// SpecialChaosLabelKey is a special node label, used to specify where to install the wt-chaos
+	SpecialChaosLabelKey = "wutong.io/chaos"
 	// DefHTTPDomainSuffix -
 	DefHTTPDomainSuffix = "grapps.cn"
 
@@ -34,5 +34,5 @@ const (
 	AliyunCSINasProvisioner = "aliyun-csi-nas-provisioner"
 
 	// ServiceAccountName is the name of service account
-	ServiceAccountName = "rainbond-operator"
+	ServiceAccountName = "wutong-operator"
 )

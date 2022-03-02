@@ -6,25 +6,25 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	"github.com/wutong/wutong-operator/util/k8sutil"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// EtcdName name for rbd-etcd.
-var EtcdName = "rbd-etcd"
+// EtcdName name for wt-etcd.
+var EtcdName = "wt-etcd"
 
 type etcd struct {
 	ctx       context.Context
 	client    client.Client
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
+	component *wutongv1alpha1.WutongComponent
+	cluster   *wutongv1alpha1.WutongCluster
 	labels    map[string]string
 	affinity  *corev1.VolumeNodeAffinity
 
@@ -37,9 +37,9 @@ var _ StorageClassRWOer = &etcd{}
 var _ Replicaser = &etcd{}
 var _ ClusterScopedResourcesCreator = &etcd{}
 
-// NewETCD creates a new rbd-etcd handler.
-func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
-	labels := LabelsForRainbondComponent(component)
+// NewETCD creates a new wt-etcd handler.
+func NewETCD(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
+	labels := LabelsForWutongComponent(component)
 	labels["etcd_node"] = EtcdName
 	return &etcd{
 		ctx:            ctx,
@@ -484,7 +484,7 @@ func (e *etcd) pv() *corev1.PersistentVolume {
 	}
 
 	hostPath := &corev1.HostPathVolumeSource{
-		Path: "/opt/rainbond/data/etcd" + time.Now().Format("20060102150405"),
+		Path: "/opt/wutong/data/etcd" + time.Now().Format("20060102150405"),
 		Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 	}
 	spec.HostPath = hostPath
