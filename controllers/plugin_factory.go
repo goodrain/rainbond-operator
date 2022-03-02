@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
-	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
-	"github.com/wutong/wutong-operator/controllers/plugin"
-	"github.com/wutong/wutong-operator/controllers/plugin/aliyunclouddisk"
-	"github.com/wutong/wutong-operator/controllers/plugin/aliyunnas"
-	"github.com/wutong/wutong-operator/controllers/plugin/nfs"
+	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
+	"github.com/wutong-paas/wutong-operator/controllers/plugin"
+	"github.com/wutong-paas/wutong-operator/controllers/plugin/aliyunclouddisk"
+	"github.com/wutong-paas/wutong-operator/controllers/plugin/aliyunnas"
+	"github.com/wutong-paas/wutong-operator/controllers/plugin/nfs"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

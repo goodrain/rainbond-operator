@@ -3,8 +3,8 @@ package handler
 import (
 	"context"
 
-	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
-	"github.com/wutong/wutong-operator/util/commonutil"
+	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
+	"github.com/wutong-paas/wutong-operator/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

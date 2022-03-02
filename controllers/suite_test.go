@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	wutongiov1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	wutongiov1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 

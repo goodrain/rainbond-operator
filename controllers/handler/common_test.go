@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
-	"github.com/wutong/wutong-operator/util/wtutil"
+	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
+	"github.com/wutong-paas/wutong-operator/util/wtutil"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	wutongiov1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
-	"github.com/wutong/wutong-operator/controllers"
+	wutongiov1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
+	"github.com/wutong-paas/wutong-operator/controllers"
 	// +kubebuilder:scaffold:imports
 )
 

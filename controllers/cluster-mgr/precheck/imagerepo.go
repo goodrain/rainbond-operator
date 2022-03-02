@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/docker/docker/client"
-	"github.com/wutong/wutong-operator/util/constants"
-	"github.com/wutong/wutong-operator/util/imageutil"
-	"github.com/wutong/wutong-operator/util/wtutil"
+	"github.com/wutong-paas/wutong-operator/util/constants"
+	"github.com/wutong-paas/wutong-operator/util/imageutil"
+	"github.com/wutong-paas/wutong-operator/util/wtutil"
 
 	"github.com/go-logr/logr"
-	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

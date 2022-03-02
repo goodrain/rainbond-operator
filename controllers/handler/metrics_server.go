@@ -8,9 +8,9 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
-	"github.com/wutong/wutong-operator/util/commonutil"
-	"github.com/wutong/wutong-operator/util/k8sutil"
+	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
+	"github.com/wutong-paas/wutong-operator/util/commonutil"
+	"github.com/wutong-paas/wutong-operator/util/k8sutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

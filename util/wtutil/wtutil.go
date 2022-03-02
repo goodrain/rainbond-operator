@@ -5,8 +5,8 @@ import (
 	"net"
 	"path"
 
-	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
-	"github.com/wutong/wutong-operator/util/constants"
+	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
+	"github.com/wutong-paas/wutong-operator/util/constants"
 	corev1 "k8s.io/api/core/v1"
 )
 

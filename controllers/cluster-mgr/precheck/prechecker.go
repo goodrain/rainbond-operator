@@ -1,7 +1,7 @@
 package precheck
 
 import (
-	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 )
 
 // PreChecker checks the environment and parameters required to install the wutong cluster
