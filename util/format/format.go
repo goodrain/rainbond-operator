@@ -3,20 +3,20 @@ package format
 import (
 	"fmt"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-//RainbondCluster Pod returns a string representing a pod in a consistent human readable format,
+//WutongCluster Pod returns a string representing a pod in a consistent human readable format,
 // with pod UID as part of the string.
-func RainbondCluster(rc *rainbondv1alpha1.RainbondCluster) string {
-	return RainbondClusterDesc(rc.Name, rc.Namespace, rc.UID)
+func WutongCluster(rc *wutongv1alpha1.WutongCluster) string {
+	return WutongClusterDesc(rc.Name, rc.Namespace, rc.UID)
 }
 
-// RainbondClusterDesc returns a string representing a RainbondCluster in a consistent human readable format,
-// with RainbondCluster UID as part of the string.
-func RainbondClusterDesc(rainbondClusterName, rainbondClusterNamespace string, rainbondClusterUID types.UID) string {
-	// Use underscore as the delimiter because it is not allowed in RainbondCluster name
+// WutongClusterDesc returns a string representing a WutongCluster in a consistent human readable format,
+// with WutongCluster UID as part of the string.
+func WutongClusterDesc(WutongClusterName, WutongClusterNamespace string, WutongClusterUID types.UID) string {
+	// Use underscore as the delimiter because it is not allowed in WutongCluster name
 	// (DNS subdomain format), while allowed in the container name format.
-	return fmt.Sprintf("%s_%s(%s)", rainbondClusterName, rainbondClusterNamespace, rainbondClusterUID)
+	return fmt.Sprintf("%s_%s(%s)", WutongClusterName, WutongClusterNamespace, WutongClusterUID)
 }

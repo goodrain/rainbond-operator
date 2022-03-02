@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -16,7 +16,7 @@ type aliyunCsiDiskPlugin struct {
 	client client.Client
 	log    logr.Logger
 
-	component *rainbondv1alpha1.RbdComponent
+	component *wutongv1alpha1.WutongComponent
 	labels    map[string]string
 }
 
@@ -24,13 +24,13 @@ var _ ComponentHandler = &aliyunCsiDiskPlugin{}
 var _ Replicaser = &aliyunCsiDiskPlugin{}
 
 // NewAliyunCSIDiskPlugin creates a new aliyun csi disk plugin handler.
-func NewAliyunCSIDiskPlugin(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewAliyunCSIDiskPlugin(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &aliyunCsiDiskPlugin{
 		ctx:       ctx,
 		client:    client,
 		log:       log.WithValues("Name", component.Name),
 		component: component,
-		labels:    LabelsForRainbondComponent(component),
+		labels:    LabelsForWutongComponent(component),
 	}
 }
 

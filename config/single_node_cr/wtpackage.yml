@@ -1,0 +1,10 @@
+apiVersion: wutong.io/v1alpha1
+kind: WutongPackage
+metadata:
+  name: WutongPackage
+  namespace: wt-system
+  labels: {}
+spec:
+  pkgPath: /opt/wutong/pkg/tgz/wutong.tgz
+  imageHubUser: ""
+  imageHubPass: ""

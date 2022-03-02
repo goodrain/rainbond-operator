@@ -8,9 +8,9 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/k8sutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,10 +33,10 @@ var metricsGroupAPI = "v1beta1.metrics.k8s.io"
 type metricsServer struct {
 	ctx        context.Context
 	client     client.Client
-	db         *rainbondv1alpha1.Database
+	db         *wutongv1alpha1.Database
 	labels     map[string]string
-	component  *rainbondv1alpha1.RbdComponent
-	cluster    *rainbondv1alpha1.RainbondCluster
+	component  *wutongv1alpha1.WutongComponent
+	cluster    *wutongv1alpha1.WutongCluster
 	apiservice *kubeaggregatorv1.APIService
 
 	pods []corev1.Pod
@@ -46,13 +46,13 @@ var _ ComponentHandler = &metricsServer{}
 var _ Replicaser = &metricsServer{}
 
 // NewMetricsServer creates a new metrics-server handler
-func NewMetricsServer(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewMetricsServer(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &metricsServer{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
+		labels:    LabelsForWutongComponent(component),
 	}
 }
 
@@ -68,7 +68,7 @@ func (m *metricsServer) Before() error {
 	return nil
 }
 
-func (m *metricsServer) apiServiceCreatedByRainbond() bool {
+func (m *metricsServer) apiServiceCreatedByWutong() bool {
 	apiservice := m.apiservice
 	if apiservice == nil {
 		return true
@@ -77,7 +77,7 @@ func (m *metricsServer) apiServiceCreatedByRainbond() bool {
 }
 
 func (m *metricsServer) Resources() []client.Object {
-	if !m.apiServiceCreatedByRainbond() {
+	if !m.apiServiceCreatedByWutong() {
 		return nil
 	}
 	return []client.Object{
@@ -87,7 +87,7 @@ func (m *metricsServer) Resources() []client.Object {
 }
 
 func (m *metricsServer) After() error {
-	if !m.apiServiceCreatedByRainbond() {
+	if !m.apiServiceCreatedByWutong() {
 		return nil
 	}
 
@@ -129,7 +129,7 @@ func apiServiceNeedUpgrade(old, new *kubeaggregatorv1.APIService) bool {
 func (m *metricsServer) ListPods() ([]corev1.Pod, error) {
 
 	labels := m.labels
-	if !m.apiServiceCreatedByRainbond() {
+	if !m.apiServiceCreatedByWutong() {
 		restConfig := k8sutil.MustNewKubeConfig("")
 		clientset := kubernetes.NewForConfigOrDie(restConfig)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
@@ -180,7 +180,7 @@ func (m *metricsServer) deployment() client.Object {
 				},
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(m.component, m.cluster),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            "wutong-operator",
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					NodeSelector: map[string]string{
 						"beta.kubernetes.io/os": "linux",

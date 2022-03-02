@@ -7,9 +7,9 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - rainbond.io
+  - wutong.io
   resources:
-  - rainbondclusters
+  - WutongClusters
   verbs:
   - create
   - delete
@@ -19,23 +19,23 @@ rules:
   - update
   - watch
 - apiGroups:
-  - rainbond.io
+  - wutong.io
   resources:
-  - rainbondclusters/finalizers
+  - WutongClusters/finalizers
   verbs:
   - update
 - apiGroups:
-  - rainbond.io
+  - wutong.io
   resources:
-  - rainbondclusters/status
+  - WutongClusters/status
   verbs:
   - get
   - patch
   - update
 - apiGroups:
-  - rainbond.io
+  - wutong.io
   resources:
-  - rainbondpackages
+  - WutongPackages
   verbs:
   - create
   - delete
@@ -45,23 +45,23 @@ rules:
   - update
   - watch
 - apiGroups:
-  - rainbond.io
+  - wutong.io
   resources:
-  - rainbondpackages/finalizers
+  - WutongPackages/finalizers
   verbs:
   - update
 - apiGroups:
-  - rainbond.io
+  - wutong.io
   resources:
-  - rainbondpackages/status
+  - WutongPackages/status
   verbs:
   - get
   - patch
   - update
 - apiGroups:
-  - rainbond.io
+  - wutong.io
   resources:
-  - rainbondvolumes
+  - WutongVolumes
   verbs:
   - create
   - delete
@@ -71,23 +71,23 @@ rules:
   - update
   - watch
 - apiGroups:
-  - rainbond.io
+  - wutong.io
   resources:
-  - rainbondvolumes/finalizers
+  - WutongVolumes/finalizers
   verbs:
   - update
 - apiGroups:
-  - rainbond.io
+  - wutong.io
   resources:
-  - rainbondvolumes/status
+  - WutongVolumes/status
   verbs:
   - get
   - patch
   - update
 - apiGroups:
-  - rainbond.io
+  - wutong.io
   resources:
-  - rbdcomponents
+  - WutongComponents
   verbs:
   - create
   - delete
@@ -97,15 +97,15 @@ rules:
   - update
   - watch
 - apiGroups:
-  - rainbond.io
+  - wutong.io
   resources:
-  - rbdcomponents/finalizers
+  - WutongComponents/finalizers
   verbs:
   - update
 - apiGroups:
-  - rainbond.io
+  - wutong.io
   resources:
-  - rbdcomponents/status
+  - WutongComponents/status
   verbs:
   - get
   - patch

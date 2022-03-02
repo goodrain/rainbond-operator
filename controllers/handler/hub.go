@@ -9,11 +9,11 @@ import (
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"os/exec"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/constants"
+	"github.com/wutong/wutong-operator/util/k8sutil"
+	"github.com/wutong/wutong-operator/util/wtutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -23,16 +23,16 @@ import (
 )
 
 //HubName name
-var HubName = "rbd-hub"
-var hubDataPvcName = "rbd-hub"
+var HubName = "wt-hub"
+var hubDataPvcName = "wt-hub"
 var hubImageRepository = "hub-image-repository"
 var hubPasswordSecret = "hub-password"
 
 type hub struct {
 	ctx       context.Context
 	client    client.Client
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
+	component *wutongv1alpha1.WutongComponent
+	cluster   *wutongv1alpha1.WutongCluster
 	labels    map[string]string
 
 	password string
@@ -46,13 +46,13 @@ var _ ComponentHandler = &hub{}
 var _ StorageClassRWXer = &hub{}
 
 //NewHub nw hub
-func NewHub(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewHub(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &hub{
 		component:      component,
 		cluster:        cluster,
 		client:         client,
 		ctx:            ctx,
-		labels:         LabelsForRainbondComponent(component),
+		labels:         LabelsForWutongComponent(component),
 		storageRequest: getStorageRequest("HUB_DATA_STORAGE_REQUEST", 40),
 	}
 }
@@ -73,7 +73,7 @@ func (h *hub) Before() error {
 	h.htpasswd = htpasswd
 
 	if h.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		sc, err := storageClassNameFromRainbondVolumeRWO(h.ctx, h.client, h.component.Namespace)
+		sc, err := storageClassNameFromWutongVolumeRWO(h.ctx, h.client, h.component.Namespace)
 		if err != nil {
 			return err
 		}
@@ -183,7 +183,7 @@ func (h *hub) deployment() client.Object {
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{
-							Name:            "rbd-hub",
+							Name:            "wt-hub",
 							Image:           h.component.Spec.Image,
 							ImagePullPolicy: h.component.ImagePullPolicy(),
 							Env:             env,
@@ -268,7 +268,7 @@ func (h *hub) ingressForHub() client.Object {
 		}
 		tls := []networkingv1.IngressTLS{
 			{
-				Hosts:      []string{rbdutil.GetImageRepository(h.cluster)},
+				Hosts:      []string{wtutil.GetImageRepository(h.cluster)},
 				SecretName: hubImageRepository,
 			},
 		}
@@ -297,7 +297,7 @@ func (h *hub) ingressForHub() client.Object {
 			},
 			TLS: []networkingv1beta1.IngressTLS{
 				{
-					Hosts:      []string{rbdutil.GetImageRepository(h.cluster)},
+					Hosts:      []string{wtutil.GetImageRepository(h.cluster)},
 					SecretName: hubImageRepository,
 				},
 			},
@@ -317,7 +317,7 @@ func (h *hub) secretForHub() client.Object {
 	}
 	labels := copyLabels(h.labels)
 	labels["name"] = hubImageRepository
-	_, pem, key, _ := commonutil.DomainSign(nil, rbdutil.GetImageRepository(h.cluster))
+	_, pem, key, _ := commonutil.DomainSign(nil, wtutil.GetImageRepository(h.cluster))
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      hubImageRepository,

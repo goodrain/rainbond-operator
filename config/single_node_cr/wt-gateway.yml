@@ -1,0 +1,15 @@
+apiVersion: wutong.io/v1alpha1
+kind: WutongComponent
+metadata:
+  name: wt-gateway
+  namespace: wt-system
+  labels:
+    belongTo: wutong-operator
+    creator: Wutong
+    name: wt-gateway
+    priorityComponent: "true"
+spec:
+  replicas: 1
+  image: swr.cn-southwest-2.myhuaweicloud.com/wutong/wt-gateway:v1.0.0-beta
+  imagePullPolicy: IfNotPresent
+  priorityComponent: true

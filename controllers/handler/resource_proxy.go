@@ -5,22 +5,22 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ResourceProxyName name for rbd-resource-proxy.
-var ResourceProxyName = "rbd-resource-proxy"
+// ResourceProxyName name for wt-resource-proxy.
+var ResourceProxyName = "wt-resource-proxy"
 
 type resourceProxy struct {
 	ctx       context.Context
 	client    client.Client
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
+	component *wutongv1alpha1.WutongComponent
+	cluster   *wutongv1alpha1.WutongCluster
 	labels    map[string]string
 
 	pvcParametersRWO *pvcParameters
@@ -30,14 +30,14 @@ type resourceProxy struct {
 var _ ComponentHandler = &resourceProxy{}
 var _ StorageClassRWOer = &resourceProxy{}
 
-// NewResourceProxy creates a new rbd-resourceProxy hanlder.
-func NewResourceProxy(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+// NewResourceProxy creates a new wt-resourceProxy hanlder.
+func NewResourceProxy(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &resourceProxy{
 		ctx:            ctx,
 		client:         client,
 		component:      component,
 		cluster:        cluster,
-		labels:         LabelsForRainbondComponent(component),
+		labels:         LabelsForWutongComponent(component),
 		storageRequest: getStorageRequest("RESOURCE_PROXY_DATA_STORAGE_REQUEST", 21),
 	}
 }

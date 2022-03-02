@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/controllers/handler"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/controllers/handler"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/k8sutil"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -23,20 +23,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-//RbdcomponentMgr -
-type RbdcomponentMgr struct {
+//WutongComponentMgr -
+type WutongComponentMgr struct {
 	ctx      context.Context
 	client   client.Client
 	log      logr.Logger
 	recorder record.EventRecorder
 
-	cpt        *rainbondv1alpha1.RbdComponent
+	cpt        *wutongv1alpha1.WutongComponent
 	replicaser handler.Replicaser
 }
 
-//NewRbdcomponentMgr -
-func NewRbdcomponentMgr(ctx context.Context, client client.Client, recorder record.EventRecorder, log logr.Logger, cpt *rainbondv1alpha1.RbdComponent) *RbdcomponentMgr {
-	mgr := &RbdcomponentMgr{
+//NewWutongComponentMgr -
+func NewWutongComponentMgr(ctx context.Context, client client.Client, recorder record.EventRecorder, log logr.Logger, cpt *wutongv1alpha1.WutongComponent) *WutongComponentMgr {
+	mgr := &WutongComponentMgr{
 		ctx:      ctx,
 		client:   client,
 		recorder: recorder,
@@ -47,17 +47,17 @@ func NewRbdcomponentMgr(ctx context.Context, client client.Client, recorder reco
 }
 
 //SetReplicaser -
-func (r *RbdcomponentMgr) SetReplicaser(replicaser handler.Replicaser) {
+func (r *WutongComponentMgr) SetReplicaser(replicaser handler.Replicaser) {
 	r.replicaser = replicaser
 }
 
 //UpdateStatus -
-func (r *RbdcomponentMgr) UpdateStatus() error {
+func (r *WutongComponentMgr) UpdateStatus() error {
 	status := r.cpt.Status.DeepCopy()
 	// make sure status has ready conditoin
-	_, condtion := status.GetCondition(rainbondv1alpha1.RbdComponentReady)
+	_, condtion := status.GetCondition(wutongv1alpha1.WutongComponentReady)
 	if condtion == nil {
-		condtion = rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse, "", "")
+		condtion = wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.WutongComponentReady, corev1.ConditionFalse, "", "")
 		status.SetCondition(*condtion)
 	}
 	r.cpt.Status = *status
@@ -68,41 +68,41 @@ func (r *RbdcomponentMgr) UpdateStatus() error {
 }
 
 //SetConfigCompletedCondition -
-func (r *RbdcomponentMgr) SetConfigCompletedCondition() {
-	condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.ClusterConfigCompeleted, corev1.ConditionTrue, "ConfigCompleted", "")
+func (r *WutongComponentMgr) SetConfigCompletedCondition() {
+	condition := wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.ClusterConfigCompeleted, corev1.ConditionTrue, "ConfigCompleted", "")
 	_ = r.cpt.Status.UpdateCondition(condition)
 }
 
 //SetPackageReadyCondition -
-func (r *RbdcomponentMgr) SetPackageReadyCondition(pkg *rainbondv1alpha1.RainbondPackage) {
+func (r *WutongComponentMgr) SetPackageReadyCondition(pkg *wutongv1alpha1.WutongPackage) {
 	if pkg == nil {
-		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionTrue, "PackageReady", "")
+		condition := wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.WutongPackageReady, corev1.ConditionTrue, "PackageReady", "")
 		_ = r.cpt.Status.UpdateCondition(condition)
 		return
 	}
-	_, pkgcondition := pkg.Status.GetCondition(rainbondv1alpha1.Ready)
+	_, pkgcondition := pkg.Status.GetCondition(wutongv1alpha1.Ready)
 	if pkgcondition == nil {
-		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionFalse, "PackageNotReady", "")
+		condition := wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.WutongPackageReady, corev1.ConditionFalse, "PackageNotReady", "")
 		_ = r.cpt.Status.UpdateCondition(condition)
 		return
 	}
-	if pkgcondition.Status != rainbondv1alpha1.Completed {
-		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionFalse, "PackageNotReady", pkgcondition.Message)
+	if pkgcondition.Status != wutongv1alpha1.Completed {
+		condition := wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.WutongPackageReady, corev1.ConditionFalse, "PackageNotReady", pkgcondition.Message)
 		_ = r.cpt.Status.UpdateCondition(condition)
 		return
 	}
-	condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionTrue, "PackageReady", "")
+	condition := wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.WutongPackageReady, corev1.ConditionTrue, "PackageReady", "")
 	_ = r.cpt.Status.UpdateCondition(condition)
 }
 
 //CheckPrerequisites -
-func (r *RbdcomponentMgr) CheckPrerequisites(cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) bool {
+func (r *WutongComponentMgr) CheckPrerequisites(cluster *wutongv1alpha1.WutongCluster, pkg *wutongv1alpha1.WutongPackage) bool {
 	if r.cpt.Spec.PriorityComponent {
-		// If ImageHub is empty, the priority component no need to wait until rainbondpackage is completed.
+		// If ImageHub is empty, the priority component no need to wait until WutongPackage is completed.
 		return true
 	}
-	// Otherwise, we have to make sure rainbondpackage is completed before we create the resource.
-	if cluster.Spec.InstallMode != rainbondv1alpha1.InstallationModeFullOnline {
+	// Otherwise, we have to make sure WutongPackage is completed before we create the resource.
+	if cluster.Spec.InstallMode != wutongv1alpha1.InstallationModeFullOnline {
 		if err := checkPackageStatus(pkg); err != nil {
 			r.log.V(6).Info(err.Error())
 			return false
@@ -112,7 +112,7 @@ func (r *RbdcomponentMgr) CheckPrerequisites(cluster *rainbondv1alpha1.RainbondC
 }
 
 //GenerateStatus -
-func (r *RbdcomponentMgr) GenerateStatus(pods []corev1.Pod) {
+func (r *WutongComponentMgr) GenerateStatus(pods []corev1.Pod) {
 	status := r.cpt.Status.DeepCopy()
 	var replicas int32 = 1
 	if r.cpt.Spec.Replicas != nil {
@@ -136,7 +136,7 @@ func (r *RbdcomponentMgr) GenerateStatus(pods []corev1.Pod) {
 		return result
 	}
 	status.ReadyReplicas = readyReplicas()
-	r.log.V(5).Info(fmt.Sprintf("rainbond component: %s ready replicas count is %d", r.cpt.GetName(), status.ReadyReplicas))
+	r.log.V(5).Info(fmt.Sprintf("wutong component: %s ready replicas count is %d", r.cpt.GetName(), status.ReadyReplicas))
 
 	var newPods []corev1.LocalObjectReference
 	for _, pod := range pods {
@@ -148,16 +148,16 @@ func (r *RbdcomponentMgr) GenerateStatus(pods []corev1.Pod) {
 	status.Pods = newPods
 
 	if status.ReadyReplicas >= replicas {
-		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionTrue, "Ready", "")
+		condition := wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.WutongComponentReady, corev1.ConditionTrue, "Ready", "")
 		status.UpdateCondition(condition)
 	}
 
 	r.cpt.Status = *status
 }
 
-//IsRbdComponentReady -
-func (r *RbdcomponentMgr) IsRbdComponentReady() bool {
-	_, condition := r.cpt.Status.GetCondition(rainbondv1alpha1.RbdComponentReady)
+//IsWutongComponentReady -
+func (r *WutongComponentMgr) IsWutongComponentReady() bool {
+	_, condition := r.cpt.Status.GetCondition(wutongv1alpha1.WutongComponentReady)
 	if condition == nil {
 		return false
 	}
@@ -166,7 +166,7 @@ func (r *RbdcomponentMgr) IsRbdComponentReady() bool {
 }
 
 //ResourceCreateIfNotExists -
-func (r *RbdcomponentMgr) ResourceCreateIfNotExists(obj client.Object) error {
+func (r *WutongComponentMgr) ResourceCreateIfNotExists(obj client.Object) error {
 	err := r.client.Get(r.ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj)
 	if err != nil {
 		if !k8sErrors.IsNotFound(err) {
@@ -179,7 +179,7 @@ func (r *RbdcomponentMgr) ResourceCreateIfNotExists(obj client.Object) error {
 }
 
 //UpdateOrCreateResource -
-func (r *RbdcomponentMgr) UpdateOrCreateResource(obj client.Object) (reconcile.Result, error) {
+func (r *WutongComponentMgr) UpdateOrCreateResource(obj client.Object) (reconcile.Result, error) {
 	var oldOjb = reflect.New(reflect.ValueOf(obj).Elem().Type()).Interface().(client.Object)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
@@ -214,7 +214,7 @@ func (r *RbdcomponentMgr) UpdateOrCreateResource(obj client.Object) (reconcile.R
 	return reconcile.Result{}, nil
 }
 
-func (r *RbdcomponentMgr) updateRuntimeObject(old, new client.Object) client.Object {
+func (r *WutongComponentMgr) updateRuntimeObject(old, new client.Object) client.Object {
 	// TODO: maybe use patch is better
 	// spec.clusterIP: Invalid value: \"\": field is immutable
 	if n, ok := new.(*corev1.Service); ok {
@@ -241,21 +241,21 @@ func objectCanUpdate(obj client.Object) bool {
 	if _, ok := obj.(*batchv1.Job); ok {
 		return false
 	}
-	if obj.GetName() == "rbd-db" || obj.GetName() == "rbd-etcd" {
+	if obj.GetName() == "wt-db" || obj.GetName() == "wt-etcd" {
 		return false
 	}
 	return true
 }
 
 //DeleteResources -
-func (r *RbdcomponentMgr) DeleteResources(deleter handler.ResourcesDeleter) (*reconcile.Result, error) {
+func (r *WutongComponentMgr) DeleteResources(deleter handler.ResourcesDeleter) (*reconcile.Result, error) {
 	resources := deleter.ResourcesNeedDelete()
 	for _, res := range resources {
 		if res == nil {
 			continue
 		}
 		if err := r.deleteResourcesIfExists(res); err != nil {
-			condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady,
+			condition := wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.WutongComponentReady,
 				corev1.ConditionFalse, "ErrDeleteResource", err.Error())
 			changed := r.cpt.Status.UpdateCondition(condition)
 			if changed {
@@ -268,7 +268,7 @@ func (r *RbdcomponentMgr) DeleteResources(deleter handler.ResourcesDeleter) (*re
 	return nil, nil
 }
 
-func (r *RbdcomponentMgr) deleteResourcesIfExists(obj client.Object) error {
+func (r *WutongComponentMgr) deleteResourcesIfExists(obj client.Object) error {
 	err := r.client.Delete(r.ctx, obj, &client.DeleteOptions{GracePeriodSeconds: commonutil.Int64(0)})
 	if err != nil && !k8sErrors.IsNotFound(err) {
 		return err
@@ -276,16 +276,16 @@ func (r *RbdcomponentMgr) deleteResourcesIfExists(obj client.Object) error {
 	return nil
 }
 
-func checkPackageStatus(pkg *rainbondv1alpha1.RainbondPackage) error {
+func checkPackageStatus(pkg *wutongv1alpha1.WutongPackage) error {
 	var packageCompleted bool
 	for _, cond := range pkg.Status.Conditions {
-		if cond.Type == rainbondv1alpha1.Ready && cond.Status == rainbondv1alpha1.Completed {
+		if cond.Type == wutongv1alpha1.Ready && cond.Status == wutongv1alpha1.Completed {
 			packageCompleted = true
 			break
 		}
 	}
 	if !packageCompleted {
-		return errors.New("rainbond package is not completed in InstallationModeWithoutPackage mode")
+		return errors.New("wutong package is not completed in InstallationModeWithoutPackage mode")
 	}
 	return nil
 }

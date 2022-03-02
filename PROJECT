@@ -1,23 +1,23 @@
-domain: rainbond.io
+domain: wutong.io
 layout: go.kubebuilder.io/v3
-projectName: rainbond-operator
-repo: github.com/goodrain/rainbond-operator
+projectName: wutong-operator
+repo: github.com/wutong-pass/wutong-operator
 resources:
 - crdVersion: v1
-  group: rainbond.io
-  kind: RainbondCluster
+  group: wutong.io
+  kind: WutongCluster
   version: v1alpha1
 - crdVersion: v1
-  group: rainbond.io
-  kind: RainbondPackage
+  group: wutong.io
+  kind: WutongPackage
   version: v1alpha1
 - crdVersion: v1
-  group: rainbond.io
-  kind: RainbondVolume
+  group: wutong.io
+  kind: WutongVolume
   version: v1alpha1
 - crdVersion: v1
-  group: rainbond.io
-  kind: RbdComponent
+  group: wutong.io
+  kind: WutongComponent
   version: v1alpha1
 version: 3-alpha
 plugins:

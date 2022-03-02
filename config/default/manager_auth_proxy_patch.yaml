@@ -10,7 +10,7 @@ spec:
     spec:
       containers:
         - name: kube-rbac-proxy
-          image: registry.cn-hangzhou.aliyuncs.com/goodrain/kube-rbac-proxy:v0.5.0
+          image: swr.cn-southwest-2.myhuaweicloud.com/wutong/kube-rbac-proxy:v0.5.0
           args:
             - '--secure-listen-address=0.0.0.0:8443'
             - '--upstream=http://127.0.0.1:8080/'

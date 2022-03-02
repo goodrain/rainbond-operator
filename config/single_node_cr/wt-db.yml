@@ -1,0 +1,14 @@
+apiVersion: wutong.io/v1alpha1
+kind: WutongComponent
+metadata:
+  name: wt-db
+  namespace: wt-system
+  labels:
+    belongTo: wutong-operator
+    creator: Wutong
+    name: wt-db
+spec:
+  replicas: 1
+  image: swr.cn-southwest-2.myhuaweicloud.com/wutong/wt-db:8.0.19
+  imagePullPolicy: IfNotPresent
+  priorityComponent: false

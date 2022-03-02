@@ -6,20 +6,20 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	"github.com/goodrain/rainbond-operator/util/probeutil"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/constants"
+	"github.com/wutong/wutong-operator/util/k8sutil"
+	"github.com/wutong/wutong-operator/util/probeutil"
+	"github.com/wutong/wutong-operator/util/wtutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// NodeName name for rbd-node
-var NodeName = "rbd-node"
+// NodeName name for wt-node
+var NodeName = "wt-node"
 
 type node struct {
 	ctx    context.Context
@@ -28,8 +28,8 @@ type node struct {
 
 	labels     map[string]string
 	etcdSecret *corev1.Secret
-	cluster    *rainbondv1alpha1.RainbondCluster
-	component  *rainbondv1alpha1.RbdComponent
+	cluster    *wutongv1alpha1.WutongCluster
+	component  *wutongv1alpha1.WutongComponent
 
 	pvcParametersRWX     *pvcParameters
 	grdataStorageRequest int64
@@ -40,15 +40,15 @@ var _ StorageClassRWXer = &node{}
 var _ ResourcesCreator = &node{}
 var _ Replicaser = &node{}
 
-// NewNode creates a new rbd-node handler.
-func NewNode(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+// NewNode creates a new wt-node handler.
+func NewNode(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &node{
 		ctx:                  ctx,
 		client:               client,
 		log:                  log.WithValues("Name: %s", component.Name),
 		component:            component,
 		cluster:              cluster,
-		labels:               LabelsForRainbondComponent(component),
+		labels:               LabelsForWutongComponent(component),
 		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
 	}
 }
@@ -61,7 +61,7 @@ func (n *node) Before() error {
 	n.etcdSecret = secret
 
 	if n.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		sc, err := storageClassNameFromRainbondVolumeRWO(n.ctx, n.client, n.component.Namespace)
+		sc, err := storageClassNameFromWutongVolumeRWO(n.ctx, n.client, n.component.Namespace)
 		if err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ func (n *node) Before() error {
 
 func (n *node) Resources() []client.Object {
 	return []client.Object{
-		n.daemonSetForRainbondNode(),
+		n.daemonSetForWutongNode(),
 	}
 }
 
@@ -110,7 +110,7 @@ func (n *node) Replicas() *int32 {
 	return commonutil.Int32(int32(len(nodeList.Items)))
 }
 
-func (n *node) daemonSetForRainbondNode() client.Object {
+func (n *node) daemonSetForWutongNode() client.Object {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "grdata",
@@ -223,11 +223,11 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 		"--etcd=" + strings.Join(etcdEndpoints(n.cluster), ","),
 		"--hostIP=$(POD_IP)",
 		"--run-mode master",
-		"--noderule manage,compute", // TODO: Let rbd-node recognize itself
+		"--noderule manage,compute", // TODO: Let wt-node recognize itself
 		"--nodeid=$(NODE_NAME)",
-		"--image-repo-host=" + rbdutil.GetImageRepository(n.cluster),
+		"--image-repo-host=" + wtutil.GetImageRepository(n.cluster),
 		"--hostsfile=/newetc/hosts",
-		"--rbd-ns=" + n.component.Namespace,
+		"--wt-ns=" + n.component.Namespace,
 	}
 	if n.etcdSecret != nil {
 		volume, mount := volumeByEtcd(n.etcdSecret)
@@ -256,13 +256,13 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 			},
 		},
 		{
-			Name:  "RBD_NAMESPACE",
+			Name:  "WT_NAMESPACE",
 			Value: n.component.Namespace,
 		},
 	}
 	if n.cluster.Spec.ImageHub == nil || n.cluster.Spec.ImageHub.Domain == constants.DefImageRepository {
 		envs = append(envs, corev1.EnvVar{
-			Name:  "RBD_DOCKER_SECRET",
+			Name:  "WT_DOCKER_SECRET",
 			Value: hubImageRepository,
 		})
 	}
@@ -289,7 +289,7 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(n.component, n.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            "wutong-operator",
 					HostAliases:                   hostsAliases(n.cluster),
 					HostPID:                       true,
 					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,

@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/controllers/cluster-mgr/precheck"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/controllers/cluster-mgr/precheck"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/constants"
+	"github.com/wutong/wutong-operator/util/k8sutil"
+	"github.com/wutong/wutong-operator/util/wtutil"
 	"github.com/pquerna/ffjson/ffjson"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	// RdbHubCredentialsName name for rbd-hub-credentials
-	RdbHubCredentialsName = "rbd-hub-credentials"
+	// RdbHubCredentialsName name for wt-hub-credentials
+	RdbHubCredentialsName = "wt-hub-credentials"
 )
 
 var provisionerAccessModes = map[string]corev1.PersistentVolumeAccessMode{
@@ -46,7 +46,7 @@ var provisionerAccessModes = map[string]corev1.PersistentVolumeAccessMode{
 	"kubernetes.io/nfs":             corev1.ReadWriteMany,
 	"kubernetes.io/portworx-volume": corev1.ReadWriteMany,
 	"kubernetes.io/quobyte":         corev1.ReadWriteMany,
-	"kubernetes.io/rbd":             corev1.ReadWriteMany,
+	"kubernetes.io/wt":             corev1.ReadWriteMany,
 	"kubernetes.io/scaleio":         corev1.ReadWriteMany,
 	"kubernetes.io/storageos":       corev1.ReadWriteMany,
 	// Alibaba csi plugins for kubernetes.
@@ -60,25 +60,25 @@ var provisionerAccessModes = map[string]corev1.PersistentVolumeAccessMode{
 	"ossplugin.csi.alibabacloud.com":  corev1.ReadWriteMany,
 }
 
-type k8sNodesSortByName []*rainbondv1alpha1.K8sNode
+type k8sNodesSortByName []*wutongv1alpha1.K8sNode
 
 func (s k8sNodesSortByName) Len() int           { return len(s) }
 func (s k8sNodesSortByName) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s k8sNodesSortByName) Less(i, j int) bool { return s[i].Name < s[j].Name }
 
-//RainbondClusteMgr -
-type RainbondClusteMgr struct {
+//WutongClusteMgr -
+type WutongClusteMgr struct {
 	ctx    context.Context
 	client client.Client
 	scheme *runtime.Scheme
 	log    logr.Logger
 
-	cluster *rainbondv1alpha1.RainbondCluster
+	cluster *wutongv1alpha1.WutongCluster
 }
 
 //NewClusterMgr new Cluster Mgr
-func NewClusterMgr(ctx context.Context, client client.Client, log logr.Logger, cluster *rainbondv1alpha1.RainbondCluster, scheme *runtime.Scheme) *RainbondClusteMgr {
-	mgr := &RainbondClusteMgr{
+func NewClusterMgr(ctx context.Context, client client.Client, log logr.Logger, cluster *wutongv1alpha1.WutongCluster, scheme *runtime.Scheme) *WutongClusteMgr {
+	mgr := &WutongClusteMgr{
 		ctx:     ctx,
 		client:  client,
 		log:     log,
@@ -88,7 +88,7 @@ func NewClusterMgr(ctx context.Context, client client.Client, log logr.Logger, c
 	return mgr
 }
 
-func (r *RainbondClusteMgr) listStorageClasses() []*rainbondv1alpha1.StorageClass {
+func (r *WutongClusteMgr) listStorageClasses() []*wutongv1alpha1.StorageClass {
 	r.log.V(6).Info("start listing available storage classes")
 
 	storageClassList := &storagev1.StorageClassList{}
@@ -100,9 +100,9 @@ func (r *RainbondClusteMgr) listStorageClasses() []*rainbondv1alpha1.StorageClas
 		return nil
 	}
 
-	var storageClasses []*rainbondv1alpha1.StorageClass
+	var storageClasses []*wutongv1alpha1.StorageClass
 	for _, sc := range storageClassList.Items {
-		storageClass := &rainbondv1alpha1.StorageClass{
+		storageClass := &wutongv1alpha1.StorageClass{
 			Name:        sc.Name,
 			Provisioner: sc.Provisioner,
 			AccessMode:  provisionerAccessModes[sc.Provisioner],
@@ -113,9 +113,9 @@ func (r *RainbondClusteMgr) listStorageClasses() []*rainbondv1alpha1.StorageClas
 	return storageClasses
 }
 
-// GenerateRainbondClusterStatus creates the final rainbondcluster status for a rainbondcluster, given the
-// internal rainbondcluster status.
-func (r *RainbondClusteMgr) GenerateRainbondClusterStatus() (*rainbondv1alpha1.RainbondClusterStatus, error) {
+// GenerateWutongClusterStatus creates the final WutongCluster status for a WutongCluster, given the
+// internal WutongCluster status.
+func (r *WutongClusteMgr) GenerateWutongClusterStatus() (*wutongv1alpha1.WutongClusterStatus, error) {
 	r.log.V(6).Info("start generating status")
 
 	masterRoleLabel, err := r.getMasterRoleLabel()
@@ -123,7 +123,7 @@ func (r *RainbondClusteMgr) GenerateRainbondClusterStatus() (*rainbondv1alpha1.R
 		return nil, fmt.Errorf("get master role label: %v", err)
 	}
 
-	s := &rainbondv1alpha1.RainbondClusterStatus{
+	s := &wutongv1alpha1.WutongClusterStatus{
 		MasterRoleLabel: masterRoleLabel,
 		StorageClasses:  r.listStorageClasses(),
 	}
@@ -132,28 +132,28 @@ func (r *RainbondClusteMgr) GenerateRainbondClusterStatus() (*rainbondv1alpha1.R
 		s.ImagePullSecret = &corev1.LocalObjectReference{Name: RdbHubCredentialsName}
 	}
 
-	var masterNodesForGateway []*rainbondv1alpha1.K8sNode
-	var masterNodesForChaos []*rainbondv1alpha1.K8sNode
+	var masterNodesForGateway []*wutongv1alpha1.K8sNode
+	var masterNodesForChaos []*wutongv1alpha1.K8sNode
 	if masterRoleLabel != "" {
 		masterNodesForGateway = r.listMasterNodesForGateway(masterRoleLabel)
 		masterNodesForChaos = r.listMasterNodes(masterRoleLabel)
 	}
-	s.GatewayAvailableNodes = &rainbondv1alpha1.AvailableNodes{
+	s.GatewayAvailableNodes = &wutongv1alpha1.AvailableNodes{
 		SpecifiedNodes: r.listSpecifiedGatewayNodes(),
 		MasterNodes:    masterNodesForGateway,
 	}
-	s.ChaosAvailableNodes = &rainbondv1alpha1.AvailableNodes{
+	s.ChaosAvailableNodes = &wutongv1alpha1.AvailableNodes{
 		SpecifiedNodes: r.listSpecifiedChaosNodes(),
 		MasterNodes:    masterNodesForChaos,
 	}
 
-	// conditions for rainbond cluster status
+	// conditions for wutong cluster status
 	s.Conditions = r.generateConditions()
 	r.log.V(6).Info("generating status success")
 	return s, nil
 }
 
-func (r *RainbondClusteMgr) getMasterRoleLabel() (string, error) {
+func (r *WutongClusteMgr) getMasterRoleLabel() (string, error) {
 	nodes := &corev1.NodeList{}
 	if err := r.client.List(r.ctx, nodes); err != nil {
 		r.log.Error(err, "list nodes: %v", err)
@@ -162,10 +162,10 @@ func (r *RainbondClusteMgr) getMasterRoleLabel() (string, error) {
 	var label string
 	for _, node := range nodes.Items {
 		for key := range node.Labels {
-			if key == rainbondv1alpha1.LabelNodeRolePrefix+"master" {
+			if key == wutongv1alpha1.LabelNodeRolePrefix+"master" {
 				label = key
 			}
-			if key == rainbondv1alpha1.NodeLabelRole && label != rainbondv1alpha1.LabelNodeRolePrefix+"master" {
+			if key == wutongv1alpha1.NodeLabelRole && label != wutongv1alpha1.LabelNodeRolePrefix+"master" {
 				label = key
 			}
 		}
@@ -173,22 +173,22 @@ func (r *RainbondClusteMgr) getMasterRoleLabel() (string, error) {
 	return label, nil
 }
 
-func (r *RainbondClusteMgr) listSpecifiedGatewayNodes() []*rainbondv1alpha1.K8sNode {
+func (r *WutongClusteMgr) listSpecifiedGatewayNodes() []*wutongv1alpha1.K8sNode {
 	nodes := r.listNodesByLabels(map[string]string{
 		constants.SpecialGatewayLabelKey: "",
 	})
 	// Filtering nodes with port conflicts
 	// check gateway ports
-	return rbdutil.FilterNodesWithPortConflicts(nodes)
+	return wtutil.FilterNodesWithPortConflicts(nodes)
 }
 
-func (r *RainbondClusteMgr) listSpecifiedChaosNodes() []*rainbondv1alpha1.K8sNode {
+func (r *WutongClusteMgr) listSpecifiedChaosNodes() []*wutongv1alpha1.K8sNode {
 	return r.listNodesByLabels(map[string]string{
 		constants.SpecialChaosLabelKey: "",
 	})
 }
 
-func (r *RainbondClusteMgr) listNodesByLabels(labels map[string]string) []*rainbondv1alpha1.K8sNode {
+func (r *WutongClusteMgr) listNodesByLabels(labels map[string]string) []*wutongv1alpha1.K8sNode {
 	nodeList := &corev1.NodeList{}
 	listOpts := []client.ListOption{
 		client.MatchingLabels(labels),
@@ -209,9 +209,9 @@ func (r *RainbondClusteMgr) listNodesByLabels(labels map[string]string) []*rainb
 		return ""
 	}
 
-	var k8sNodes []*rainbondv1alpha1.K8sNode
+	var k8sNodes []*wutongv1alpha1.K8sNode
 	for _, node := range nodeList.Items {
-		k8sNode := &rainbondv1alpha1.K8sNode{
+		k8sNode := &wutongv1alpha1.K8sNode{
 			Name:       node.Name,
 			InternalIP: findIP(node.Status.Addresses, corev1.NodeInternalIP),
 			ExternalIP: findIP(node.Status.Addresses, corev1.NodeExternalIP),
@@ -224,20 +224,20 @@ func (r *RainbondClusteMgr) listNodesByLabels(labels map[string]string) []*rainb
 	return k8sNodes
 }
 
-func (r *RainbondClusteMgr) listMasterNodesForGateway(masterLabel string) []*rainbondv1alpha1.K8sNode {
+func (r *WutongClusteMgr) listMasterNodesForGateway(masterLabel string) []*wutongv1alpha1.K8sNode {
 	nodes := r.listMasterNodes(masterLabel)
 	// Filtering nodes with port conflicts
 	// check gateway ports
-	return rbdutil.FilterNodesWithPortConflicts(nodes)
+	return wtutil.FilterNodesWithPortConflicts(nodes)
 }
 
-func (r *RainbondClusteMgr) listMasterNodes(masterRoleLabelKey string) []*rainbondv1alpha1.K8sNode {
+func (r *WutongClusteMgr) listMasterNodes(masterRoleLabelKey string) []*wutongv1alpha1.K8sNode {
 	labels := k8sutil.MaterRoleLabel(masterRoleLabelKey)
 	return r.listNodesByLabels(labels)
 }
 
 //CreateImagePullSecret create image pull secret
-func (r *RainbondClusteMgr) CreateImagePullSecret() error {
+func (r *WutongClusteMgr) CreateImagePullSecret() error {
 	var secret corev1.Secret
 	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: RdbHubCredentialsName}, &secret); err != nil {
 		if !k8sErrors.IsNotFound(err) {
@@ -278,7 +278,7 @@ func (r *RainbondClusteMgr) CreateImagePullSecret() error {
 	return nil
 }
 
-func (r *RainbondClusteMgr) checkIfImagePullSecretExists() bool {
+func (r *WutongClusteMgr) checkIfImagePullSecretExists() bool {
 	secret := &corev1.Secret{}
 	err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: RdbHubCredentialsName}, secret)
 	if err != nil {
@@ -290,7 +290,7 @@ func (r *RainbondClusteMgr) checkIfImagePullSecretExists() bool {
 	return true
 }
 
-func (r *RainbondClusteMgr) generateDockerConfig() []byte {
+func (r *WutongClusteMgr) generateDockerConfig() []byte {
 	type dockerConfig struct {
 		Auths map[string]map[string]string `json:"auths"`
 	}
@@ -312,54 +312,54 @@ func (r *RainbondClusteMgr) generateDockerConfig() []byte {
 	return bytes
 }
 
-func (r *RainbondClusteMgr) checkIfRbdNodeReady() error {
-	cpt := &rainbondv1alpha1.RbdComponent{}
-	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: "rbd-node"}, cpt); err != nil {
+func (r *WutongClusteMgr) checkIfWtNodeReady() error {
+	cpt := &wutongv1alpha1.WutongComponent{}
+	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: "wt-node"}, cpt); err != nil {
 		return err
 	}
 
 	if cpt.Status.ReadyReplicas == 0 || cpt.Status.ReadyReplicas != cpt.Status.Replicas {
-		return fmt.Errorf("no ready replicas for rbdcomponent rbd-node")
+		return fmt.Errorf("no ready replicas for WutongComponent wt-node")
 	}
 
 	return nil
 }
 
-func (r *RainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClusterCondition {
+func (r *WutongClusteMgr) generateConditions() []wutongv1alpha1.WutongClusterCondition {
 	// region database
 	spec := r.cluster.Spec
-	if spec.RegionDatabase != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseRegion) {
-		preChecker := precheck.NewDatabasePrechecker(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseRegion, spec.RegionDatabase)
+	if spec.RegionDatabase != nil && !r.isConditionTrue(wutongv1alpha1.WutongClusterConditionTypeDatabaseRegion) {
+		preChecker := precheck.NewDatabasePrechecker(wutongv1alpha1.WutongClusterConditionTypeDatabaseRegion, spec.RegionDatabase)
 		condition := preChecker.Check()
 		r.cluster.Status.UpdateCondition(&condition)
 	}
 
 	// console database
-	if spec.UIDatabase != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseConsole) {
-		preChecker := precheck.NewDatabasePrechecker(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseConsole, spec.UIDatabase)
+	if spec.UIDatabase != nil && !r.isConditionTrue(wutongv1alpha1.WutongClusterConditionTypeDatabaseConsole) {
+		preChecker := precheck.NewDatabasePrechecker(wutongv1alpha1.WutongClusterConditionTypeDatabaseConsole, spec.UIDatabase)
 		condition := preChecker.Check()
 		r.cluster.Status.UpdateCondition(&condition)
 	}
 
 	// image repository
-	if spec.ImageHub != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository) {
+	if spec.ImageHub != nil && !r.isConditionTrue(wutongv1alpha1.WutongClusterConditionTypeImageRepository) {
 		preChecker := precheck.NewImageRepoPrechecker(r.ctx, r.log, r.cluster)
 		condition := preChecker.Check()
 		r.cluster.Status.UpdateCondition(&condition)
 	}
 
 	// kubernetes version
-	if !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeKubernetesVersion) {
+	if !r.isConditionTrue(wutongv1alpha1.WutongClusterConditionTypeKubernetesVersion) {
 		k8sVersion := precheck.NewK8sVersionPrechecker(r.ctx, r.log, r.client)
 		condition := k8sVersion.Check()
 		r.cluster.Status.UpdateCondition(&condition)
 	}
 
-	storagePreChecker := precheck.NewStorage(r.ctx, r.client, r.cluster.GetNamespace(), r.cluster.Spec.RainbondVolumeSpecRWX)
+	storagePreChecker := precheck.NewStorage(r.ctx, r.client, r.cluster.GetNamespace(), r.cluster.Spec.WutongVolumeSpecRWX)
 	storageCondition := storagePreChecker.Check()
 	r.cluster.Status.UpdateCondition(&storageCondition)
 
-	if r.cluster.Spec.InstallMode != rainbondv1alpha1.InstallationModeOffline {
+	if r.cluster.Spec.InstallMode != wutongv1alpha1.InstallationModeOffline {
 		dnsPrechecker := precheck.NewDNSPrechecker(r.cluster, r.log)
 		dnsCondition := dnsPrechecker.Check()
 		r.cluster.Status.UpdateCondition(&dnsCondition)
@@ -380,7 +380,7 @@ func (r *RainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 		r.cluster.Status.UpdateCondition(&containerNetworkCondition)
 	}
 
-	if idx, condition := r.cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeRunning); idx == -1 || condition.Status != corev1.ConditionTrue {
+	if idx, condition := r.cluster.Status.GetCondition(wutongv1alpha1.WutongClusterConditionTypeRunning); idx == -1 || condition.Status != corev1.ConditionTrue {
 		running := r.runningCondition()
 		r.cluster.Status.UpdateCondition(&running)
 	}
@@ -388,7 +388,7 @@ func (r *RainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 	return r.cluster.Status.Conditions
 }
 
-func (r *RainbondClusteMgr) isConditionTrue(typ3 rainbondv1alpha1.RainbondClusterConditionType) bool {
+func (r *WutongClusteMgr) isConditionTrue(typ3 wutongv1alpha1.WutongClusterConditionType) bool {
 
 	_, condition := r.cluster.Status.GetCondition(typ3)
 
@@ -399,10 +399,10 @@ func (r *RainbondClusteMgr) isConditionTrue(typ3 rainbondv1alpha1.RainbondCluste
 }
 
 //CreateFoobarPVCIfNotExists -
-func (r *RainbondClusteMgr) CreateFoobarPVCIfNotExists() error {
+func (r *WutongClusteMgr) CreateFoobarPVCIfNotExists() error {
 	var storageClassName string
-	if r.cluster.Spec.RainbondVolumeSpecRWX != nil && r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName != "" {
-		storageClassName = r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName
+	if r.cluster.Spec.WutongVolumeSpecRWX != nil && r.cluster.Spec.WutongVolumeSpecRWX.StorageClassName != "" {
+		storageClassName = r.cluster.Spec.WutongVolumeSpecRWX.StorageClassName
 	}
 
 	pvc, err := k8sutil.GetFoobarPVC(r.ctx, r.client, r.cluster.GetNamespace())
@@ -431,7 +431,7 @@ func (r *RainbondClusteMgr) CreateFoobarPVCIfNotExists() error {
 	return nil
 }
 
-func (r *RainbondClusteMgr) createPVCForFoobar(storageClassName string) error {
+func (r *WutongClusteMgr) createPVCForFoobar(storageClassName string) error {
 	if storageClassName == "" {
 		return nil
 	}
@@ -439,18 +439,18 @@ func (r *RainbondClusteMgr) createPVCForFoobar(storageClassName string) error {
 	accessModes := []corev1.PersistentVolumeAccessMode{
 		corev1.ReadWriteMany,
 	}
-	labels := rbdutil.LabelsForRainbond(nil)
+	labels := wtutil.LabelsForWutong(nil)
 	pvc := k8sutil.PersistentVolumeClaimForGrdata(r.cluster.GetNamespace(), constants.FoobarPVC, accessModes, labels,
 		storageClassName, 1)
 	return r.client.Create(r.ctx, pvc)
 }
 
-func (r *RainbondClusteMgr) falseConditionNow(typ3 rainbondv1alpha1.RainbondClusterConditionType) *rainbondv1alpha1.RainbondClusterCondition {
+func (r *WutongClusteMgr) falseConditionNow(typ3 wutongv1alpha1.WutongClusterConditionType) *wutongv1alpha1.WutongClusterCondition {
 	idx, _ := r.cluster.Status.GetCondition(typ3)
 	if idx != -1 {
 		return nil
 	}
-	return &rainbondv1alpha1.RainbondClusterCondition{
+	return &wutongv1alpha1.WutongClusterCondition{
 		Type:              typ3,
 		Status:            corev1.ConditionTrue,
 		LastHeartbeatTime: metav1.NewTime(time.Now()),
@@ -459,44 +459,44 @@ func (r *RainbondClusteMgr) falseConditionNow(typ3 rainbondv1alpha1.RainbondClus
 	}
 }
 
-func (r *RainbondClusteMgr) runningCondition() rainbondv1alpha1.RainbondClusterCondition {
-	condition := rainbondv1alpha1.RainbondClusterCondition{
-		Type:              rainbondv1alpha1.RainbondClusterConditionTypeRunning,
+func (r *WutongClusteMgr) runningCondition() wutongv1alpha1.WutongClusterCondition {
+	condition := wutongv1alpha1.WutongClusterCondition{
+		Type:              wutongv1alpha1.WutongClusterConditionTypeRunning,
 		Status:            corev1.ConditionTrue,
 		LastHeartbeatTime: metav1.NewTime(time.Now()),
 	}
 
-	// list all rbdcomponents
-	rbdcomponents, err := r.listRbdComponents()
+	// list all WutongComponents
+	WutongComponents, err := r.listWutongComponents()
 	if err != nil {
-		return rbdutil.FailCondition(condition, "ListRbdComponentFailed", err.Error())
+		return wtutil.FailCondition(condition, "ListWutongComponentFailed", err.Error())
 	}
 
-	if len(rbdcomponents) < 10 {
-		return rbdutil.FailCondition(condition, "InsufficientRbdComponent",
-			fmt.Sprintf("insufficient number of rbdcomponents. expect %d rbdcomponents, but got %d", 10, len(rbdcomponents)))
+	if len(WutongComponents) < 10 {
+		return wtutil.FailCondition(condition, "InsufficientWutongComponent",
+			fmt.Sprintf("insufficient number of WutongComponents. expect %d WutongComponents, but got %d", 10, len(WutongComponents)))
 	}
 
-	for _, cpt := range rbdcomponents {
-		idx, c := cpt.Status.GetCondition(rainbondv1alpha1.RbdComponentReady)
+	for _, cpt := range WutongComponents {
+		idx, c := cpt.Status.GetCondition(wutongv1alpha1.WutongComponentReady)
 		if idx == -1 {
-			return rbdutil.FailCondition(condition, "RbdComponentReadyNotFound",
-				fmt.Sprintf("condition 'RbdComponentReady' not found for %s", cpt.GetName()))
+			return wtutil.FailCondition(condition, "WutongComponentReadyNotFound",
+				fmt.Sprintf("condition 'WutongComponentReady' not found for %s", cpt.GetName()))
 		}
 		if c.Status == corev1.ConditionFalse {
-			return rbdutil.FailCondition(condition, "RbdComponentNotReady",
-				fmt.Sprintf("rbdcomponent(%s) not ready", cpt.GetName()))
+			return wtutil.FailCondition(condition, "WutongComponentNotReady",
+				fmt.Sprintf("WutongComponent(%s) not ready", cpt.GetName()))
 		}
 	}
 
 	return condition
 }
 
-func (r *RainbondClusteMgr) listRbdComponents() ([]rainbondv1alpha1.RbdComponent, error) {
-	rbdcomponentList := &rainbondv1alpha1.RbdComponentList{}
-	err := r.client.List(r.ctx, rbdcomponentList, client.InNamespace(r.cluster.Namespace))
+func (r *WutongClusteMgr) listWutongComponents() ([]wutongv1alpha1.WutongComponent, error) {
+	WutongComponentList := &wutongv1alpha1.WutongComponentList{}
+	err := r.client.List(r.ctx, WutongComponentList, client.InNamespace(r.cluster.Namespace))
 	if err != nil {
 		return nil, err
 	}
-	return rbdcomponentList.Items, nil
+	return WutongComponentList.Items, nil
 }

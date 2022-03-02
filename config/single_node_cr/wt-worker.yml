@@ -1,0 +1,22 @@
+apiVersion: wutong.io/v1alpha1
+kind: WutongComponent
+metadata:
+  name: wt-worker
+  namespace: wt-system
+  labels:
+    belongTo: wutong-operator
+    creator: Wutong
+    name: wt-worker
+    persistentVolumeClaimAccessModes: ReadWriteOnce
+spec:
+  env:
+  - name: ALLINONE_MODE
+    value: "true"
+  - name: TCPMESH_DEFAULT_IMAGE_NAME
+    value: "swr.cn-southwest-2.myhuaweicloud.com/wutong/wt-mesh-data-panel:v1.0.0-beta"
+  - name: PROBE_MESH_IMAGE_NAME
+    value: "swr.cn-southwest-2.myhuaweicloud.com/wutong/wt-init-probe:v1.0.0-beta"
+  replicas: 1
+  image: swr.cn-southwest-2.myhuaweicloud.com/wutong/wt-worker:v1.0.0-beta
+  imagePullPolicy: IfNotPresent
+  priorityComponent: false

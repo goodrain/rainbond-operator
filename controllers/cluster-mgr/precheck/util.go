@@ -1,11 +1,11 @@
 package precheck
 
 import (
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 
-func failConditoin(condition rainbondv1alpha1.RainbondClusterCondition, reason, msg string) rainbondv1alpha1.RainbondClusterCondition {
+func failConditoin(condition wutongv1alpha1.WutongClusterCondition, reason, msg string) wutongv1alpha1.WutongClusterCondition {
 	condition.Status = corev1.ConditionFalse
 	condition.Reason = reason
 	condition.Message = msg

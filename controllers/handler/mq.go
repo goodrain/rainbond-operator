@@ -5,36 +5,36 @@ import (
 	"fmt"
 	"strings"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// MQName name for rbd-mq
-var MQName = "rbd-mq"
+// MQName name for wt-mq
+var MQName = "wt-mq"
 
 type mq struct {
 	ctx        context.Context
 	client     client.Client
-	component  *rainbondv1alpha1.RbdComponent
-	cluster    *rainbondv1alpha1.RainbondCluster
+	component  *wutongv1alpha1.WutongComponent
+	cluster    *wutongv1alpha1.WutongCluster
 	labels     map[string]string
 	etcdSecret *corev1.Secret
 }
 
 var _ ComponentHandler = &mq{}
 
-// NewMQ creates a new rbd-mq handler.
-func NewMQ(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+// NewMQ creates a new wt-mq handler.
+func NewMQ(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &mq{
 		ctx:       ctx,
 		client:    client,
 		component: component,
 		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
+		labels:    LabelsForWutongComponent(component),
 	}
 }
 

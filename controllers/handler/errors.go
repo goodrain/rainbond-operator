@@ -1,11 +1,11 @@
 package handler
 
 const (
-	// rainbondVolumeNotFound -
-	rainbondVolumeNotFound = "rainbond volume not found"
+	// WutongVolumeNotFound -
+	WutongVolumeNotFound = "wutong volume not found"
 )
 
-// IgnoreError is the error with ignore by rbdcomponent controller.
+// IgnoreError is the error with ignore by WutongComponent controller.
 type IgnoreError struct {
 	msg string
 }
@@ -25,11 +25,11 @@ func IsIgnoreError(err error) bool {
 	return ok
 }
 
-// IsRainbondVolumeNotFound checks if the given error is RainbondVolumeNotFound.
-func IsRainbondVolumeNotFound(e error) bool {
+// IsWutongVolumeNotFound checks if the given error is WutongVolumeNotFound.
+func IsWutongVolumeNotFound(e error) bool {
 	err, ok := e.(*IgnoreError)
 	if !ok {
 		return false
 	}
-	return err.msg == rainbondVolumeNotFound
+	return err.msg == WutongVolumeNotFound
 }

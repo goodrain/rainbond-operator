@@ -3,15 +3,15 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	"github.com/wutong/wutong-operator/util/k8sutil"
 	"github.com/sirupsen/logrus"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"strings"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/probeutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/constants"
+	"github.com/wutong/wutong-operator/util/probeutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,22 +20,22 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var log = logf.Log.WithName("rbdcomponent_handler")
+var log = logf.Log.WithName("WutongComponent_handler")
 
 //APIName name
-var APIName = "rbd-api"
-var apiServerSecretName = "rbd-api-server-cert"
-var apiCASecretName = "rbd-api-ca-cert"
-var apiClientSecretName = "rbd-api-client-cert"
+var APIName = "wt-api"
+var apiServerSecretName = "wt-api-server-cert"
+var apiCASecretName = "wt-api-ca-cert"
+var apiClientSecretName = "wt-api-client-cert"
 
 type api struct {
 	ctx                      context.Context
 	client                   client.Client
-	db                       *rainbondv1alpha1.Database
+	db                       *wutongv1alpha1.Database
 	labels                   map[string]string
 	etcdSecret, serverSecret *corev1.Secret
-	component                *rainbondv1alpha1.RbdComponent
-	cluster                  *rainbondv1alpha1.RainbondCluster
+	component                *wutongv1alpha1.WutongComponent
+	cluster                  *wutongv1alpha1.WutongCluster
 
 	pvcParametersRWX     *pvcParameters
 	pvcName              string
@@ -47,14 +47,14 @@ var _ ComponentHandler = &api{}
 var _ StorageClassRWXer = &api{}
 
 //NewAPI new api handle
-func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewAPI(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &api{
 		ctx:                  ctx,
 		client:               client,
 		component:            component,
 		cluster:              cluster,
-		labels:               LabelsForRainbondComponent(component),
-		pvcName:              "rbd-api",
+		labels:               LabelsForWutongComponent(component),
+		pvcName:              "wt-api",
 		dataStorageRequest:   getStorageRequest("API_DATA_STORAGE_REQUEST", 1),
 		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
 	}
@@ -77,7 +77,7 @@ func (a *api) Before() error {
 	a.etcdSecret = secret
 
 	if a.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		sc, err := storageClassNameFromRainbondVolumeRWO(a.ctx, a.client, a.component.Namespace)
+		sc, err := storageClassNameFromWutongVolumeRWO(a.ctx, a.client, a.component.Namespace)
 		if err != nil {
 			return err
 		}
@@ -170,9 +170,9 @@ func (a *api) deployment() client.Object {
 		args = append(args, "--api-ssl-enable=true",
 			"--builder-api="+ChaosName+":3228",
 			"--api-addr-ssl=0.0.0.0:8443",
-			"--api-ssl-certfile=/etc/goodrain/region.goodrain.me/ssl/server.pem",
-			"--api-ssl-keyfile=/etc/goodrain/region.goodrain.me/ssl/server.key.pem",
-			"--client-ca-file=/etc/goodrain/region.goodrain.me/ssl/ca.pem",
+			"--api-ssl-certfile=/etc/wutong/region.wutong.me/ssl/server.pem",
+			"--api-ssl-keyfile=/etc/wutong/region.wutong.me/ssl/server.key.pem",
+			"--client-ca-file=/etc/wutong/region.wutong.me/ssl/ca.pem",
 		)
 	}
 	a.labels["name"] = APIName
@@ -229,7 +229,7 @@ func (a *api) deployment() client.Object {
 							Resources:       a.component.Spec.Resources,
 						},
 					},
-					ServiceAccountName: "rainbond-operator",
+					ServiceAccountName: "wutong-operator",
 					Volumes:            volumes,
 				},
 			},
@@ -333,13 +333,13 @@ func (a *api) secretAndConfigMapForAPI() []client.Object {
 			return nil
 		}
 	}
-	//rbd-api-api domain support in cluster
-	serverPem, serverKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "rbd-api-api")
+	//wt-api-api domain support in cluster
+	serverPem, serverKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "wt-api-api")
 	if err != nil {
 		log.Error(err, "create serverSecret cert for api")
 		return nil
 	}
-	clientPem, clientKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "rbd-api-api")
+	clientPem, clientKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "wt-api-api")
 	if err != nil {
 		log.Error(err, "create client cert for api")
 		return nil

@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	rainbondiov1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/controllers"
+	wutongiov1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/controllers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -45,7 +45,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(rainbondiov1alpha1.AddToScheme(scheme))
+	utilruntime.Must(wutongiov1alpha1.AddToScheme(scheme))
 
 	utilruntime.Must(kubeaggregatorv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
@@ -74,45 +74,45 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "c3e7a49c.rainbond.io",
+		LeaderElectionID:       "c3e7a49c.wutong.io",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-	if err = (&controllers.RainbondClusterReconciler{
+	if err = (&controllers.WutongClusterReconciler{
 		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("RainbondCluster"),
+		Log:      ctrl.Log.WithName("controllers").WithName("WutongCluster"),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("RainbondPackage"),
+		Recorder: mgr.GetEventRecorderFor("WutongPackage"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "RainbondCluster")
+		setupLog.Error(err, "unable to create controller", "controller", "WutongCluster")
 		os.Exit(1)
 	}
-	if err = (&controllers.RainbondPackageReconciler{
+	if err = (&controllers.WutongPackageReconciler{
 		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("RainbondPackage"),
+		Log:      ctrl.Log.WithName("controllers").WithName("WutongPackage"),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("RainbondPackage"),
+		Recorder: mgr.GetEventRecorderFor("WutongPackage"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "RainbondPackage")
+		setupLog.Error(err, "unable to create controller", "controller", "WutongPackage")
 		os.Exit(1)
 	}
-	if err = (&controllers.RainbondVolumeReconciler{
+	if err = (&controllers.WutongVolumeReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("RainbondVolume"),
+		Log:    ctrl.Log.WithName("controllers").WithName("WutongVolume"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "RainbondVolume")
+		setupLog.Error(err, "unable to create controller", "controller", "WutongVolume")
 		os.Exit(1)
 	}
-	if err = (&controllers.RbdComponentReconciler{
+	if err = (&controllers.WutongComponentReconciler{
 		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("RbdComponent"),
+		Log:      ctrl.Log.WithName("controllers").WithName("WutongComponent"),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("RbdComponent"),
+		Recorder: mgr.GetEventRecorderFor("WutongComponent"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "RbdComponent")
+		setupLog.Error(err, "unable to create controller", "controller", "WutongComponent")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

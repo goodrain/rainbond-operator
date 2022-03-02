@@ -6,12 +6,12 @@ import (
 	"path"
 	"strings"
 
-	"github.com/goodrain/rainbond-operator/util/probeutil"
+	"github.com/wutong/wutong-operator/util/probeutil"
 
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/constants"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/constants"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,16 +19,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// WorkerName name for rbd-worker.
-var WorkerName = "rbd-worker"
+// WorkerName name for wt-worker.
+var WorkerName = "wt-worker"
 
 type worker struct {
 	ctx        context.Context
 	client     client.Client
-	component  *rainbondv1alpha1.RbdComponent
-	cluster    *rainbondv1alpha1.RainbondCluster
+	component  *wutongv1alpha1.WutongComponent
+	cluster    *wutongv1alpha1.WutongCluster
 	labels     map[string]string
-	db         *rainbondv1alpha1.Database
+	db         *wutongv1alpha1.Database
 	etcdSecret *corev1.Secret
 
 	pvcParametersRWX *pvcParameters
@@ -38,14 +38,14 @@ type worker struct {
 var _ ComponentHandler = &worker{}
 var _ StorageClassRWXer = &worker{}
 
-// NewWorker creates a new rbd-worker hanlder.
-func NewWorker(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+// NewWorker creates a new wt-worker hanlder.
+func NewWorker(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &worker{
 		ctx:            ctx,
 		client:         client,
 		component:      component,
 		cluster:        cluster,
-		labels:         LabelsForRainbondComponent(component),
+		labels:         LabelsForWutongComponent(component),
 		storageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
 	}
 }
@@ -67,7 +67,7 @@ func (w *worker) Before() error {
 	w.etcdSecret = secret
 
 	if w.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		sc, err := storageClassNameFromRainbondVolumeRWO(w.ctx, w.client, w.component.Namespace)
+		sc, err := storageClassNameFromWutongVolumeRWO(w.ctx, w.client, w.component.Namespace)
 		if err != nil {
 			return err
 		}
@@ -130,7 +130,7 @@ func (w *worker) deployment() client.Object {
 		"--node-name=$(POD_IP)",
 		w.db.RegionDataSource(),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(w.cluster), ","),
-		"--rbd-system-namespace=" + w.component.Namespace,
+		"--wt-system-namespace=" + w.component.Namespace,
 	}
 	if w.etcdSecret != nil {
 		volume, mount := volumeByEtcd(w.etcdSecret)
@@ -206,7 +206,7 @@ func (w *worker) deployment() client.Object {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            "wutong-operator",
 					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
 					Containers: []corev1.Container{
 						{

@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/constants"
+	"github.com/wutong/wutong-operator/util/k8sutil"
+	"github.com/wutong/wutong-operator/util/wtutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -19,11 +19,11 @@ type storage struct {
 	ctx    context.Context
 	client client.Client
 	ns     string
-	rwx    *rainbondv1alpha1.RainbondVolumeSpec
+	rwx    *wutongv1alpha1.WutongVolumeSpec
 }
 
 //NewStorage -
-func NewStorage(ctx context.Context, client client.Client, ns string, rwx *rainbondv1alpha1.RainbondVolumeSpec) PreChecker {
+func NewStorage(ctx context.Context, client client.Client, ns string, rwx *wutongv1alpha1.WutongVolumeSpec) PreChecker {
 	return &storage{
 		ctx:    ctx,
 		client: client,
@@ -32,9 +32,9 @@ func NewStorage(ctx context.Context, client client.Client, ns string, rwx *rainb
 	}
 }
 
-func (s *storage) Check() rainbondv1alpha1.RainbondClusterCondition {
-	condition := rainbondv1alpha1.RainbondClusterCondition{
-		Type:              rainbondv1alpha1.RainbondClusterConditionTypeStorage,
+func (s *storage) Check() wutongv1alpha1.WutongClusterCondition {
+	condition := wutongv1alpha1.WutongClusterCondition{
+		Type:              wutongv1alpha1.WutongClusterConditionTypeStorage,
 		Status:            corev1.ConditionTrue,
 		LastHeartbeatTime: metav1.NewTime(time.Now()),
 	}
@@ -63,7 +63,7 @@ func (s *storage) Check() rainbondv1alpha1.RainbondClusterCondition {
 		condition.Status = corev1.ConditionFalse
 		condition.Reason = "InProgress"
 		condition.Message =
-			fmt.Sprintf("precheck for %s is in progress", rainbondv1alpha1.RainbondClusterConditionTypeStorage)
+			fmt.Sprintf("precheck for %s is in progress", wutongv1alpha1.WutongClusterConditionTypeStorage)
 		return condition
 	}
 
@@ -78,11 +78,11 @@ func (s *storage) isPVCBound(pvc *corev1.PersistentVolumeClaim) bool {
 }
 
 func (s *storage) pvcForGrdata(accessModes []corev1.PersistentVolumeAccessMode, storageClassName string) *corev1.PersistentVolumeClaim {
-	labels := rbdutil.LabelsForRainbond(nil)
+	labels := wtutil.LabelsForWutong(nil)
 	return k8sutil.PersistentVolumeClaimForGrdata(s.ns, constants.GrDataPVC, accessModes, labels, storageClassName, 1)
 }
 
-func (s *storage) failConditoin(condition rainbondv1alpha1.RainbondClusterCondition, msg string) rainbondv1alpha1.RainbondClusterCondition {
+func (s *storage) failConditoin(condition wutongv1alpha1.WutongClusterCondition, msg string) wutongv1alpha1.WutongClusterCondition {
 	return failConditoin(condition, "StorageFailed", msg)
 }
 

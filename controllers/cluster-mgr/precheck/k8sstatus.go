@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/util/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -18,11 +18,11 @@ type k8sStatus struct {
 	ctx     context.Context
 	log     logr.Logger
 	client  client.Client
-	cluster *rainbondv1alpha1.RainbondCluster
+	cluster *wutongv1alpha1.WutongCluster
 }
 
 // NewK8sStatusPrechecker creates a new kubernetes status prechecker.
-func NewK8sStatusPrechecker(ctx context.Context, cluster *rainbondv1alpha1.RainbondCluster, client client.Client, log logr.Logger) PreChecker {
+func NewK8sStatusPrechecker(ctx context.Context, cluster *wutongv1alpha1.WutongCluster, client client.Client, log logr.Logger) PreChecker {
 	l := log.WithName("k8sStatusPreChecker")
 	return &k8sStatus{
 		ctx:     ctx,
@@ -32,9 +32,9 @@ func NewK8sStatusPrechecker(ctx context.Context, cluster *rainbondv1alpha1.Rainb
 	}
 }
 
-func (k *k8sStatus) Check() rainbondv1alpha1.RainbondClusterCondition {
-	condition := rainbondv1alpha1.RainbondClusterCondition{
-		Type:              rainbondv1alpha1.RainbondClusterConditionTypeKubernetesStatus,
+func (k *k8sStatus) Check() wutongv1alpha1.WutongClusterCondition {
+	condition := wutongv1alpha1.WutongClusterCondition{
+		Type:              wutongv1alpha1.WutongClusterConditionTypeKubernetesStatus,
 		Status:            corev1.ConditionTrue,
 		LastHeartbeatTime: metav1.NewTime(time.Now()),
 	}
@@ -75,7 +75,7 @@ func (k *k8sStatus) listNotReadyPods() ([]corev1.Pod, error) {
 	return pods, nil
 }
 
-func (k *k8sStatus) failCondition(condition rainbondv1alpha1.RainbondClusterCondition, msg string) rainbondv1alpha1.RainbondClusterCondition {
+func (k *k8sStatus) failCondition(condition wutongv1alpha1.WutongClusterCondition, msg string) wutongv1alpha1.WutongClusterCondition {
 	return failConditoin(condition, "KubernetesStatusFailed", msg)
 }
 

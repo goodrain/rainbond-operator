@@ -3,7 +3,7 @@ package handler
 import (
 	"context"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -12,19 +12,19 @@ type aliyunCSINasProvisioner struct {
 	ctx    context.Context
 	client client.Client
 
-	component *rainbondv1alpha1.RbdComponent
+	component *wutongv1alpha1.WutongComponent
 	labels    map[string]string
 }
 
 var _ ComponentHandler = &aliyunCSINasProvisioner{}
 
 // NewAliyunCSINasProvisioner creates a new aliyun csi nas provisioner handler.
-func NewAliyunCSINasProvisioner(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+func NewAliyunCSINasProvisioner(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	return &aliyunCSINasProvisioner{
 		ctx:       ctx,
 		client:    client,
 		component: component,
-		labels:    LabelsForRainbondComponent(component),
+		labels:    LabelsForWutongComponent(component),
 	}
 }
 

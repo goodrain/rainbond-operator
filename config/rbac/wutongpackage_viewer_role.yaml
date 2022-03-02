@@ -1,0 +1,20 @@
+# permissions for end users to view WutongPackages.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: WutongPackage-viewer-role
+rules:
+- apiGroups:
+  - wutong.io.wutong.io
+  resources:
+  - WutongPackages
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - wutong.io.wutong.io
+  resources:
+  - WutongPackages/status
+  verbs:
+  - get

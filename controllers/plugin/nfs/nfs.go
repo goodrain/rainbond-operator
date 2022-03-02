@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"path"
 
-	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/controllers/plugin"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	"github.com/wutong/wutong-operator/controllers/plugin"
+	"github.com/wutong/wutong-operator/util/commonutil"
+	"github.com/wutong/wutong-operator/util/k8sutil"
+	"github.com/wutong/wutong-operator/util/wtutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -25,13 +25,13 @@ import (
 var log = logf.Log.WithName("nfs_plugin")
 
 const (
-	provisioner = "rainbond.io/nfs"
+	provisioner = "wutong.io/nfs"
 )
 
 // CSIPlugins is the primary entrypoint for csi plugins.
-func CSIPlugins(ctx context.Context, cli client.Client, volume *rainbondv1alpha1.RainbondVolume) plugin.CSIPlugin {
+func CSIPlugins(ctx context.Context, cli client.Client, volume *wutongv1alpha1.WutongVolume) plugin.CSIPlugin {
 	name := "nfs-provisioner"
-	labels := rbdutil.LabelsForRainbond(map[string]string{
+	labels := wtutil.LabelsForWutong(map[string]string{
 		"name": name,
 	})
 	return &nfsPlugin{
@@ -47,7 +47,7 @@ type nfsPlugin struct {
 	ctx    context.Context
 	cli    client.Client
 	name   string
-	volume *rainbondv1alpha1.RainbondVolume
+	volume *wutongv1alpha1.WutongVolume
 	labels map[string]string
 }
 
@@ -113,7 +113,7 @@ func (p *nfsPlugin) statefulset() client.Object {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: "rainbond-operator", // TODO: do not hard code, get sa from configuration.
+					ServiceAccountName: "wutong-operator", // TODO: do not hard code, get sa from configuration.
 					Tolerations: []corev1.Toleration{
 						{
 							Operator: corev1.TolerationOpExists,
@@ -383,7 +383,7 @@ func (p *nfsPlugin) pv() *corev1.PersistentVolume {
 	}
 
 	hostPath := &corev1.HostPathVolumeSource{
-		Path: "/opt/rainbond/data/nfs",
+		Path: "/opt/wutong/data/nfs",
 		Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 	}
 	spec.HostPath = hostPath
