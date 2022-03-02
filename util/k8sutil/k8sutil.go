@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wutong/wutong-operator/util/commonutil"
-	"github.com/wutong/wutong-operator/util/constants"
+	"github.com/wutong-paas/wutong-operator/util/commonutil"
+	"github.com/wutong-paas/wutong-operator/util/constants"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"

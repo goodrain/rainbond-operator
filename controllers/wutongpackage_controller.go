@@ -34,12 +34,12 @@ import (
 	dclient "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/go-logr/logr"
-	"github.com/wutong/wutong-operator/util/commonutil"
-	"github.com/wutong/wutong-operator/util/constants"
-	"github.com/wutong/wutong-operator/util/downloadutil"
-	"github.com/wutong/wutong-operator/util/wtutil"
-	"github.com/wutong/wutong-operator/util/retryutil"
-	"github.com/wutong/wutong-operator/util/tarutil"
+	"github.com/wutong-paas/wutong-operator/util/commonutil"
+	"github.com/wutong-paas/wutong-operator/util/constants"
+	"github.com/wutong-paas/wutong-operator/util/downloadutil"
+	"github.com/wutong-paas/wutong-operator/util/wtutil"
+	"github.com/wutong-paas/wutong-operator/util/retryutil"
+	"github.com/wutong-paas/wutong-operator/util/tarutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,7 +51,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
+	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 )
 
 var errorClusterConfigNotReady = fmt.Errorf("cluster config can not be ready")

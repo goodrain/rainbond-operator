@@ -5,9 +5,9 @@ import (
 	"sort"
 	"strings"
 
-	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
-	"github.com/wutong/wutong-operator/controllers/handler"
-	"github.com/wutong/wutong-operator/util/constants"
+	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
+	"github.com/wutong-paas/wutong-operator/controllers/handler"
+	"github.com/wutong-paas/wutong-operator/util/constants"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

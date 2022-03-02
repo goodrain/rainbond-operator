@@ -35,10 +35,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	wutongv1alpha1 "github.com/wutong/wutong-operator/api/v1alpha1"
-	"github.com/wutong/wutong-operator/controllers/plugin"
-	"github.com/wutong/wutong-operator/util/k8sutil"
-	"github.com/wutong/wutong-operator/util/wtutil"
+	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
+	"github.com/wutong-paas/wutong-operator/controllers/plugin"
+	"github.com/wutong-paas/wutong-operator/util/k8sutil"
+	"github.com/wutong-paas/wutong-operator/util/wtutil"
 )
 
 // WutongVolumeReconciler reconciles a WutongVolume object
