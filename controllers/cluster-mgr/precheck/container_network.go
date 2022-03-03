@@ -139,7 +139,7 @@ func dial(ip string, port int) error {
 func (c *containerNetwork) createSentinel() error {
 	ds := c.daemonsetForSentinel()
 
-	// Set rainboncluster as the owner and controller
+	// Set wutongcluster as the owner and controller
 	if err := controllerutil.SetControllerReference(c.cluster, ds, c.scheme); err != nil {
 		return err
 	}
