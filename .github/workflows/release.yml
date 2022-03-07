@@ -1,8 +1,9 @@
-name: commit-ci-build
+name: release
 
 on:
-  push:
+  release:
     branches: [master]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -24,13 +25,13 @@ jobs:
         uses: docker/login-action@v1
         with:
           registry: swr.cn-southwest-2.myhuaweicloud.com
-          username: ${{ secrets.DOMESTIC_DOCKER_USERNAME }}
+          username: ${{ secrets.DOMESTIC_DOCKER_PASSWORD }}
           password: ${{ secrets.DOMESTIC_DOCKER_PASSWORD }}
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: swr.cn-southwest-2.myhuaweicloud.com/wutong/wutong-operator:v1.0.0-beta
+          tags: swr.cn-southwest-2.myhuaweicloud.com/wutong/wutong-operator:v1.0.0-stable
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
