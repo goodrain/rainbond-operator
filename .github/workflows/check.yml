@@ -1,0 +1,23 @@
+name: check
+
+# Triggers the workflow on push or pull request events
+on: 
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.13
+
+      - name: Install lint
+        run: go get -u golang.org/x/lint/golint
+
+      - name: Lint
+        run: go list ./... | grep -v /vendor/ | xargs -L1 golint -set_exit_status
