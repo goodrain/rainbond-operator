@@ -28,6 +28,7 @@ jobs:
         id: docker_build_arm64
         uses: docker/build-push-action@v2
         with:
+          platforms: linux/arm64
           build-args: GOARCH=arm64
           push: true
           tags: swr.cn-southwest-2.myhuaweicloud.com/wutong/wutong-operator:v1.0.0-arm64-stable
