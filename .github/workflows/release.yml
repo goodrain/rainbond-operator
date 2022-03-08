@@ -10,17 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Go environment
-        uses: actions/setup-go@v2.1.3
-        with:
-          # The Go version to download (if necessary) and use. Supports semver spec and ranges.
-          go-version: 1.15
-      - name: install-golint
-        run: go get -u golang.org/x/lint/golint
-
-      - name: Go-linter
-        run: ./check.sh
-
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
@@ -35,3 +24,12 @@ jobs:
           tags: swr.cn-southwest-2.myhuaweicloud.com/wutong/wutong-operator:v1.0.0-stable
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
+      - name: Build arm64 and push
+        id: docker_build_arm64
+        uses: docker/build-push-action@v2
+        with:
+          build-args: GOARCH=arm64
+          push: true
+          tags: swr.cn-southwest-2.myhuaweicloud.com/wutong/wutong-operator:v1.0.0-arm64-stable
+      - name: Image digest
+        run: echo ${{ steps.docker_build_arm64.outputs.digest }}        
