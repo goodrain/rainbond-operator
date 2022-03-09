@@ -19,9 +19,8 @@ COPY util util/
 RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -a -o manager main.go
 
 
-FROM alpine:3.11.2
-RUN apk add --update tzdata \
-    && mkdir /app \
+FROM wutongpaas/alpine:3.15
+RUN mkdir /app \
     && apk add --update apache2-utils \
     && rm -rf /var/cache/apk/*
 ENV TZ=Asia/Shanghai
