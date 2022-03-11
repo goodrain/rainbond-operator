@@ -10,7 +10,7 @@
 
 export NAMESPACE=wutong-operator
 export VERSION=v1.0.0-stable
-docker buildx create --use --name adaptorbuilder
+docker buildx create --use --name operatorbuilder
 docker buildx build --platform linux/amd64,linux/arm64 --push -t wutongpaas/${NAMESPACE}:${VERSION} -f Dockerfile . 
-docker buildx build --platform linux/amd64,linux/arm64 --push -t swr.cn-southwest-2.myhuaweicloud.com/wutong/${NAMESPACE}:${VERSION} -f Dockerfile . 
-docker buildx rm adaptorbuilder
+# docker buildx build --platform linux/amd64,linux/arm64 --push -t swr.cn-southwest-2.myhuaweicloud.com/wutong/${NAMESPACE}:${VERSION} -f Dockerfile . 
+docker buildx rm operatorbuilder
