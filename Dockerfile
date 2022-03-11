@@ -17,7 +17,7 @@ COPY controllers/ controllers/
 COPY util util/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -a -o manager main.go
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETPLATFORM GO111MODULE=on go build -a -o manager main.go
 
 
 FROM wutongpaas/alpine:3.15
