@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/pquerna/ffjson/ffjson"
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	"github.com/wutong-paas/wutong-operator/controllers/cluster-mgr/precheck"
 	"github.com/wutong-paas/wutong-operator/util/commonutil"
 	"github.com/wutong-paas/wutong-operator/util/constants"
 	"github.com/wutong-paas/wutong-operator/util/k8sutil"
 	"github.com/wutong-paas/wutong-operator/util/wtutil"
-	"github.com/pquerna/ffjson/ffjson"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -46,7 +46,7 @@ var provisionerAccessModes = map[string]corev1.PersistentVolumeAccessMode{
 	"kubernetes.io/nfs":             corev1.ReadWriteMany,
 	"kubernetes.io/portworx-volume": corev1.ReadWriteMany,
 	"kubernetes.io/quobyte":         corev1.ReadWriteMany,
-	"kubernetes.io/wt":             corev1.ReadWriteMany,
+	"kubernetes.io/wt":              corev1.ReadWriteMany,
 	"kubernetes.io/scaleio":         corev1.ReadWriteMany,
 	"kubernetes.io/storageos":       corev1.ReadWriteMany,
 	// Alibaba csi plugins for kubernetes.
@@ -319,7 +319,7 @@ func (r *WutongClusteMgr) checkIfWtNodeReady() error {
 	}
 
 	if cpt.Status.ReadyReplicas == 0 || cpt.Status.ReadyReplicas != cpt.Status.Replicas {
-		return fmt.Errorf("no ready replicas for WutongComponent wt-node")
+		return fmt.Errorf("no ready replicas for wutongcomponent wt-node")
 	}
 
 	return nil
@@ -474,7 +474,7 @@ func (r *WutongClusteMgr) runningCondition() wutongv1alpha1.WutongClusterConditi
 
 	if len(WutongComponents) < 10 {
 		return wtutil.FailCondition(condition, "InsufficientWutongComponent",
-			fmt.Sprintf("insufficient number of WutongComponents. expect %d WutongComponents, but got %d", 10, len(WutongComponents)))
+			fmt.Sprintf("insufficient number of wutongcomponents. expect %d wutongcomponents, but got %d", 10, len(WutongComponents)))
 	}
 
 	for _, cpt := range WutongComponents {

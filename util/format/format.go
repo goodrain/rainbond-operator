@@ -15,8 +15,8 @@ func WutongCluster(rc *wutongv1alpha1.WutongCluster) string {
 
 // WutongClusterDesc returns a string representing a WutongCluster in a consistent human readable format,
 // with WutongCluster UID as part of the string.
-func WutongClusterDesc(WutongClusterName, WutongClusterNamespace string, WutongClusterUID types.UID) string {
+func WutongClusterDesc(wutongclusterName, wutongclusterNamespace string, wutongclusterUID types.UID) string {
 	// Use underscore as the delimiter because it is not allowed in WutongCluster name
 	// (DNS subdomain format), while allowed in the container name format.
-	return fmt.Sprintf("%s_%s(%s)", WutongClusterName, WutongClusterNamespace, WutongClusterUID)
+	return fmt.Sprintf("%s_%s(%s)", wutongclusterName, wutongclusterNamespace, wutongclusterUID)
 }

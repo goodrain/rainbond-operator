@@ -6,9 +6,9 @@ const (
 	//DefInstallPkgDestPath  Default destination path of the installation package extraction.
 	DefInstallPkgDestPath = "/tmp/DefInstallPkgDestPath"
 	//WutongClusterName wutong cluster resource name
-	WutongClusterName = "WutongCluster"
+	WutongClusterName = "wutongcluster"
 	//WutongPackageName wutong package resource name
-	WutongPackageName = "WutongPackage"
+	WutongPackageName = "wutongpackage"
 	// DefImageRepository is the default domain name of the mirror repository that Wutong is installed.
 	DefImageRepository = "wutong.me"
 	//GrDataPVC -

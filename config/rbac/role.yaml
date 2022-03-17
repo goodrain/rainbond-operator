@@ -9,7 +9,7 @@ rules:
 - apiGroups:
   - wutong.io
   resources:
-  - WutongClusters
+  - wutongclusters
   verbs:
   - create
   - delete
@@ -21,13 +21,13 @@ rules:
 - apiGroups:
   - wutong.io
   resources:
-  - WutongClusters/finalizers
+  - wutongclusters/finalizers
   verbs:
   - update
 - apiGroups:
   - wutong.io
   resources:
-  - WutongClusters/status
+  - wutongclusters/status
   verbs:
   - get
   - patch
@@ -35,7 +35,7 @@ rules:
 - apiGroups:
   - wutong.io
   resources:
-  - WutongPackages
+  - wutongpackages
   verbs:
   - create
   - delete
@@ -47,13 +47,13 @@ rules:
 - apiGroups:
   - wutong.io
   resources:
-  - WutongPackages/finalizers
+  - wutongpackages/finalizers
   verbs:
   - update
 - apiGroups:
   - wutong.io
   resources:
-  - WutongPackages/status
+  - wutongpackages/status
   verbs:
   - get
   - patch
@@ -61,7 +61,7 @@ rules:
 - apiGroups:
   - wutong.io
   resources:
-  - WutongVolumes
+  - wutongvolumes
   verbs:
   - create
   - delete
@@ -73,13 +73,13 @@ rules:
 - apiGroups:
   - wutong.io
   resources:
-  - WutongVolumes/finalizers
+  - wutongvolumes/finalizers
   verbs:
   - update
 - apiGroups:
   - wutong.io
   resources:
-  - WutongVolumes/status
+  - wutongvolumes/status
   verbs:
   - get
   - patch
@@ -87,7 +87,7 @@ rules:
 - apiGroups:
   - wutong.io
   resources:
-  - WutongComponents
+  - wutongcomponents
   verbs:
   - create
   - delete
@@ -99,13 +99,13 @@ rules:
 - apiGroups:
   - wutong.io
   resources:
-  - WutongComponents/finalizers
+  - wutongcomponents/finalizers
   verbs:
   - update
 - apiGroups:
   - wutong.io
   resources:
-  - WutongComponents/status
+  - wutongcomponents/status
   verbs:
   - get
   - patch

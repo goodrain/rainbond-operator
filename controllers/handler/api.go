@@ -3,10 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/wutong-paas/wutong-operator/util/k8sutil"
-	"github.com/sirupsen/logrus"
-	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"strings"
+
+	"github.com/sirupsen/logrus"
+	"github.com/wutong-paas/wutong-operator/util/k8sutil"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	"github.com/wutong-paas/wutong-operator/util/commonutil"
@@ -20,7 +21,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var log = logf.Log.WithName("WutongComponent_handler")
+var log = logf.Log.WithName("wutongcomponent_handler")
 
 //APIName name
 var APIName = "wt-api"

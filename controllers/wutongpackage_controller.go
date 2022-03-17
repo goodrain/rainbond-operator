@@ -37,9 +37,9 @@ import (
 	"github.com/wutong-paas/wutong-operator/util/commonutil"
 	"github.com/wutong-paas/wutong-operator/util/constants"
 	"github.com/wutong-paas/wutong-operator/util/downloadutil"
-	"github.com/wutong-paas/wutong-operator/util/wtutil"
 	"github.com/wutong-paas/wutong-operator/util/retryutil"
 	"github.com/wutong-paas/wutong-operator/util/tarutil"
+	"github.com/wutong-paas/wutong-operator/util/wtutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,9 +66,9 @@ type WutongPackageReconciler struct {
 	Recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=wutong.io,resources=WutongPackages,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=wutong.io,resources=WutongPackages/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=wutong.io,resources=WutongPackages/finalizers,verbs=update
+// +kubebuilder:rbac:groups=wutong.io,resources=wutongpackages,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=wutong.io,resources=wutongpackages/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=wutong.io,resources=wutongpackages/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -80,7 +80,7 @@ type WutongPackageReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *WutongPackageReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("WutongPackage", request.NamespacedName)
+	log := r.Log.WithValues("wutongpackage", request.NamespacedName)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -100,12 +100,12 @@ func (r *WutongPackageReconciler) Reconcile(ctx context.Context, request ctrl.Re
 
 	cluster := &wutongv1alpha1.WutongCluster{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: pkg.Namespace, Name: constants.WutongClusterName}, cluster); err != nil {
-		log.Error(err, "get WutongCluster.")
+		log.Error(err, "get wutongcluster.")
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
 	if !cluster.Spec.ConfigCompleted {
-		log.V(6).Info("WutongCluster is not completed, waiting!!")
+		log.V(6).Info("wutongcluster is not completed, waiting!!")
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
@@ -311,7 +311,7 @@ func updateCRStatus(client client.Client, pkg *wutongv1alpha1.WutongPackage) err
 		pkg.ResourceVersion = latest.ResourceVersion
 		return client.Status().Update(ctx, pkg)
 	}); err != nil {
-		return fmt.Errorf("failed to update WutongPackage status: %v", err)
+		return fmt.Errorf("failed to update wutongpackage status: %v", err)
 	}
 	return nil
 }
@@ -473,7 +473,7 @@ func (p *pkg) setInitStatus() error {
 		if con.Status != wutongv1alpha1.Completed {
 			con.Status = wutongv1alpha1.Completed
 			if err := p.updateCRStatus(); err != nil {
-				p.log.Error(err, "failed to update WutongPackage status.")
+				p.log.Error(err, "failed to update wutongpackage status.")
 				return err
 			}
 		}

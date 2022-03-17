@@ -6,14 +6,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: WutongComponents.wutong.io
+  name: wutongcomponents.wutong.io
 spec:
   group: wutong.io
   names:
     kind: WutongComponent
     listKind: WutongComponentList
-    plural: WutongComponents
-    singular: WutongComponent
+    plural: wutongcomponents
+    singular: wutongcomponent
   scope: Namespaced
   versions:
   - name: v1alpha1

@@ -47,9 +47,9 @@ type WutongComponentReconciler struct {
 	Recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=wutong.io,resources=WutongComponents,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=wutong.io,resources=WutongComponents/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=wutong.io,resources=WutongComponents/finalizers,verbs=update
+// +kubebuilder:rbac:groups=wutong.io,resources=wutongcomponents,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=wutong.io,resources=wutongcomponents/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=wutong.io,resources=wutongcomponents/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -61,7 +61,7 @@ type WutongComponentReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *WutongComponentReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("WutongComponent", request.NamespacedName)
+	log := r.Log.WithValues("wutongcomponent", request.NamespacedName)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -85,7 +85,7 @@ func (r *WutongComponentReconciler) Reconcile(ctx context.Context, request ctrl.
 	fn, ok := handlerFuncs[cpt.Name]
 	if !ok {
 		reason := "UnsupportedType"
-		msg := fmt.Sprintf("only supports the following types of WutongComponent: %s", supportedComponents())
+		msg := fmt.Sprintf("only supports the following types of wutongcomponent: %s", supportedComponents())
 
 		condition := wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.WutongComponentReady, corev1.ConditionFalse, reason, msg)
 		changed := cpt.Status.UpdateCondition(condition)
@@ -108,9 +108,9 @@ func (r *WutongComponentReconciler) Reconcile(ctx context.Context, request ctrl.
 	}
 
 	if !cluster.Spec.ConfigCompleted {
-		log.V(6).Info("WutongCluster configuration is not complete")
+		log.V(6).Info("wutongcluster configuration is not complete")
 		condition := wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.ClusterConfigCompeleted,
-			corev1.ConditionFalse, "ConfigNotCompleted", "WutongCluster configuration is not complete")
+			corev1.ConditionFalse, "ConfigNotCompleted", "wutongcluster configuration is not complete")
 		changed := cpt.Status.UpdateCondition(condition)
 		if changed {
 			r.Recorder.Event(cpt, corev1.EventTypeWarning, condition.Reason, condition.Message)
@@ -315,10 +315,10 @@ func (r *WutongComponentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func clusterCondition(err error) *wutongv1alpha1.WutongComponentCondition {
 	reason := "ClusterNotFound"
-	msg := "WutongCluster not found"
+	msg := "wutongcluster not found"
 	if !k8sErrors.IsNotFound(err) {
 		reason = "UnknownErr"
-		msg = fmt.Sprintf("failed to get WutongCluster: %v", err)
+		msg = fmt.Sprintf("failed to get wutongcluster: %v", err)
 	}
 
 	return wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.ClusterConfigCompeleted, corev1.ConditionFalse, reason, msg)
@@ -326,10 +326,10 @@ func clusterCondition(err error) *wutongv1alpha1.WutongComponentCondition {
 
 func packageCondition(err error) *wutongv1alpha1.WutongComponentCondition {
 	reason := "PackageNotFound"
-	msg := "WutongPackage not found"
+	msg := "wutongpackage not found"
 	if !k8sErrors.IsNotFound(err) {
 		reason = "UnknownErr"
-		msg = fmt.Sprintf("failed to get WutongPackage: %v", err)
+		msg = fmt.Sprintf("failed to get wutongpackage: %v", err)
 	}
 	return wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.WutongPackageReady, corev1.ConditionFalse, reason, msg)
 }

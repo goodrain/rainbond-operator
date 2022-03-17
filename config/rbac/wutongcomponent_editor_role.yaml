@@ -1,13 +1,13 @@
-# permissions for end users to edit WutongComponents.
+# permissions for end users to edit wutongcomponents.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: WutongComponent-editor-role
+  name: wutongcomponent-editor-role
 rules:
 - apiGroups:
   - wutong.io.wutong.io
   resources:
-  - WutongComponents
+  - wutongcomponents
   verbs:
   - create
   - delete
@@ -19,6 +19,6 @@ rules:
 - apiGroups:
   - wutong.io.wutong.io
   resources:
-  - WutongComponents/status
+  - wutongcomponents/status
   verbs:
   - get

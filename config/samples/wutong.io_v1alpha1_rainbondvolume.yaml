@@ -1,7 +1,7 @@
 apiVersion: wutong.io.wutong.io/v1alpha1
 kind: WutongVolume
 metadata:
-  name: WutongVolume-sample
+  name: wutongvolume-sample
 spec:
   # Add fields here
   foo: bar

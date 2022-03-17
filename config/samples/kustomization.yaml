@@ -1,7 +1,7 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
-- wutong.io_v1alpha1_WutongCluster.yaml
-- wutong.io_v1alpha1_WutongPackage.yaml
-- wutong.io_v1alpha1_WutongVolume.yaml
-- wutong.io_v1alpha1_WutongComponent.yaml
+- wutong.io_v1alpha1_wutongcluster.yaml
+- wutong.io_v1alpha1_wutongpackage.yaml
+- wutong.io_v1alpha1_wutongvolume.yaml
+- wutong.io_v1alpha1_wutongcomponent.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

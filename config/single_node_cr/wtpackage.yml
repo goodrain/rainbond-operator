@@ -1,7 +1,7 @@
 apiVersion: wutong.io/v1alpha1
 kind: WutongPackage
 metadata:
-  name: WutongPackage
+  name: wutongpackage
   namespace: wt-system
   labels: {}
 spec:

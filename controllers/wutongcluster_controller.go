@@ -3,19 +3,20 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/wutong-paas/wutong-operator/util/retryutil"
-	"github.com/wutong-paas/wutong-operator/util/suffixdomain"
-	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/types"
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	"github.com/wutong-paas/wutong-operator/util/retryutil"
+	"github.com/wutong-paas/wutong-operator/util/suffixdomain"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/go-logr/logr"
+	"github.com/juju/errors"
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	clustermgr "github.com/wutong-paas/wutong-operator/controllers/cluster-mgr"
 	"github.com/wutong-paas/wutong-operator/util/constants"
 	"github.com/wutong-paas/wutong-operator/util/uuidutil"
-	"github.com/juju/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -33,9 +34,9 @@ type WutongClusterReconciler struct {
 	Recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=wutong.io,resources=WutongClusters,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=wutong.io,resources=WutongClusters/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=wutong.io,resources=WutongClusters/finalizers,verbs=update
+// +kubebuilder:rbac:groups=wutong.io,resources=wutongclusters,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=wutong.io,resources=wutongclusters/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=wutong.io,resources=wutongclusters/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -47,11 +48,11 @@ type WutongClusterReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
-	reqLogger := r.Log.WithValues("WutongCluster", request.NamespacedName)
+	reqLogger := r.Log.WithValues("wutongcluster", request.NamespacedName)
 
 	// Fetch the WutongCluster instance
-	WutongCluster := &wutongv1alpha1.WutongCluster{}
-	err := r.Get(ctx, request.NamespacedName, WutongCluster)
+	wutongcluster := &wutongv1alpha1.WutongCluster{}
+	err := r.Get(ctx, request.NamespacedName, wutongcluster)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -63,13 +64,13 @@ func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Re
 		return reconcile.Result{}, err
 	}
 
-	mgr := clustermgr.NewClusterMgr(ctx, r.Client, reqLogger, WutongCluster, r.Scheme)
+	mgr := clustermgr.NewClusterMgr(ctx, r.Client, reqLogger, wutongcluster, r.Scheme)
 
 	// generate status for wutong cluster
 	reqLogger.V(6).Info("start generate status")
 	status, err := mgr.GenerateWutongClusterStatus()
 	if err != nil {
-		reqLogger.Error(err, "failed to generate WutongCluster status")
+		reqLogger.Error(err, "failed to generate wutongcluster status")
 		return reconcile.Result{RequeueAfter: time.Second * 2}, err
 	}
 
@@ -81,15 +82,15 @@ func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Re
 		rc.Status = *status
 		return r.Status().Update(ctx, rc)
 	}); err != nil {
-		reqLogger.Error(err, "update WutongCluster status")
+		reqLogger.Error(err, "update wutongcluster status")
 		return reconcile.Result{RequeueAfter: time.Second * 2}, err
 	}
 	reqLogger.V(6).Info("update status success")
 
 	// setup imageHub if empty
-	if WutongCluster.Spec.ImageHub == nil {
+	if wutongcluster.Spec.ImageHub == nil {
 		reqLogger.V(6).Info("create new image hub info")
-		imageHub, err := r.getImageHub(WutongCluster)
+		imageHub, err := r.getImageHub(wutongcluster)
 		if err != nil {
 			reqLogger.V(6).Info(fmt.Sprintf("set image hub info: %v", err))
 			return reconcile.Result{RequeueAfter: time.Second * 1}, nil
@@ -100,10 +101,10 @@ func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Re
 				return err
 			}
 			rc.Spec.ImageHub = imageHub
-			WutongCluster = rc
+			wutongcluster = rc
 			return r.Update(ctx, rc)
 		}); err != nil {
-			reqLogger.Error(err, "update WutongCluster")
+			reqLogger.Error(err, "update wutongcluster")
 			return reconcile.Result{RequeueAfter: time.Second * 1}, err
 		}
 		reqLogger.V(6).Info("create new image hub info success")
@@ -111,39 +112,39 @@ func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Re
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	if WutongCluster.Spec.SuffixHTTPHost == "" {
+	if wutongcluster.Spec.SuffixHTTPHost == "" {
 		var ip string
-		if len(WutongCluster.Spec.NodesForGateway) > 0 {
-			ip = WutongCluster.Spec.NodesForGateway[0].InternalIP
+		if len(wutongcluster.Spec.NodesForGateway) > 0 {
+			ip = wutongcluster.Spec.NodesForGateway[0].InternalIP
 		}
-		if len(WutongCluster.Spec.GatewayIngressIPs) > 0 && WutongCluster.Spec.GatewayIngressIPs[0] != "" {
-			ip = WutongCluster.Spec.GatewayIngressIPs[0]
+		if len(wutongcluster.Spec.GatewayIngressIPs) > 0 && wutongcluster.Spec.GatewayIngressIPs[0] != "" {
+			ip = wutongcluster.Spec.GatewayIngressIPs[0]
 		}
 		if ip != "" {
 			err := retryutil.Retry(1*time.Second, 3, func() (bool, error) {
-				domain, err := r.genSuffixHTTPHost(ip, WutongCluster)
+				domain, err := r.genSuffixHTTPHost(ip, wutongcluster)
 				if err != nil {
 					return false, err
 				}
-				WutongCluster.Spec.SuffixHTTPHost = domain
+				wutongcluster.Spec.SuffixHTTPHost = domain
 				if !strings.HasSuffix(domain, constants.DefHTTPDomainSuffix) {
-					WutongCluster.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
+					wutongcluster.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
 				}
 				return true, nil
 			})
 			if err != nil {
 				logrus.Warningf("generate suffix http host: %v", err)
-				WutongCluster.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
+				wutongcluster.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
 			}
-			return reconcile.Result{}, r.Update(ctx, WutongCluster)
+			return reconcile.Result{}, r.Update(ctx, wutongcluster)
 		}
-		logrus.Infof("WutongCluster.Spec.SuffixHTTPHost ip is empty %s", ip)
-		WutongCluster.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
-		return reconcile.Result{}, r.Update(ctx, WutongCluster)
+		logrus.Infof("wutongcluster.Spec.SuffixHTTPHost ip is empty %s", ip)
+		wutongcluster.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
+		return reconcile.Result{}, r.Update(ctx, wutongcluster)
 	}
 
 	// create secret for pulling images.
-	if WutongCluster.Spec.ImageHub != nil && WutongCluster.Spec.ImageHub.Username != "" && WutongCluster.Spec.ImageHub.Password != "" {
+	if wutongcluster.Spec.ImageHub != nil && wutongcluster.Spec.ImageHub.Username != "" && wutongcluster.Spec.ImageHub.Password != "" {
 		err := mgr.CreateImagePullSecret()
 		if err != nil {
 			return reconcile.Result{}, err
@@ -155,7 +156,7 @@ func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Re
 		return reconcile.Result{}, err
 	}
 
-	for _, con := range WutongCluster.Status.Conditions {
+	for _, con := range wutongcluster.Status.Conditions {
 		if con.Status != corev1.ConditionTrue {
 			return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 		}
@@ -179,8 +180,8 @@ func (r *WutongClusterReconciler) getImageHub(cluster *wutongv1alpha1.WutongClus
 	}, nil
 }
 
-func (r *WutongClusterReconciler) genSuffixHTTPHost(ip string, WutongCluster *wutongv1alpha1.WutongCluster) (domain string, err error) {
-	id, auth, err := r.getOrCreateUUIDAndAuth(WutongCluster)
+func (r *WutongClusterReconciler) genSuffixHTTPHost(ip string, wutongcluster *wutongv1alpha1.WutongCluster) (domain string, err error) {
+	id, auth, err := r.getOrCreateUUIDAndAuth(wutongcluster)
 	if err != nil {
 		return "", err
 	}
@@ -191,17 +192,17 @@ func (r *WutongClusterReconciler) genSuffixHTTPHost(ip string, WutongCluster *wu
 	return domain, nil
 }
 
-func (r *WutongClusterReconciler) getOrCreateUUIDAndAuth(WutongCluster *wutongv1alpha1.WutongCluster) (id, auth string, err error) {
+func (r *WutongClusterReconciler) getOrCreateUUIDAndAuth(wutongcluster *wutongv1alpha1.WutongCluster) (id, auth string, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	cm := &corev1.ConfigMap{}
-	err = r.Client.Get(context.Background(), types.NamespacedName{Name: "wt-suffix-host", Namespace: WutongCluster.Namespace}, cm)
+	err = r.Client.Get(context.Background(), types.NamespacedName{Name: "wt-suffix-host", Namespace: wutongcluster.Namespace}, cm)
 	if err != nil && !strings.Contains(err.Error(), "not found") {
 		return "", "", err
 	}
 	if err != nil && strings.Contains(err.Error(), "not found") {
 		logrus.Info("not found configmap wt-suffix-host, create it")
-		cm = suffixdomain.GenerateSuffixConfigMap("wt-suffix-host", WutongCluster.Namespace)
+		cm = suffixdomain.GenerateSuffixConfigMap("wt-suffix-host", wutongcluster.Namespace)
 		if err = r.Client.Create(ctx, cm); err != nil {
 			return "", "", err
 		}

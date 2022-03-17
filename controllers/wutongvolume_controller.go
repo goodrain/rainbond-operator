@@ -51,9 +51,9 @@ type WutongVolumeReconciler struct {
 //ErrCSIPluginNotReady -
 var ErrCSIPluginNotReady = errors.New("csi plugin not ready")
 
-// +kubebuilder:rbac:groups=wutong.io,resources=WutongVolumes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=wutong.io,resources=WutongVolumes/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=wutong.io,resources=WutongVolumes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=wutong.io,resources=wutongvolumes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=wutong.io,resources=wutongvolumes/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=wutong.io,resources=wutongvolumes/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -65,7 +65,7 @@ var ErrCSIPluginNotReady = errors.New("csi plugin not ready")
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *WutongVolumeReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("WutongVolume", request.NamespacedName)
+	log := r.Log.WithValues("wutongvolume", request.NamespacedName)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

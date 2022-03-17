@@ -1,13 +1,13 @@
-# permissions for end users to edit WutongVolumes.
+# permissions for end users to edit wutongvolumes.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: WutongVolume-editor-role
+  name: wutongvolume-editor-role
 rules:
 - apiGroups:
   - wutong.io.wutong.io
   resources:
-  - WutongVolumes
+  - wutongvolumes
   verbs:
   - create
   - delete
@@ -19,6 +19,6 @@ rules:
 - apiGroups:
   - wutong.io.wutong.io
   resources:
-  - WutongVolumes/status
+  - wutongvolumes/status
   verbs:
   - get

@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"os"
 	"path"
 	"strconv"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/wutong-paas/wutong-operator/util/commonutil"
 	"github.com/wutong-paas/wutong-operator/util/constants"
@@ -366,7 +367,7 @@ func isEtcdAvailable(ctx context.Context, cli client.Client, cpt *wutongv1alpha1
 	}
 
 	if dbcpt.Status.ReadyReplicas == 0 {
-		return errors.New("no ready replicas for WutongComponent wt-etcd")
+		return errors.New("no ready replicas for wutongcomponent wt-etcd")
 	}
 
 	return nil

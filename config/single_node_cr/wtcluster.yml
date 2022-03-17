@@ -1,7 +1,7 @@
 apiVersion: wutong.io/v1alpha1
 kind: WutongCluster
 metadata:
-  name: WutongCluster
+  name: wutongcluster
   namespace: wt-system
 spec:
   wutongImageRepository: swr.cn-southwest-2.myhuaweicloud.com/wutong

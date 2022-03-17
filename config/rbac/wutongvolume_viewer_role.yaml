@@ -1,13 +1,13 @@
-# permissions for end users to view WutongVolumes.
+# permissions for end users to view wutongvolumes.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: WutongVolume-viewer-role
+  name: wutongvolume-viewer-role
 rules:
 - apiGroups:
   - wutong.io.wutong.io
   resources:
-  - WutongVolumes
+  - wutongvolumes
   verbs:
   - get
   - list
@@ -15,6 +15,6 @@ rules:
 - apiGroups:
   - wutong.io.wutong.io
   resources:
-  - WutongVolumes/status
+  - wutongvolumes/status
   verbs:
   - get

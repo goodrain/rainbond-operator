@@ -6,20 +6,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: WutongClusters.wutong.io
+  name: wutongclusters.wutong.io
 spec:
   group: wutong.io
   names:
     kind: WutongCluster
     listKind: WutongClusterList
-    plural: WutongClusters
-    singular: WutongCluster
+    plural: wutongcluster
+    singular: wutongcluster
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: WutongCluster is the Schema for the WutongClusters API
+        description: WutongCluster is the Schema for the wutongclusters API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -115,7 +115,7 @@ spec:
               wutongImageRepository:
                 description: Repository of each Wutong component image, eg. docker.io/wutong.
                 type: string
-              WutongVolumeSpecRWO:
+              wutongVolumeSpecRWO:
                 description: WutongVolumeSpec defines the desired state of WutongVolume
                 properties:
                   csiPlugin:
@@ -198,7 +198,7 @@ spec:
                 required:
                 - imageRepository
                 type: object
-              WutongVolumeSpecRWX:
+              wutongVolumeSpecRWX:
                 description: WutongVolumeSpec defines the desired state of WutongVolume
                 properties:
                   csiPlugin:
@@ -359,7 +359,7 @@ spec:
               conditions:
                 items:
                   description: WutongClusterCondition contains condition information
-                    for WutongCluster.
+                    for wutongcluster.
                   properties:
                     lastHeartbeatTime:
                       description: Last time we got an update on a given condition.

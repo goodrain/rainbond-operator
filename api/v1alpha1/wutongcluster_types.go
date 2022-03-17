@@ -140,8 +140,8 @@ type WutongClusterSpec struct {
 	// Whether the configuration has been completed
 	ConfigCompleted bool `json:"configCompleted,omitempty"`
 
-	WutongVolumeSpecRWX *WutongVolumeSpec `json:"WutongVolumeSpecRWX,omitempty"`
-	WutongVolumeSpecRWO *WutongVolumeSpec `json:"WutongVolumeSpecRWO,omitempty"`
+	WutongVolumeSpecRWX *WutongVolumeSpec `json:"wutongVolumeSpecRWX,omitempty"`
+	WutongVolumeSpecRWO *WutongVolumeSpec `json:"wutongVolumeSpecRWO,omitempty"`
 
 	// SentinelImage is the image for wutong operator sentinel
 	SentinelImage string `json:"sentinelImage,omitempty"`

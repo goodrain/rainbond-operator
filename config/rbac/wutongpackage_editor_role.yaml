@@ -1,13 +1,13 @@
-# permissions for end users to edit WutongPackages.
+# permissions for end users to edit wutongpackages.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: WutongPackage-editor-role
+  name: wutongpackage-editor-role
 rules:
 - apiGroups:
   - wutong.io.wutong.io
   resources:
-  - WutongPackages
+  - wutongpackages
   verbs:
   - create
   - delete
@@ -19,6 +19,6 @@ rules:
 - apiGroups:
   - wutong.io.wutong.io
   resources:
-  - WutongPackages/status
+  - wutongpackages/status
   verbs:
   - get
