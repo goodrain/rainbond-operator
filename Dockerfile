@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.15 as builder
+FROM --platform=$TARGETPLATFORM golang:1.15 as builder
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -16,11 +16,11 @@ COPY controllers/ controllers/
 COPY util util/
 
 # Build
-ARG TARGETOS TARGETARCH
+ARG TARGETOS TARGETARCH TARGETPLATFORM
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -a -o manager main.go
 
 
-FROM --platform=$BUILDPLATFORM wutongpaas/alpine:3.15
+FROM --platform=$TARGETPLATFORM wutongpaas/alpine:3.15
 RUN mkdir /app \
     && apk add --update apache2-utils \
     && rm -rf /var/cache/apk/*
