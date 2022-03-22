@@ -46,7 +46,7 @@ func NewWorker(ctx context.Context, client client.Client, component *wutongv1alp
 		component:      component,
 		cluster:        cluster,
 		labels:         LabelsForWutongComponent(component),
-		storageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
+		storageRequest: getStorageRequest("WTDATA_STORAGE_REQUEST", 40),
 	}
 }
 
@@ -99,28 +99,28 @@ func (w *worker) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 func (w *worker) ResourcesCreateIfNotExists() []client.Object {
 	if w.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
 		return []client.Object{
-			createPersistentVolumeClaimRWO(w.component.Namespace, constants.GrDataPVC, w.pvcParametersRWX, w.labels, w.storageRequest),
+			createPersistentVolumeClaimRWO(w.component.Namespace, constants.WTDataPVC, w.pvcParametersRWX, w.labels, w.storageRequest),
 		}
 	}
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(w.component.Namespace, constants.GrDataPVC, w.pvcParametersRWX, w.labels),
+		createPersistentVolumeClaimRWX(w.component.Namespace, constants.WTDataPVC, w.pvcParametersRWX, w.labels),
 	}
 }
 
 func (w *worker) deployment() client.Object {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      "grdata",
-			MountPath: "/grdata",
+			Name:      "wtdata",
+			MountPath: "/wtdata",
 		},
 	}
 	volumes := []corev1.Volume{
 		{
-			Name: "grdata",
+			Name: "wtdata",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: constants.GrDataPVC,
+					ClaimName: constants.WTDataPVC,
 				},
 			},
 		},

@@ -36,7 +36,7 @@ type chaos struct {
 
 	pvcParametersRWX     *pvcParameters
 	cacheStorageRequest  int64
-	grdataStorageRequest int64
+	wtdataStorageRequest int64
 }
 
 var _ ComponentHandler = &chaos{}
@@ -52,7 +52,7 @@ func NewChaos(ctx context.Context, client client.Client, component *wutongv1alph
 		cluster:              cluster,
 		labels:               LabelsForWutongComponent(component),
 		cacheStorageRequest:  getStorageRequest("CHAOS_CACHE_STORAGE_REQUEST", 10),
-		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
+		wtdataStorageRequest: getStorageRequest("WTDATA_STORAGE_REQUEST", 40),
 	}
 }
 
@@ -105,12 +105,12 @@ func (c *chaos) SetStorageClassNameRWX(pvcParametersRWX *pvcParameters) {
 func (c *chaos) ResourcesCreateIfNotExists() []client.Object {
 	if c.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
 		return []client.Object{
-			createPersistentVolumeClaimRWO(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX, c.labels, c.grdataStorageRequest),
+			createPersistentVolumeClaimRWO(c.component.Namespace, constants.WTDataPVC, c.pvcParametersRWX, c.labels, c.wtdataStorageRequest),
 			createPersistentVolumeClaimRWO(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels, c.cacheStorageRequest),
 		}
 	}
 	return []client.Object{
-		createPersistentVolumeClaimRWX(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX, c.labels),
+		createPersistentVolumeClaimRWX(c.component.Namespace, constants.WTDataPVC, c.pvcParametersRWX, c.labels),
 		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels),
 	}
 }
@@ -122,8 +122,8 @@ func (c *chaos) Replicas() *int32 {
 func (c *chaos) deployment() client.Object {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      "grdata",
-			MountPath: "/grdata",
+			Name:      "wtdata",
+			MountPath: "/wtdata",
 		},
 		{
 			Name:      "dockersock",
@@ -134,17 +134,17 @@ func (c *chaos) deployment() client.Object {
 			MountPath: "/cache",
 		},
 		{
-			Name:      "grdata",
+			Name:      "wtdata",
 			MountPath: "/root/.ssh",
 			SubPath:   "services/ssh",
 		},
 	}
 	volumes := []corev1.Volume{
 		{
-			Name: "grdata",
+			Name: "wtdata",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: constants.GrDataPVC,
+					ClaimName: constants.WTDataPVC,
 				},
 			},
 		},
@@ -182,7 +182,7 @@ func (c *chaos) deployment() client.Object {
 		"--hostIP=$(POD_IP)",
 		c.db.RegionDataSource(),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(c.cluster), ","),
-		"--pvc-grdata-name=" + constants.GrDataPVC,
+		"--pvc-wtdata-name=" + constants.WTDataPVC,
 		"--pvc-cache-name=" + constants.CachePVC,
 		"--wt-namespace=" + c.component.Namespace,
 		"--wt-repo=" + ResourceProxyName,

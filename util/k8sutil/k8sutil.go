@@ -16,13 +16,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/reference"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	utilversion "k8s.io/apimachinery/pkg/util/version"
 )
 
 var once sync.Once
@@ -150,8 +150,8 @@ func MaterRoleLabel(key string) map[string]string {
 	return labels
 }
 
-//PersistentVolumeClaimForGrdata -
-func PersistentVolumeClaimForGrdata(ns, claimName string, accessModes []corev1.PersistentVolumeAccessMode, labels map[string]string, storageClassName string, storageRequest int64) *corev1.PersistentVolumeClaim {
+//PersistentVolumeClaimForWTData -
+func PersistentVolumeClaimForWTData(ns, claimName string, accessModes []corev1.PersistentVolumeAccessMode, labels map[string]string, storageClassName string, storageRequest int64) *corev1.PersistentVolumeClaim {
 	size := resource.NewQuantity(storageRequest*1024*1024*1024, resource.BinarySI)
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{

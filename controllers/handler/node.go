@@ -32,7 +32,7 @@ type node struct {
 	component  *wutongv1alpha1.WutongComponent
 
 	pvcParametersRWX     *pvcParameters
-	grdataStorageRequest int64
+	wtdataStorageRequest int64
 }
 
 var _ ComponentHandler = &node{}
@@ -49,7 +49,7 @@ func NewNode(ctx context.Context, client client.Client, component *wutongv1alpha
 		component:            component,
 		cluster:              cluster,
 		labels:               LabelsForWutongComponent(component),
-		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
+		wtdataStorageRequest: getStorageRequest("WTDATA_STORAGE_REQUEST", 40),
 	}
 }
 
@@ -92,12 +92,12 @@ func (n *node) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 func (n *node) ResourcesCreateIfNotExists() []client.Object {
 	if n.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
 		return []client.Object{
-			createPersistentVolumeClaimRWO(n.component.Namespace, constants.GrDataPVC, n.pvcParametersRWX, n.labels, n.grdataStorageRequest),
+			createPersistentVolumeClaimRWO(n.component.Namespace, constants.WTDataPVC, n.pvcParametersRWX, n.labels, n.wtdataStorageRequest),
 		}
 	}
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(n.component.Namespace, constants.GrDataPVC, n.pvcParametersRWX, n.labels),
+		createPersistentVolumeClaimRWX(n.component.Namespace, constants.WTDataPVC, n.pvcParametersRWX, n.labels),
 	}
 }
 
@@ -113,8 +113,8 @@ func (n *node) Replicas() *int32 {
 func (n *node) daemonSetForWutongNode() client.Object {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      "grdata",
-			MountPath: "/grdata",
+			Name:      "wtdata",
+			MountPath: "/wtdata",
 		},
 		{
 			Name:      "sys",
@@ -141,16 +141,16 @@ func (n *node) daemonSetForWutongNode() client.Object {
 			MountPath: "/newetc",
 		},
 		{
-			Name:      "grlocaldata",
-			MountPath: "/grlocaldata",
+			Name:      "wtlocaldata",
+			MountPath: "/wtlocaldata",
 		},
 	}
 	volumes := []corev1.Volume{
 		{
-			Name: "grdata",
+			Name: "wtdata",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: constants.GrDataPVC,
+					ClaimName: constants.WTDataPVC,
 				},
 			},
 		},
@@ -210,10 +210,10 @@ func (n *node) daemonSetForWutongNode() client.Object {
 			},
 		},
 		{
-			Name: "grlocaldata",
+			Name: "wtlocaldata",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/grlocaldata",
+					Path: "/wtlocaldata",
 					Type: k8sutil.HostPathDirectoryOrCreate(),
 				},
 			},

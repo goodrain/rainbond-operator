@@ -2,11 +2,12 @@ package suffixdomain
 
 import (
 	"io/ioutil"
+	"net/http"
+	"net/url"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"net/http"
-	"net/url"
 )
 
 // GenerateDomain generate suffix domain
@@ -17,7 +18,7 @@ func GenerateDomain(iip, id, secretKey string) (string, error) {
 	body["type"] = []string{"False"}
 	body["auth"] = []string{secretKey}
 
-	resp, err := http.PostForm("http://domain.grapps.cn/domain/new", body)
+	resp, err := http.PostForm("http://domain.wtapps.cn/domain/new", body)
 	if err != nil {
 		return "", err
 	}
@@ -43,4 +44,3 @@ func GenerateSuffixConfigMap(name, namespace string) *v1.ConfigMap {
 	}
 	return cm
 }
-

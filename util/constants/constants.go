@@ -11,8 +11,8 @@ const (
 	WutongPackageName = "wutongpackage"
 	// DefImageRepository is the default domain name of the mirror repository that Wutong is installed.
 	DefImageRepository = "wutong.me"
-	//GrDataPVC -
-	GrDataPVC = "wt-cpt-grdata"
+	//WTDataPVC -
+	WTDataPVC = "wt-cpt-wtdata"
 	// CachePVC -
 	CachePVC = "wt-chaos-cache"
 	// FoobarPVC -
@@ -22,7 +22,7 @@ const (
 	// SpecialChaosLabelKey is a special node label, used to specify where to install the wt-chaos
 	SpecialChaosLabelKey = "wutong.io/chaos"
 	// DefHTTPDomainSuffix -
-	DefHTTPDomainSuffix = "grapps.cn"
+	DefHTTPDomainSuffix = "wtapps.cn"
 
 	// AliyunCSIDiskPlugin name for aliyun csi disk plugin
 	AliyunCSIDiskPlugin = "aliyun-csi-disk-plugin"

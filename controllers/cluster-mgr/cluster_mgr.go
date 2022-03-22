@@ -440,7 +440,7 @@ func (r *WutongClusteMgr) createPVCForFoobar(storageClassName string) error {
 		corev1.ReadWriteMany,
 	}
 	labels := wtutil.LabelsForWutong(nil)
-	pvc := k8sutil.PersistentVolumeClaimForGrdata(r.cluster.GetNamespace(), constants.FoobarPVC, accessModes, labels,
+	pvc := k8sutil.PersistentVolumeClaimForWTData(r.cluster.GetNamespace(), constants.FoobarPVC, accessModes, labels,
 		storageClassName, 1)
 	return r.client.Create(r.ctx, pvc)
 }

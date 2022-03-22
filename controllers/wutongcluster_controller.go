@@ -151,7 +151,7 @@ func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Re
 		}
 	}
 
-	// create pvc for grdata if not exists
+	// create pvc for wtdata if not exists
 	if err := mgr.CreateFoobarPVCIfNotExists(); err != nil {
 		return reconcile.Result{}, err
 	}

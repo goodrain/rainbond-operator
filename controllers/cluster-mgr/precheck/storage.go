@@ -77,9 +77,9 @@ func (s *storage) isPVCBound(pvc *corev1.PersistentVolumeClaim) bool {
 	return false
 }
 
-func (s *storage) pvcForGrdata(accessModes []corev1.PersistentVolumeAccessMode, storageClassName string) *corev1.PersistentVolumeClaim {
+func (s *storage) pvcForWTData(accessModes []corev1.PersistentVolumeAccessMode, storageClassName string) *corev1.PersistentVolumeClaim {
 	labels := wtutil.LabelsForWutong(nil)
-	return k8sutil.PersistentVolumeClaimForGrdata(s.ns, constants.GrDataPVC, accessModes, labels, storageClassName, 1)
+	return k8sutil.PersistentVolumeClaimForWTData(s.ns, constants.WTDataPVC, accessModes, labels, storageClassName, 1)
 }
 
 func (s *storage) failConditoin(condition wutongv1alpha1.WutongClusterCondition, msg string) wutongv1alpha1.WutongClusterCondition {

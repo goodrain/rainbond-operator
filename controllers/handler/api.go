@@ -41,7 +41,7 @@ type api struct {
 	pvcParametersRWX     *pvcParameters
 	pvcName              string
 	dataStorageRequest   int64
-	grdataStorageRequest int64
+	wtdataStorageRequest int64
 }
 
 var _ ComponentHandler = &api{}
@@ -57,7 +57,7 @@ func NewAPI(ctx context.Context, client client.Client, component *wutongv1alpha1
 		labels:               LabelsForWutongComponent(component),
 		pvcName:              "wt-api",
 		dataStorageRequest:   getStorageRequest("API_DATA_STORAGE_REQUEST", 1),
-		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
+		wtdataStorageRequest: getStorageRequest("WTDATA_STORAGE_REQUEST", 40),
 	}
 }
 
@@ -112,13 +112,13 @@ func (a *api) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 func (a *api) ResourcesCreateIfNotExists() []client.Object {
 	if a.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
 		return []client.Object{
-			createPersistentVolumeClaimRWO(a.component.Namespace, constants.GrDataPVC, a.pvcParametersRWX, a.labels, a.grdataStorageRequest),
+			createPersistentVolumeClaimRWO(a.component.Namespace, constants.WTDataPVC, a.pvcParametersRWX, a.labels, a.wtdataStorageRequest),
 			createPersistentVolumeClaimRWO(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels, a.dataStorageRequest),
 		}
 	}
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(a.component.Namespace, constants.GrDataPVC, a.pvcParametersRWX, a.labels),
+		createPersistentVolumeClaimRWX(a.component.Namespace, constants.WTDataPVC, a.pvcParametersRWX, a.labels),
 		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels),
 	}
 }
@@ -126,8 +126,8 @@ func (a *api) ResourcesCreateIfNotExists() []client.Object {
 func (a *api) deployment() client.Object {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      "grdata",
-			MountPath: "/grdata",
+			Name:      "wtdata",
+			MountPath: "/wtdata",
 		},
 		{
 			Name:      "accesslog",
@@ -136,10 +136,10 @@ func (a *api) deployment() client.Object {
 	}
 	volumes := []corev1.Volume{
 		{
-			Name: "grdata",
+			Name: "wtdata",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: constants.GrDataPVC,
+					ClaimName: constants.WTDataPVC,
 				},
 			},
 		},
