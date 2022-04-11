@@ -62,13 +62,13 @@ func (m *metricsServer) Before() error {
 		if !k8sErrors.IsNotFound(err) {
 			return fmt.Errorf("get apiservice(%s/%s): %v", MetricsServerName, m.cluster.Namespace, err)
 		}
-
-		if apiservice.Spec.Service.Namespace != MetricsServerName || apiservice.Spec.Service.Name != m.cluster.Namespace {
-			// delete the wrong apiservice and return error
-			m.client.Delete(m.ctx, apiservice)
-			return fmt.Errorf("get apiservice(%s/%s): %v", MetricsServerName, m.cluster.Namespace, err)
-		}
 		return nil
+	}
+
+	if apiservice.Spec.Service.Name != MetricsServerName || apiservice.Spec.Service.Namespace != m.cluster.Namespace {
+		// delete the wrong apiservice and return error
+		m.client.Delete(m.ctx, apiservice)
+		return fmt.Errorf("get wrong apiservice(%s/%s)", MetricsServerName, m.cluster.Namespace)
 	}
 	m.apiservice = apiservice
 	return nil
