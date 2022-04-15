@@ -1,4 +1,4 @@
-name: check
+name: check-ci
 
 # Triggers the workflow on push or pull request events
 on: 
@@ -14,7 +14,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.13
+          go-version: 1.15
 
       - name: Install lint
         run: go get -u golang.org/x/lint/golint
