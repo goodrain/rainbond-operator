@@ -42,7 +42,7 @@ jobs:
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
 
-      - name: Deploy to mng cluster
+      - name: Deploy to dev cluster
         id: k8s_deploy
         uses: actions-hub/kubectl@master
         env:
