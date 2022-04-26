@@ -1,18 +1,21 @@
 package componentmgr
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/logutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
+	"io"
 	"os"
 	"reflect"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/goodrain/rainbond-operator/util/constants"
+	"github.com/goodrain/rainbond-operator/util/logutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -162,6 +165,7 @@ func (r *RbdcomponentMgr) GenerateStatus(pods []corev1.Pod) {
 	r.cpt.Status = *status
 }
 
+// CollectStatus -
 func (r *RbdcomponentMgr) CollectStatus() {
 	if os.Getenv("ENTERPRISE_ID") == "" || os.Getenv("DISABLE_LOG") == "true" {
 		return
@@ -210,6 +214,32 @@ func (r *RbdcomponentMgr) CollectStatus() {
 	logutil.SendLog(log)
 }
 
+func getPodLogs(pod corev1.Pod, containerName string) string {
+	var lines int64 = 30
+	// Define the options of getting container logs
+	podLogOpts := corev1.PodLogOptions{TailLines: &lines, Container: containerName}
+	// Create the clientset
+	clientset := k8sutil.GetClientSet()
+	// Generate log request
+	req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
+	// Get logs from stream
+	podLogs, err := req.Stream(context.TODO())
+	if err != nil {
+		return "Get pod log error!"
+	}
+	defer podLogs.Close()
+	// Make new buffer to store logs
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return "Store pod log to buffer error!"
+	}
+	// Turn logs to string
+	str := buf.String()
+
+	return str
+}
+
 func handleRegionInfo() (regionPods []*logutil.Pod, isReady bool) {
 	clientSet := k8sutil.GetClientSet()
 	podList, err := clientSet.CoreV1().Pods(constants.Namespace).List(context.Background(), metav1.ListOptions{})
@@ -217,21 +247,24 @@ func handleRegionInfo() (regionPods []*logutil.Pod, isReady bool) {
 		return nil, false
 	}
 	podInfos := make(map[string]*logutil.Pod)
-	for _, po := range podList.Items {
+	for index, po := range podList.Items {
 		podName := po.Name
 		var events []*logutil.PodEvent
 		var readyContainers int
-
+		var failureContainerLog string
 		pod := &logutil.Pod{
 			Name:   podName,
 			Status: string(po.Status.Phase),
 		}
-		for _, container := range po.Status.ContainerStatuses {
+		for i, container := range po.Status.ContainerStatuses {
 			if container.Ready {
-				readyContainers += 1
+				readyContainers++
+			} else {
+				failureContainerLog = getPodLogs(podList.Items[index], po.Status.ContainerStatuses[i].Name)
 			}
 		}
 		pod.Ready = fmt.Sprintf("%d/%d", readyContainers, len(po.Status.ContainerStatuses))
+		pod.Log = failureContainerLog
 		podInfos[podName] = pod
 
 		eventLists, err := clientSet.CoreV1().Events(constants.Namespace).List(context.Background(), metav1.ListOptions{FieldSelector: fields.Set{"involvedObject.name": podName}.String()})
