@@ -3,14 +3,15 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/util/retryutil"
-	"github.com/goodrain/rainbond-operator/util/suffixdomain"
-	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/types"
 	"net"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/goodrain/rainbond-operator/util/retryutil"
+	"github.com/goodrain/rainbond-operator/util/suffixdomain"
+	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -331,6 +332,7 @@ func getK8sNode(node corev1.Node) *rainbondv1alpha1.K8sNode {
 	return &Knode
 }
 
+// ChoiceAvailableGatewayNode choice nodes as gateway which some ports not in used
 func (r *RainbondClusterReconciler) ChoiceAvailableGatewayNode(nodes []*rainbondv1alpha1.K8sNode) []*rainbondv1alpha1.K8sNode {
 	var availableGatewayNodes []*rainbondv1alpha1.K8sNode
 	portOccupiedNode := make(map[string]struct{})

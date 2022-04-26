@@ -165,6 +165,7 @@ func (r *RbdcomponentMgr) GenerateStatus(pods []corev1.Pod) {
 	r.cpt.Status = *status
 }
 
+// CollectStatus -
 func (r *RbdcomponentMgr) CollectStatus() {
 	if os.Getenv("ENTERPRISE_ID") == "" || os.Getenv("DISABLE_LOG") == "true" {
 		return
@@ -217,21 +218,21 @@ func getPodLogs(pod corev1.Pod, containerName string) string {
 	var lines int64 = 30
 	// Define the options of getting container logs
 	podLogOpts := corev1.PodLogOptions{TailLines: &lines, Container: containerName}
-	// Creates the clientset
+	// Create the clientset
 	clientset := k8sutil.GetClientSet()
 	// Generate log request
 	req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
 	// Get logs from stream
 	podLogs, err := req.Stream(context.TODO())
 	if err != nil {
-		panic(err)
+		return "Get pod log error!"
 	}
 	defer podLogs.Close()
 	// Make new buffer to store logs
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, podLogs)
 	if err != nil {
-		panic(err)
+		return "Store pod log to buffer error!"
 	}
 	// Turn logs to string
 	str := buf.String()
@@ -257,7 +258,7 @@ func handleRegionInfo() (regionPods []*logutil.Pod, isReady bool) {
 		}
 		for i, container := range po.Status.ContainerStatuses {
 			if container.Ready {
-				readyContainers += 1
+				readyContainers++
 			} else {
 				failureContainerLog = getPodLogs(podList.Items[index], po.Status.ContainerStatuses[i].Name)
 			}

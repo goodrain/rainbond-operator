@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	dclient "github.com/docker/docker/client"
 	"net/http"
 	"strings"
 	"time"
+
+	dclient "github.com/docker/docker/client"
 )
 
+// LogCollectRequest define info which should be collect
 type LogCollectRequest struct {
 	EID           string       `json:"eid"`
 	Version       string       `json:"version"`
@@ -21,20 +23,24 @@ type LogCollectRequest struct {
 	RegionInfo    *RegionInfo  `json:"region_info"`
 }
 
+// DockerInfo define infos about docker which should be collect
 type DockerInfo struct {
 	ClientVersion string        `json:"client_version"`
 	Server        *DockerServer `json:"server"`
 }
 
+// ClusterInfo define infos about kubernetes cluster which should be collect
 type ClusterInfo struct {
 	Status string `json:"status"`
 }
 
+// RegionInfo define infos about rainbond region which should be collect
 type RegionInfo struct {
 	Status string `json:"status"`
 	Pods   []*Pod `json:"pods"`
 }
 
+// PodEvent define infos about pod`s event which should be collect
 type PodEvent struct {
 	Type    string `json:"type"`
 	Reason  string `json:"reason"`
@@ -43,14 +49,16 @@ type PodEvent struct {
 	Age     string `json:"age"`
 }
 
+// Pod define infos about pod which should be collect
 type Pod struct {
-	Name   string `json:"name"`
-	Status string `json:"status"`
-	Ready  string `json:"ready"`
+	Name   string      `json:"name"`
+	Status string      `json:"status"`
+	Ready  string      `json:"ready"`
 	Log    string      `json:"log"`
 	Events []*PodEvent `json:"events"`
 }
 
+// DockerServer define infos about DockerServer which should be collect
 type DockerServer struct {
 	Version         string `json:"version"`
 	APIVersion      string `json:"api_version"`
@@ -68,6 +76,7 @@ type DockerServer struct {
 	Name            string `json:"name"`
 }
 
+// GetDockerInfo -
 func GetDockerInfo() (info *DockerInfo, err error) {
 	cli, err := dclient.NewClientWithOpts(dclient.FromEnv)
 	if err != nil {
@@ -117,6 +126,7 @@ func GetDockerInfo() (info *DockerInfo, err error) {
 	return info, nil
 }
 
+// SendLog function for send log to request-server
 func SendLog(req *LogCollectRequest) {
 	data, err := json.Marshal(req)
 	if err != nil {
