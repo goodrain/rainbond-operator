@@ -182,10 +182,6 @@ func (m *metricsServer) deployment() client.Object {
 					ImagePullSecrets:              imagePullSecrets(m.component, m.cluster),
 					ServiceAccountName:            "rainbond-operator",
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					NodeSelector: map[string]string{
-						"beta.kubernetes.io/os": "linux",
-						"kubernetes.io/arch":    "amd64",
-					},
 					Containers: []corev1.Container{
 						{
 							Name:            MetricsServerName,
