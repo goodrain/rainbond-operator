@@ -127,7 +127,7 @@ func (p *aliyunclouddiskPlugin) daemonset() *appsv1.DaemonSet {
 						{
 							Name:            "driver-registrar",
 							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-node-driver-registrar:v1.0.1"),
-							ImagePullPolicy: "IfNotPresent",
+							ImagePullPolicy: corev1.PullAlways,
 							Lifecycle: &corev1.Lifecycle{
 								PreStop: &corev1.Handler{
 									Exec: &corev1.ExecAction{
@@ -168,7 +168,7 @@ func (p *aliyunclouddiskPlugin) daemonset() *appsv1.DaemonSet {
 						{
 							Name:            "csi-diskplugin",
 							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-plugin:v1.14.8.32-aliyun"),
-							ImagePullPolicy: "IfNotPresent",
+							ImagePullPolicy: corev1.PullAlways,
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),
 								Capabilities: &corev1.Capabilities{

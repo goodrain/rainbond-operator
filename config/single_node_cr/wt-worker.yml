@@ -18,5 +18,5 @@ spec:
     value: "swr.cn-southwest-2.myhuaweicloud.com/wutong/wt-init-probe:v1.0.0-beta"
   replicas: 1
   image: swr.cn-southwest-2.myhuaweicloud.com/wutong/wt-worker:v1.0.0-beta
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
   priorityComponent: false

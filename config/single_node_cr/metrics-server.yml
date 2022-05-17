@@ -10,5 +10,5 @@ metadata:
 spec:
   replicas: 1
   image: swr.cn-southwest-2.myhuaweicloud.com/wutong/metrics-server:v0.3.6
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
   priorityComponent: false

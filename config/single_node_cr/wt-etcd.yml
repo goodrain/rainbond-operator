@@ -11,5 +11,5 @@ metadata:
 spec:
   replicas: 1
   image: swr.cn-southwest-2.myhuaweicloud.com/wutong/etcd:v3.3.18
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
   priorityComponent: true
