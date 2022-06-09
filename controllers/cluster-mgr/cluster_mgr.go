@@ -441,7 +441,7 @@ func (r *RainbondClusteMgr) createPVCForFoobar(storageClassName string) error {
 	}
 	labels := rbdutil.LabelsForRainbond(nil)
 	pvc := k8sutil.PersistentVolumeClaimForGrdata(r.cluster.GetNamespace(), constants.FoobarPVC, accessModes, labels,
-		storageClassName, 1)
+		storageClassName, 500)
 	return r.client.Create(r.ctx, pvc)
 }
 
