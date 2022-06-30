@@ -196,11 +196,19 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 				logrus.Warningf("generate suffix http host: %v", err)
 				rainbondcluster.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
 			}
-			return reconcile.Result{}, r.Update(ctx, rainbondcluster)
+			rc := &rainbondv1alpha1.RainbondCluster{}
+			if err := r.Get(ctx, request.NamespacedName, rc); err != nil {
+				return reconcile.Result{RequeueAfter: time.Second * 1}, err
+			}
+			rc.Spec.SuffixHTTPHost = rainbondcluster.Spec.SuffixHTTPHost
+			return reconcile.Result{}, r.Update(ctx, rc)
 		}
-		logrus.Infof("rainbondcluster.Spec.SuffixHTTPHost ip is empty %s", ip)
-		rainbondcluster.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
-		return reconcile.Result{}, r.Update(ctx, rainbondcluster)
+		rc := &rainbondv1alpha1.RainbondCluster{}
+		if err := r.Get(ctx, request.NamespacedName, rc); err != nil {
+			return reconcile.Result{RequeueAfter: time.Second * 1}, err
+		}
+		rc.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
+		return reconcile.Result{}, r.Update(ctx, rc)
 	}
 
 	// create secret for pulling images.
