@@ -118,7 +118,7 @@ func (a *api) After() error {
 			clientKey := serverSecret.Data["server.key.pem"]
 			regionInfo := make(map[string]interface{})
 			regionInfo["regionName"] = time.Now().Unix()
-			regionInfo["regionType"] = []string{""}
+			regionInfo["regionType"] = []string{"custom"}
 			regionInfo["sslCaCert"] = string(caPem)
 			regionInfo["keyFile"] = string(clientKey)
 			regionInfo["certFile"] = string(clientPem)
