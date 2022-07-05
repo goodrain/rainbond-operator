@@ -249,7 +249,7 @@ func (r *WutongClusteMgr) CreateImagePullSecret() error {
 		}
 	}
 
-	if config, exist := secret.Data[".dockerconfigjson"]; exist && string(config) == string(r.generateDockerConfig(r.ctx)) {
+	if config, exist := secret.Data[".dockerconfigjson"]; exist && string(config) == string(r.generateDockerConfig()) {
 		r.log.V(5).Info("dockerconfig not change")
 		return nil
 	}
@@ -259,7 +259,7 @@ func (r *WutongClusteMgr) CreateImagePullSecret() error {
 			Namespace: r.cluster.Namespace,
 		},
 		Data: map[string][]byte{
-			".dockerconfigjson": r.generateDockerConfig(r.ctx),
+			".dockerconfigjson": r.generateDockerConfig(),
 		},
 		Type: corev1.SecretTypeDockerConfigJson,
 	}
@@ -295,7 +295,7 @@ func (r *WutongClusteMgr) checkIfImagePullSecretExists() bool {
 	return true
 }
 
-func (r *WutongClusteMgr) generateDockerConfig(ctx context.Context) []byte {
+func (r *WutongClusteMgr) generateDockerConfig() []byte {
 	type dockerConfig struct {
 		Auths map[string]map[string]string `json:"auths"`
 	}
@@ -311,22 +311,6 @@ func (r *WutongClusteMgr) generateDockerConfig(ctx context.Context) []byte {
 		Auths: map[string]map[string]string{
 			r.cluster.Spec.ImageHub.Domain: auth,
 		},
-	}
-	// 获取其他镜像仓库配置
-	additionalImageHubSecrets := &corev1.SecretList{}
-	if err := r.client.List(ctx, additionalImageHubSecrets, []client.ListOption{
-		client.MatchingLabels(additionalImageHubLabels),
-	}...); err == nil {
-		for _, secret := range additionalImageHubSecrets.Items {
-			d := string(secret.Data["Domain"])
-			u := string(secret.Data["Username"])
-			p := string(secret.Data["Password"])
-			dockercfg.Auths[d] = map[string]string{
-				"username": u,
-				"password": p,
-				"auth":     base64.StdEncoding.EncodeToString([]byte(u + ":" + p)),
-			}
-		}
 	}
 
 	bytes, _ := ffjson.Marshal(dockercfg)
