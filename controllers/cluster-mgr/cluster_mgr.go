@@ -26,9 +26,13 @@ import (
 )
 
 const (
-	// RdbHubCredentialsName name for wt-hub-credentials
-	RdbHubCredentialsName = "wt-hub-credentials"
+	// WtHubCredentialsName name for wt-hub-credentials
+	WtHubCredentialsName = "wt-hub-credentials"
 )
+
+var additionalImageHubLabels = map[string]string{
+	"wutong.io/addtional-image-hub": "true",
+}
 
 var provisionerAccessModes = map[string]corev1.PersistentVolumeAccessMode{
 	// Kubernetes Internal Provisioner.
@@ -129,7 +133,7 @@ func (r *WutongClusteMgr) GenerateWutongClusterStatus() (*wutongv1alpha1.WutongC
 	}
 
 	if r.checkIfImagePullSecretExists() {
-		s.ImagePullSecret = &corev1.LocalObjectReference{Name: RdbHubCredentialsName}
+		s.ImagePullSecret = &corev1.LocalObjectReference{Name: WtHubCredentialsName}
 	}
 
 	var masterNodesForGateway []*wutongv1alpha1.K8sNode
@@ -239,34 +243,35 @@ func (r *WutongClusteMgr) listMasterNodes(masterRoleLabelKey string) []*wutongv1
 //CreateImagePullSecret create image pull secret
 func (r *WutongClusteMgr) CreateImagePullSecret() error {
 	var secret corev1.Secret
-	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: RdbHubCredentialsName}, &secret); err != nil {
+	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: WtHubCredentialsName}, &secret); err != nil {
 		if !k8sErrors.IsNotFound(err) {
 			return err
 		}
 	}
-	if config, exist := secret.Data[".dockerconfigjson"]; exist && string(config) == string(r.generateDockerConfig()) {
+
+	if config, exist := secret.Data[".dockerconfigjson"]; exist && string(config) == string(r.generateDockerConfig(r.ctx)) {
 		r.log.V(5).Info("dockerconfig not change")
 		return nil
 	}
 	secret = corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      RdbHubCredentialsName,
+			Name:      WtHubCredentialsName,
 			Namespace: r.cluster.Namespace,
 		},
 		Data: map[string][]byte{
-			".dockerconfigjson": r.generateDockerConfig(),
+			".dockerconfigjson": r.generateDockerConfig(r.ctx),
 		},
 		Type: corev1.SecretTypeDockerConfigJson,
 	}
 
 	if err := controllerutil.SetControllerReference(r.cluster, &secret, r.scheme); err != nil {
-		return fmt.Errorf("set controller reference for secret %s: %v", RdbHubCredentialsName, err)
+		return fmt.Errorf("set controller reference for secret %s: %v", WtHubCredentialsName, err)
 	}
 
 	err := r.client.Create(r.ctx, &secret)
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
-			r.log.V(7).Info("update image pull secret", "name", RdbHubCredentialsName)
+			r.log.V(7).Info("update image pull secret", "name", WtHubCredentialsName)
 			err = r.client.Update(r.ctx, &secret)
 			if err == nil {
 				return nil
@@ -280,17 +285,17 @@ func (r *WutongClusteMgr) CreateImagePullSecret() error {
 
 func (r *WutongClusteMgr) checkIfImagePullSecretExists() bool {
 	secret := &corev1.Secret{}
-	err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: RdbHubCredentialsName}, secret)
+	err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: WtHubCredentialsName}, secret)
 	if err != nil {
 		if !k8sErrors.IsNotFound(err) {
-			r.log.Info(fmt.Sprintf("get secret %s: %v", RdbHubCredentialsName, err))
+			r.log.Info(fmt.Sprintf("get secret %s: %v", WtHubCredentialsName, err))
 		}
 		return false
 	}
 	return true
 }
 
-func (r *WutongClusteMgr) generateDockerConfig() []byte {
+func (r *WutongClusteMgr) generateDockerConfig(ctx context.Context) []byte {
 	type dockerConfig struct {
 		Auths map[string]map[string]string `json:"auths"`
 	}
@@ -306,6 +311,22 @@ func (r *WutongClusteMgr) generateDockerConfig() []byte {
 		Auths: map[string]map[string]string{
 			r.cluster.Spec.ImageHub.Domain: auth,
 		},
+	}
+	// 获取其他镜像仓库配置
+	additionalImageHubSecrets := &corev1.SecretList{}
+	if err := r.client.List(ctx, additionalImageHubSecrets, []client.ListOption{
+		client.MatchingLabels(additionalImageHubLabels),
+	}...); err == nil {
+		for _, secret := range additionalImageHubSecrets.Items {
+			d := string(secret.Data["Domain"])
+			u := string(secret.Data["Username"])
+			p := string(secret.Data["Password"])
+			dockercfg.Auths[d] = map[string]string{
+				"username": u,
+				"password": p,
+				"auth":     base64.StdEncoding.EncodeToString([]byte(u + ":" + p)),
+			}
+		}
 	}
 
 	bytes, _ := ffjson.Marshal(dockercfg)
