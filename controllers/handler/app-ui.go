@@ -299,7 +299,7 @@ func (a *appui) ingressForAppUI() client.Object {
 
 func (a *appui) migrationsJob() *batchv1.Job {
 	var dbName = "console"
-	if a.cluster.Spec.UIDatabase.Name != "" {
+	if a.cluster.Spec.UIDatabase != nil && a.cluster.Spec.UIDatabase.Name != "" {
 		dbName = a.cluster.Spec.UIDatabase.Name
 	}
 	name := "rbd-app-ui-migrations"
