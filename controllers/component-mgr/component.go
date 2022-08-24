@@ -201,6 +201,9 @@ func (r *RbdcomponentMgr) CollectStatus() {
 	if isReady {
 		regionStatus = "RegionReady"
 	}
+	if os.Getenv("CONSOLE_DOMAIN") != "" {
+		regionStatus += "-docking"
+	}
 	log := &logutil.LogCollectRequest{
 		EID:           os.Getenv("ENTERPRISE_ID"),
 		Version:       os.Getenv("INSTALL_VERSION"),
