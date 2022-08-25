@@ -355,7 +355,10 @@ func getK8sNode(node corev1.Node) *rainbondv1alpha1.K8sNode {
 func (r *RainbondClusterReconciler) ChoiceAvailableGatewayNode(nodes []*rainbondv1alpha1.K8sNode) []*rainbondv1alpha1.K8sNode {
 	var availableGatewayNodes []*rainbondv1alpha1.K8sNode
 	portOccupiedNode := make(map[string]struct{})
-	ports := []string{"80", "443", "7070", "6060", "8443"}
+	ports := []string{"80", "443", "6060", "8443"}
+	if os.Getenv("CONSOLE_DOMAIN") == "" {
+		ports = append(ports, "7070")
+	}
 	for _, node := range nodes {
 		for _, port := range ports {
 			address := net.JoinHostPort(node.InternalIP, port)
