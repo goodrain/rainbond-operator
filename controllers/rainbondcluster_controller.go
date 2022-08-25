@@ -96,6 +96,17 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 				if os.Getenv("ENTERPRISE_ID") == "" {
 					rainbondcluster.Annotations["enterprise_id"] = uuidutil.NewUUID()
 					os.Setenv("ENTERPRISE_ID", rainbondcluster.Annotations["enterprise_id"])
+					if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+						rc := &rainbondv1alpha1.RainbondCluster{}
+						if err := r.Get(ctx, request.NamespacedName, rc); err != nil {
+							return err
+						}
+						rc.Annotations = rainbondcluster.Annotations
+						return r.Update(ctx, rc)
+					}); err != nil {
+						reqLogger.Error(err, "update rainbondcluster status")
+						return reconcile.Result{RequeueAfter: time.Second * 2}, err
+					}
 				}
 			}
 			os.Setenv("INSTALL_VERSION", rainbondcluster.Spec.InstallVersion)
