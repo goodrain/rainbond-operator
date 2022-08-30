@@ -9,6 +9,6 @@ metadata:
     name: dashboard-metrics-scraper
 spec:
   replicas: 1
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/metrics-scraper:v1.0.4
+  image: rainbond/metrics-scraper:v1.0.4
   imagePullPolicy: IfNotPresent
   priorityComponent: false
