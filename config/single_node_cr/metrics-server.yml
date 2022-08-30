@@ -9,6 +9,6 @@ metadata:
     name: metrics-server
 spec:
   replicas: 1
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/metrics-server:v0.3.6
+  image: rainbond/metrics-server:v0.4.1
   imagePullPolicy: IfNotPresent
   priorityComponent: false

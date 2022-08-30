@@ -10,6 +10,6 @@ metadata:
     priorityComponent: "true"
 spec:
   replicas: 1
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/etcd:v3.3.18
+  image: rainbond/etcd:v3.3.18
   imagePullPolicy: IfNotPresent
   priorityComponent: true

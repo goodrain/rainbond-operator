@@ -9,6 +9,8 @@ trigger:
   event:
     include:
     - custom
+node:
+  city: sydney
 steps:
 - name: build operator
   image: docker:dind
@@ -20,20 +22,14 @@ steps:
       from_secret: docker_username
     DOCKER_PASSWORD:
       from_secret: docker_password
-    IMAGE_REGISTRY:
-      from_secret: image_registry
-    IMAGE_NAMESPACE:
-      from_secret: image_namespace
-    IMAGE_NAME:
-      from_secret: image_name
-    IMAGE_TAG:
-      from_secret: image_tag
+    VERSION:
+      from_secret: version
     GOOS: linux
     GOARCH: arm64
   commands:
-  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD $IMAGE_REGISTRY
-  - docker build --build-arg ARCH=$GOARCH -t $IMAGE_REGISTRY/$IMAGE_NAMESPACE/$IMAGE_NAME:$IMAGE_TAG .
-  - docker push $IMAGE_REGISTRY/$IMAGE_NAMESPACE/$IMAGE_NAME:$IMAGE_TAG
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+  - docker build --build-arg ARCH=$GOARCH -t rainbond/rainbond-operator:$VERSION .
+  - docker push rainbond/rainbond-operator:$VERSION
   when:
     event:
       include:
