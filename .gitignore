@@ -25,4 +25,5 @@ testbin/*
 *~
 
 vendor
-.vscode/*
+.vscode
+.vscode/settings.json
