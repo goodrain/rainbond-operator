@@ -147,9 +147,10 @@ type WutongClusterSpec struct {
 	SentinelImage string `json:"sentinelImage,omitempty"`
 
 	CacheMode string `json:"cacheMode,omitempty"`
+	Arch      string `json:"arch,omitempty"`
 }
 
-//InstallPackageConfig define install package download config
+// InstallPackageConfig define install package download config
 type InstallPackageConfig struct {
 	URL string `json:"url,omitempty"`
 	MD5 string `json:"md5,omitempty"`
@@ -249,7 +250,7 @@ func (in *WutongCluster) GatewayIngressIP() string {
 	return ""
 }
 
-//GatewayIngressIPs get all gateway ips
+// GatewayIngressIPs get all gateway ips
 func (in *WutongCluster) GatewayIngressIPs() (ips []string) {
 	// custom ip ,contain eip
 	if len(in.Spec.GatewayIngressIPs) > 0 && in.Spec.GatewayIngressIPs[0] != "" {
@@ -334,7 +335,7 @@ func (r *WutongClusterStatus) UpdateCondition(condition *WutongClusterCondition)
 	return !isEqual
 }
 
-//DeleteCondition -
+// DeleteCondition -
 func (r *WutongClusterStatus) DeleteCondition(typ3 WutongClusterConditionType) {
 	idx, _ := r.GetCondition(typ3)
 	if idx == -1 {

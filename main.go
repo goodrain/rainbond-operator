@@ -84,7 +84,7 @@ func main() {
 		Client:   mgr.GetClient(),
 		Log:      ctrl.Log.WithName("controllers").WithName("WutongCluster"),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("WutongPackage"),
+		Recorder: mgr.GetEventRecorderFor("WutongCluster"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "WutongCluster")
 		os.Exit(1)
