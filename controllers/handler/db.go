@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"strings"
 	"time"
 
-	"github.com/docker/distribution/reference"
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	"github.com/wutong-paas/wutong-operator/util/commonutil"
 	"github.com/wutong-paas/wutong-operator/util/k8sutil"
@@ -52,7 +52,7 @@ var _ ComponentHandler = &db{}
 var _ StorageClassRWOer = &db{}
 var _ ClusterScopedResourcesCreator = &db{}
 
-//NewDB new db
+// NewDB new db
 func NewDB(ctx context.Context, client client.Client, component *wutongv1alpha1.WutongComponent, cluster *wutongv1alpha1.WutongCluster) ComponentHandler {
 	d := &db{
 		ctx:            ctx,
@@ -148,9 +148,7 @@ func (d *db) CreateClusterScoped() []client.Object {
 }
 
 func (d *db) statefulsetForDB() client.Object {
-	repo, _ := reference.Parse(d.component.Spec.Image)
-	name := repo.(reference.Named).Name()
-	exporterImage := strings.Replace(name, "wt-db", "mysqld-exporter", 1)
+	exporterImage := path.Join(d.cluster.Spec.WutongImageRepository, "mysqld-exporter:latest")
 
 	regionDBName := os.Getenv("REGION_DB_NAME")
 	if regionDBName == "" {

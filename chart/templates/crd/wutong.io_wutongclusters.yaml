@@ -36,6 +36,8 @@ spec:
           spec:
             description: WutongClusterSpec defines the desired state of WutongCluster
             properties:
+              arch:
+                type: string
               cacheMode:
                 type: string
               ciVersion:
