@@ -3,8 +3,6 @@ package handler
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/api/resource"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
@@ -78,18 +76,18 @@ func (r *resourceProxy) resource() []client.Object {
 
 	volumeMounts = mergeVolumeMounts(volumeMounts, r.component.Spec.VolumeMounts)
 
-	resources := corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			corev1.ResourceMemory: resource.MustParse("512Mi"),
-			corev1.ResourceCPU:    resource.MustParse("1000m"),
-		},
-		Requests: corev1.ResourceList{
-			corev1.ResourceMemory: resource.MustParse("64Mi"),
-			corev1.ResourceCPU:    resource.MustParse("100m"),
-		},
-	}
+	//resources := corev1.ResourceRequirements{
+	//Limits: corev1.ResourceList{
+	//	corev1.ResourceMemory: resource.MustParse("512Mi"),
+	//	corev1.ResourceCPU:    resource.MustParse("1000m"),
+	//},
+	//Requests: corev1.ResourceList{
+	//	corev1.ResourceMemory: resource.MustParse("64Mi"),
+	//	corev1.ResourceCPU:    resource.MustParse("100m"),
+	//},
+	//}
 
-	resources = mergeResources(resources, r.component.Spec.Resources)
+	//resources = mergeResources(resources, r.component.Spec.Resources)
 
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -116,7 +114,7 @@ func (r *resourceProxy) resource() []client.Object {
 							Image:           r.component.Spec.Image,
 							ImagePullPolicy: r.component.ImagePullPolicy(),
 							VolumeMounts:    volumeMounts,
-							Resources:       resources,
+							Resources:       r.component.Spec.Resources,
 							Args:            r.component.Spec.Args,
 						},
 					},

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/resource"
-
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -120,19 +118,19 @@ func (m *monitor) statefulset() client.Object {
 		},
 	}
 
-	resources := corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			corev1.ResourceMemory: resource.MustParse("2048Mi"),
-			corev1.ResourceCPU:    resource.MustParse("1000m"),
-		},
-		Requests: corev1.ResourceList{
-			corev1.ResourceMemory: resource.MustParse("512Mi"),
-			corev1.ResourceCPU:    resource.MustParse("200m"),
-		},
-	}
+	//resources := corev1.ResourceRequirements{
+	//Limits: corev1.ResourceList{
+	//	corev1.ResourceMemory: resource.MustParse("2048Mi"),
+	//	corev1.ResourceCPU:    resource.MustParse("1000m"),
+	//},
+	//Requests: corev1.ResourceList{
+	//	corev1.ResourceMemory: resource.MustParse("512Mi"),
+	//	corev1.ResourceCPU:    resource.MustParse("200m"),
+	//},
+	//}
 
 	env = mergeEnvs(env, m.component.Spec.Env)
-	resources = mergeResources(resources, m.component.Spec.Resources)
+	//resources = mergeResources(resources, m.component.Spec.Resources)
 	args = mergeArgs(args, m.component.Spec.Args)
 	volumeMounts = mergeVolumeMounts(volumeMounts, m.component.Spec.VolumeMounts)
 	volumes = mergeVolumes(volumes, m.component.Spec.Volumes)
@@ -168,7 +166,7 @@ func (m *monitor) statefulset() client.Object {
 							Args:            args,
 							VolumeMounts:    volumeMounts,
 							ReadinessProbe:  readinessProbe,
-							Resources:       resources,
+							Resources:       m.component.Spec.Resources,
 						},
 					},
 					Volumes: volumes,
