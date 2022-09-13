@@ -122,7 +122,7 @@ func (p *nfsPlugin) statefulset() client.Object {
 					Containers: []corev1.Container{
 						{
 							Name:            p.name,
-							Image:           path.Join(p.volume.Spec.ImageRepository, "nfs-provisioner"),
+							Image:           path.Join(p.volume.Spec.ImageRepository, "nfs-provisioner:v3.0.0"),
 							ImagePullPolicy: corev1.PullAlways,
 							Ports: []corev1.ContainerPort{
 								{
