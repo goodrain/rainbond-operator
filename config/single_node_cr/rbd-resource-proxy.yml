@@ -11,4 +11,11 @@ spec:
   replicas: 1
   image: rainbond/rbd-resource-proxy:v5.6.0-release
   imagePullPolicy: IfNotPresent
-  priorityComponent: false 
+  priorityComponent: false
+  resources:
+    requests:
+      memory: 0
+      cpu: 0
+    limits:
+      memory: 0
+      cpu: 0
