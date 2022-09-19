@@ -22,7 +22,7 @@ spec:
       volumes:
         - name: dockersock
           hostPath:
-            path: /var/run
+            path: /run
             type: Directory
       containers:
         - command:
@@ -55,7 +55,7 @@ spec:
               cpu: 100m
               memory: 20Mi
           volumeMounts:
-            - mountPath: /var/run
+            - mountPath: /run
               name: dockersock
       terminationGracePeriodSeconds: 10
 {{- end }}

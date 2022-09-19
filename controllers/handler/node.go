@@ -121,21 +121,13 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 			MountPath: "/sys",
 		},
 		{
-			Name:      "dockersock",
-			MountPath: "/var/run/docker.sock",
+			Name:      "containerdsock",
+			MountPath: "/run/containerd/containerd.sock",
 		},
-		{
-			Name:      "docker", // for container logs, ubuntu
-			MountPath: "/var/lib/docker",
-		},
-		{
-			Name:      "vardocker", // for container logs, centos
-			MountPath: "/var/docker/lib",
-		},
-		{
-			Name:      "dockercert",
-			MountPath: "/etc/docker/certs.d",
-		},
+		//{
+		//	Name:      "dockercert",
+		//	MountPath: "/etc/docker/certs.d",
+		//},
 		{
 			Name:      "etc",
 			MountPath: "/newetc",
@@ -163,39 +155,21 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 				},
 			},
 		},
-		{
-			Name: "docker",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/lib/docker",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-				},
-			},
-		},
-		{
-			Name: "vardocker",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/docker/lib",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-				},
-			},
-		},
 
+		//{
+		//	Name: "dockercert",
+		//	VolumeSource: corev1.VolumeSource{
+		//		HostPath: &corev1.HostPathVolumeSource{
+		//			Path: "/etc/docker/certs.d",
+		//			Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+		//		},
+		//	},
+		//},
 		{
-			Name: "dockercert",
+			Name: "containerdsock",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/etc/docker/certs.d",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-				},
-			},
-		},
-		{
-			Name: "dockersock",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/run/docker.sock",
+					Path: "/run/containerd/containerd.sock",
 					Type: k8sutil.HostPath(corev1.HostPathSocket),
 				},
 			},

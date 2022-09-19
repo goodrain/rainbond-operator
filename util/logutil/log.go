@@ -2,13 +2,9 @@ package logutil
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
-	"strings"
 	"time"
-
-	dclient "github.com/docker/docker/client"
 )
 
 // LogCollectRequest define info which should be collect
@@ -78,52 +74,53 @@ type DockerServer struct {
 
 // GetDockerInfo -
 func GetDockerInfo() (info *DockerInfo, err error) {
-	cli, err := dclient.NewClientWithOpts(dclient.FromEnv)
-	if err != nil {
-		return nil, err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-	defer cancel()
-
-	sv, err := cli.ServerVersion(ctx)
-	if err != nil {
-		var apiVersion string
-		if strings.Contains(err.Error(), "Maximum supported API version is") {
-			msg := strings.Split(err.Error(), " ")
-			if len(msg) > 0 {
-				apiVersion = msg[len(msg)-1]
-				cli, err = dclient.NewClientWithOpts(dclient.WithVersion(apiVersion))
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	}
-	dInfo, err := cli.Info(ctx)
-	if err != nil {
-		return nil, err
-	}
-	server := &DockerServer{
-		Version:         sv.Version,
-		APIVersion:      sv.APIVersion,
-		OS:              sv.Os,
-		OSArch:          sv.Arch,
-		Driver:          dInfo.Driver,
-		IPv4Forwarding:  dInfo.IPv4Forwarding,
-		CgroupDriver:    dInfo.CgroupDriver,
-		CgroupVersion:   dInfo.CgroupVersion,
-		KernelVersion:   dInfo.KernelVersion,
-		OperatingSystem: dInfo.OperatingSystem,
-		NCPU:            dInfo.NCPU,
-		MemTotal:        dInfo.MemTotal / 1024 / 1024,
-		DockerRootDir:   dInfo.DockerRootDir,
-		Name:            dInfo.Name,
-	}
-	info = &DockerInfo{
-		Server:        server,
-		ClientVersion: cli.ClientVersion(),
-	}
-	return info, nil
+	return nil, nil
+	//cli, err := dclient.NewClientWithOpts(dclient.FromEnv)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	//defer cancel()
+	//
+	//sv, err := cli.ServerVersion(ctx)
+	//if err != nil {
+	//	var apiVersion string
+	//	if strings.Contains(err.Error(), "Maximum supported API version is") {
+	//		msg := strings.Split(err.Error(), " ")
+	//		if len(msg) > 0 {
+	//			apiVersion = msg[len(msg)-1]
+	//			cli, err = dclient.NewClientWithOpts(dclient.WithVersion(apiVersion))
+	//			if err != nil {
+	//				return nil, err
+	//			}
+	//		}
+	//	}
+	//}
+	//dInfo, err := cli.Info(ctx)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//server := &DockerServer{
+	//	Version:         sv.Version,
+	//	APIVersion:      sv.APIVersion,
+	//	OS:              sv.Os,
+	//	OSArch:          sv.Arch,
+	//	Driver:          dInfo.Driver,
+	//	IPv4Forwarding:  dInfo.IPv4Forwarding,
+	//	CgroupDriver:    dInfo.CgroupDriver,
+	//	CgroupVersion:   dInfo.CgroupVersion,
+	//	KernelVersion:   dInfo.KernelVersion,
+	//	OperatingSystem: dInfo.OperatingSystem,
+	//	NCPU:            dInfo.NCPU,
+	//	MemTotal:        dInfo.MemTotal / 1024 / 1024,
+	//	DockerRootDir:   dInfo.DockerRootDir,
+	//	Name:            dInfo.Name,
+	//}
+	//info = &DockerInfo{
+	//	Server:        server,
+	//	ClientVersion: cli.ClientVersion(),
+	//}
+	//return info, nil
 }
 
 // SendLog function for send log to request-server
