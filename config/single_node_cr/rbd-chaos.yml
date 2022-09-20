@@ -13,3 +13,11 @@ spec:
   image: rainbond/rbd-chaos:v5.6.0-release
   imagePullPolicy: IfNotPresent
   priorityComponent: false
+  volumes:
+    hostPath:
+      path: /run/k3s/containerd/containerd.sock
+      type: Socket
+      name: containerdsock
+  volumeMounts:
+    mountPath: /run/containerd/containerd.sock
+      name: containerdsock
