@@ -14,3 +14,11 @@ spec:
   image: rainbond/rbd-node:v5.6.0-release
   imagePullPolicy: IfNotPresent
   priorityComponent: true
+  volumes:
+    hostPath:
+      path: /run/k3s/containerd/containerd.sock
+      type: Socket
+      name: containerdsock
+  volumeMounts:
+    mountPath: /run/containerd/containerd.sock
+      name: containerdsock
