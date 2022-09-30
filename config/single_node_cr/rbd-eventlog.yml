@@ -14,7 +14,7 @@ spec:
   imagePullPolicy: IfNotPresent
   priorityComponent: false
   args:
-  - --db-type=sqlite
+  - --db.type=sqlite
   volumeMounts:
   - mountPath: /db
     name: sqlite
