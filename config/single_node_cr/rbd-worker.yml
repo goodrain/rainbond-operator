@@ -23,7 +23,7 @@ spec:
   args:
   - --db-type=sqlite
   volumeMounts:
-  - mountPath: /run
+  - mountPath: /db
     name: sqlite
   volumes:
   - hostPath:
