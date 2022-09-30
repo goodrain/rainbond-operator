@@ -2,6 +2,7 @@ package commonutil
 
 import (
 	"archive/tar"
+	"bufio"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -10,6 +11,17 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
+)
+
+const (
+	commentChar string = "#"
+	//StartOfSection writ hosts start
+	StartOfSection = "# Generate by Rainbond. DO NOT EDIT"
+	//EndOfSection writ hosts end
+	EndOfSection = "# End of Section"
+	eol          = "\n"
 )
 
 // FileExists checks if a file exists and is not a directory.
@@ -143,4 +155,25 @@ func validRelPath(p string) bool {
 		return false
 	}
 	return true
+}
+
+func WriteHosts(hostspath, ip string) {
+	hostFile, err := os.OpenFile(hostspath, os.O_WRONLY|os.O_APPEND, 0777)
+	if err != nil {
+		logrus.Error("open file err=%v", err)
+	}
+	defer hostFile.Close()
+	lines := []string{
+		"\n" + StartOfSection + "\n",
+		ip + " " + "goodrain.me" + "\n",
+		ip + " " + "region.goodrain.me" + "\n",
+		EndOfSection + "\n",
+	}
+	writer := bufio.NewWriter(hostFile)
+	for _, line := range lines {
+		if _, err := writer.WriteString(line); err != nil {
+			logrus.Error("write line to host file error", err)
+		}
+	}
+	writer.Flush()
 }
