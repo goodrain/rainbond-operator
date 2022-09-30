@@ -126,8 +126,8 @@ func (c *chaos) deployment() client.Object {
 			MountPath: "/grdata",
 		},
 		{
-			Name:      "dockersock",
-			MountPath: "/var/run/docker.sock",
+			Name:      "containerdsock",
+			MountPath: "/run/containerd/containerd.sock",
 		},
 		{
 			Name:      "cache",
@@ -149,10 +149,10 @@ func (c *chaos) deployment() client.Object {
 			},
 		},
 		{
-			Name: "dockersock",
+			Name: "containerdsock",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/run/docker.sock",
+					Path: "/run/containerd/containerd.sock",
 					Type: k8sutil.HostPath(corev1.HostPathSocket),
 				},
 			},

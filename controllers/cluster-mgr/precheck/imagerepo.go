@@ -2,13 +2,17 @@ package precheck
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/errdefs"
+	"github.com/containerd/containerd/remotes/docker"
+	"github.com/containerd/containerd/remotes/docker/config"
+	initcontainerd "github.com/goodrain/rainbond-operator/util/init-containerd"
 	"path"
 	"time"
 
-	"github.com/docker/docker/client"
 	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/imageutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 
 	"github.com/go-logr/logr"
@@ -49,38 +53,79 @@ func (d *imagerepo) Check() rainbondv1alpha1.RainbondClusterCondition {
 			fmt.Sprintf("precheck for %s is in progress", rainbondv1alpha1.RainbondClusterConditionTypeImageRepository)
 	}
 
-	localImage := path.Join(d.cluster.Spec.RainbondImageRepository, "smallimage")
-	remoteImage := path.Join(imageRepo, "smallimage")
+	localImage := path.Join(d.cluster.Spec.RainbondImageRepository, "smallimage:latest")
+	remoteImage := path.Join(imageRepo, "smallimage:latest")
 
-	dockerClient, err := client.NewClientWithOpts(client.FromEnv)
+	containerdCli, err := initcontainerd.InitContainerd()
 	if err != nil {
 		return d.failConditoin(condition, err)
 	}
-	dockerClient.NegotiateAPIVersion(d.ctx)
-
-	exists, err := imageutil.CheckIfImageExists(d.ctx, dockerClient, localImage)
+	image, err := containerdCli.ImageService.Get(containerdCli.CCtx, localImage)
+	checkExsit := true
 	if err != nil {
-		return d.failConditoin(condition, fmt.Errorf("check if image %s exists: %v", remoteImage, err))
-	}
-
-	if !exists {
-		if err := imageutil.ImagePull(d.ctx, dockerClient, localImage); err != nil {
-			return d.failConditoin(condition, fmt.Errorf("pull image %s: %v", localImage, err))
+		if errdefs.IsNotFound(err) {
+			checkExsit = false
+		} else {
+			return d.failConditoin(condition, fmt.Errorf("get image %v err：%v", localImage, err))
 		}
 	}
-	if err := dockerClient.ImageTag(d.ctx, localImage, remoteImage); err != nil {
-		return d.failConditoin(condition, fmt.Errorf("tag image %s to %s: %v", localImage, remoteImage, err))
+	if !checkExsit {
+		defaultTLS := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		hostOpt := config.HostOptions{}
+		hostOpt.Credentials = func(host string) (string, string, error) {
+			return d.cluster.Spec.ImageHub.Username, d.cluster.Spec.ImageHub.Password, nil
+		}
+		hostOpt.DefaultTLS = defaultTLS
+		options := docker.ResolverOptions{
+			Tracker: docker.NewInMemoryTracker(),
+			Hosts:   config.ConfigureHosts(containerdCli.CCtx, hostOpt),
+		}
+
+		pullOpts := []containerd.RemoteOpt{
+			containerd.WithPullUnpack,
+			containerd.WithResolver(docker.NewResolver(options)),
+		}
+		_, err := containerdCli.ContainerdClient.Pull(containerdCli.CCtx, localImage, pullOpts...)
+		if err != nil {
+			return d.failConditoin(condition, fmt.Errorf("pull image %v err:%v", localImage, err))
+		}
+	}
+	image.Name = remoteImage
+	if _, err = containerdCli.ImageService.Create(containerdCli.CCtx, image); err != nil {
+		// If user has specified force and the image already exists then
+		// delete the original image and attempt to create the new one
+		if errdefs.IsAlreadyExists(err) {
+			if err = containerdCli.ImageService.Delete(containerdCli.CCtx, remoteImage); err != nil {
+				return d.failConditoin(condition, fmt.Errorf("delete image %v err:%v", remoteImage, err))
+			}
+			if _, err = containerdCli.ImageService.Create(containerdCli.CCtx, image); err != nil {
+				return d.failConditoin(condition, fmt.Errorf("create image %v err:%v", remoteImage, err))
+			}
+		} else {
+			return d.failConditoin(condition, fmt.Errorf("create image %v err:%v", remoteImage, err))
+		}
 	}
 
 	// push a small image to check the given image repository
 	d.log.V(6).Info("push image", "image", remoteImage, "repository", imageRepo, "user", d.cluster.Spec.ImageHub.Username)
-	if err := imageutil.ImagePush(d.ctx, dockerClient, remoteImage, imageRepo,
-		d.cluster.Spec.ImageHub.Username, d.cluster.Spec.ImageHub.Password); err != nil {
-		condition = d.failConditoin(condition, fmt.Errorf("push image: %v", err))
-		if imageRepo == constants.DefImageRepository {
-			condition.Reason = "DefaultImageRepoFailed"
-		}
-		return condition
+	defaultTLS := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	hostOpt := config.HostOptions{}
+	hostOpt.DefaultTLS = defaultTLS
+	hostOpt.Credentials = func(host string) (string, string, error) {
+		return d.cluster.Spec.ImageHub.Username, d.cluster.Spec.ImageHub.Password, nil
+	}
+	options := docker.ResolverOptions{
+		Tracker: docker.NewInMemoryTracker(),
+		Hosts:   config.ConfigureHosts(containerdCli.CCtx, hostOpt),
+	}
+	err = containerdCli.ContainerdClient.Push(containerdCli.CCtx, image.Name, image.Target, containerd.WithResolver(docker.NewResolver(options)))
+	if err != nil {
+		return d.failConditoin(condition, fmt.Errorf("push image %v err:%v", image.Name, err))
 	}
 
 	return condition

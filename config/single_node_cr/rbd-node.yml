@@ -11,6 +11,14 @@ metadata:
     persistentVolumeClaimAccessModes: ReadWriteOnce
 spec:
   replicas: 1
-  image: rainbond/rbd-node:v5.6.0-release
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-node:V5.8-dev
   imagePullPolicy: IfNotPresent
   priorityComponent: true
+  volumeMounts:
+    - mountPath: /run/containerd/containerd.sock
+      name: containerdsock
+  volumes:
+    - hostPath:
+        path: /run/k3s/containerd/containerd.sock
+        type: Socker
+      name: containerdsock

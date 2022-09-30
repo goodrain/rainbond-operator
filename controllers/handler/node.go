@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/util/containerutil"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -33,6 +34,7 @@ type node struct {
 
 	pvcParametersRWX     *pvcParameters
 	grdataStorageRequest int64
+	containerRuntime     string
 }
 
 var _ ComponentHandler = &node{}
@@ -50,6 +52,7 @@ func NewNode(ctx context.Context, client client.Client, component *rainbondv1alp
 		cluster:              cluster,
 		labels:               LabelsForRainbondComponent(component),
 		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
+		containerRuntime:     containerutil.GetContainerRuntime(),
 	}
 }
 
@@ -110,16 +113,37 @@ func (n *node) Replicas() *int32 {
 	return commonutil.Int32(int32(len(nodeList.Items)))
 }
 
-func (n *node) daemonSetForRainbondNode() client.Object {
+func (n *node) getDockerVolumes() ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes := []corev1.Volume{
+		{
+			Name: "docker",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/lib/docker",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+		{
+			Name: "vardocker",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/docker/lib",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+		{
+			Name: "dockercert",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/docker/certs.d",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+	}
 	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      "grdata",
-			MountPath: "/grdata",
-		},
-		{
-			Name:      "sys",
-			MountPath: "/sys",
-		},
 		{
 			Name:      "dockersock",
 			MountPath: "/var/run/docker.sock",
@@ -135,6 +159,54 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 		{
 			Name:      "dockercert",
 			MountPath: "/etc/docker/certs.d",
+		},
+	}
+	return volumes, volumeMounts
+}
+
+func (n *node) getContainerdVolumes() ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes := []corev1.Volume{
+		{
+			Name: "containerdsock",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/run/containerd/containerd.sock",
+					Type: k8sutil.HostPath(corev1.HostPathSocket),
+				},
+			},
+		},
+		{
+			Name: "varlog",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/log", // for container logs
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "containerdsock", // default using containerd
+			MountPath: "/run/containerd/containerd.sock",
+		},
+		{
+			Name:      "varlog",
+			MountPath: "/var/log",
+		},
+	}
+	return volumes, volumeMounts
+}
+
+func (n *node) daemonSetForRainbondNode() client.Object {
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "grdata",
+			MountPath: "/grdata",
+		},
+		{
+			Name:      "sys",
+			MountPath: "/sys",
 		},
 		{
 			Name:      "etc",
@@ -164,43 +236,6 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 			},
 		},
 		{
-			Name: "docker",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/lib/docker",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-				},
-			},
-		},
-		{
-			Name: "vardocker",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/docker/lib",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-				},
-			},
-		},
-
-		{
-			Name: "dockercert",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/etc/docker/certs.d",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-				},
-			},
-		},
-		{
-			Name: "dockersock",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/run/docker.sock",
-					Type: k8sutil.HostPath(corev1.HostPathSocket),
-				},
-			},
-		},
-		{
 			Name: "etc",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
@@ -219,6 +254,16 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 			},
 		},
 	}
+	var (
+		runtimeVolumes      []corev1.Volume
+		runtimeVolumeMounts []corev1.VolumeMount
+	)
+	runtimeVolumes, runtimeVolumeMounts = n.getContainerdVolumes()
+	if n.containerRuntime == containerutil.ContainerRuntimeDocker {
+		runtimeVolumes, runtimeVolumeMounts = n.getDockerVolumes()
+	}
+	volumes = append(volumes, runtimeVolumes...)
+	volumeMounts = append(volumeMounts, runtimeVolumeMounts...)
 	args := []string{
 		"--etcd=" + strings.Join(etcdEndpoints(n.cluster), ","),
 		"--hostIP=$(POD_IP)",

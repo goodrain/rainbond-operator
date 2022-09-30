@@ -10,6 +10,22 @@ metadata:
     persistentVolumeClaimAccessModes: ReadWriteOnce
 spec:
   replicas: 1
-  image: rainbond/rbd-chaos:v5.6.0-release
+  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-node:V5.8-dev
   imagePullPolicy: IfNotPresent
   priorityComponent: false
+  volumeMounts:
+    - mountPath: /run/containerd/containerd.sock
+      name: containerdsock
+    - mountPath: /tmp
+      name: sqlite
+  volumes:
+    - hostPath:
+        path: /run/k3s/containerd/containerd.sock
+        type: Socker
+      name: containerdsock
+    - hostPath:
+        path: /app/data
+        type: DirectoryOrCreate
+      name: sqlite
+  args:
+  - --db-type=sqlite
