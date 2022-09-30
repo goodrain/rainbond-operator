@@ -16,7 +16,7 @@ spec:
   volumeMounts:
     - mountPath: /run/containerd/containerd.sock
       name: containerdsock
-    - mountPath: /tmp
+    - mountPath: /db
       name: sqlite
   volumes:
     - hostPath:

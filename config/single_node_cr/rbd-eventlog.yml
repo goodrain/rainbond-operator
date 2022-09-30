@@ -13,3 +13,13 @@ spec:
   image: rainbond/rbd-eventlog:v5.6.0-release
   imagePullPolicy: IfNotPresent
   priorityComponent: false
+  args:
+  - --db-type=sqlite
+  volumeMounts:
+  - mountPath: /db
+    name: sqlite
+  volumes:
+  - hostPath:
+      path: /app/data
+      type: DirectoryOrCreate
+    name: sqlite
