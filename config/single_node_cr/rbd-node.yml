@@ -20,5 +20,5 @@ spec:
   volumes:
     - hostPath:
         path: /run/k3s/containerd/containerd.sock
-        type: Socker
+        type: Socket
       name: containerdsock
