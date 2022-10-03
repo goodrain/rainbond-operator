@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/retryutil"
 	"github.com/goodrain/rainbond-operator/util/suffixdomain"
 	"github.com/sirupsen/logrus"
@@ -151,6 +152,7 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 				return
 			}()
 		}
+
 		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			rc := &rainbondv1alpha1.RainbondCluster{}
 			if err := r.Get(ctx, request.NamespacedName, rc); err != nil {
@@ -166,7 +168,10 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 		}
 		return reconcile.Result{Requeue: true}, err
 	}
-
+	// set gatewayIngressIP to local host file
+	hostPath := "/etc/hosts"
+	GatewayIngressIP := rainbondcluster.Spec.GatewayIngressIPs[0]
+	commonutil.WriteHosts(hostPath, GatewayIngressIP)
 	// setup imageHub if empty
 	if rainbondcluster.Spec.ImageHub == nil {
 		reqLogger.V(6).Info("create new image hub info")
