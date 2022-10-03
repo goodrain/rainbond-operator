@@ -4,13 +4,14 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"path"
+	"time"
+
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/remotes/docker"
 	"github.com/containerd/containerd/remotes/docker/config"
-	initcontainerd "github.com/goodrain/rainbond-operator/util/init-containerd"
-	"path"
-	"time"
+	"github.com/goodrain/rainbond-operator/util/initcontainerd"
 
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"

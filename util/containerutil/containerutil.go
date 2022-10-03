@@ -9,6 +9,7 @@ const (
 	ContainerRuntimeContainerd = "containerd"
 )
 
+// GetContainerRuntime get container runtime
 func GetContainerRuntime() string {
 	// The containerd runtime is used by default
 	if os.Getenv("CONTAINER_RUNTIME") == ContainerRuntimeDocker {

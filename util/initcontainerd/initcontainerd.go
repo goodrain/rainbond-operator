@@ -1,11 +1,12 @@
-package init_containerd
+package initcontainerd
 
 import (
 	"context"
+	"os"
+
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/images"
 	"github.com/containerd/containerd/namespaces"
-	"os"
 )
 
 //ContainerdAPI -
@@ -15,6 +16,7 @@ type ContainerdAPI struct {
 	ContainerdClient *containerd.Client
 }
 
+// InitContainerd -
 func InitContainerd() (*ContainerdAPI, error) {
 	sock := os.Getenv("CONTAINERD_SOCK")
 	if sock == "" {
