@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	check_sqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"path"
 	"strings"
 
@@ -51,14 +52,16 @@ func NewWorker(ctx context.Context, client client.Client, component *rainbondv1a
 }
 
 func (w *worker) Before() error {
-	db, err := getDefaultDBInfo(w.ctx, w.client, w.cluster.Spec.RegionDatabase, w.component.Namespace, DBName)
-	if err != nil {
-		return fmt.Errorf("get db info: %v", err)
+	if !check_sqllite.IsSQLLite() {
+		db, err := getDefaultDBInfo(w.ctx, w.client, w.cluster.Spec.RegionDatabase, w.component.Namespace, DBName)
+		if err != nil {
+			return fmt.Errorf("get db info: %v", err)
+		}
+		if db.Name == "" {
+			db.Name = RegionDatabaseName
+		}
+		w.db = db
 	}
-	if db.Name == "" {
-		db.Name = RegionDatabaseName
-	}
-	w.db = db
 
 	secret, err := etcdSecret(w.ctx, w.client, w.cluster)
 	if err != nil {
@@ -128,9 +131,11 @@ func (w *worker) deployment() client.Object {
 	args := []string{
 		"--host-ip=$(POD_IP)",
 		"--node-name=$(POD_IP)",
-		w.db.RegionDataSource(),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(w.cluster), ","),
 		"--rbd-system-namespace=" + w.component.Namespace,
+	}
+	if !check_sqllite.IsSQLLite() {
+		args = append(args, w.db.RegionDataSource())
 	}
 	if w.etcdSecret != nil {
 		volume, mount := volumeByEtcd(w.etcdSecret)

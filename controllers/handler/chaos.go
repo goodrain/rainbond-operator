@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	check_sqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"path"
 	"strings"
 
@@ -57,14 +58,16 @@ func NewChaos(ctx context.Context, client client.Client, component *rainbondv1al
 }
 
 func (c *chaos) Before() error {
-	db, err := getDefaultDBInfo(c.ctx, c.client, c.cluster.Spec.RegionDatabase, c.component.Namespace, DBName)
-	if err != nil {
-		return fmt.Errorf("get db info: %v", err)
+	if !check_sqllite.IsSQLLite() {
+		db, err := getDefaultDBInfo(c.ctx, c.client, c.cluster.Spec.RegionDatabase, c.component.Namespace, DBName)
+		if err != nil {
+			return fmt.Errorf("get db info: %v", err)
+		}
+		if db.Name == "" {
+			db.Name = RegionDatabaseName
+		}
+		c.db = db
 	}
-	if db.Name == "" {
-		db.Name = RegionDatabaseName
-	}
-	c.db = db
 
 	secret, err := etcdSecret(c.ctx, c.client, c.cluster)
 	if err != nil {
@@ -180,12 +183,14 @@ func (c *chaos) deployment() client.Object {
 	}
 	args := []string{
 		"--hostIP=$(POD_IP)",
-		c.db.RegionDataSource(),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(c.cluster), ","),
 		"--pvc-grdata-name=" + constants.GrDataPVC,
 		"--pvc-cache-name=" + constants.CachePVC,
 		"--rbd-namespace=" + c.component.Namespace,
 		"--rbd-repo=" + ResourceProxyName,
+	}
+	if !check_sqllite.IsSQLLite() {
+		args = append(args, c.db.RegionDataSource())
 	}
 	if c.cluster.Spec.CacheMode == "hostpath" {
 		args = append(args, "--cache-mode=hostpath")

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	check_sqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -66,14 +67,16 @@ func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alph
 }
 
 func (a *api) Before() error {
-	db, err := getDefaultDBInfo(a.ctx, a.client, a.cluster.Spec.RegionDatabase, a.component.Namespace, DBName)
-	if err != nil {
-		return fmt.Errorf("get db info: %v", err)
+	if !check_sqllite.IsSQLLite() {
+		db, err := getDefaultDBInfo(a.ctx, a.client, a.cluster.Spec.RegionDatabase, a.component.Namespace, DBName)
+		if err != nil {
+			return fmt.Errorf("get db info: %v", err)
+		}
+		if db.Name == "" {
+			db.Name = RegionDatabaseName
+		}
+		a.db = db
 	}
-	if db.Name == "" {
-		db.Name = RegionDatabaseName
-	}
-	a.db = db
 
 	secret, err := etcdSecret(a.ctx, a.client, a.cluster)
 	if err != nil {
@@ -226,8 +229,10 @@ func (a *api) deployment() client.Object {
 	args := []string{
 		"--api-addr=0.0.0.0:8888",
 		"--enable-feature=privileged",
-		a.db.RegionDataSource(),
 		"--etcd=" + strings.Join(etcdEndpoints(a.cluster), ","),
+	}
+	if !check_sqllite.IsSQLLite() {
+		args = append(args, a.db.RegionDataSource())
 	}
 	if a.etcdSecret != nil {
 		volume, mount := volumeByEtcd(a.etcdSecret)
