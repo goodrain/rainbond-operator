@@ -179,7 +179,6 @@ func WriteHosts(hostspath, ip string) {
 			break
 		}
 		if line == StartOfSection {
-			logrus.Info("rainbond hub url is exist")
 			return
 		}
 	}
