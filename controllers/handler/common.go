@@ -157,6 +157,38 @@ func volumeByEtcd(etcdSecret *corev1.Secret) (corev1.Volume, corev1.VolumeMount)
 	return volume, mount
 }
 
+func volumeByContainerdSocket() (corev1.Volume, corev1.VolumeMount) {
+	volume := corev1.Volume{
+		Name: "containerdsock",
+		VolumeSource: corev1.VolumeSource{
+			HostPath: &corev1.HostPathVolumeSource{
+				Path: "/run/containerd/containerd.sock",
+			},
+		},
+	}
+	mount := corev1.VolumeMount{
+		Name:      "containerdsock",
+		MountPath: "/run/containerd/containerd.sock",
+	}
+	return volume, mount
+}
+
+func volumeByDockerSocket() (corev1.Volume, corev1.VolumeMount) {
+	volume := corev1.Volume{
+		Name: "dockersock",
+		VolumeSource: corev1.VolumeSource{
+			HostPath: &corev1.HostPathVolumeSource{
+				Path: "/var/run/docker.sock",
+			},
+		},
+	}
+	mount := corev1.VolumeMount{
+		Name:      "dockersock",
+		MountPath: "/var/run/docker.sock",
+	}
+	return volume, mount
+}
+
 func volumeByAPISecret(apiServerSecret *corev1.Secret) (corev1.Volume, corev1.VolumeMount) {
 	volume := corev1.Volume{
 		Name: "region-api-ssl",

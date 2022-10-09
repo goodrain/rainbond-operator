@@ -142,6 +142,15 @@ func (n *node) getDockerVolumes() ([]corev1.Volume, []corev1.VolumeMount) {
 				},
 			},
 		},
+		{
+			Name: "dockersock",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/run/docker.sock",
+					Type: k8sutil.HostPath(corev1.HostPathSocket),
+				},
+			},
+		},
 	}
 	volumeMounts := []corev1.VolumeMount{
 		{
@@ -254,16 +263,6 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 			},
 		},
 	}
-	var (
-		runtimeVolumes      []corev1.Volume
-		runtimeVolumeMounts []corev1.VolumeMount
-	)
-	runtimeVolumes, runtimeVolumeMounts = n.getContainerdVolumes()
-	if n.containerRuntime == containerutil.ContainerRuntimeDocker {
-		runtimeVolumes, runtimeVolumeMounts = n.getDockerVolumes()
-	}
-	volumes = append(volumes, runtimeVolumes...)
-	volumeMounts = append(volumeMounts, runtimeVolumeMounts...)
 	args := []string{
 		"--etcd=" + strings.Join(etcdEndpoints(n.cluster), ","),
 		"--hostIP=$(POD_IP)",
@@ -274,6 +273,17 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 		"--hostsfile=/newetc/hosts",
 		"--rbd-ns=" + n.component.Namespace,
 	}
+	var (
+		runtimeVolumes      []corev1.Volume
+		runtimeVolumeMounts []corev1.VolumeMount
+	)
+	runtimeVolumes, runtimeVolumeMounts = n.getContainerdVolumes()
+	if n.containerRuntime == containerutil.ContainerRuntimeDocker {
+		runtimeVolumes, runtimeVolumeMounts = n.getDockerVolumes()
+		args = append(args, "--container-runtime=docker")
+	}
+	volumes = append(volumes, runtimeVolumes...)
+	volumeMounts = append(volumeMounts, runtimeVolumeMounts...)
 	if n.etcdSecret != nil {
 		volume, mount := volumeByEtcd(n.etcdSecret)
 		volumeMounts = append(volumeMounts, mount)
