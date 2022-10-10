@@ -3,6 +3,8 @@ package handler
 import (
 	"context"
 	"fmt"
+	check_sqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
+	"github.com/goodrain/rainbond-operator/util/containerutil"
 	"path"
 	"strings"
 
@@ -37,6 +39,7 @@ type chaos struct {
 	pvcParametersRWX     *pvcParameters
 	cacheStorageRequest  int64
 	grdataStorageRequest int64
+	containerRuntime     string
 }
 
 var _ ComponentHandler = &chaos{}
@@ -53,18 +56,21 @@ func NewChaos(ctx context.Context, client client.Client, component *rainbondv1al
 		labels:               LabelsForRainbondComponent(component),
 		cacheStorageRequest:  getStorageRequest("CHAOS_CACHE_STORAGE_REQUEST", 10),
 		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
+		containerRuntime:     containerutil.GetContainerRuntime(),
 	}
 }
 
 func (c *chaos) Before() error {
-	db, err := getDefaultDBInfo(c.ctx, c.client, c.cluster.Spec.RegionDatabase, c.component.Namespace, DBName)
-	if err != nil {
-		return fmt.Errorf("get db info: %v", err)
+	if !check_sqllite.IsSQLLite() {
+		db, err := getDefaultDBInfo(c.ctx, c.client, c.cluster.Spec.RegionDatabase, c.component.Namespace, DBName)
+		if err != nil {
+			return fmt.Errorf("get db info: %v", err)
+		}
+		if db.Name == "" {
+			db.Name = RegionDatabaseName
+		}
+		c.db = db
 	}
-	if db.Name == "" {
-		db.Name = RegionDatabaseName
-	}
-	c.db = db
 
 	secret, err := etcdSecret(c.ctx, c.client, c.cluster)
 	if err != nil {
@@ -126,10 +132,6 @@ func (c *chaos) deployment() client.Object {
 			MountPath: "/grdata",
 		},
 		{
-			Name:      "containerdsock",
-			MountPath: "/run/containerd/containerd.sock",
-		},
-		{
 			Name:      "cache",
 			MountPath: "/cache",
 		},
@@ -145,15 +147,6 @@ func (c *chaos) deployment() client.Object {
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 					ClaimName: constants.GrDataPVC,
-				},
-			},
-		},
-		{
-			Name: "containerdsock",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/run/containerd/containerd.sock",
-					Type: k8sutil.HostPath(corev1.HostPathSocket),
 				},
 			},
 		},
@@ -180,17 +173,28 @@ func (c *chaos) deployment() client.Object {
 	}
 	args := []string{
 		"--hostIP=$(POD_IP)",
-		c.db.RegionDataSource(),
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(c.cluster), ","),
 		"--pvc-grdata-name=" + constants.GrDataPVC,
 		"--pvc-cache-name=" + constants.CachePVC,
 		"--rbd-namespace=" + c.component.Namespace,
 		"--rbd-repo=" + ResourceProxyName,
 	}
+	if !check_sqllite.IsSQLLite() {
+		args = append(args, c.db.RegionDataSource())
+	}
 	if c.cluster.Spec.CacheMode == "hostpath" {
 		args = append(args, "--cache-mode=hostpath")
 	}
-
+	if c.containerRuntime == containerutil.ContainerRuntimeDocker {
+		volume, mount := volumeByDockerSocket()
+		volumeMounts = append(volumeMounts, mount)
+		volumes = append(volumes, volume)
+		args = append(args, "--container-runtime=docker")
+	} else {
+		volume, mount := volumeByContainerdSocket()
+		volumeMounts = append(volumeMounts, mount)
+		volumes = append(volumes, volume)
+	}
 	if c.etcdSecret != nil {
 		volume, mount := volumeByEtcd(c.etcdSecret)
 		volumeMounts = append(volumeMounts, mount)

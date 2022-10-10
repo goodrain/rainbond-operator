@@ -2,8 +2,6 @@ package initcontainerd
 
 import (
 	"context"
-	"os"
-
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/images"
 	"github.com/containerd/containerd/namespaces"
@@ -18,15 +16,14 @@ type ContainerdAPI struct {
 
 // InitContainerd -
 func InitContainerd() (*ContainerdAPI, error) {
-	sock := os.Getenv("CONTAINERD_SOCK")
-	if sock == "" {
-		sock = "/run/containerd/containerd.sock"
-	}
-	containerdClient, err := containerd.New(sock)
+	containerdClient, err := containerd.New("/run/containerd/containerd.sock")
 	if err != nil {
-		return nil, err
+		containerdClient, err = containerd.New("/var/run/docker/containerd/containerd.sock")
+		if err != nil {
+			return nil, err
+		}
 	}
-	cctx := namespaces.WithNamespace(context.Background(), "rainbond")
+	cctx := namespaces.WithNamespace(context.Background(), "k8s.io")
 	imageService := containerdClient.ImageService()
 	return &ContainerdAPI{
 		ImageService:     imageService,

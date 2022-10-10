@@ -169,8 +169,8 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 	}
 	// set gatewayIngressIP to local host file
 	hostPath := "/etc/hosts"
-	GatewayIngressIP := rainbondcluster.Spec.GatewayIngressIPs[0]
-	commonutil.WriteHosts(hostPath, GatewayIngressIP)
+	NodesForGateway := rainbondcluster.Spec.NodesForGateway[0].InternalIP
+	commonutil.WriteHosts(hostPath, NodesForGateway)
 	// setup imageHub if empty
 	if rainbondcluster.Spec.ImageHub == nil {
 		reqLogger.V(6).Info("create new image hub info")

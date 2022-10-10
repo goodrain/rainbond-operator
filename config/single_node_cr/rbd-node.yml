@@ -11,7 +11,7 @@ metadata:
     persistentVolumeClaimAccessModes: ReadWriteOnce
 spec:
   replicas: 1
-  image: registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-node:V5.8-dev
+  image: rainbond/rbd-node:v5.6.0-release
   imagePullPolicy: IfNotPresent
   priorityComponent: true
   volumeMounts:
