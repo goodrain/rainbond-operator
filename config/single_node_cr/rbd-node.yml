@@ -15,10 +15,10 @@ spec:
   imagePullPolicy: IfNotPresent
   priorityComponent: true
   volumeMounts:
-    - mountPath: /run/containerd/containerd.sock
+    - mountPath: /run/containerd
       name: containerdsock
   volumes:
     - hostPath:
-        path: /run/k3s/containerd/containerd.sock
-        type: Socket
+        path: /run/k3s/containerd
+        type: Directory
       name: containerdsock
