@@ -104,7 +104,7 @@ func (w *worker) ResourcesCreateIfNotExists() []client.Object {
 	}
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(w.component.Namespace, constants.WTDataPVC, w.pvcParametersRWX, w.labels),
+		createPersistentVolumeClaimRWX(w.component.Namespace, constants.WTDataPVC, w.pvcParametersRWX, w.labels, w.storageRequest),
 	}
 }
 

@@ -3,9 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	"github.com/wutong-paas/wutong-operator/util/k8sutil"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
-	"strconv"
 
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	"github.com/wutong-paas/wutong-operator/util/commonutil"
@@ -113,7 +114,7 @@ func (a *appui) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 func (a *appui) ResourcesCreateIfNotExists() []client.Object {
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels),
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels, a.storageRequest),
 	}
 }
 

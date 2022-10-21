@@ -3,11 +3,12 @@ package handler
 import (
 	"context"
 	"fmt"
+	"os/exec"
+
 	"github.com/sirupsen/logrus"
 	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
-	"os/exec"
 
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	"github.com/wutong-paas/wutong-operator/util/commonutil"
@@ -228,7 +229,7 @@ func (h *hub) persistentVolumeClaimForHub() *corev1.PersistentVolumeClaim {
 	if h.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
 		return createPersistentVolumeClaimRWO(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels, h.storageRequest)
 	}
-	return createPersistentVolumeClaimRWX(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels)
+	return createPersistentVolumeClaimRWX(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels, h.storageRequest)
 }
 
 func (h *hub) ingressForHub() client.Object {

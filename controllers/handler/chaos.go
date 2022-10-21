@@ -110,8 +110,8 @@ func (c *chaos) ResourcesCreateIfNotExists() []client.Object {
 		}
 	}
 	return []client.Object{
-		createPersistentVolumeClaimRWX(c.component.Namespace, constants.WTDataPVC, c.pvcParametersRWX, c.labels),
-		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels),
+		createPersistentVolumeClaimRWX(c.component.Namespace, constants.WTDataPVC, c.pvcParametersRWX, c.labels, c.wtdataStorageRequest),
+		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels, c.cacheStorageRequest),
 	}
 }
 

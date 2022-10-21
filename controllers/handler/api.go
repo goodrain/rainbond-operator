@@ -118,8 +118,8 @@ func (a *api) ResourcesCreateIfNotExists() []client.Object {
 	}
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(a.component.Namespace, constants.WTDataPVC, a.pvcParametersRWX, a.labels),
-		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels),
+		createPersistentVolumeClaimRWX(a.component.Namespace, constants.WTDataPVC, a.pvcParametersRWX, a.labels, a.wtdataStorageRequest),
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels, a.dataStorageRequest),
 	}
 }
 
