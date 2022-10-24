@@ -74,8 +74,11 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 }
 
 func (d *db) Before() error {
+	if os.Getenv("CONSOLE_DOMAIN") != "" && d.cluster.Spec.RegionDatabase != nil {
+		return NewIgnoreError("use custom region database")
+	}
 	if d.cluster.Spec.RegionDatabase != nil && d.cluster.Spec.UIDatabase != nil {
-		return NewIgnoreError("use custom database")
+		return NewIgnoreError("use custom regionDB and uiDB")
 	}
 
 	secret := &corev1.Secret{}
