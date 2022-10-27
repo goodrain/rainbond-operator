@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	check_sqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
-	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	check_sqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
+	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	"github.com/sirupsen/logrus"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -265,6 +266,14 @@ func (a *api) deployment() client.Object {
 		{
 			Name:  "EX_DOMAIN",
 			Value: a.cluster.Spec.SuffixHTTPHost,
+		},
+		{
+			Name:  "SERVICE_ID",
+			Value: "rbd-api",
+		},
+		{
+			Name:  "LOGGER_DRIVER_NAME",
+			Value: "streamlog",
 		},
 	}
 
