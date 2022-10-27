@@ -78,6 +78,17 @@ func (g *gateway) daemonset() client.Object {
 		"--errlog-level=error",
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(g.cluster), ","),
 	}
+	envs := []corev1.EnvVar{
+		{
+			Name:  "SERVICE_ID",
+			Value: "rbd-gateway",
+		},
+		{
+			Name:  "LOGGER_DRIVER_NAME",
+			Value: "streamlog",
+		},
+	}
+	envs = append(envs, g.component.Spec.Env...)
 
 	var volumeMounts []corev1.VolumeMount
 	var volumes []corev1.Volume
@@ -143,7 +154,7 @@ func (g *gateway) daemonset() client.Object {
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),
 							},
-							Env: g.component.Spec.Env,
+							Env: envs,
 						},
 					},
 					Volumes: volumes,

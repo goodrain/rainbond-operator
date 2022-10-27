@@ -3,10 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
-	check_sqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
-	"github.com/goodrain/rainbond-operator/util/containerutil"
 	"path"
 	"strings"
+
+	check_sqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
+	"github.com/goodrain/rainbond-operator/util/containerutil"
 
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
@@ -244,6 +245,14 @@ func (c *chaos) deployment() client.Object {
 				}
 				return ""
 			}(),
+		},
+		{
+			Name:  "SERVICE_ID",
+			Value: "rbd-chaos",
+		},
+		{
+			Name:  "LOGGER_DRIVER_NAME",
+			Value: "streamlog",
 		},
 	}
 	if imageHub := c.cluster.Spec.ImageHub; imageHub != nil {
