@@ -3,9 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
-	check_sqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"path"
 	"strings"
+
+	check_sqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 
@@ -169,6 +170,14 @@ func (w *worker) deployment() client.Object {
 				}
 				return ""
 			}(),
+		},
+		{
+			Name:  "SERVICE_ID",
+			Value: "rbd-worker",
+		},
+		{
+			Name:  "LOGGER_DRIVER_NAME",
+			Value: "streamlog",
 		},
 	}
 	if imageHub := w.cluster.Spec.ImageHub; imageHub != nil {
