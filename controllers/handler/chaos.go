@@ -3,10 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
+	checkSqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"path"
 	"strings"
 
-	check_sqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"github.com/goodrain/rainbond-operator/util/containerutil"
 
 	"github.com/goodrain/rainbond-operator/util/probeutil"
@@ -62,7 +62,7 @@ func NewChaos(ctx context.Context, client client.Client, component *rainbondv1al
 }
 
 func (c *chaos) Before() error {
-	if !check_sqllite.IsSQLLite() {
+	if !checkSqllite.IsSQLLite() {
 		db, err := getDefaultDBInfo(c.ctx, c.client, c.cluster.Spec.RegionDatabase, c.component.Namespace, DBName)
 		if err != nil {
 			return fmt.Errorf("get db info: %v", err)
@@ -180,7 +180,7 @@ func (c *chaos) deployment() client.Object {
 		"--rbd-namespace=" + c.component.Namespace,
 		"--rbd-repo=" + ResourceProxyName,
 	}
-	if !check_sqllite.IsSQLLite() {
+	if !checkSqllite.IsSQLLite() {
 		args = append(args, c.db.RegionDataSource())
 	}
 	if c.cluster.Spec.CacheMode == "hostpath" {

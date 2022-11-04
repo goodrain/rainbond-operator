@@ -3,10 +3,9 @@ package handler
 import (
 	"context"
 	"fmt"
+	checkSqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"path"
 	"strings"
-
-	check_sqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 
@@ -53,7 +52,7 @@ func NewWorker(ctx context.Context, client client.Client, component *rainbondv1a
 }
 
 func (w *worker) Before() error {
-	if !check_sqllite.IsSQLLite() {
+	if !checkSqllite.IsSQLLite() {
 		db, err := getDefaultDBInfo(w.ctx, w.client, w.cluster.Spec.RegionDatabase, w.component.Namespace, DBName)
 		if err != nil {
 			return fmt.Errorf("get db info: %v", err)
@@ -135,7 +134,7 @@ func (w *worker) deployment() client.Object {
 		"--etcd-endpoints=" + strings.Join(etcdEndpoints(w.cluster), ","),
 		"--rbd-system-namespace=" + w.component.Namespace,
 	}
-	if !check_sqllite.IsSQLLite() {
+	if !checkSqllite.IsSQLLite() {
 		args = append(args, w.db.RegionDataSource())
 	}
 	if w.etcdSecret != nil {
