@@ -3,6 +3,7 @@ package k8sutil
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net"
 	"os"
 	"sync"
@@ -16,13 +17,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/reference"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	utilversion "k8s.io/apimachinery/pkg/util/version"
 )
 
 var once sync.Once
@@ -241,6 +242,10 @@ func ListNodes(ctx context.Context, c client.Client) ([]corev1.Node, error) {
 
 // GetKubeVersion returns the version of k8s
 func GetKubeVersion() *utilversion.Version {
-	var serverVersion, _ = GetClientSet().Discovery().ServerVersion()
+	var serverVersion, err = GetClientSet().Discovery().ServerVersion()
+	if err != nil {
+		logrus.Errorf("Get Kubernetes Version failed [%+v]", err)
+		return utilversion.MustParseSemantic("v1.19.6")
+	}
 	return utilversion.MustParseSemantic(serverVersion.GitVersion)
 }

@@ -34,6 +34,14 @@ func GetImageRepository(cluster *rainbondv1alpha1.RainbondCluster) string {
 	return path.Join(cluster.Spec.ImageHub.Domain, cluster.Spec.ImageHub.Namespace)
 }
 
+// GetImageRepositoryDomain returns image repository domain based on rainbondcluster.
+func GetImageRepositoryDomain(cluster *rainbondv1alpha1.RainbondCluster) string {
+	if cluster.Spec.ImageHub == nil {
+		return constants.DefImageRepository
+	}
+	return cluster.Spec.ImageHub.Domain
+}
+
 // LabelsForAccessModeRWX returns rainbond labels with access mode rwx.
 func LabelsForAccessModeRWX() map[string]string {
 	return map[string]string{

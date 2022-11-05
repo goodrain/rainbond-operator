@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -53,15 +52,7 @@ type RainbondClusterReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("rainbondcluster", request.NamespacedName)
-	if os.Getenv("ENABLE_CLUSTER") != "true" {
-		cmdOne := exec.Command("ping", "registry.cn-hangzhou.aliyuncs.com", "-c", "1", "-W", "5")
-		errOne := cmdOne.Run()
-		cmdTwo := exec.Command("curl", "--connect-timeout", "1", "docker.io")
-		errTwo := cmdTwo.Run()
-		if errOne != nil && errTwo != nil {
-			return reconcile.Result{}, fmt.Errorf("外部网络不可用")
-		}
-	}
+
 	// Fetch the RainbondCluster instance
 	rainbondcluster := &rainbondv1alpha1.RainbondCluster{}
 	err := r.Get(ctx, request.NamespacedName, rainbondcluster)

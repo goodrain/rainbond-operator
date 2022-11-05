@@ -9,6 +9,7 @@ require (
 	github.com/containerd/containerd v1.5.7
 	github.com/containerd/continuity v0.3.0 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible
+	github.com/docker/cli v0.0.0-20191017083524-a8ff7f821017
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v20.10.2+incompatible
 	github.com/gin-gonic/gin v1.6.3
@@ -24,6 +25,7 @@ require (
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.3
 	github.com/opencontainers/runc v1.1.4 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.6.1
