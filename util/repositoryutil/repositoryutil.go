@@ -57,6 +57,7 @@ func convertToHostname(serverAddress string) (string, error) {
 	return serverAddress, nil
 }
 
+// GetDefaultAuthConfig gets default auth config
 func GetDefaultAuthConfig(serverAddress, username, password string, isDefaultRegistry bool) (*types.AuthConfig, error) {
 	if !isDefaultRegistry {
 		var err error
@@ -77,6 +78,7 @@ func GetDefaultAuthConfig(serverAddress, username, password string, isDefaultReg
 	return &res, nil
 }
 
+// ConfigureAuthentication configures authentication for a registry
 func ConfigureAuthentication(authConfig *types.AuthConfig, username, password string) error {
 	authConfig.Username = strings.TrimSpace(authConfig.Username)
 	if username = strings.TrimSpace(username); username == "" {
@@ -93,6 +95,7 @@ func ConfigureAuthentication(authConfig *types.AuthConfig, username, password st
 	return nil
 }
 
+// LoginRepository logs in to a image repository
 func LoginRepository(serverAddress, username, password string) error {
 	ctx := context.Background()
 	isDefaultRegistry := serverAddress == "goodrain.me"
