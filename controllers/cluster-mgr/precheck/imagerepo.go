@@ -2,16 +2,9 @@ package precheck
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"path"
+	"github.com/goodrain/rainbond-operator/util/repositoryutil"
 	"time"
-
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/errdefs"
-	"github.com/containerd/containerd/remotes/docker"
-	"github.com/containerd/containerd/remotes/docker/config"
-	"github.com/goodrain/rainbond-operator/util/initcontainerd"
 
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
@@ -54,81 +47,12 @@ func (d *imagerepo) Check() rainbondv1alpha1.RainbondClusterCondition {
 			fmt.Sprintf("precheck for %s is in progress", rainbondv1alpha1.RainbondClusterConditionTypeImageRepository)
 	}
 
-	localImage := path.Join(d.cluster.Spec.RainbondImageRepository, "smallimage:latest")
-	remoteImage := path.Join(imageRepo, "smallimage:latest")
+	// Verify that the image repository is available
+	d.log.V(6).Info("login repository", "repository", rbdutil.GetImageRepositoryDomain(d.cluster), "user", d.cluster.Spec.ImageHub.Username)
 
-	containerdCli, err := initcontainerd.InitContainerd()
-	if err != nil {
+	if err := repositoryutil.LoginRepository(rbdutil.GetImageRepositoryDomain(d.cluster), d.cluster.Spec.ImageHub.Username, d.cluster.Spec.ImageHub.Password); err != nil {
 		return d.failConditoin(condition, err)
 	}
-	image, err := containerdCli.ImageService.Get(containerdCli.CCtx, localImage)
-	checkExsit := true
-	if err != nil {
-		if errdefs.IsNotFound(err) {
-			checkExsit = false
-		} else {
-			return d.failConditoin(condition, fmt.Errorf("get image %v err：%v", localImage, err))
-		}
-	}
-	if !checkExsit {
-		defaultTLS := &tls.Config{
-			InsecureSkipVerify: true,
-		}
-		hostOpt := config.HostOptions{}
-		hostOpt.Credentials = func(host string) (string, string, error) {
-			return d.cluster.Spec.ImageHub.Username, d.cluster.Spec.ImageHub.Password, nil
-		}
-		hostOpt.DefaultTLS = defaultTLS
-		options := docker.ResolverOptions{
-			Tracker: docker.NewInMemoryTracker(),
-			Hosts:   config.ConfigureHosts(containerdCli.CCtx, hostOpt),
-		}
-
-		pullOpts := []containerd.RemoteOpt{
-			containerd.WithPullUnpack,
-			containerd.WithResolver(docker.NewResolver(options)),
-		}
-		_, err := containerdCli.ContainerdClient.Pull(containerdCli.CCtx, localImage, pullOpts...)
-		if err != nil {
-			return d.failConditoin(condition, fmt.Errorf("pull image %v err:%v", localImage, err))
-		}
-	}
-	image.Name = remoteImage
-	if _, err = containerdCli.ImageService.Create(containerdCli.CCtx, image); err != nil {
-		// If user has specified force and the image already exists then
-		// delete the original image and attempt to create the new one
-		if errdefs.IsAlreadyExists(err) {
-			if err = containerdCli.ImageService.Delete(containerdCli.CCtx, remoteImage); err != nil {
-				return d.failConditoin(condition, fmt.Errorf("delete image %v err:%v", remoteImage, err))
-			}
-			if _, err = containerdCli.ImageService.Create(containerdCli.CCtx, image); err != nil {
-				return d.failConditoin(condition, fmt.Errorf("create image %v err:%v", remoteImage, err))
-			}
-		} else {
-			return d.failConditoin(condition, fmt.Errorf("create image %v err:%v", remoteImage, err))
-		}
-	}
-
-	// push a small image to check the given image repository
-	d.log.V(6).Info("push image", "image", remoteImage, "repository", imageRepo, "user", d.cluster.Spec.ImageHub.Username)
-	defaultTLS := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	hostOpt := config.HostOptions{}
-	hostOpt.DefaultTLS = defaultTLS
-	hostOpt.Credentials = func(host string) (string, string, error) {
-		return d.cluster.Spec.ImageHub.Username, d.cluster.Spec.ImageHub.Password, nil
-	}
-	options := docker.ResolverOptions{
-		Tracker: docker.NewInMemoryTracker(),
-		Hosts:   config.ConfigureHosts(containerdCli.CCtx, hostOpt),
-	}
-	err = containerdCli.ContainerdClient.Push(containerdCli.CCtx, image.Name, image.Target, containerd.WithResolver(docker.NewResolver(options)))
-	if err != nil {
-		return d.failConditoin(condition, fmt.Errorf("push image %v err:%v", image.Name, err))
-	}
-
 	return condition
 }
 
