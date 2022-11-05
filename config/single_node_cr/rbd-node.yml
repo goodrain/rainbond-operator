@@ -19,6 +19,6 @@ spec:
       name: containerdsock
   volumes:
     - hostPath:
-        path: /run/k3s/containerd
+        path: /run/containerd
         type: Directory
       name: containerdsock
