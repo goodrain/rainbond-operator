@@ -3,7 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
-	check_sqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
+	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"path"
 	"strings"
 
@@ -52,7 +52,7 @@ func NewEventLog(ctx context.Context, client client.Client, component *rainbondv
 }
 
 func (e *eventlog) Before() error {
-	if !check_sqllite.IsSQLLite() {
+	if !checksqllite.IsSQLLite() {
 		db, err := getDefaultDBInfo(e.ctx, e.client, e.cluster.Spec.RegionDatabase, e.component.Namespace, DBName)
 		if err != nil {
 			return fmt.Errorf("get db info: %v", err)
@@ -160,7 +160,7 @@ func (e *eventlog) statefulset() client.Object {
 		"--websocket.bind.ip=$(POD_IP)",
 		"--discover.etcd.addr=" + strings.Join(etcdEndpoints(e.cluster), ","),
 	}
-	if !check_sqllite.IsSQLLite() {
+	if !checksqllite.IsSQLLite() {
 		args = append(args, "--db.url="+strings.Replace(e.db.RegionDataSource(), "--mysql=", "", 1))
 	}
 	if !strings.Contains(e.component.Spec.Image, "5.2.0") {
