@@ -6,7 +6,7 @@ require (
 	github.com/Microsoft/hcsshim v0.9.4 // indirect
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.5+incompatible
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
-	github.com/containerd/containerd v1.5.7
+	github.com/containerd/containerd v1.5.13
 	github.com/containerd/continuity v0.3.0 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible
 	github.com/docker/cli v0.0.0-20191017083524-a8ff7f821017
@@ -28,7 +28,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/twinj/uuid v1.0.0
 	gopkg.in/stretchr/testify.v1 v1.2.2 // indirect
 	k8s.io/api v0.20.6
