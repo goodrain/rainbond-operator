@@ -20,7 +20,7 @@ spec:
       name: sqlite
   volumes:
     - hostPath:
-        path: /run/k3s/containerd/containerd.sock
+        path: /run/containerd/containerd.sock
         type: Socket
       name: containerdsock
     - hostPath:
