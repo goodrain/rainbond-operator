@@ -149,7 +149,7 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 				return err
 			}
 			rc.Spec.GatewayIngressIPs = rainbondcluster.Spec.GatewayIngressIPs
-			rc.Spec.NodesForGateway = rainbondcluster.Spec.NodesForChaos
+			rc.Spec.NodesForGateway = rainbondcluster.Spec.NodesForGateway
 			rc.Spec.NodesForChaos = rainbondcluster.Spec.NodesForChaos
 			return r.Update(ctx, rc)
 		}); err != nil {
