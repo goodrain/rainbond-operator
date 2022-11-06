@@ -14,14 +14,14 @@ spec:
   imagePullPolicy: IfNotPresent
   priorityComponent: false
   volumeMounts:
-    - mountPath: /run/containerd/containerd.sock
+    - mountPath: /run/containerd/
       name: containerdsock
     - mountPath: /db
       name: sqlite
   volumes:
     - hostPath:
-        path: /run/containerd/containerd.sock
-        type: Socket
+        path: /run/containerd/
+        type: Directory
       name: containerdsock
     - hostPath:
         path: /app/data
