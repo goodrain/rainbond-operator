@@ -2,7 +2,7 @@ package constants
 
 const (
 	//Namespace namespace
-	Namespace = "wt-system"
+	WutongSystemNamespace = "wt-system"
 	//DefInstallPkgDestPath  Default destination path of the installation package extraction.
 	DefInstallPkgDestPath = "/tmp/DefInstallPkgDestPath"
 	//WutongClusterName wutong cluster resource name
@@ -35,4 +35,7 @@ const (
 
 	// ServiceAccountName is the name of service account
 	ServiceAccountName = "wutong-operator"
+
+	//InstallImageRepo install image repo
+	InstallImageRepo = "swr.cn-southwest-2.myhuaweicloud.com/wutong"
 )

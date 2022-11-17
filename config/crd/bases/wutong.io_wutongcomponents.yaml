@@ -1428,44 +1428,44 @@ spec:
                       - registry
                       - volume
                       type: object
-                    wt:
+                    rbd:
                       description: 'RBD represents a Rados Block Device mount on the
-                        host that shares a pod''s lifetime. More info: https://examples.k8s.io/volumes/wt/README.md'
+                        host that shares a pod''s lifetime. More info: https://examples.k8s.io/volumes/rbd/README.md'
                       properties:
                         fsType:
                           description: 'Filesystem type of the volume that you want
                             to mount. Tip: Ensure that the filesystem type is supported
                             by the host operating system. Examples: "ext4", "xfs",
                             "ntfs". Implicitly inferred to be "ext4" if unspecified.
-                            More info: https://kubernetes.io/docs/concepts/storage/volumes#wt
+                            More info: https://kubernetes.io/docs/concepts/storage/volumes#rbd
                             TODO: how do we prevent errors in the filesystem from
                             compromising the machine'
                           type: string
                         image:
-                          description: 'The rados image name. More info: https://examples.k8s.io/volumes/wt/README.md#how-to-use-it'
+                          description: 'The rados image name. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it'
                           type: string
                         keyring:
                           description: 'Keyring is the path to key ring for RBDUser.
-                            Default is /etc/ceph/keyring. More info: https://examples.k8s.io/volumes/wt/README.md#how-to-use-it'
+                            Default is /etc/ceph/keyring. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it'
                           type: string
                         monitors:
                           description: 'A collection of Ceph monitors. More info:
-                            https://examples.k8s.io/volumes/wt/README.md#how-to-use-it'
+                            https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it'
                           items:
                             type: string
                           type: array
                         pool:
-                          description: 'The rados pool name. Default is wt. More
-                            info: https://examples.k8s.io/volumes/wt/README.md#how-to-use-it'
+                          description: 'The rados pool name. Default is rbd. More
+                            info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it'
                           type: string
                         readOnly:
                           description: 'ReadOnly here will force the ReadOnly setting
-                            in VolumeMounts. Defaults to false. More info: https://examples.k8s.io/volumes/wt/README.md#how-to-use-it'
+                            in VolumeMounts. Defaults to false. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it'
                           type: boolean
                         secretRef:
                           description: 'SecretRef is name of the authentication secret
                             for RBDUser. If provided overrides keyring. Default is
-                            nil. More info: https://examples.k8s.io/volumes/wt/README.md#how-to-use-it'
+                            nil. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it'
                           properties:
                             name:
                               description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -1474,7 +1474,7 @@ spec:
                           type: object
                         user:
                           description: 'The rados user name. Default is admin. More
-                            info: https://examples.k8s.io/volumes/wt/README.md#how-to-use-it'
+                            info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it'
                           type: string
                       required:
                       - image

@@ -147,7 +147,22 @@ type WutongClusterSpec struct {
 	SentinelImage string `json:"sentinelImage,omitempty"`
 
 	CacheMode string `json:"cacheMode,omitempty"`
-	Arch      string `json:"arch,omitempty"`
+	// Arch is the server architecture of the cluster. It's ptional, default is amd64, support arm64
+	Arch string `json:"arch,omitempty"`
+	// Light weight is a mode that only install the necessary components of wutong
+	Lightweight bool `json:"lightweight,omitempty"`
+	// Optional components
+	OptionalComponent OptionalComponent `json:"optionalComponent,omitempty"`
+}
+
+type OptionalComponent struct {
+	MetricsServer       bool `json:"metrics-server,omitempty"`
+	WutongNode          bool `json:"wt-node,omitempty"`
+	WutongGateway       bool `json:"wt-gateway,omitempty"`
+	WutongMonitor       bool `json:"wt-monitor,omitempty"`
+	WutongEventLog      bool `json:"wt-eventlog,omitempty"`
+	WutongWebcli        bool `json:"wt-webcli,omitempty"`
+	WutongResourceProxy bool `json:"wt-resource-proxy,omitempty"`
 }
 
 // InstallPackageConfig define install package download config

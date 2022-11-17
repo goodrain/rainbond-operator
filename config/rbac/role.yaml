@@ -35,6 +35,32 @@ rules:
 - apiGroups:
   - wutong.io
   resources:
+  - wutongcomponents
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - wutong.io
+  resources:
+  - wutongcomponents/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - wutong.io
+  resources:
+  - wutongcomponents/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - wutong.io
+  resources:
   - wutongpackages
   verbs:
   - create
@@ -80,32 +106,6 @@ rules:
   - wutong.io
   resources:
   - wutongvolumes/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - wutong.io
-  resources:
-  - wutongcomponents
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - wutong.io
-  resources:
-  - wutongcomponents/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - wutong.io
-  resources:
-  - wutongcomponents/status
   verbs:
   - get
   - patch

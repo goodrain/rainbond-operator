@@ -3,16 +3,21 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"github.com/wutong-paas/wutong-operator/util/commonutil"
 	"github.com/wutong-paas/wutong-operator/util/retryutil"
 	"github.com/wutong-paas/wutong-operator/util/suffixdomain"
+	"github.com/wutong-paas/wutong-operator/util/wtutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/go-logr/logr"
 	"github.com/juju/errors"
+	"github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	clustermgr "github.com/wutong-paas/wutong-operator/controllers/cluster-mgr"
 	"github.com/wutong-paas/wutong-operator/util/constants"
@@ -24,6 +29,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+const (
+	RegionArchAmd64 = "amd64" // default
+	RegionArchArm64 = "arm64"
 )
 
 // WutongClusterReconciler reconciles a WutongCluster object
@@ -162,7 +172,71 @@ func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Re
 		}
 	}
 
+	r.ReconcileLightweightInstall(ctx, wutongcluster)
+
+	if err := r.createWutongVolumes(wutongcluster); err != nil {
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, fmt.Errorf("create wutong volume failure %s", err.Error())
+	}
+	if err := r.createWutongPackage(); err != nil {
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, fmt.Errorf("create wutong package failure %s", err.Error())
+	}
+	if err := r.createComponents(wutongcluster); err != nil {
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, fmt.Errorf("create components failure %s", err.Error())
+	}
+
 	return ctrl.Result{}, nil
+}
+
+func (r *WutongClusterReconciler) ReconcileLightweightInstall(ctx context.Context, wutongcluster *wutongv1alpha1.WutongCluster) {
+	if wutongcluster.Spec.Lightweight {
+		if !wutongcluster.Spec.OptionalComponent.MetricsServer {
+			var comp wutongv1alpha1.WutongComponent
+			err := r.Get(ctx, types.NamespacedName{Name: "metrics-server", Namespace: constants.WutongSystemNamespace}, &comp)
+			if err == nil {
+				r.Delete(ctx, &comp, &client.DeleteOptions{})
+			}
+		}
+
+		if !wutongcluster.Spec.OptionalComponent.WutongGateway {
+			var comp wutongv1alpha1.WutongComponent
+			err := r.Get(ctx, types.NamespacedName{Name: "wt-gateway", Namespace: constants.WutongSystemNamespace}, &comp)
+			if err == nil {
+				r.Delete(ctx, &comp, &client.DeleteOptions{})
+			}
+		}
+
+		if !wutongcluster.Spec.OptionalComponent.WutongMonitor {
+			var comp wutongv1alpha1.WutongComponent
+			err := r.Get(ctx, types.NamespacedName{Name: "wt-monitor", Namespace: constants.WutongSystemNamespace}, &comp)
+			if err == nil {
+				r.Delete(ctx, &comp, &client.DeleteOptions{})
+			}
+		}
+
+		if !wutongcluster.Spec.OptionalComponent.WutongNode {
+			var comp wutongv1alpha1.WutongComponent
+			err := r.Get(ctx, types.NamespacedName{Name: "wt-node", Namespace: constants.WutongSystemNamespace}, &comp)
+			if err == nil {
+				r.Delete(ctx, &comp, &client.DeleteOptions{})
+			}
+		}
+
+		if !wutongcluster.Spec.OptionalComponent.WutongResourceProxy {
+			var comp wutongv1alpha1.WutongComponent
+			err := r.Get(ctx, types.NamespacedName{Name: "wt-resource-proxy", Namespace: constants.WutongSystemNamespace}, &comp)
+			if err == nil {
+				r.Delete(ctx, &comp, &client.DeleteOptions{})
+			}
+		}
+
+		if !wutongcluster.Spec.OptionalComponent.WutongEventLog {
+			var comp wutongv1alpha1.WutongComponent
+			err := r.Get(ctx, types.NamespacedName{Name: "wt-eventlog", Namespace: constants.WutongSystemNamespace}, &comp)
+			if err == nil {
+				r.Delete(ctx, &comp, &client.DeleteOptions{})
+			}
+		}
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -208,4 +282,256 @@ func (r *WutongClusterReconciler) getOrCreateUUIDAndAuth(wutongcluster *wutongv1
 		}
 	}
 	return cm.Data["uuid"], cm.Data["auth"], nil
+}
+
+type componentClaim struct {
+	namespace       string
+	name            string
+	version         string
+	imageRepository string
+	imageName       string
+	Configs         map[string]string
+	envs            map[string]string
+	isInit          bool
+	replicas        *int32
+}
+
+func (c *componentClaim) image() string {
+	return path.Join(c.imageRepository, c.imageName) + ":" + c.version
+}
+
+func (r *WutongClusterReconciler) createComponents(cluster *wutongv1alpha1.WutongCluster) error {
+	claims := r.genComponentClaims(cluster)
+	for _, claim := range claims {
+		// update image repository for priority components
+		claim.imageRepository = cluster.Spec.WutongImageRepository
+		data := r.parseComponentClaim(claim)
+		// init component
+		data.Namespace = constants.WutongSystemNamespace
+
+		err := retryutil.Retry(time.Second*2, 3, func() (bool, error) {
+			if err := r.createResourceIfNotExists(data); err != nil {
+				return false, err
+			}
+			return true, nil
+		})
+		if err != nil {
+			return fmt.Errorf("create wutong component %s failure %s", data.GetName(), err.Error())
+		}
+	}
+	return nil
+}
+
+func (r *WutongClusterReconciler) parseComponentClaim(claim *componentClaim) *wutongv1alpha1.WutongComponent {
+	component := &v1alpha1.WutongComponent{}
+	component.Namespace = claim.namespace
+	component.Name = claim.name
+	component.Spec.Image = claim.image()
+	component.Spec.ImagePullPolicy = corev1.PullAlways
+	component.Spec.Replicas = claim.replicas
+	if claim.envs != nil {
+		for k, v := range claim.envs {
+			component.Spec.Env = append(component.Spec.Env, corev1.EnvVar{
+				Name:  k,
+				Value: v,
+			})
+		}
+	}
+	labels := wtutil.LabelsForWutong(map[string]string{"name": claim.name})
+	if claim.isInit {
+		component.Spec.PriorityComponent = true
+		labels["priorityComponent"] = "true"
+	}
+	component.Labels = labels
+	return component
+}
+
+func (r *WutongClusterReconciler) genComponentClaims(cluster *v1alpha1.WutongCluster) map[string]*componentClaim {
+	var defReplicas = commonutil.Int32(1)
+	if cluster.Spec.EnableHA {
+		defReplicas = commonutil.Int32(2)
+	}
+
+	var isInit bool
+	imageRepository := constants.DefImageRepository
+	if cluster.Spec.ImageHub == nil || cluster.Spec.ImageHub.Domain == constants.DefImageRepository {
+		isInit = true
+	} else {
+		imageRepository = path.Join(cluster.Spec.ImageHub.Domain, cluster.Spec.ImageHub.Namespace)
+	}
+
+	newClaim := func(name string) *componentClaim {
+		defClaim := componentClaim{name: name, imageRepository: imageRepository, version: cluster.Spec.InstallVersion, replicas: defReplicas}
+		defClaim.imageName = name
+		return &defClaim
+	}
+	name2Claim := map[string]*componentClaim{
+		"wt-api":            newClaim("wt-api"),
+		"wt-chaos":          newClaim("wt-chaos"),
+		"wt-eventlog":       newClaim("wt-eventlog"),
+		"wt-monitor":        newClaim("wt-monitor"),
+		"wt-mq":             newClaim("wt-mq"),
+		"wt-worker":         newClaim("wt-worker"),
+		"wt-webcli":         newClaim("wt-webcli"),
+		"wt-resource-proxy": newClaim("wt-resource-proxy"),
+	}
+
+	name2Claim["wt-chaos"].envs = map[string]string{
+		"CI_VERSION": cluster.Spec.InstallVersion,
+	}
+	name2Claim["wt-worker"].envs = map[string]string{
+		"CI_VERSION": cluster.Spec.InstallVersion,
+	}
+	name2Claim["metrics-server"] = newClaim("metrics-server")
+	name2Claim["metrics-server"].version = "v0.6.1"
+
+	if cluster.Spec.RegionDatabase == nil {
+		claim := newClaim("wt-db")
+		claim.imageName = "mysql"
+		claim.version = "8.0"
+		claim.replicas = commonutil.Int32(1)
+		name2Claim["wt-db"] = claim
+	}
+
+	if cluster.Spec.ImageHub == nil || cluster.Spec.ImageHub.Domain == constants.DefImageRepository {
+		claim := newClaim("wt-hub")
+		claim.imageName = "registry"
+		claim.version = "2.6.2"
+		claim.isInit = isInit
+		name2Claim["wt-hub"] = claim
+	}
+
+	name2Claim["wt-gateway"] = newClaim("wt-gateway")
+	name2Claim["wt-gateway"].isInit = isInit
+	name2Claim["wt-node"] = newClaim("wt-node")
+	name2Claim["wt-node"].isInit = isInit
+
+	if cluster.Spec.EtcdConfig == nil || len(cluster.Spec.EtcdConfig.Endpoints) == 0 {
+		claim := newClaim("wt-etcd")
+		claim.imageName = "etcd"
+		claim.version = imageFitArch("v3.3.18", cluster.Spec.Arch)
+		claim.isInit = isInit
+		if cluster.Spec.EnableHA {
+			claim.replicas = commonutil.Int32(3)
+		}
+		name2Claim["wt-etcd"] = claim
+	}
+
+	if rwx := cluster.Spec.WutongVolumeSpecRWX; rwx != nil && rwx.CSIPlugin != nil {
+		if rwx.CSIPlugin.NFS != nil {
+			name2Claim["nfs-provisioner"] = newClaim("nfs-provisioner")
+			name2Claim["nfs-provisioner"].version = "v3.0.0"
+			name2Claim["nfs-provisioner"].replicas = commonutil.Int32(1)
+			name2Claim["nfs-provisioner"].isInit = isInit
+		}
+		if rwx.CSIPlugin.AliyunNas != nil {
+			name2Claim[constants.AliyunCSINasPlugin] = newClaim(constants.AliyunCSINasPlugin)
+			name2Claim[constants.AliyunCSINasPlugin].isInit = isInit
+			name2Claim[constants.AliyunCSINasProvisioner] = newClaim(constants.AliyunCSINasProvisioner)
+			name2Claim[constants.AliyunCSINasProvisioner].isInit = isInit
+			name2Claim[constants.AliyunCSINasProvisioner].replicas = commonutil.Int32(1)
+		}
+	}
+	if rwo := cluster.Spec.WutongVolumeSpecRWO; rwo != nil && rwo.CSIPlugin != nil {
+		if rwo.CSIPlugin.AliyunCloudDisk != nil {
+			name2Claim[constants.AliyunCSIDiskPlugin] = newClaim(constants.AliyunCSIDiskPlugin)
+			name2Claim[constants.AliyunCSIDiskPlugin].isInit = isInit
+			name2Claim[constants.AliyunCSIDiskProvisioner] = newClaim(constants.AliyunCSIDiskProvisioner)
+			name2Claim[constants.AliyunCSIDiskProvisioner].isInit = isInit
+			name2Claim[constants.AliyunCSIDiskProvisioner].replicas = commonutil.Int32(1)
+		}
+	}
+
+	if cluster.Spec.Lightweight {
+		if !cluster.Spec.OptionalComponent.WutongMonitor {
+			delete(name2Claim, "wt-monitor")
+		}
+		if !cluster.Spec.OptionalComponent.WutongNode {
+			delete(name2Claim, "wt-node")
+		}
+		if !cluster.Spec.OptionalComponent.WutongWebcli {
+			delete(name2Claim, "wt-webcli")
+		}
+		if !cluster.Spec.OptionalComponent.MetricsServer {
+			delete(name2Claim, "metrics-server")
+		}
+		if !cluster.Spec.OptionalComponent.WutongResourceProxy {
+			delete(name2Claim, "wt-resource-proxy")
+		}
+		if !cluster.Spec.OptionalComponent.WutongEventLog {
+			delete(name2Claim, "wt-eventlog")
+		}
+		if !cluster.Spec.OptionalComponent.WutongGateway {
+			delete(name2Claim, "wt-gateway")
+		}
+	}
+
+	return name2Claim
+}
+
+func (r *WutongClusterReconciler) createWutongPackage() error {
+	pkg := &v1alpha1.WutongPackage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.WutongPackageName,
+			Namespace: constants.WutongSystemNamespace,
+		},
+		Spec: v1alpha1.WutongPackageSpec{
+			PkgPath: "/opt/wutong/pkg/tgz/wutong.tgz",
+		},
+	}
+	return r.createResourceIfNotExists(pkg)
+}
+
+func (r *WutongClusterReconciler) createWutongVolumes(cluster *v1alpha1.WutongCluster) error {
+	if cluster.Spec.WutongVolumeSpecRWX != nil {
+		rwx := setWutongVolume("wutongvolumerwx", constants.WutongSystemNamespace, wtutil.LabelsForAccessModeRWX(), cluster.Spec.WutongVolumeSpecRWX)
+		rwx.Spec.ImageRepository = constants.InstallImageRepo
+		if err := r.createResourceIfNotExists(rwx); err != nil {
+			return err
+		}
+	}
+	if cluster.Spec.WutongVolumeSpecRWO != nil {
+		rwo := setWutongVolume("wutongvolumerwo", constants.WutongSystemNamespace, wtutil.LabelsForAccessModeRWO(), cluster.Spec.WutongVolumeSpecRWO)
+		rwo.Spec.ImageRepository = constants.InstallImageRepo
+		if err := r.createResourceIfNotExists(rwo); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *WutongClusterReconciler) createResourceIfNotExists(resource client.Object) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	err := r.Client.Get(ctx, client.ObjectKeyFromObject(resource), resource)
+	if err == nil {
+		return nil
+	}
+	err = r.Client.Create(ctx, resource)
+	if err != nil {
+		if errors.IsAlreadyExists(err) {
+			return nil
+		}
+		return fmt.Errorf("create resource %s/%s failure %s", resource.GetObjectKind(), resource.GetName(), err.Error())
+	}
+	return nil
+}
+
+func setWutongVolume(name, namespace string, labels map[string]string, spec *v1alpha1.WutongVolumeSpec) *v1alpha1.WutongVolume {
+	volume := &v1alpha1.WutongVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    wtutil.LabelsForWutong(labels),
+		},
+		Spec: *spec,
+	}
+	return volume
+}
+
+func imageFitArch(image string, arch string) string {
+	if arch == "" || arch == RegionArchAmd64 {
+		return image
+	}
+	return fmt.Sprintf("%s-%s", image, arch)
 }
