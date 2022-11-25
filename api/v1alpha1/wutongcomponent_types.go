@@ -145,7 +145,7 @@ func init() {
 	SchemeBuilder.Register(&WutongComponent{}, &WutongComponentList{})
 }
 
-// ImagePullPolicy returns the ImagePullPolicy, or  return PullAlways if it is empty.
+// ImagePullPolicy returns the ImagePullPolicy, or  return PullIfNotPresent if it is empty.
 func (in *WutongComponent) ImagePullPolicy() corev1.PullPolicy {
 	if in.Spec.ImagePullPolicy == "" {
 		return corev1.PullIfNotPresent
