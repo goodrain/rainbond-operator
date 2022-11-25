@@ -327,7 +327,7 @@ func (r *WutongClusterReconciler) parseComponentClaim(claim *componentClaim) *wu
 	component.Namespace = claim.namespace
 	component.Name = claim.name
 	component.Spec.Image = claim.image()
-	component.Spec.ImagePullPolicy = corev1.PullAlways
+	component.Spec.ImagePullPolicy = corev1.PullIfNotPresent
 	component.Spec.Replicas = claim.replicas
 	if claim.envs != nil {
 		for k, v := range claim.envs {

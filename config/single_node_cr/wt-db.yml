@@ -10,5 +10,5 @@ metadata:
 spec:
   replicas: 1
   image: swr.cn-southwest-2.myhuaweicloud.com/wutong/wt-db:8.0.19
-  imagePullPolicy: Always
+  imagePullPolicy: IfNotPresent
   priorityComponent: false

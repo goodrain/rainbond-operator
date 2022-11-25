@@ -148,7 +148,7 @@ func init() {
 // ImagePullPolicy returns the ImagePullPolicy, or  return PullAlways if it is empty.
 func (in *WutongComponent) ImagePullPolicy() corev1.PullPolicy {
 	if in.Spec.ImagePullPolicy == "" {
-		return corev1.PullAlways
+		return corev1.PullIfNotPresent
 	}
 	return in.Spec.ImagePullPolicy
 }

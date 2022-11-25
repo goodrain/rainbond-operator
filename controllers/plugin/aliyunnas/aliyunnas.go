@@ -127,7 +127,7 @@ func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 						{
 							Name:            "driver-registrar",
 							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-node-driver-registrar:v1.1.0"),
-							ImagePullPolicy: corev1.PullAlways,
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Lifecycle: &corev1.Lifecycle{
 								PreStop: &corev1.Handler{
 									Exec: &corev1.ExecAction{
@@ -168,7 +168,7 @@ func (p *aliyunnasPlugin) daemonset() *appsv1.DaemonSet {
 						{
 							Name:            "csi-nasplugin",
 							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-plugin:v1.14.8.32-aliyun"),
-							ImagePullPolicy: corev1.PullAlways,
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),
 								Capabilities: &corev1.Capabilities{
@@ -325,7 +325,7 @@ func (p *aliyunnasPlugin) statefulset() client.Object {
 						{
 							Name:            "csi-nas-external-provisioner",
 							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-provisioner:v1.2.2-aliyun"),
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Args: []string{
 								"--provisioner=nasplugin.csi.alibabacloud.com",
 								"--csi-address=$(ADDRESS)",
@@ -348,7 +348,7 @@ func (p *aliyunnasPlugin) statefulset() client.Object {
 						{
 							Name:            "csi-nasprovisioner",
 							Image:           path.Join(p.volume.Spec.ImageRepository, "csi-plugin:v1.14.8.32-aliyun"),
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),
 								Capabilities: &corev1.Capabilities{

@@ -18,6 +18,6 @@ operator:
   image:
     name: swr.cn-southwest-2.myhuaweicloud.com/wutong/wutong-operator
     tag: v1.0.0
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   regionDBName: region
   logLevel: 4

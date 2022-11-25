@@ -180,7 +180,7 @@ func (c *containerNetwork) daemonsetForSentinel() *appsv1.DaemonSet {
 						{
 							Name:            SentinelName,
 							Image:           c.cluster.Spec.SentinelImage,
-							ImagePullPolicy: corev1.PullAlways,
+							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
 					},
 				},
