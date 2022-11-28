@@ -7,9 +7,7 @@ import (
 	"time"
 
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
-	"github.com/wutong-paas/wutong-operator/util/constants"
 	"github.com/wutong-paas/wutong-operator/util/k8sutil"
-	"github.com/wutong-paas/wutong-operator/util/wtutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,7 +20,7 @@ type storage struct {
 	rwx    *wutongv1alpha1.WutongVolumeSpec
 }
 
-//NewStorage -
+// NewStorage -
 func NewStorage(ctx context.Context, client client.Client, ns string, rwx *wutongv1alpha1.WutongVolumeSpec) PreChecker {
 	return &storage{
 		ctx:    ctx,
@@ -77,10 +75,10 @@ func (s *storage) isPVCBound(pvc *corev1.PersistentVolumeClaim) bool {
 	return false
 }
 
-func (s *storage) pvcForWTData(accessModes []corev1.PersistentVolumeAccessMode, storageClassName string) *corev1.PersistentVolumeClaim {
-	labels := wtutil.LabelsForWutong(nil)
-	return k8sutil.PersistentVolumeClaimForWTData(s.ns, constants.WTDataPVC, accessModes, labels, storageClassName, 20)
-}
+// func (s *storage) pvcForWTData(accessModes []corev1.PersistentVolumeAccessMode, storageClassName string) *corev1.PersistentVolumeClaim {
+// 	labels := wtutil.LabelsForWutong(nil)
+// 	return k8sutil.PersistentVolumeClaimForWTData(s.ns, constants.WTDataPVC, accessModes, labels, storageClassName, 20)
+// }
 
 func (s *storage) failConditoin(condition wutongv1alpha1.WutongClusterCondition, msg string) wutongv1alpha1.WutongClusterCondition {
 	return failConditoin(condition, "StorageFailed", msg)

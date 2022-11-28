@@ -548,7 +548,7 @@ func (p *pkg) handle() error {
 		}
 		p.updateConditionStatus(wutongv1alpha1.Init, wutongv1alpha1.Waiting)
 		p.updateConditionResion(wutongv1alpha1.Init, err.Error(), "get wutong cluster config failure")
-		p.updateCRStatus()
+		_ = p.updateCRStatus()
 		return err
 	}
 	//update init condition status is complete
@@ -556,7 +556,7 @@ func (p *pkg) handle() error {
 		p.log.Error(err, "set init status")
 		p.updateConditionStatus(wutongv1alpha1.Init, wutongv1alpha1.Failed)
 		p.updateConditionResion(wutongv1alpha1.Init, err.Error(), "set init status failure")
-		p.updateCRStatus()
+		_ = p.updateCRStatus()
 		return err
 	}
 	if p.canDownload() {
@@ -565,7 +565,7 @@ func (p *pkg) handle() error {
 			p.log.Error(err, "download package")
 			p.updateConditionStatus(wutongv1alpha1.DownloadPackage, wutongv1alpha1.Failed)
 			p.updateConditionResion(wutongv1alpha1.DownloadPackage, err.Error(), "download package failure")
-			p.updateCRStatus()
+			_ = p.updateCRStatus()
 			return fmt.Errorf("failed to download package %s", err.Error())
 		}
 		p.log.Info("handle downlaod package success")
@@ -578,7 +578,7 @@ func (p *pkg) handle() error {
 		if err := p.untartar(); err != nil {
 			p.updateConditionStatus(wutongv1alpha1.UnpackPackage, wutongv1alpha1.Failed)
 			p.updateConditionResion(wutongv1alpha1.UnpackPackage, err.Error(), "unpack package failure")
-			p.updateCRStatus()
+			_ = p.updateCRStatus()
 			return fmt.Errorf("failed to untar %s: %v", p.pkg.Spec.PkgPath, err)
 		}
 		p.log.Info("handle package unpack success")
@@ -593,7 +593,7 @@ func (p *pkg) handle() error {
 			if err := p.imagesLoadAndPush(); err != nil {
 				p.updateConditionStatus(wutongv1alpha1.PushImage, wutongv1alpha1.Failed)
 				p.updateConditionResion(wutongv1alpha1.PushImage, err.Error(), "load and push images failure")
-				p.updateCRStatus()
+				_ = p.updateCRStatus()
 				return fmt.Errorf("failed to load and push images: %v", err)
 			}
 		} else {
@@ -601,7 +601,7 @@ func (p *pkg) handle() error {
 			if err := p.imagePullAndPush(); err != nil {
 				p.updateConditionStatus(wutongv1alpha1.PushImage, wutongv1alpha1.Failed)
 				p.updateConditionResion(wutongv1alpha1.PushImage, err.Error(), "pull and push images failure")
-				p.updateCRStatus()
+				_ = p.updateCRStatus()
 				return fmt.Errorf("failed to pull and push images: %v", err)
 			}
 		}

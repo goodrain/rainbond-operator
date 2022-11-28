@@ -184,16 +184,16 @@ func (in *WutongVolumeStatus) UpdateWutongVolumeCondition(condition *WutongVolum
 	return !isEqual
 }
 
-func (in *WutongVolumeStatus) setWutongVolumeCondition(r WutongVolumeCondition) {
-	pos, cp := in.GetWutongVolumeCondition(r.Type)
-	if cp != nil &&
-		cp.Status == r.Status && cp.Reason == r.Reason && cp.Message == r.Message {
-		return
-	}
+// func (in *WutongVolumeStatus) setWutongVolumeCondition(r WutongVolumeCondition) {
+// 	pos, cp := in.GetWutongVolumeCondition(r.Type)
+// 	if cp != nil &&
+// 		cp.Status == r.Status && cp.Reason == r.Reason && cp.Message == r.Message {
+// 		return
+// 	}
 
-	if cp != nil {
-		in.Conditions[pos] = r
-	} else {
-		in.Conditions = append(in.Conditions, r)
-	}
-}
+// 	if cp != nil {
+// 		in.Conditions[pos] = r
+// 	} else {
+// 		in.Conditions = append(in.Conditions, r)
+// 	}
+// }
