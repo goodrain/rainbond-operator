@@ -30,10 +30,6 @@ const (
 	WtHubCredentialsName = "wt-hub-credentials"
 )
 
-var additionalImageHubLabels = map[string]string{
-	"wutong.io/addtional-image-hub": "true",
-}
-
 var provisionerAccessModes = map[string]corev1.PersistentVolumeAccessMode{
 	// Kubernetes Internal Provisioner.
 	// More info: https://github.com/kubernetes/kubernetes/tree/v1.17.3/pkg/volume
@@ -70,7 +66,7 @@ func (s k8sNodesSortByName) Len() int           { return len(s) }
 func (s k8sNodesSortByName) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s k8sNodesSortByName) Less(i, j int) bool { return s[i].Name < s[j].Name }
 
-//WutongClusteMgr -
+// WutongClusteMgr -
 type WutongClusteMgr struct {
 	ctx    context.Context
 	client client.Client
@@ -80,7 +76,7 @@ type WutongClusteMgr struct {
 	cluster *wutongv1alpha1.WutongCluster
 }
 
-//NewClusterMgr new Cluster Mgr
+// NewClusterMgr new Cluster Mgr
 func NewClusterMgr(ctx context.Context, client client.Client, log logr.Logger, cluster *wutongv1alpha1.WutongCluster, scheme *runtime.Scheme) *WutongClusteMgr {
 	mgr := &WutongClusteMgr{
 		ctx:     ctx,
@@ -240,7 +236,7 @@ func (r *WutongClusteMgr) listMasterNodes(masterRoleLabelKey string) []*wutongv1
 	return r.listNodesByLabels(labels)
 }
 
-//CreateImagePullSecret create image pull secret
+// CreateImagePullSecret create image pull secret
 func (r *WutongClusteMgr) CreateImagePullSecret() error {
 	var secret corev1.Secret
 	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: WtHubCredentialsName}, &secret); err != nil {
@@ -317,18 +313,18 @@ func (r *WutongClusteMgr) generateDockerConfig() []byte {
 	return bytes
 }
 
-func (r *WutongClusteMgr) checkIfWtNodeReady() error {
-	cpt := &wutongv1alpha1.WutongComponent{}
-	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: "wt-node"}, cpt); err != nil {
-		return err
-	}
+// func (r *WutongClusteMgr) checkIfWtNodeReady() error {
+// 	cpt := &wutongv1alpha1.WutongComponent{}
+// 	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: "wt-node"}, cpt); err != nil {
+// 		return err
+// 	}
 
-	if cpt.Status.ReadyReplicas == 0 || cpt.Status.ReadyReplicas != cpt.Status.Replicas {
-		return fmt.Errorf("no ready replicas for wutongcomponent wt-node")
-	}
+// 	if cpt.Status.ReadyReplicas == 0 || cpt.Status.ReadyReplicas != cpt.Status.Replicas {
+// 		return fmt.Errorf("no ready replicas for wutongcomponent wt-node")
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func (r *WutongClusteMgr) generateConditions() []wutongv1alpha1.WutongClusterCondition {
 	// region database
@@ -403,7 +399,7 @@ func (r *WutongClusteMgr) isConditionTrue(typ3 wutongv1alpha1.WutongClusterCondi
 	return false
 }
 
-//CreateFoobarPVCIfNotExists -
+// CreateFoobarPVCIfNotExists -
 func (r *WutongClusteMgr) CreateFoobarPVCIfNotExists() error {
 	var storageClassName string
 	if r.cluster.Spec.WutongVolumeSpecRWX != nil && r.cluster.Spec.WutongVolumeSpecRWX.StorageClassName != "" {
@@ -450,19 +446,19 @@ func (r *WutongClusteMgr) createPVCForFoobar(storageClassName string) error {
 	return r.client.Create(r.ctx, pvc)
 }
 
-func (r *WutongClusteMgr) falseConditionNow(typ3 wutongv1alpha1.WutongClusterConditionType) *wutongv1alpha1.WutongClusterCondition {
-	idx, _ := r.cluster.Status.GetCondition(typ3)
-	if idx != -1 {
-		return nil
-	}
-	return &wutongv1alpha1.WutongClusterCondition{
-		Type:              typ3,
-		Status:            corev1.ConditionTrue,
-		LastHeartbeatTime: metav1.NewTime(time.Now()),
-		Reason:            "InProgress",
-		Message:           fmt.Sprintf("precheck for %s is in progress", string(typ3)),
-	}
-}
+// func (r *WutongClusteMgr) falseConditionNow(typ3 wutongv1alpha1.WutongClusterConditionType) *wutongv1alpha1.WutongClusterCondition {
+// 	idx, _ := r.cluster.Status.GetCondition(typ3)
+// 	if idx != -1 {
+// 		return nil
+// 	}
+// 	return &wutongv1alpha1.WutongClusterCondition{
+// 		Type:              typ3,
+// 		Status:            corev1.ConditionTrue,
+// 		LastHeartbeatTime: metav1.NewTime(time.Now()),
+// 		Reason:            "InProgress",
+// 		Message:           fmt.Sprintf("precheck for %s is in progress", string(typ3)),
+// 	}
+// }
 
 func (r *WutongClusteMgr) runningCondition() wutongv1alpha1.WutongClusterCondition {
 	condition := wutongv1alpha1.WutongClusterCondition{

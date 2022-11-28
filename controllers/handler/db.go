@@ -23,10 +23,10 @@ import (
 
 var (
 	// DBName name
-	DBName           = "wt-db"
-	dbhost           = DBName + "-rw"
-	mycnf            = DBName + "-mycnf"
-	mysqlUser        = "root"
+	DBName = "wt-db"
+	dbhost = DBName + "-rw"
+	mycnf  = DBName + "-mycnf"
+	// mysqlUser        = "root"
 	mysqlUserKey     = "mysql-user"
 	mysqlPasswordKey = "mysql-password"
 )

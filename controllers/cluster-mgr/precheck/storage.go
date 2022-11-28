@@ -69,10 +69,7 @@ func (s *storage) Check() wutongv1alpha1.WutongClusterCondition {
 }
 
 func (s *storage) isPVCBound(pvc *corev1.PersistentVolumeClaim) bool {
-	if pvc.Status.Phase == corev1.ClaimBound {
-		return true
-	}
-	return false
+	return pvc.Status.Phase == corev1.ClaimBound
 }
 
 // func (s *storage) pvcForWTData(accessModes []corev1.PersistentVolumeAccessMode, storageClassName string) *corev1.PersistentVolumeClaim {

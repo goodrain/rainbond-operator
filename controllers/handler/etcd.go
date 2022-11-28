@@ -53,7 +53,7 @@ func NewETCD(ctx context.Context, client client.Client, component *wutongv1alpha
 
 func (e *etcd) Before() error {
 	if e.cluster.Spec.EtcdConfig != nil {
-		return NewIgnoreError(fmt.Sprintf("specified etcd configuration"))
+		return NewIgnoreError("specified etcd configuration")
 	}
 	if err := setStorageCassName(e.ctx, e.client, e.component.Namespace, e); err != nil {
 		return err

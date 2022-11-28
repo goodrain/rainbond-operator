@@ -31,9 +31,9 @@ var MetricsServerName = "metrics-server"
 var metricsGroupAPI = "v1beta1.metrics.k8s.io"
 
 type metricsServer struct {
-	ctx        context.Context
-	client     client.Client
-	db         *wutongv1alpha1.Database
+	ctx    context.Context
+	client client.Client
+	// db         *wutongv1alpha1.Database
 	labels     map[string]string
 	component  *wutongv1alpha1.WutongComponent
 	cluster    *wutongv1alpha1.WutongCluster

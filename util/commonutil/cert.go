@@ -12,14 +12,14 @@ import (
 	"time"
 )
 
-//CA ca
+// CA ca
 type CA struct {
 	caInfo          *x509.Certificate
 	caPrivKey       *rsa.PrivateKey
 	caPem, caKeyPem []byte
 }
 
-//GetCAPem get ca pem bytes
+// GetCAPem get ca pem bytes
 func (c *CA) GetCAPem() ([]byte, error) {
 	if c.caPem == nil {
 		// create the CA
@@ -38,7 +38,7 @@ func (c *CA) GetCAPem() ([]byte, error) {
 	return c.caPem, nil
 }
 
-//GetCAKeyPem get ca key pem
+// GetCAKeyPem get ca key pem
 func (c *CA) GetCAKeyPem() ([]byte, error) {
 	if c.caKeyPem == nil {
 		caPrivKeyPEM := new(bytes.Buffer)
@@ -51,7 +51,7 @@ func (c *CA) GetCAKeyPem() ([]byte, error) {
 	return c.caKeyPem, nil
 }
 
-//CreateCert make Certificate
+// CreateCert make Certificate
 func (c *CA) CreateCert(ips []string, domains ...string) (certPem, certKey []byte, err error) {
 	var ipAddresses []net.IP
 	for _, ip := range ips {
@@ -103,7 +103,7 @@ func (c *CA) CreateCert(ips []string, domains ...string) (certPem, certKey []byt
 	return certPEM.Bytes(), certPrivKeyPEM.Bytes(), nil
 }
 
-//CreateCA create ca info
+// CreateCA create ca info
 func CreateCA() (*CA, error) {
 	// set up our CA certificate
 	ca := &x509.Certificate{
@@ -135,16 +135,16 @@ func CreateCA() (*CA, error) {
 	}, nil
 }
 
-//ParseCA parse caPem
+// ParseCA parse caPem
 func ParseCA(caPem, caKeyPem []byte) (*CA, error) {
-	p := &pem.Block{}
-	p, caPem = pem.Decode(caPem)
+	// p := &pem.Block{}
+	p, caPem := pem.Decode(caPem)
 	ca, err := x509.ParseCertificate(p.Bytes)
 	if err != nil {
 		return nil, err
 	}
-	p2 := &pem.Block{}
-	p2, caKeyPem = pem.Decode(caKeyPem)
+	// p2 := &pem.Block{}
+	p2, caKeyPem := pem.Decode(caKeyPem)
 	caKey, err := x509.ParsePKCS1PrivateKey(p2.Bytes)
 	if err != nil {
 		return nil, err
@@ -157,7 +157,7 @@ func ParseCA(caPem, caKeyPem []byte) (*CA, error) {
 	}, nil
 }
 
-//DomainSign create cert
+// DomainSign create cert
 func DomainSign(ips []string, domains ...string) ([]byte, []byte, []byte, error) {
 	ca, err := CreateCA()
 	if err != nil {
