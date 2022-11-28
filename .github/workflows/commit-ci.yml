@@ -44,10 +44,10 @@ jobs:
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
 
-      - name: Deploy to dev cluster
-        id: k8s_deploy
-        uses: actions-hub/kubectl@master
-        env:
-          KUBE_CONFIG: ${{ secrets.DEV_KUBE_CONFIG }}
-        with:
-          args: set image deployment/${{ env.TITLE }} -n wt-system operator=${{ secrets.DOMESTIC_DOCKER_SERVER }}/wutong/${{ env.TITLE }}:${{ env.VERSION }}
+      # - name: Deploy to dev cluster
+      #   id: k8s_deploy
+      #   uses: actions-hub/kubectl@master
+      #   env:
+      #     KUBE_CONFIG: ${{ secrets.DEV_KUBE_CONFIG }}
+      #   with:
+      #     args: set image deployment/${{ env.TITLE }} -n wt-system operator=${{ secrets.DOMESTIC_DOCKER_SERVER }}/wutong/${{ env.TITLE }}:${{ env.VERSION }}
