@@ -81,12 +81,12 @@ type WutongPackageReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *WutongPackageReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("wutongpackage", request.NamespacedName)
-	ctx, cancel := context.WithCancel(context.Background())
+	cancleCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// Fetch the WutongPackage instance
 	pkg := &wutongv1alpha1.WutongPackage{}
-	err := r.Get(ctx, request.NamespacedName, pkg)
+	err := r.Client.Get(cancleCtx, request.NamespacedName, pkg)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -99,7 +99,7 @@ func (r *WutongPackageReconciler) Reconcile(ctx context.Context, request ctrl.Re
 	}
 
 	cluster := &wutongv1alpha1.WutongCluster{}
-	if err := r.Get(ctx, types.NamespacedName{Namespace: pkg.Namespace, Name: constants.WutongClusterName}, cluster); err != nil {
+	if err := r.Client.Get(cancleCtx, types.NamespacedName{Namespace: pkg.Namespace, Name: constants.WutongClusterName}, cluster); err != nil {
 		log.Error(err, "get wutongcluster.")
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
@@ -133,7 +133,7 @@ func (r *WutongPackageReconciler) Reconcile(ctx context.Context, request ctrl.Re
 	}
 
 	//need handle condition
-	p, err := newpkg(ctx, r.Client, pkg, cluster, log)
+	p, err := newpkg(cancleCtx, r.Client, pkg, cluster, log)
 	if err != nil {
 		if p != nil {
 			p.updateConditionStatus(wutongv1alpha1.Init, wutongv1alpha1.Failed)
@@ -287,10 +287,6 @@ func (p *pkg) configByCluster(c *wutongv1alpha1.WutongCluster) error {
 		p.version = c.Spec.InstallVersion
 	}
 	p.localPackagePath = p.pkg.Spec.PkgPath
-	ciVersion := c.Spec.CIVersion
-	if ciVersion == "" {
-		ciVersion = "v5.4.0"
-	}
 
 	p.images = map[string]string{}
 	return nil

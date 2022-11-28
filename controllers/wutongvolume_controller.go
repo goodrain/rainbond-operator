@@ -48,7 +48,7 @@ type WutongVolumeReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//ErrCSIPluginNotReady -
+// ErrCSIPluginNotReady -
 var ErrCSIPluginNotReady = errors.New("csi plugin not ready")
 
 // +kubebuilder:rbac:groups=wutong.io,resources=wutongvolumes,verbs=get;list;watch;create;update;patch;delete
@@ -67,12 +67,12 @@ var ErrCSIPluginNotReady = errors.New("csi plugin not ready")
 func (r *WutongVolumeReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("wutongvolume", request.NamespacedName)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	cancleCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// Fetch the WutongVolume instance
 	volume := &wutongv1alpha1.WutongVolume{}
-	err := r.Get(ctx, request.NamespacedName, volume)
+	err := r.Client.Get(cancleCtx, request.NamespacedName, volume)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -86,7 +86,7 @@ func (r *WutongVolumeReconciler) Reconcile(ctx context.Context, request ctrl.Req
 
 	useStorageClassName := volume.Spec.StorageClassName != ""
 	if useStorageClassName {
-		if err := r.updateVolumeStatus(ctx, volume); err != nil {
+		if err := r.updateVolumeStatus(cancleCtx, volume); err != nil {
 			return reconcile.Result{}, err
 		}
 		log.Info("wutong volume storage class is ready", "storageclass", useStorageClassName)
@@ -96,15 +96,15 @@ func (r *WutongVolumeReconciler) Reconcile(ctx context.Context, request ctrl.Req
 	useStorageClassParameters := volume.Spec.StorageClassParameters != nil && volume.Spec.StorageClassParameters.Provisioner != ""
 	if useStorageClassParameters {
 		log.Info("wutong volume storage class is config, will sync storageclass", "provisioner", volume.Spec.StorageClassParameters.Provisioner)
-		className, err := r.createIfNotExistStorageClass(ctx, volume)
+		className, err := r.createIfNotExistStorageClass(cancleCtx, volume)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 		volume.Spec.StorageClassName = className
-		if err := r.updateVolumeRetryOnConflict(ctx, volume); err != nil {
+		if err := r.updateVolumeRetryOnConflict(cancleCtx, volume); err != nil {
 			return reconcile.Result{}, err
 		}
-		if err := r.updateVolumeStatus(ctx, volume); err != nil {
+		if err := r.updateVolumeStatus(cancleCtx, volume); err != nil {
 			return reconcile.Result{}, err
 		}
 		log.Info("wutong volume storage class is sync success", "provisioner", volume.Spec.StorageClassParameters.Provisioner)
@@ -114,24 +114,24 @@ func (r *WutongVolumeReconciler) Reconcile(ctx context.Context, request ctrl.Req
 	useCSIPlugin := volume.Spec.CSIPlugin != nil
 	if useCSIPlugin {
 		log.Info("wutong volume will sync csiplugin")
-		csiplugin, err := NewCSIPlugin(ctx, r.Client, volume)
+		csiplugin, err := NewCSIPlugin(cancleCtx, r.Client, volume)
 		if err != nil {
-			if err := r.updateVolumeStatus(ctx, volume); err != nil {
+			if err := r.updateVolumeStatus(cancleCtx, volume); err != nil {
 				return reconcile.Result{}, err
 			}
 			return reconcile.Result{}, err
 		}
-		if err := r.applyCSIPlugin(ctx, csiplugin, volume); err != nil {
+		if err := r.applyCSIPlugin(cancleCtx, csiplugin, volume); err != nil {
 			if err == ErrCSIPluginNotReady {
 				log.Info(err.Error())
 				return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 			}
-			if err := r.updateVolumeStatus(ctx, volume); err != nil {
+			if err := r.updateVolumeStatus(cancleCtx, volume); err != nil {
 				return reconcile.Result{}, err
 			}
 			return reconcile.Result{}, err
 		}
-		if err := r.updateVolumeRetryOnConflict(ctx, volume); err != nil {
+		if err := r.updateVolumeRetryOnConflict(cancleCtx, volume); err != nil {
 			return reconcile.Result{}, err
 		}
 		log.Info("wutong volume sync csiplugin resource success")
@@ -190,7 +190,7 @@ func (r *WutongVolumeReconciler) applyCSIPlugin(ctx context.Context, plugin plug
 func (r *WutongVolumeReconciler) createIfNotExists(ctx context.Context, obj client.Object) error {
 	log := r.Log.WithValues("namespace", obj.GetNamespace(), "name", obj.GetName())
 
-	err := r.Get(ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj)
 	if err != nil {
 		if !k8sErrors.IsNotFound(err) {
 			return err
@@ -201,7 +201,7 @@ func (r *WutongVolumeReconciler) createIfNotExists(ctx context.Context, obj clie
 	}
 
 	log.Info(fmt.Sprintf("Creating a new %s", obj.GetObjectKind().GroupVersionKind().Kind))
-	err = r.Create(ctx, obj)
+	err = r.Client.Create(ctx, obj)
 	if err != nil {
 		log.Error(err, "Failed to create new", obj.GetObjectKind())
 		return err
@@ -230,28 +230,28 @@ func (r *WutongVolumeReconciler) updateVolumeStatus(ctx context.Context, volume 
 
 func (r *WutongVolumeReconciler) updateVolumeStatusRetryOnConflict(ctx context.Context, volume *wutongv1alpha1.WutongVolume) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		return r.Status().Update(ctx, volume)
+		return r.Client.Status().Update(ctx, volume)
 	})
 }
 
 func (r *WutongVolumeReconciler) updateVolumeRetryOnConflict(ctx context.Context, volume *wutongv1alpha1.WutongVolume) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		old := &wutongv1alpha1.WutongVolume{}
-		err := r.Get(ctx, types.NamespacedName{Namespace: volume.Namespace, Name: volume.Name}, old)
+		err := r.Client.Get(ctx, types.NamespacedName{Namespace: volume.Namespace, Name: volume.Name}, old)
 		if err != nil {
 			return err
 		}
 		old.Labels = volume.Labels
 		old.Annotations = volume.Annotations
 		old.Spec = volume.Spec
-		return r.Update(ctx, old)
+		return r.Client.Update(ctx, old)
 	})
 }
 
 func (r *WutongVolumeReconciler) createIfNotExistStorageClass(ctx context.Context, volume *wutongv1alpha1.WutongVolume) (string, error) {
 	old := &storagev1.StorageClass{}
 	// check if the storageclass based on the given sc exists.
-	err := r.Get(ctx, types.NamespacedName{Name: volume.Name}, old)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: volume.Name}, old)
 	if err == nil {
 		return old.Name, nil
 	}
@@ -260,7 +260,7 @@ func (r *WutongVolumeReconciler) createIfNotExistStorageClass(ctx context.Contex
 	}
 	// create a new one
 	sc := storageClassForWutongVolume(volume)
-	if err := r.Create(ctx, sc); err != nil {
+	if err := r.Client.Create(ctx, sc); err != nil {
 		return "", err
 	}
 	return sc.Name, nil

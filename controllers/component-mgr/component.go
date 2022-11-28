@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-//WutongComponentMgr -
+// WutongComponentMgr -
 type WutongComponentMgr struct {
 	ctx      context.Context
 	client   client.Client
@@ -34,7 +34,7 @@ type WutongComponentMgr struct {
 	replicaser handler.Replicaser
 }
 
-//NewWutongComponentMgr -
+// NewWutongComponentMgr -
 func NewWutongComponentMgr(ctx context.Context, client client.Client, recorder record.EventRecorder, log logr.Logger, cpt *wutongv1alpha1.WutongComponent) *WutongComponentMgr {
 	mgr := &WutongComponentMgr{
 		ctx:      ctx,
@@ -46,12 +46,12 @@ func NewWutongComponentMgr(ctx context.Context, client client.Client, recorder r
 	return mgr
 }
 
-//SetReplicaser -
+// SetReplicaser -
 func (r *WutongComponentMgr) SetReplicaser(replicaser handler.Replicaser) {
 	r.replicaser = replicaser
 }
 
-//UpdateStatus -
+// UpdateStatus -
 func (r *WutongComponentMgr) UpdateStatus() error {
 	status := r.cpt.Status.DeepCopy()
 	// make sure status has ready conditoin
@@ -67,13 +67,13 @@ func (r *WutongComponentMgr) UpdateStatus() error {
 	})
 }
 
-//SetConfigCompletedCondition -
+// SetConfigCompletedCondition -
 func (r *WutongComponentMgr) SetConfigCompletedCondition() {
 	condition := wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.ClusterConfigCompeleted, corev1.ConditionTrue, "ConfigCompleted", "")
 	_ = r.cpt.Status.UpdateCondition(condition)
 }
 
-//SetPackageReadyCondition -
+// SetPackageReadyCondition -
 func (r *WutongComponentMgr) SetPackageReadyCondition(pkg *wutongv1alpha1.WutongPackage) {
 	if pkg == nil {
 		condition := wutongv1alpha1.NewWutongComponentCondition(wutongv1alpha1.WutongPackageReady, corev1.ConditionTrue, "PackageReady", "")
@@ -95,7 +95,7 @@ func (r *WutongComponentMgr) SetPackageReadyCondition(pkg *wutongv1alpha1.Wutong
 	_ = r.cpt.Status.UpdateCondition(condition)
 }
 
-//CheckPrerequisites -
+// CheckPrerequisites -
 func (r *WutongComponentMgr) CheckPrerequisites(cluster *wutongv1alpha1.WutongCluster, pkg *wutongv1alpha1.WutongPackage) bool {
 	if r.cpt.Spec.PriorityComponent {
 		// If ImageHub is empty, the priority component no need to wait until WutongPackage is completed.
@@ -111,7 +111,7 @@ func (r *WutongComponentMgr) CheckPrerequisites(cluster *wutongv1alpha1.WutongCl
 	return true
 }
 
-//GenerateStatus -
+// GenerateStatus -
 func (r *WutongComponentMgr) GenerateStatus(pods []corev1.Pod) {
 	status := r.cpt.Status.DeepCopy()
 	var replicas int32 = 1
@@ -155,7 +155,7 @@ func (r *WutongComponentMgr) GenerateStatus(pods []corev1.Pod) {
 	r.cpt.Status = *status
 }
 
-//IsWutongComponentReady -
+// IsWutongComponentReady -
 func (r *WutongComponentMgr) IsWutongComponentReady() bool {
 	_, condition := r.cpt.Status.GetCondition(wutongv1alpha1.WutongComponentReady)
 	if condition == nil {
@@ -165,7 +165,7 @@ func (r *WutongComponentMgr) IsWutongComponentReady() bool {
 	return condition.Status == corev1.ConditionTrue && r.cpt.Status.ReadyReplicas == r.cpt.Status.Replicas
 }
 
-//ResourceCreateIfNotExists -
+// ResourceCreateIfNotExists -
 func (r *WutongComponentMgr) ResourceCreateIfNotExists(obj client.Object) error {
 	err := r.client.Get(r.ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj)
 	if err != nil {
@@ -178,7 +178,7 @@ func (r *WutongComponentMgr) ResourceCreateIfNotExists(obj client.Object) error 
 	return nil
 }
 
-//UpdateOrCreateResource -
+// UpdateOrCreateResource -
 func (r *WutongComponentMgr) UpdateOrCreateResource(obj client.Object) (reconcile.Result, error) {
 	var oldOjb = reflect.New(reflect.ValueOf(obj).Elem().Type()).Interface().(client.Object)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
@@ -247,7 +247,7 @@ func objectCanUpdate(obj client.Object) bool {
 	return true
 }
 
-//DeleteResources -
+// DeleteResources -
 func (r *WutongComponentMgr) DeleteResources(deleter handler.ResourcesDeleter) (*reconcile.Result, error) {
 	resources := deleter.ResourcesNeedDelete()
 	for _, res := range resources {

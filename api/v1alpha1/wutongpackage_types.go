@@ -23,7 +23,7 @@ import (
 // WutongPackagePhase is a label for the condition of a WutongCluster at the current time.
 type WutongPackagePhase string
 
-//PackageConditionType PackageConditionType
+// PackageConditionType PackageConditionType
 type PackageConditionType string
 
 // These are valid conditions of package.
@@ -36,7 +36,7 @@ const (
 	Ready           PackageConditionType = "Ready"
 )
 
-//PackageConditionStatus condition status
+// PackageConditionStatus condition status
 type PackageConditionStatus string
 
 const (
@@ -73,7 +73,7 @@ type PackageCondition struct {
 	Progress int `json:"progress,omitempty"`
 }
 
-//WutongPackageImage image
+// WutongPackageImage image
 type WutongPackageImage struct {
 	//Name image name
 	Name string `json:"name,omitempty"`
@@ -81,7 +81,7 @@ type WutongPackageImage struct {
 
 // WutongPackageSpec defines the desired state of WutongPackage
 type WutongPackageSpec struct {
-	// Deprecated: The path where the wutong package is located.
+	// PkgPath: The path where the wutong package is located.
 	PkgPath string `json:"pkgPath"`
 	// install source image hub user
 	ImageHubUser string `json:"imageHubUser"`

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -36,7 +37,6 @@ import (
 	"github.com/wutong-paas/wutong-operator/util/constants"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // WutongComponentReconciler reconciles a WutongComponent object
@@ -63,12 +63,12 @@ type WutongComponentReconciler struct {
 func (r *WutongComponentReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("wutongcomponent", request.NamespacedName)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	cancleCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// Fetch the WutongComponent cpt
 	cpt := &wutongv1alpha1.WutongComponent{}
-	err := r.Get(ctx, request.NamespacedName, cpt)
+	err := r.Client.Get(cancleCtx, request.NamespacedName, cpt)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -80,7 +80,7 @@ func (r *WutongComponentReconciler) Reconcile(ctx context.Context, request ctrl.
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	mgr := componentmgr.NewWutongComponentMgr(ctx, r.Client, r.Recorder, log, cpt)
+	mgr := componentmgr.NewWutongComponentMgr(cancleCtx, r.Client, r.Recorder, log, cpt)
 
 	fn, ok := handlerFuncs[cpt.Name]
 	if !ok {
@@ -97,7 +97,7 @@ func (r *WutongComponentReconciler) Reconcile(ctx context.Context, request ctrl.
 	}
 
 	cluster := &wutongv1alpha1.WutongCluster{}
-	if err := r.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.WutongClusterName}, cluster); err != nil {
+	if err := r.Client.Get(cancleCtx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.WutongClusterName}, cluster); err != nil {
 		condition := clusterCondition(err)
 		changed := cpt.Status.UpdateCondition(condition)
 		if changed {
@@ -123,7 +123,7 @@ func (r *WutongComponentReconciler) Reconcile(ctx context.Context, request ctrl.
 	var pkg *wutongv1alpha1.WutongPackage
 	if cluster.Spec.InstallMode != wutongv1alpha1.InstallationModeFullOnline {
 		pkg = &wutongv1alpha1.WutongPackage{}
-		if err := r.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.WutongPackageName}, pkg); err != nil {
+		if err := r.Client.Get(cancleCtx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.WutongPackageName}, pkg); err != nil {
 			condition := packageCondition(err)
 			changed := cpt.Status.UpdateCondition(condition)
 			if changed {
@@ -147,7 +147,7 @@ func (r *WutongComponentReconciler) Reconcile(ctx context.Context, request ctrl.
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
-	hdl := fn(ctx, r.Client, cpt, cluster)
+	hdl := fn(cancleCtx, r.Client, cpt, cluster)
 	if err := hdl.Before(); err != nil {
 		// TODO: merge with mgr.checkPrerequisites
 		if chandler.IsIgnoreError(err) {

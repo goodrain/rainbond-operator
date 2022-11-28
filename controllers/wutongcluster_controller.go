@@ -64,7 +64,7 @@ func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Re
 
 	// Fetch the WutongCluster instance
 	wutongcluster := &wutongv1alpha1.WutongCluster{}
-	err := r.Get(ctx, request.NamespacedName, wutongcluster)
+	err := r.Client.Get(ctx, request.NamespacedName, wutongcluster)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -88,11 +88,11 @@ func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Re
 
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		rc := &wutongv1alpha1.WutongCluster{}
-		if err := r.Get(ctx, request.NamespacedName, rc); err != nil {
+		if err := r.Client.Get(ctx, request.NamespacedName, rc); err != nil {
 			return err
 		}
 		rc.Status = *status
-		return r.Status().Update(ctx, rc)
+		return r.Client.Status().Update(ctx, rc)
 	}); err != nil {
 		reqLogger.Error(err, "update wutongcluster status")
 		return reconcile.Result{RequeueAfter: time.Second * 2}, err
@@ -109,12 +109,12 @@ func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Re
 		}
 		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			rc := &wutongv1alpha1.WutongCluster{}
-			if err := r.Get(ctx, request.NamespacedName, rc); err != nil {
+			if err := r.Client.Get(ctx, request.NamespacedName, rc); err != nil {
 				return err
 			}
 			rc.Spec.ImageHub = imageHub
 			wutongcluster = rc
-			return r.Update(ctx, rc)
+			return r.Client.Update(ctx, rc)
 		}); err != nil {
 			reqLogger.Error(err, "update wutongcluster")
 			return reconcile.Result{RequeueAfter: time.Second * 1}, err
@@ -148,11 +148,11 @@ func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Re
 				logrus.Warningf("generate suffix http host: %v", err)
 				wutongcluster.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
 			}
-			return reconcile.Result{}, r.Update(ctx, wutongcluster)
+			return reconcile.Result{}, r.Client.Update(ctx, wutongcluster)
 		}
 		logrus.Infof("wutongcluster.Spec.SuffixHTTPHost ip is empty %s", ip)
 		wutongcluster.Spec.SuffixHTTPHost = constants.DefHTTPDomainSuffix
-		return reconcile.Result{}, r.Update(ctx, wutongcluster)
+		return reconcile.Result{}, r.Client.Update(ctx, wutongcluster)
 	}
 
 	// create secret for pulling images.
@@ -194,49 +194,49 @@ func (r *WutongClusterReconciler) ReconcileLightweightInstall(ctx context.Contex
 	if wutongcluster.Spec.Lightweight {
 		if !wutongcluster.Spec.OptionalComponent.MetricsServer {
 			var comp wutongv1alpha1.WutongComponent
-			err := r.Get(ctx, types.NamespacedName{Name: "metrics-server", Namespace: constants.WutongSystemNamespace}, &comp)
+			err := r.Client.Get(ctx, types.NamespacedName{Name: "metrics-server", Namespace: constants.WutongSystemNamespace}, &comp)
 			if err == nil {
-				_ = r.Delete(ctx, &comp, &client.DeleteOptions{})
+				_ = r.Client.Delete(ctx, &comp, &client.DeleteOptions{})
 			}
 		}
 
 		if !wutongcluster.Spec.OptionalComponent.WutongGateway {
 			var comp wutongv1alpha1.WutongComponent
-			err := r.Get(ctx, types.NamespacedName{Name: "wt-gateway", Namespace: constants.WutongSystemNamespace}, &comp)
+			err := r.Client.Get(ctx, types.NamespacedName{Name: "wt-gateway", Namespace: constants.WutongSystemNamespace}, &comp)
 			if err == nil {
-				_ = r.Delete(ctx, &comp, &client.DeleteOptions{})
+				_ = r.Client.Delete(ctx, &comp, &client.DeleteOptions{})
 			}
 		}
 
 		if !wutongcluster.Spec.OptionalComponent.WutongMonitor {
 			var comp wutongv1alpha1.WutongComponent
-			err := r.Get(ctx, types.NamespacedName{Name: "wt-monitor", Namespace: constants.WutongSystemNamespace}, &comp)
+			err := r.Client.Get(ctx, types.NamespacedName{Name: "wt-monitor", Namespace: constants.WutongSystemNamespace}, &comp)
 			if err == nil {
-				_ = r.Delete(ctx, &comp, &client.DeleteOptions{})
+				_ = r.Client.Delete(ctx, &comp, &client.DeleteOptions{})
 			}
 		}
 
 		if !wutongcluster.Spec.OptionalComponent.WutongNode {
 			var comp wutongv1alpha1.WutongComponent
-			err := r.Get(ctx, types.NamespacedName{Name: "wt-node", Namespace: constants.WutongSystemNamespace}, &comp)
+			err := r.Client.Get(ctx, types.NamespacedName{Name: "wt-node", Namespace: constants.WutongSystemNamespace}, &comp)
 			if err == nil {
-				_ = r.Delete(ctx, &comp, &client.DeleteOptions{})
+				_ = r.Client.Delete(ctx, &comp, &client.DeleteOptions{})
 			}
 		}
 
 		if !wutongcluster.Spec.OptionalComponent.WutongResourceProxy {
 			var comp wutongv1alpha1.WutongComponent
-			err := r.Get(ctx, types.NamespacedName{Name: "wt-resource-proxy", Namespace: constants.WutongSystemNamespace}, &comp)
+			err := r.Client.Get(ctx, types.NamespacedName{Name: "wt-resource-proxy", Namespace: constants.WutongSystemNamespace}, &comp)
 			if err == nil {
-				_ = r.Delete(ctx, &comp, &client.DeleteOptions{})
+				_ = r.Client.Delete(ctx, &comp, &client.DeleteOptions{})
 			}
 		}
 
 		if !wutongcluster.Spec.OptionalComponent.WutongEventLog {
 			var comp wutongv1alpha1.WutongComponent
-			err := r.Get(ctx, types.NamespacedName{Name: "wt-eventlog", Namespace: constants.WutongSystemNamespace}, &comp)
+			err := r.Client.Get(ctx, types.NamespacedName{Name: "wt-eventlog", Namespace: constants.WutongSystemNamespace}, &comp)
 			if err == nil {
-				_ = r.Delete(ctx, &comp, &client.DeleteOptions{})
+				_ = r.Client.Delete(ctx, &comp, &client.DeleteOptions{})
 			}
 		}
 	}
