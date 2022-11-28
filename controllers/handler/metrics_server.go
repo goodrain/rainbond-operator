@@ -67,7 +67,9 @@ func (m *metricsServer) Before() error {
 
 	if apiservice.Spec.Service.Name != MetricsServerName || apiservice.Spec.Service.Namespace != m.cluster.Namespace {
 		// delete the wrong apiservice and return error
-		m.client.Delete(m.ctx, apiservice)
+		if err := m.client.Delete(m.ctx, apiservice); err != nil {
+			log.Error(err, "delete wrong apiservice")
+		}
 		return fmt.Errorf("get wrong apiservice(%s/%s)", MetricsServerName, m.cluster.Namespace)
 	}
 	m.apiservice = apiservice

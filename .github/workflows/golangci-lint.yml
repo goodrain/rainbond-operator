@@ -11,7 +11,7 @@ permissions:
   # Optional: allow read access to pull request. Use with `only-new-issues` option.
   # pull-requests: read
 jobs:
-  golangci:
+  golangci-lint:
     name: lint
     runs-on: ubuntu-latest
     steps:
@@ -29,7 +29,7 @@ jobs:
           working-directory: ./
 
           # Optional: golangci-lint command line arguments.
-          args: --timeout 60s --max-same-issues 50
+          args: --verbose --timeout 60s --max-same-issues 50
 
           # Optional: show only new issues if it's a pull request. The default value is `false`.
           only-new-issues: true
@@ -43,4 +43,3 @@ jobs:
 
           # Optional: if set to true then the action don't cache or restore ~/.cache/go-build.
           # skip-build-cache: true
-          go_version: "1.18"

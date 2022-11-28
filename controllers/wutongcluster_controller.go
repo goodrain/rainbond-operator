@@ -193,7 +193,7 @@ func (r *WutongClusterReconciler) ReconcileLightweightInstall(ctx context.Contex
 			var comp wutongv1alpha1.WutongComponent
 			err := r.Get(ctx, types.NamespacedName{Name: "metrics-server", Namespace: constants.WutongSystemNamespace}, &comp)
 			if err == nil {
-				r.Delete(ctx, &comp, &client.DeleteOptions{})
+				_ = r.Delete(ctx, &comp, &client.DeleteOptions{})
 			}
 		}
 
@@ -201,7 +201,7 @@ func (r *WutongClusterReconciler) ReconcileLightweightInstall(ctx context.Contex
 			var comp wutongv1alpha1.WutongComponent
 			err := r.Get(ctx, types.NamespacedName{Name: "wt-gateway", Namespace: constants.WutongSystemNamespace}, &comp)
 			if err == nil {
-				r.Delete(ctx, &comp, &client.DeleteOptions{})
+				_ = r.Delete(ctx, &comp, &client.DeleteOptions{})
 			}
 		}
 
@@ -209,7 +209,7 @@ func (r *WutongClusterReconciler) ReconcileLightweightInstall(ctx context.Contex
 			var comp wutongv1alpha1.WutongComponent
 			err := r.Get(ctx, types.NamespacedName{Name: "wt-monitor", Namespace: constants.WutongSystemNamespace}, &comp)
 			if err == nil {
-				r.Delete(ctx, &comp, &client.DeleteOptions{})
+				_ = r.Delete(ctx, &comp, &client.DeleteOptions{})
 			}
 		}
 
@@ -217,7 +217,7 @@ func (r *WutongClusterReconciler) ReconcileLightweightInstall(ctx context.Contex
 			var comp wutongv1alpha1.WutongComponent
 			err := r.Get(ctx, types.NamespacedName{Name: "wt-node", Namespace: constants.WutongSystemNamespace}, &comp)
 			if err == nil {
-				r.Delete(ctx, &comp, &client.DeleteOptions{})
+				_ = r.Delete(ctx, &comp, &client.DeleteOptions{})
 			}
 		}
 
@@ -225,7 +225,7 @@ func (r *WutongClusterReconciler) ReconcileLightweightInstall(ctx context.Contex
 			var comp wutongv1alpha1.WutongComponent
 			err := r.Get(ctx, types.NamespacedName{Name: "wt-resource-proxy", Namespace: constants.WutongSystemNamespace}, &comp)
 			if err == nil {
-				r.Delete(ctx, &comp, &client.DeleteOptions{})
+				_ = r.Delete(ctx, &comp, &client.DeleteOptions{})
 			}
 		}
 
@@ -233,7 +233,7 @@ func (r *WutongClusterReconciler) ReconcileLightweightInstall(ctx context.Contex
 			var comp wutongv1alpha1.WutongComponent
 			err := r.Get(ctx, types.NamespacedName{Name: "wt-eventlog", Namespace: constants.WutongSystemNamespace}, &comp)
 			if err == nil {
-				r.Delete(ctx, &comp, &client.DeleteOptions{})
+				_ = r.Delete(ctx, &comp, &client.DeleteOptions{})
 			}
 		}
 	}

@@ -36,7 +36,9 @@ func (listener *DownloadWithProgress) Download() error {
 	var tmpPath = listener.SavedPath + ".progress"
 	_, err = os.Stat(path.Dir(tmpPath))
 	if os.IsNotExist(err) {
-		os.MkdirAll(path.Dir(tmpPath), os.ModeDir)
+		if err := os.MkdirAll(path.Dir(tmpPath), os.ModeDir); err != nil {
+			return err
+		}
 	}
 	// Create the file
 	out, err := os.Create(tmpPath)
@@ -96,7 +98,7 @@ func (listener *DownloadWithProgress) ProgressChanged(event *oss.ProgressEvent) 
 	}
 }
 
-//CheckMD5 check md5
+// CheckMD5 check md5
 func (listener *DownloadWithProgress) CheckMD5(target *os.File) error {
 	md5hash := sha256.New()
 	if _, err := io.Copy(md5hash, target); err != nil {
@@ -111,7 +113,7 @@ func (listener *DownloadWithProgress) CheckMD5(target *os.File) error {
 	return nil
 }
 
-//GetWanted -
+// GetWanted -
 func (listener *DownloadWithProgress) GetWanted() string {
 	return listener.Wanted
 }
@@ -122,7 +124,7 @@ type OnlineMD5 struct {
 	URL    string
 }
 
-//GetWanted -
+// GetWanted -
 func (h *OnlineMD5) GetWanted() string {
 	resp, err := http.Get(h.URL)
 	if err != nil {

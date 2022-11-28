@@ -138,7 +138,7 @@ func (r *WutongPackageReconciler) Reconcile(ctx context.Context, request ctrl.Re
 		if p != nil {
 			p.updateConditionStatus(wutongv1alpha1.Init, wutongv1alpha1.Failed)
 			p.updateConditionResion(wutongv1alpha1.Init, err.Error(), "create package handle failure")
-			p.updateCRStatus()
+			_ = p.updateCRStatus()
 		}
 		log.Error(err, "create package handle failure ")
 		return reconcile.Result{RequeueAfter: time.Second * 5}, nil
@@ -204,7 +204,7 @@ func initPackageStatus(status wutongv1alpha1.PackageConditionStatus) wutongv1alp
 	}
 }
 
-//checkStatusCanReturn if pkg status in the working state, straight back
+// checkStatusCanReturn if pkg status in the working state, straight back
 func checkStatusCanReturn(pkg *wutongv1alpha1.WutongPackage) (updateStatus bool, re *reconcile.Result) {
 	if len(pkg.Status.Conditions) == 0 {
 		pkg.Status = initPackageStatus(wutongv1alpha1.Waiting)
@@ -481,7 +481,7 @@ func (p *pkg) setInitStatus() error {
 	return nil
 }
 
-//donwnloadPackage download package
+// donwnloadPackage download package
 func (p *pkg) donwnloadPackage() error {
 	p.log.Info(fmt.Sprintf("start download package from %s", p.downloadPackageURL))
 	downloadListener := &downloadutil.DownloadWithProgress{
@@ -523,7 +523,7 @@ func (p *pkg) donwnloadPackage() error {
 	if err := downloadListener.Download(); err != nil {
 		p.log.Error(err, "download wutong package error, will retry")
 		p.updateConditionResion(wutongv1alpha1.Init, err.Error(), "download wutong package error, will retry")
-		p.updateCRStatus()
+		_ = p.updateCRStatus()
 		err = downloadListener.Download()
 		if err != nil {
 			p.log.Error(err, "download wutong package error, not retry")
@@ -536,7 +536,7 @@ func (p *pkg) donwnloadPackage() error {
 	return nil
 }
 
-//handle
+// handle
 func (p *pkg) handle() error {
 	p.log.V(5).Info("start handling wutong package.")
 	// check prerequisites
