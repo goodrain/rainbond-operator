@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	"github.com/wutong-paas/wutong-operator/util/wtutil"
-	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,7 +32,7 @@ func TestGetDefaultInfo(t *testing.T) {
 			mysqlUserKey:     []byte("write"),
 		},
 	}
-	clientset := fake.NewFakeClientWithScheme(scheme, secret)
+	clientset := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(secret).Build()
 
 	dbInfo, err := getDefaultDBInfo(ctx, clientset, nil, namespace, DBName)
 	if err != nil {
@@ -50,7 +50,7 @@ func TestStorageClassRWXVolumeNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cli := fake.NewFakeClientWithScheme(scheme)
+	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
 	ctx := context.Background()
 	ns := "wt-system"
 	_, err := storageClassNameFromWutongVolumeRWX(ctx, cli, ns)
@@ -73,7 +73,7 @@ func TestStorageClassRWXVolumeRWXNotReady(t *testing.T) {
 			Labels:    labels,
 		},
 	}
-	cli := fake.NewFakeClientWithScheme(scheme, volume)
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(volume).Build()
 	ctx := context.Background()
 	_, err := storageClassNameFromWutongVolumeRWX(ctx, cli, ns)
 	assert.NotNil(t, err)
@@ -99,7 +99,7 @@ func TestStorageClassRWXVolumeRWXOK(t *testing.T) {
 			StorageClassName: sc,
 		},
 	}
-	cli := fake.NewFakeClientWithScheme(scheme, volume)
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(volume).Build()
 	ctx := context.Background()
 	got, err := storageClassNameFromWutongVolumeRWX(ctx, cli, ns)
 	assert.Nil(t, err)
@@ -113,7 +113,7 @@ func TestStorageClassRWXVolumeRWONotFoundAndRWXNotFound(t *testing.T) {
 	}
 
 	ns := "wt-system"
-	cli := fake.NewFakeClientWithScheme(scheme)
+	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
 	ctx := context.Background()
 	_, err := storageClassNameFromWutongVolumeRWO(ctx, cli, ns)
 	assert.NotNil(t, err)
@@ -139,7 +139,7 @@ func TestStorageClassRWXVolumeRWONotFoundButRWXFound(t *testing.T) {
 			StorageClassName: sc,
 		},
 	}
-	cli := fake.NewFakeClientWithScheme(scheme, volume)
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(volume).Build()
 	ctx := context.Background()
 	got, err := storageClassNameFromWutongVolumeRWO(ctx, cli, ns)
 	assert.Nil(t, err)
@@ -157,7 +157,7 @@ func TestStorageClassRWXVolumeRWOOK(t *testing.T) {
 	volumerwo := getVolume(ns, wtutil.LabelsForAccessModeRWO())
 	volumerwx := getVolume(ns, wtutil.LabelsForAccessModeRWX())
 
-	cli := fake.NewFakeClientWithScheme(scheme, volumerwo, volumerwx)
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(volumerwo, volumerwx).Build()
 	ctx := context.Background()
 	got, err := storageClassNameFromWutongVolumeRWO(ctx, cli, ns)
 	assert.Nil(t, err)
@@ -173,7 +173,7 @@ func TestSetStorageCassNameRWX(t *testing.T) {
 	ns := "wt-system"
 
 	volumerwx := getVolume(ns, wtutil.LabelsForAccessModeRWX())
-	cli := fake.NewFakeClientWithScheme(scheme, volumerwx)
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(volumerwx).Build()
 	ctx := context.Background()
 
 	dummyStorageClassRWX := &dummyStorageClassRWX{}
@@ -191,7 +191,7 @@ func TestSetStorageCassNameRWO(t *testing.T) {
 	ns := "wt-system"
 
 	volumerwo := getVolume(ns, wtutil.LabelsForAccessModeRWO())
-	cli := fake.NewFakeClientWithScheme(scheme, volumerwo)
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(volumerwo).Build()
 	ctx := context.Background()
 
 	dummyStorageClassRWO := &dummyStorageClassRWO{}
@@ -210,7 +210,7 @@ func TestSetStorageCassNameBothRWXAndRWO(t *testing.T) {
 
 	volumerwx := getVolume(ns, wtutil.LabelsForAccessModeRWX())
 	volumerwo := getVolume(ns, wtutil.LabelsForAccessModeRWO())
-	cli := fake.NewFakeClientWithScheme(scheme, volumerwx, volumerwo)
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(volumerwo, volumerwx).Build()
 	ctx := context.Background()
 
 	dummyStorageClass := &dummyStorageClass{}
