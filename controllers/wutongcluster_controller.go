@@ -32,7 +32,9 @@ import (
 )
 
 const (
+	// RegionArchAmd64
 	RegionArchAmd64 = "amd64" // default
+	// RegionArchArm64
 	RegionArchArm64 = "arm64"
 )
 
@@ -187,6 +189,7 @@ func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Re
 	return ctrl.Result{}, nil
 }
 
+// ReconcileLightweightInstall -
 func (r *WutongClusterReconciler) ReconcileLightweightInstall(ctx context.Context, wutongcluster *wutongv1alpha1.WutongCluster) {
 	if wutongcluster.Spec.Lightweight {
 		if !wutongcluster.Spec.OptionalComponent.MetricsServer {

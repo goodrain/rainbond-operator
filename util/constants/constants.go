@@ -1,17 +1,17 @@
 package constants
 
 const (
-	//Namespace namespace
+	// WutongSystemNamespace wt-system
 	WutongSystemNamespace = "wt-system"
-	//DefInstallPkgDestPath  Default destination path of the installation package extraction.
+	// DefInstallPkgDestPath  Default destination path of the installation package extraction.
 	DefInstallPkgDestPath = "/tmp/DefInstallPkgDestPath"
-	//WutongClusterName wutong cluster resource name
+	// WutongClusterName wutong cluster resource name
 	WutongClusterName = "wutongcluster"
-	//WutongPackageName wutong package resource name
+	// WutongPackageName wutong package resource name
 	WutongPackageName = "wutongpackage"
 	// DefImageRepository is the default domain name of the mirror repository that Wutong is installed.
 	DefImageRepository = "wutong.me"
-	//WTDataPVC -
+	// WTDataPVC -
 	WTDataPVC = "wt-cpt-wtdata"
 	// CachePVC -
 	CachePVC = "wt-chaos-cache"
@@ -36,6 +36,6 @@ const (
 	// ServiceAccountName is the name of service account
 	ServiceAccountName = "wutong-operator"
 
-	//InstallImageRepo install image repo
+	// InstallImageRepo install image repo
 	InstallImageRepo = "swr.cn-southwest-2.myhuaweicloud.com/wutong"
 )

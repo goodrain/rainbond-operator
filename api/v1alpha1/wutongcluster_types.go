@@ -155,6 +155,7 @@ type WutongClusterSpec struct {
 	OptionalComponent OptionalComponent `json:"optionalComponent,omitempty"`
 }
 
+// OptionalComponent define the optional components of wutong to install, only worked when Lightweight is true
 type OptionalComponent struct {
 	MetricsServer       bool `json:"metrics-server,omitempty"`
 	WutongNode          bool `json:"wt-node,omitempty"`
