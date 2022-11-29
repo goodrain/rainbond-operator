@@ -80,9 +80,19 @@ func (a *appui) Before() error {
 }
 
 func (a *appui) Resources() []client.Object {
+	port, ok := a.component.Labels["port"]
+	if !ok {
+		port = "7070"
+	}
+	p, err := strconv.Atoi(port)
+	if err != nil {
+		p = 7070
+		port = "7070"
+		log.Error(err, "strconv.Atoi(port)")
+	}
 	res := []client.Object{
-		a.serviceForAppUI(),
-		a.ingressForAppUI(),
+		a.serviceForAppUI(int32(p)),
+		a.ingressForAppUI(port),
 		a.migrationsJob(),
 	}
 
@@ -261,7 +271,7 @@ func (a *appui) deploymentForAppUI() client.Object {
 	return deploy
 }
 
-func (a *appui) serviceForAppUI() client.Object {
+func (a *appui) serviceForAppUI(port int32) client.Object {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      AppUIName,
@@ -272,7 +282,7 @@ func (a *appui) serviceForAppUI() client.Object {
 			Ports: []corev1.ServicePort{
 				{
 					Name: "http",
-					Port: 7070,
+					Port: port,
 					TargetPort: intstr.IntOrString{
 						IntVal: 7070,
 					},
@@ -285,11 +295,11 @@ func (a *appui) serviceForAppUI() client.Object {
 	return svc
 }
 
-func (a *appui) ingressForAppUI() client.Object {
+func (a *appui) ingressForAppUI(port string) client.Object {
 	annotations := map[string]string{
 		"nginx.ingress.kubernetes.io/l4-enable": "true",
 		"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
-		"nginx.ingress.kubernetes.io/l4-port":   "7070",
+		"nginx.ingress.kubernetes.io/l4-port":   port,
 	}
 	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
 		return createIngress(AppUIName, a.component.Namespace, annotations, a.labels, AppUIName, "http")
