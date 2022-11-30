@@ -298,7 +298,7 @@ type componentClaim struct {
 	envs            map[string]string
 	isInit          bool
 	replicas        *int32
-	limitCpu        string
+	limitCPU        string
 	limitMemory     string
 }
 
@@ -343,15 +343,15 @@ func (r *WutongClusterReconciler) parseComponentClaim(claim *componentClaim) *wu
 			})
 		}
 	}
-	if claim.limitCpu != "" {
-		limitCpu, err := resource.ParseQuantity(claim.limitCpu)
+	if claim.limitCPU != "" {
+		limitCPU, err := resource.ParseQuantity(claim.limitCPU)
 		if err != nil {
-			logrus.Errorf("parse cpu limit %s failure %s", claim.limitCpu, err.Error())
+			logrus.Errorf("parse cpu limit %s failure %s", claim.limitCPU, err.Error())
 		}
 		if component.Spec.Resources.Limits == nil {
 			component.Spec.Resources.Limits = corev1.ResourceList{}
 		}
-		component.Spec.Resources.Limits[corev1.ResourceCPU] = limitCpu
+		component.Spec.Resources.Limits[corev1.ResourceCPU] = limitCPU
 	}
 	if claim.limitMemory != "" {
 		limitMemory, err := resource.ParseQuantity(claim.limitMemory)
@@ -402,10 +402,10 @@ func (r *WutongClusterReconciler) genComponentClaims(cluster *v1alpha1.WutongClu
 		"wt-resource-proxy": newClaim("wt-resource-proxy"),
 	}
 
-	name2Claim["wt-eventlog"].limitCpu = "500m"
+	name2Claim["wt-eventlog"].limitCPU = "500m"
 	name2Claim["wt-eventlog"].limitMemory = "4Gi"
 
-	name2Claim["wt-monitor"].limitCpu = "500m"
+	name2Claim["wt-monitor"].limitCPU = "500m"
 	name2Claim["wt-monitor"].limitMemory = "4Gi"
 
 	name2Claim["wt-chaos"].envs = map[string]string{
@@ -438,7 +438,7 @@ func (r *WutongClusterReconciler) genComponentClaims(cluster *v1alpha1.WutongClu
 	name2Claim["wt-node"] = newClaim("wt-node")
 	name2Claim["wt-node"].isInit = isInit
 
-	name2Claim["wt-node"].limitCpu = "250m"
+	name2Claim["wt-node"].limitCPU = "250m"
 	name2Claim["wt-node"].limitMemory = "2Gi"
 
 	if cluster.Spec.EtcdConfig == nil || len(cluster.Spec.EtcdConfig.Endpoints) == 0 {
