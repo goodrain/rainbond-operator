@@ -473,10 +473,10 @@ func (r *WutongClusteMgr) runningCondition() wutongv1alpha1.WutongClusterConditi
 		return wtutil.FailCondition(condition, "ListWutongComponentFailed", err.Error())
 	}
 
-	if len(WutongComponents) < 10 {
-		return wtutil.FailCondition(condition, "InsufficientWutongComponent",
-			fmt.Sprintf("insufficient number of wutongcomponents. expect %d wutongcomponents, but got %d", 10, len(WutongComponents)))
-	}
+	// if len(WutongComponents) < 10 {
+	// 	return wtutil.FailCondition(condition, "InsufficientWutongComponent",
+	// 		fmt.Sprintf("insufficient number of wutongcomponents. expect %d wutongcomponents, but got %d", 10, len(WutongComponents)))
+	// }
 
 	for _, cpt := range WutongComponents {
 		idx, c := cpt.Status.GetCondition(wutongv1alpha1.WutongComponentReady)

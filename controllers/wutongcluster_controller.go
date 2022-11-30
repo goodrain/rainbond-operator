@@ -12,6 +12,7 @@ import (
 	"github.com/wutong-paas/wutong-operator/util/retryutil"
 	"github.com/wutong-paas/wutong-operator/util/suffixdomain"
 	"github.com/wutong-paas/wutong-operator/util/wtutil"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -297,6 +298,8 @@ type componentClaim struct {
 	envs            map[string]string
 	isInit          bool
 	replicas        *int32
+	limitCpu        string
+	limitMemory     string
 }
 
 func (c *componentClaim) image() string {
@@ -340,6 +343,26 @@ func (r *WutongClusterReconciler) parseComponentClaim(claim *componentClaim) *wu
 			})
 		}
 	}
+	if claim.limitCpu != "" {
+		limitCpu, err := resource.ParseQuantity(claim.limitCpu)
+		if err != nil {
+			logrus.Errorf("parse cpu limit %s failure %s", claim.limitCpu, err.Error())
+		}
+		if component.Spec.Resources.Limits == nil {
+			component.Spec.Resources.Limits = corev1.ResourceList{}
+		}
+		component.Spec.Resources.Limits[corev1.ResourceCPU] = limitCpu
+	}
+	if claim.limitMemory != "" {
+		limitMemory, err := resource.ParseQuantity(claim.limitMemory)
+		if err != nil {
+			logrus.Errorf("parse memory limit %s failure %s", claim.limitMemory, err.Error())
+		}
+		if component.Spec.Resources.Limits == nil {
+			component.Spec.Resources.Limits = corev1.ResourceList{}
+		}
+		component.Spec.Resources.Limits[corev1.ResourceMemory] = limitMemory
+	}
 	labels := wtutil.LabelsForWutong(map[string]string{"name": claim.name})
 	if claim.isInit {
 		component.Spec.PriorityComponent = true
@@ -379,6 +402,12 @@ func (r *WutongClusterReconciler) genComponentClaims(cluster *v1alpha1.WutongClu
 		"wt-resource-proxy": newClaim("wt-resource-proxy"),
 	}
 
+	name2Claim["wt-eventlog"].limitCpu = "500m"
+	name2Claim["wt-eventlog"].limitMemory = "4Gi"
+
+	name2Claim["wt-monitor"].limitCpu = "500m"
+	name2Claim["wt-monitor"].limitMemory = "4Gi"
+
 	name2Claim["wt-chaos"].envs = map[string]string{
 		"CI_VERSION": cluster.Spec.InstallVersion,
 	}
@@ -408,6 +437,9 @@ func (r *WutongClusterReconciler) genComponentClaims(cluster *v1alpha1.WutongClu
 	name2Claim["wt-gateway"].isInit = isInit
 	name2Claim["wt-node"] = newClaim("wt-node")
 	name2Claim["wt-node"].isInit = isInit
+
+	name2Claim["wt-node"].limitCpu = "250m"
+	name2Claim["wt-node"].limitMemory = "2Gi"
 
 	if cluster.Spec.EtcdConfig == nil || len(cluster.Spec.EtcdConfig.Endpoints) == 0 {
 		claim := newClaim("wt-etcd")
