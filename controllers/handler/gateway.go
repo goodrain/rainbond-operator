@@ -3,6 +3,8 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	"github.com/sirupsen/logrus"
 	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -50,7 +52,32 @@ func (g *gateway) Before() error {
 	if err := isEtcdAvailable(g.ctx, g.client, g.component, g.cluster); err != nil {
 		return fmt.Errorf("etcd not available: %v", err)
 	}
-
+	k8sNodes, err := k8sutil.ListNodes(context.Background(), g.client)
+	if err != nil {
+		logrus.Error("get cluster node list error:", err)
+	}
+	k8sNodeNames := make(map[string]struct{})
+	nodeLabels := make(map[string]struct{})
+	for _, k8sNode := range k8sNodes {
+		if hostName, ok := k8sNode.Labels["kubernetes.io/hostname"]; ok {
+			nodeLabels[hostName] = struct{}{}
+		}
+		if hostName, ok := k8sNode.Labels["k3s.io/hostname"]; ok {
+			nodeLabels[hostName] = struct{}{}
+		}
+		k8sNodeNames[k8sNode.Name] = struct{}{}
+	}
+	nodeForGateway := g.cluster.Spec.NodesForGateway
+	if nodeForGateway != nil {
+		for _, currentNode := range nodeForGateway {
+			if  _, ok := k8sNodeNames[currentNode.Name]; !ok {
+				fmt.Printf("\033[1;31;40m%s\033[0m\n", fmt.Sprintf("Node %v cannot be found in the cluster", currentNode.Name))
+			}
+			if _, ok := nodeLabels[currentNode.Name]; !ok {
+				fmt.Printf("\033[1;31;40m%s\033[0m\n", fmt.Sprintf("Node name %v is not bound to the label of a cluster node", currentNode.Name))
+			}
+		}
+	}
 	return nil
 }
 
