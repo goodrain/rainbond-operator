@@ -240,6 +240,14 @@ func (r *WutongClusterReconciler) ReconcileLightweightInstall(ctx context.Contex
 				_ = r.Client.Delete(ctx, &comp, &client.DeleteOptions{})
 			}
 		}
+
+		if !wutongcluster.Spec.OptionalComponent.WutongWebcli {
+			var comp wutongv1alpha1.WutongComponent
+			err := r.Client.Get(ctx, types.NamespacedName{Name: "wt-webcli", Namespace: constants.WutongSystemNamespace}, &comp)
+			if err == nil {
+				_ = r.Client.Delete(ctx, &comp, &client.DeleteOptions{})
+			}
+		}
 	}
 }
 
