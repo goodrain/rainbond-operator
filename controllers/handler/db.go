@@ -224,6 +224,20 @@ func (d *db) statefulsetForDB() client.Object {
 	volumeMounts = mergeVolumeMounts(volumeMounts, d.component.Spec.VolumeMounts)
 	volumes = mergeVolumes(volumes, d.component.Spec.Volumes)
 
+	tolerations := []corev1.Toleration{
+		{
+			Operator: corev1.TolerationOpExists, // tolerate everything.
+		},
+	}
+
+	if d.component.Spec.Tolerations != nil && len(d.component.Spec.Tolerations) > 0 {
+		tolerations = d.component.Spec.Tolerations
+	}
+	affinity := &corev1.Affinity{}
+	if d.component.Spec.Affinity != nil {
+		affinity = d.component.Spec.Affinity
+	}
+
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DBName,
@@ -243,11 +257,8 @@ func (d *db) statefulsetForDB() client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(d.component, d.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					Tolerations: []corev1.Toleration{
-						{
-							Operator: corev1.TolerationOpExists, // tolerate everything.
-						},
-					},
+					Tolerations:                   tolerations,
+					Affinity:                      affinity,
 					Containers: []corev1.Container{
 						{
 							Name:            DBName,

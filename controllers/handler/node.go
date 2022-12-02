@@ -281,6 +281,10 @@ func (n *node) daemonSetForWutongNode() client.Object {
 	if n.component.Spec.Tolerations != nil && len(n.component.Spec.Tolerations) > 0 {
 		tolerations = n.component.Spec.Tolerations
 	}
+	affinity := &corev1.Affinity{}
+	if n.component.Spec.Affinity != nil {
+		affinity = n.component.Spec.Affinity
+	}
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      NodeName,
@@ -305,6 +309,7 @@ func (n *node) daemonSetForWutongNode() client.Object {
 					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 					HostNetwork:                   true,
 					Tolerations:                   tolerations,
+					Affinity:                      affinity,
 					Containers: []corev1.Container{
 						{
 							Name:            NodeName,

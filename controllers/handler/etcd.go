@@ -132,6 +132,10 @@ func (e *etcd) statefulsetForEtcd() client.Object {
 	if e.component.Spec.Tolerations != nil && len(e.component.Spec.Tolerations) > 0 {
 		tolerations = e.component.Spec.Tolerations
 	}
+	affinity := &corev1.Affinity{}
+	if e.component.Spec.Affinity != nil {
+		affinity = e.component.Spec.Affinity
+	}
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EtcdName,
@@ -154,6 +158,7 @@ func (e *etcd) statefulsetForEtcd() client.Object {
 					ImagePullSecrets:              imagePullSecrets(e.component, e.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Tolerations:                   tolerations,
+					Affinity:                      affinity,
 					Containers: []corev1.Container{
 						{
 							Name:            EtcdName,
