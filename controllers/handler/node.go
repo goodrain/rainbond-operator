@@ -229,6 +229,7 @@ func (n *node) daemonSetForWutongNode() client.Object {
 		"--hostsfile=/newetc/hosts",
 		"--wt-ns=" + n.component.Namespace,
 	}
+
 	if n.etcdSecret != nil {
 		volume, mount := volumeByEtcd(n.etcdSecret)
 		volumeMounts = append(volumeMounts, mount)
@@ -271,6 +272,15 @@ func (n *node) daemonSetForWutongNode() client.Object {
 	// prepare probe
 	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/ping", 6100)
 	args = mergeArgs(args, n.component.Spec.Args)
+	tolerations := []corev1.Toleration{
+		{
+			Operator: corev1.TolerationOpExists, // tolerate everything.
+		},
+	}
+
+	if n.component.Spec.Tolerations != nil && len(n.component.Spec.Tolerations) > 0 {
+		tolerations = n.component.Spec.Tolerations
+	}
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      NodeName,
@@ -294,11 +304,7 @@ func (n *node) daemonSetForWutongNode() client.Object {
 					HostPID:                       true,
 					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 					HostNetwork:                   true,
-					Tolerations: []corev1.Toleration{
-						{
-							Operator: corev1.TolerationOpExists, // tolerate everything.
-						},
-					},
+					Tolerations:                   tolerations,
 					Containers: []corev1.Container{
 						{
 							Name:            NodeName,

@@ -123,6 +123,15 @@ func (e *etcd) statefulsetForEtcd() client.Object {
 	env = mergeEnvs(env, e.component.Spec.Env)
 
 	pvc := e.pvc()
+	tolerations := []corev1.Toleration{
+		{
+			Operator: corev1.TolerationOpExists, // tolerate everything.
+		},
+	}
+
+	if e.component.Spec.Tolerations != nil && len(e.component.Spec.Tolerations) > 0 {
+		tolerations = e.component.Spec.Tolerations
+	}
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EtcdName,
@@ -144,11 +153,7 @@ func (e *etcd) statefulsetForEtcd() client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(e.component, e.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					Tolerations: []corev1.Toleration{
-						{
-							Operator: corev1.TolerationOpExists, // tolerate everything.
-						},
-					},
+					Tolerations:                   tolerations,
 					Containers: []corev1.Container{
 						{
 							Name:            EtcdName,

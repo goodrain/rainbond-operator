@@ -43,7 +43,7 @@ spec:
                 description: install source image hub user
                 type: string
               pkgPath:
-                description: 'Deprecated: The path where the wutong package is located.'
+                description: 'PkgPath: The path where the wutong package is located.'
                 type: string
             required:
             - imageHubPass
