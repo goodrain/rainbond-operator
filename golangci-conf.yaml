@@ -1,0 +1,21 @@
+run:
+  timeout: 10m
+  tests: false
+
+linters:
+  disable-all: true
+  enable:
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+
+issues:
+  exclude:
+    - could not import
+    - invalid JSON field name
+    - unknown JSON option
+    - has been deprecated
+    - is deprecated
+    - should check returned error before

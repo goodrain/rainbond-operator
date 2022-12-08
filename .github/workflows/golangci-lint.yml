@@ -5,6 +5,7 @@ on:
       - v*
     branches:
       - master
+      - dev
   pull_request:
 permissions:
   contents: read
@@ -29,7 +30,7 @@ jobs:
           working-directory: ./
 
           # Optional: golangci-lint command line arguments.
-          args: --verbose --timeout 600s --max-same-issues 50
+          args: -c golangci-conf.yaml
 
           # Optional: show only new issues if it's a pull request. The default value is `false`.
           only-new-issues: true
