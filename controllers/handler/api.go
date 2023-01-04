@@ -29,7 +29,7 @@ import (
 
 var log = logf.Log.WithName("rbdcomponent_handler")
 
-//APIName name
+// APIName name
 var APIName = "rbd-api"
 var apiServerSecretName = "rbd-api-server-cert"
 var apiCASecretName = "rbd-api-ca-cert"
@@ -53,7 +53,7 @@ type api struct {
 var _ ComponentHandler = &api{}
 var _ StorageClassRWXer = &api{}
 
-//NewAPI new api handle
+// NewAPI new api handle
 func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &api{
 		ctx:                  ctx,
@@ -102,6 +102,7 @@ func (a *api) Resources() []client.Object {
 	resources = append(resources, a.createService()...)
 	resources = append(resources, a.ingressForAPI())
 	resources = append(resources, a.ingressForWebsocket())
+	resources = append(resources, a.ingressForAPIHealthz())
 	return resources
 }
 
@@ -386,7 +387,27 @@ func (a *api) createService() []client.Object {
 		},
 	}
 
-	return []client.Object{svcAPI, svcWebsocket, inner}
+	healthz := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      APIName + "-healthz",
+			Namespace: a.component.Namespace,
+			Labels:    a.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "healthz",
+					Port: 8889,
+					TargetPort: intstr.IntOrString{
+						IntVal: 8889,
+					},
+				},
+			},
+			Selector: a.labels,
+		},
+	}
+
+	return []client.Object{svcAPI, svcWebsocket, inner, healthz}
 }
 
 func (a *api) getSecret(name string) (*corev1.Secret, error) {
@@ -499,6 +520,20 @@ func (a *api) ingressForAPI() client.Object {
 	return createLegacyIngress(APIName, a.component.Namespace, annotations, a.labels, APIName+"-api", intstr.FromString("https"))
 }
 
+func (a *api) ingressForAPIHealthz() client.Object {
+	annotations := map[string]string{
+		"nginx.ingress.kubernetes.io/l4-enable": "true",
+		"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
+		"nginx.ingress.kubernetes.io/l4-port":   "8889",
+	}
+	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
+		logrus.Info("create networking v1 ingress for healthz")
+		return createIngress(APIName+"-healthz", a.component.Namespace, annotations, a.labels, APIName+"-healthz", "healthz")
+	}
+	logrus.Info("create networking beta v1 ingress for healthz")
+	return createLegacyIngress(APIName+"-healthz", a.component.Namespace, annotations, a.labels, APIName+"-healthz", intstr.FromString("healthz"))
+}
+
 func (a *api) ingressForWebsocket() client.Object {
 	annotations := map[string]string{
 		"nginx.ingress.kubernetes.io/l4-enable": "true",
@@ -509,6 +544,6 @@ func (a *api) ingressForWebsocket() client.Object {
 		logrus.Info("create networking v1 ingress for websocket")
 		return createIngress(APIName+"-websocket", a.component.Namespace, annotations, a.labels, APIName+"-websocket", "ws")
 	}
-	logrus.Info("create networking beta v1 ingress for api")
+	logrus.Info("create networking beta v1 ingress for websocket")
 	return createLegacyIngress(APIName+"-websocket", a.component.Namespace, annotations, a.labels, APIName+"-websocket", intstr.FromString("ws"))
 }
