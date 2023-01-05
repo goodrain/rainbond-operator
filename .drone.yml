@@ -28,7 +28,7 @@ steps:
     GOARCH: arm64
   commands:
   - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-  - docker build --build-arg ARCH=$GOARCH -t rainbond/rainbond-operator:$VERSION .
+  - docker build --build-arg ARCH=$GOARCH --build-arg GOPROXY="https://goproxy.cn" -t rainbond/rainbond-operator:$VERSION .
   - docker push rainbond/rainbond-operator:$VERSION
   when:
     event:
