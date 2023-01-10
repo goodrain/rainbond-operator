@@ -99,14 +99,15 @@ func getDefaultDBInfo(ctx context.Context, cli client.Client, in *rainbondv1alph
 	}
 
 	secret := &corev1.Secret{}
+	var user, pass string
 	if err := cli.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, secret); err != nil {
 		if !k8sErrors.IsNotFound(err) {
 			return nil, fmt.Errorf("get secret %s/%s: %v", name, namespace, err)
 		}
-		return nil, NewIgnoreError(fmt.Sprintf("secret %s/%s not fount: %v", name, namespace, err))
+	} else {
+		user = string(secret.Data[mysqlUserKey])
+		pass = string(secret.Data[mysqlPasswordKey])
 	}
-	user := string(secret.Data[mysqlUserKey])
-	pass := string(secret.Data[mysqlPasswordKey])
 
 	return &rainbondv1alpha1.Database{
 		Host:     dbhost,
