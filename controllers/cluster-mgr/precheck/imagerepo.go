@@ -3,12 +3,10 @@ package precheck
 import (
 	"context"
 	"fmt"
-	"path"
 	"time"
 
-	"github.com/docker/docker/client"
 	"github.com/wutong-paas/wutong-operator/util/constants"
-	"github.com/wutong-paas/wutong-operator/util/imageutil"
+	"github.com/wutong-paas/wutong-operator/util/repositoryutil"
 	"github.com/wutong-paas/wutong-operator/util/wtutil"
 
 	"github.com/go-logr/logr"
@@ -49,40 +47,12 @@ func (d *imagerepo) Check() wutongv1alpha1.WutongClusterCondition {
 			fmt.Sprintf("precheck for %s is in progress", wutongv1alpha1.WutongClusterConditionTypeImageRepository)
 	}
 
-	localImage := path.Join(d.cluster.Spec.WutongImageRepository, "smallimage")
-	remoteImage := path.Join(imageRepo, "smallimage")
+	// Verify that the image repository is available
+	d.log.V(6).Info("login repository", "repository", wtutil.GetImageRepositoryDomain(d.cluster), "user", d.cluster.Spec.ImageHub.Username)
 
-	dockerClient, err := client.NewClientWithOpts(client.FromEnv)
-	if err != nil {
+	if err := repositoryutil.LoginRepository(wtutil.GetImageRepositoryDomain(d.cluster), d.cluster.Spec.ImageHub.Username, d.cluster.Spec.ImageHub.Password); err != nil {
 		return d.failConditoin(condition, err)
 	}
-	dockerClient.NegotiateAPIVersion(d.ctx)
-
-	exists, err := imageutil.CheckIfImageExists(d.ctx, dockerClient, localImage)
-	if err != nil {
-		return d.failConditoin(condition, fmt.Errorf("check if image %s exists: %v", remoteImage, err))
-	}
-
-	if !exists {
-		if err := imageutil.ImagePull(d.ctx, dockerClient, localImage); err != nil {
-			return d.failConditoin(condition, fmt.Errorf("pull image %s: %v", localImage, err))
-		}
-	}
-	if err := dockerClient.ImageTag(d.ctx, localImage, remoteImage); err != nil {
-		return d.failConditoin(condition, fmt.Errorf("tag image %s to %s: %v", localImage, remoteImage, err))
-	}
-
-	// push a small image to check the given image repository
-	d.log.V(6).Info("push image", "image", remoteImage, "repository", imageRepo, "user", d.cluster.Spec.ImageHub.Username)
-	if err := imageutil.ImagePush(d.ctx, dockerClient, remoteImage, imageRepo,
-		d.cluster.Spec.ImageHub.Username, d.cluster.Spec.ImageHub.Password); err != nil {
-		condition = d.failConditoin(condition, fmt.Errorf("push image: %v", err))
-		if imageRepo == constants.DefImageRepository {
-			condition.Reason = "DefaultImageRepoFailed"
-		}
-		return condition
-	}
-
 	return condition
 }
 

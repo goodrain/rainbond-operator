@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/wutong-paas/wutong-operator/util/commonutil"
 	"github.com/wutong-paas/wutong-operator/util/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -36,7 +37,7 @@ var (
 	NodeLabelRole = "kubernetes.io/role"
 )
 
-//GetClientSet -
+// GetClientSet -
 func GetClientSet() kubernetes.Interface {
 	if clientset == nil {
 		once.Do(func() {
@@ -47,7 +48,7 @@ func GetClientSet() kubernetes.Interface {
 	return clientset
 }
 
-//MustNewKubeConfig -
+// MustNewKubeConfig -
 func MustNewKubeConfig(kubeconfigPath string) *rest.Config {
 	if kubeconfigPath != "" {
 		cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
@@ -64,7 +65,7 @@ func MustNewKubeConfig(kubeconfigPath string) *rest.Config {
 	return cfg
 }
 
-//NewKubeConfig -
+// NewKubeConfig -
 func NewKubeConfig() (*rest.Config, error) {
 	cfg, err := InClusterConfig()
 	if err != nil {
@@ -73,7 +74,7 @@ func NewKubeConfig() (*rest.Config, error) {
 	return cfg, nil
 }
 
-//InClusterConfig -
+// InClusterConfig -
 func InClusterConfig() (*rest.Config, error) {
 	// Work around https://github.com/kubernetes/kubernetes/issues/40973
 	// See https://github.com/coreos/etcd-operator/issues/731#issuecomment-283804819
@@ -120,7 +121,7 @@ func PersistentVolumeReclaimPolicy(persistentVolumeReclaimPolicy corev1.Persiste
 	return &persistentVolumeReclaimPolicy
 }
 
-//UpdateCRStatus udpate cr status
+// UpdateCRStatus udpate cr status
 func UpdateCRStatus(client client.Client, obj client.Object) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
@@ -134,7 +135,7 @@ func UpdateCRStatus(client client.Client, obj client.Object) error {
 	return nil
 }
 
-//MaterRoleLabel -
+// MaterRoleLabel -
 func MaterRoleLabel(key string) map[string]string {
 	var labels map[string]string
 	switch key {
@@ -150,7 +151,7 @@ func MaterRoleLabel(key string) map[string]string {
 	return labels
 }
 
-//PersistentVolumeClaimForWTData -
+// PersistentVolumeClaimForWTData -
 func PersistentVolumeClaimForWTData(ns, claimName string, accessModes []corev1.PersistentVolumeAccessMode, labels map[string]string, storageClassName string, storageRequest int64) *corev1.PersistentVolumeClaim {
 	size := resource.NewQuantity(storageRequest*1024*1024*1024, resource.BinarySI)
 	pvc := &corev1.PersistentVolumeClaim{
@@ -173,7 +174,7 @@ func PersistentVolumeClaimForWTData(ns, claimName string, accessModes []corev1.P
 	return pvc
 }
 
-//GetFoobarPVC -
+// GetFoobarPVC -
 func GetFoobarPVC(ctx context.Context, client client.Client, ns string) (*corev1.PersistentVolumeClaim, error) {
 	pvc := corev1.PersistentVolumeClaim{}
 	err := client.Get(ctx, types.NamespacedName{Namespace: ns, Name: constants.FoobarPVC}, &pvc)
@@ -241,6 +242,10 @@ func ListNodes(ctx context.Context, c client.Client) ([]corev1.Node, error) {
 
 // GetKubeVersion returns the version of k8s
 func GetKubeVersion() *utilversion.Version {
-	var serverVersion, _ = GetClientSet().Discovery().ServerVersion()
+	var serverVersion, err = GetClientSet().Discovery().ServerVersion()
+	if err != nil {
+		logrus.Errorf("Get Kubernetes Version failed [%+v]", err)
+		return utilversion.MustParseSemantic("v1.19.6")
+	}
 	return utilversion.MustParseSemantic(serverVersion.GitVersion)
 }

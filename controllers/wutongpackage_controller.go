@@ -18,28 +18,32 @@ package controllers
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/errdefs"
+	"github.com/containerd/containerd/images"
+	cdocker "github.com/containerd/containerd/remotes/docker"
+	"github.com/containerd/containerd/remotes/docker/config"
 	"github.com/docker/distribution/reference"
 	dtypes "github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
 	dclient "github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/go-logr/logr"
+	"github.com/sirupsen/logrus"
 	"github.com/wutong-paas/wutong-operator/util/commonutil"
 	"github.com/wutong-paas/wutong-operator/util/constants"
 	"github.com/wutong-paas/wutong-operator/util/downloadutil"
+	initcontainerd "github.com/wutong-paas/wutong-operator/util/init-containerd"
 	"github.com/wutong-paas/wutong-operator/util/retryutil"
 	"github.com/wutong-paas/wutong-operator/util/tarutil"
-	"github.com/wutong-paas/wutong-operator/util/wtutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -233,7 +237,6 @@ func checkStatusCanReturn(pkg *wutongv1alpha1.WutongPackage) (updateStatus bool,
 type pkg struct {
 	ctx              context.Context
 	client           client.Client
-	dcli             *dclient.Client
 	pkg              *wutongv1alpha1.WutongPackage
 	cluster          *wutongv1alpha1.WutongCluster
 	log              logr.Logger
@@ -248,12 +251,13 @@ type pkg struct {
 	// Deprecated: no longer download installation package.
 	totalImageNum int32
 	//need download images
-	images  map[string]string
-	version string
+	images        map[string]string
+	version       string
+	containerdCli *initcontainerd.ContainerdAPI
 }
 
 func newpkg(ctx context.Context, client client.Client, p *wutongv1alpha1.WutongPackage, cluster *wutongv1alpha1.WutongCluster, reqLogger logr.Logger) (*pkg, error) {
-	dcli, err := newDockerClient(ctx)
+	containerdCli, err := initcontainerd.InitContainerd()
 	if err != nil {
 		reqLogger.Error(err, "failed to create docker client")
 		return nil, err
@@ -262,13 +266,13 @@ func newpkg(ctx context.Context, client client.Client, p *wutongv1alpha1.WutongP
 		ctx:    ctx,
 		client: client,
 		pkg:    p.DeepCopy(),
-		dcli:   dcli,
 		// Deprecated: no longer download installation package.
 		totalImageNum: 23,
 		images:        make(map[string]string, 23),
 		log:           reqLogger,
 		version:       cluster.Spec.InstallVersion,
 		cluster:       cluster,
+		containerdCli: containerdCli,
 	}
 	return pkg, nil
 }
@@ -656,20 +660,26 @@ func (p *pkg) imagePullAndPush() error {
 	var count int32
 	handleImgae := func(remoteImage, localImage string) error {
 		return retryutil.Retry(time.Second*2, 3, func() (bool, error) {
-			exists, err := p.checkIfImageExists(remoteImage)
+			image, err := p.containerdCli.ImageService.Get(p.containerdCli.CCtx, remoteImage)
 			if err != nil {
-				return false, fmt.Errorf("check if image exists: %v", err)
+				return false, fmt.Errorf("get image %s failure: %v", remoteImage, err)
 			}
-			if !exists {
-				p.log.V(4).Info("image does not exists, start pulling", "image name", remoteImage)
-				if err := p.imagePull(remoteImage); err != nil {
-					return false, fmt.Errorf("pull image %s failure %s", remoteImage, err.Error())
+			image.Name = localImage
+			if _, err = p.containerdCli.ImageService.Create(p.containerdCli.CCtx, image); err != nil {
+				// If user has specified force and the image already exists then
+				// delete the original image and attempt to create the new one
+				if errdefs.IsAlreadyExists(err) {
+					if err = p.containerdCli.ImageService.Delete(p.containerdCli.CCtx, localImage); err != nil {
+						return false, fmt.Errorf("delete image %s failure: %v", localImage, err)
+					}
+					if _, err = p.containerdCli.ImageService.Create(p.containerdCli.CCtx, image); err != nil {
+						return false, fmt.Errorf("create image %s failure: %v", localImage, err)
+					}
+				} else {
+					return false, fmt.Errorf("create image %s failure: %v", localImage, err)
 				}
 			}
-			if err := p.dcli.ImageTag(p.ctx, remoteImage, localImage); err != nil {
-				return false, fmt.Errorf("change image tag(%s => %s) failure: %v", remoteImage, localImage, err)
-			}
-			if err := p.imagePush(localImage); err != nil {
+			if err := p.imagePush(image); err != nil {
 				return false, fmt.Errorf("push image %s failure %s", localImage, err.Error())
 			}
 			return true, nil
@@ -694,61 +704,63 @@ func (p *pkg) imagePullAndPush() error {
 	}
 	return nil
 }
+
 func (p *pkg) imagesLoadAndPush() error {
-	p.pkg.Status.ImagesNumber = countImages(pkgDst)
-	p.pkg.Status.ImagesPushed = nil
-	var count int32
-	walkFn := func(pstr string, info os.FileInfo, err error) error {
-		l := p.log.WithValues("file", pstr)
-		if err != nil {
-			l.Info(fmt.Sprintf("prevent panic by handling failure accessing a path %q: %v\n", pstr, err))
-			return fmt.Errorf("prevent panic by handling failure accessing a path %q: %v", pstr, err)
-		}
-		if !commonutil.IsFile(pstr) {
-			return nil
-		}
-		if !validateFile(pstr) {
-			l.Info("invalid file, skip it1")
-			return nil
-		}
+	return nil
+	// p.pkg.Status.ImagesNumber = countImages(pkgDst)
+	// p.pkg.Status.ImagesPushed = nil
+	// var count int32
+	// walkFn := func(pstr string, info os.FileInfo, err error) error {
+	// 	l := p.log.WithValues("file", pstr)
+	// 	if err != nil {
+	// 		l.Info(fmt.Sprintf("prevent panic by handling failure accessing a path %q: %v\n", pstr, err))
+	// 		return fmt.Errorf("prevent panic by handling failure accessing a path %q: %v", pstr, err)
+	// 	}
+	// 	if !commonutil.IsFile(pstr) {
+	// 		return nil
+	// 	}
+	// 	if !validateFile(pstr) {
+	// 		l.Info("invalid file, skip it1")
+	// 		return nil
+	// 	}
 
-		f := func() (bool, error) {
-			image, err := p.imageLoad(pstr)
-			if err != nil {
-				l.Error(err, "load image")
-				return false, fmt.Errorf("load image: %v", err)
-			}
+	// 	f := func() (bool, error) {
+	// 		image, err := p.imageLoad(pstr)
+	// 		if err != nil {
+	// 			l.Error(err, "load image")
+	// 			return false, fmt.Errorf("load image: %v", err)
+	// 		}
 
-			newImage := newImageWithNewDomain(image, wtutil.GetImageRepository(p.cluster))
-			if newImage == "" {
-				return false, fmt.Errorf("parse image name failure")
-			}
+	// 		newImage := newImageWithNewDomain(image, wtutil.GetImageRepository(p.cluster))
+	// 		if newImage == "" {
+	// 			return false, fmt.Errorf("parse image name failure")
+	// 		}
 
-			if err := p.dcli.ImageTag(p.ctx, image, newImage); err != nil {
-				l.Error(err, "tag image", "source", image, "target", newImage)
-				return false, fmt.Errorf("tag image: %v", err)
-			}
+	// 		if err := p.dcli.ImageTag(p.ctx, image, newImage); err != nil {
+	// 			l.Error(err, "tag image", "source", image, "target", newImage)
+	// 			return false, fmt.Errorf("tag image: %v", err)
+	// 		}
 
-			if err = p.imagePush(newImage); err != nil {
-				l.Error(err, "push image", "image", newImage)
-				return false, fmt.Errorf("push image %s: %v", newImage, err)
-			}
-			count++
-			p.pkg.Status.ImagesPushed = append(p.pkg.Status.ImagesPushed, wutongv1alpha1.WutongPackageImage{Name: newImage})
-			progress := count * 100 / p.pkg.Status.ImagesNumber
-			if p.updateConditionProgress(wutongv1alpha1.PushImage, progress) {
-				if err := p.updateCRStatus(); err != nil {
-					return false, fmt.Errorf("update cr status: %v", err)
-				}
-			}
-			l.Info("successfully load image", "image", newImage)
-			return true, nil
-		}
+	// 		if err = p.imagePush(newImage); err != nil {
+	// 			l.Error(err, "push image", "image", newImage)
+	// 			return false, fmt.Errorf("push image %s: %v", newImage, err)
+	// 		}
+	// 		count++
+	// 		p.pkg.Status.ImagesPushed = append(p.pkg.Status.ImagesPushed, wutongv1alpha1.WutongPackageImage{Name: newImage})
+	// 		progress := count * 100 / p.pkg.Status.ImagesNumber
+	// 		if p.updateConditionProgress(wutongv1alpha1.PushImage, progress) {
+	// 			if err := p.updateCRStatus(); err != nil {
+	// 				return false, fmt.Errorf("update cr status: %v", err)
+	// 			}
+	// 		}
+	// 		l.Info("successfully load image", "image", newImage)
+	// 		return true, nil
+	// 	}
 
-		return retryutil.Retry(1*time.Second, 3, f)
-	}
+	// 	return retryutil.Retry(1*time.Second, 3, f)
+	// }
 
-	return filepath.Walk(pkgDst, walkFn)
+	// return filepath.Walk(pkgDst, walkFn)
 }
 
 func (p *pkg) imageLoad(file string) (string, error) {
@@ -758,39 +770,15 @@ func (p *pkg) imageLoad(file string) (string, error) {
 		return "", fmt.Errorf("open file %s: %v", file, err)
 	}
 	defer f.Close()
-	res, err := p.dcli.ImageLoad(p.ctx, f, true) // load one, push one.
+	var imageNames []images.Image
+	if imageNames, err = p.containerdCli.ContainerdClient.Import(p.containerdCli.CCtx, f); err != nil {
+		logrus.Errorf("load image from file %s failure %s", f, err.Error())
+	}
 	if err != nil {
 		return "", fmt.Errorf("path: %s; failed to load images: %v", file, err)
 	}
 	var imageName string
-	if res.Body != nil {
-		defer res.Body.Close()
-		dec := json.NewDecoder(res.Body)
-		for {
-			select {
-			case <-p.ctx.Done():
-				p.log.Error(p.ctx.Err(), "error form context")
-				return "", p.ctx.Err()
-			default:
-			}
-			var jm jsonmessage.JSONMessage
-			if err := dec.Decode(&jm); err != nil {
-				if err == io.EOF {
-					break
-				}
-				return "", fmt.Errorf("failed to decode json message: %v", err)
-			}
-			if jm.Error != nil {
-				return "", fmt.Errorf("error detail: %v", jm.Error)
-			}
-			msg := jm.Stream
-			//the domain of image in package is wutong.me,not need change tag
-			image := parseImageName(msg)
-			if image != "" {
-				imageName = image
-			}
-		}
-	}
+	imageName = imageNames[0].Name
 	if imageName == "" {
 		return "", fmt.Errorf("not parse image name")
 	}
@@ -798,108 +786,27 @@ func (p *pkg) imageLoad(file string) (string, error) {
 	return imageName, nil
 }
 
-func (p *pkg) imagePush(image string) error {
-	p.log.Info("start push image", "image", image)
-	var pullipo dtypes.ImagePushOptions
-	if p.cluster != nil && p.cluster.Spec.ImageHub != nil && p.cluster.Spec.ImageHub.Username != "" {
-		auth, err := EncodeAuthToBase64(dtypes.AuthConfig{
-			Username: p.cluster.Spec.ImageHub.Username,
-			Password: p.cluster.Spec.ImageHub.Password,
-		})
-		if err != nil {
-			p.log.Error(err, "Encode image hub user and password failure")
-			return err
-		}
-		pullipo = dtypes.ImagePushOptions{
-			RegistryAuth: auth,
-		}
-	} else {
-		pullipo = dtypes.ImagePushOptions{}
+func (p *pkg) imagePush(image images.Image) error {
+	p.log.Info("start push image", "image", image.Name)
+	defaultTLS := &tls.Config{
+		InsecureSkipVerify: true,
 	}
-	ctx, cancel := context.WithCancel(p.ctx)
-	defer cancel()
-	var res io.ReadCloser
-	res, err := p.dcli.ImagePush(ctx, image, pullipo)
+
+	hostOpt := config.HostOptions{}
+	hostOpt.DefaultTLS = defaultTLS
+	hostOpt.Credentials = func(host string) (string, string, error) {
+		return p.cluster.Spec.ImageHub.Username, p.cluster.Spec.ImageHub.Password, nil
+	}
+	options := cdocker.ResolverOptions{
+		Tracker: cdocker.NewInMemoryTracker(),
+		Hosts:   config.ConfigureHosts(p.containerdCli.CCtx, hostOpt),
+	}
+	err := p.containerdCli.ContainerdClient.Push(p.containerdCli.CCtx, image.Name, image.Target, containerd.WithResolver(cdocker.NewResolver(options)))
 	if err != nil {
 		p.log.Error(err, "failed to push image", "image", image)
 		return err
 	}
-	if res != nil {
-		defer res.Close()
-
-		dec := json.NewDecoder(res)
-		for {
-			select {
-			case <-ctx.Done():
-				p.log.Error(p.ctx.Err(), "error form context")
-				return p.ctx.Err()
-			default:
-			}
-			var jm jsonmessage.JSONMessage
-			if err := dec.Decode(&jm); err != nil {
-				if err == io.EOF {
-					break
-				}
-				return fmt.Errorf("failed to decode json message: %v", err)
-			}
-			if jm.Error != nil {
-				return fmt.Errorf("error detail: %v", jm.Error)
-			}
-		}
-	}
 	p.log.Info("success push image", "image", image)
-	return nil
-}
-
-func (p *pkg) imagePull(image string) error {
-	p.log.Info("start pull image", "image", image)
-	ctx, cancel := context.WithCancel(p.ctx)
-	defer cancel()
-	rf, err := reference.ParseAnyReference(image)
-	if err != nil {
-		p.log.Error(err, "reference image error")
-		return err
-	}
-	var pullipo dtypes.ImagePullOptions
-	if p.pkg.Spec.ImageHubUser != "" {
-		auth, err := EncodeAuthToBase64(dtypes.AuthConfig{Username: p.pkg.Spec.ImageHubUser, Password: p.pkg.Spec.ImageHubPass})
-		if err != nil {
-			p.log.Error(err, "Encode image hub user and password failure")
-			return err
-		}
-		pullipo = dtypes.ImagePullOptions{
-			RegistryAuth: auth,
-		}
-	} else {
-		pullipo = dtypes.ImagePullOptions{}
-	}
-	res, err := p.dcli.ImagePull(ctx, rf.String(), pullipo)
-	if err != nil {
-		return fmt.Errorf("pull image %s failure %s", image, err.Error())
-	}
-	if res != nil {
-		defer res.Close()
-		dec := json.NewDecoder(res)
-		for {
-			select {
-			case <-ctx.Done():
-				p.log.Error(ctx.Err(), "error form context")
-				return ctx.Err()
-			default:
-			}
-			var jm jsonmessage.JSONMessage
-			if err := dec.Decode(&jm); err != nil {
-				if err == io.EOF {
-					break
-				}
-				return fmt.Errorf("failed to decode json message: %v", err)
-			}
-			if jm.Error != nil {
-				return fmt.Errorf("error detail: %v", jm.Error)
-			}
-		}
-	}
-	p.log.Info("success pull image", "image", image)
 	return nil
 }
 
@@ -913,13 +820,14 @@ func EncodeAuthToBase64(authConfig dtypes.AuthConfig) (string, error) {
 }
 
 func newDockerClient(ctx context.Context) (*dclient.Client, error) {
-	cli, err := dclient.NewClientWithOpts(dclient.FromEnv)
-	if err != nil {
-		return nil, fmt.Errorf("create new docker client: %v", err)
-	}
-	cli.NegotiateAPIVersion(ctx)
+	// cli, err := dclient.NewClientWithOpts(dclient.FromEnv)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("create new docker client: %v", err)
+	// }
+	// cli.NegotiateAPIVersion(ctx)
 
-	return cli, nil
+	// return cli, nil
+	return nil, nil
 }
 
 func parseImageName(str string) string {
@@ -981,34 +889,35 @@ func newImageWithNewDomain(image string, newDomain string) string {
 }
 
 func (p *pkg) checkIfImageExists(image string) (bool, error) {
-	repo, err := reference.Parse(image)
-	if err != nil {
-		p.log.V(6).Info("parse image", "image", image, "error", err)
-		return false, fmt.Errorf("parse image %s: %v", image, err)
-	}
-	named := repo.(reference.Named)
-	tag := "latest"
-	if t, ok := repo.(reference.Tagged); ok {
-		tag = t.Tag()
-	}
-	imageFullName := named.Name() + ":" + tag
+	return true, nil
+	// repo, err := reference.Parse(image)
+	// if err != nil {
+	// 	p.log.V(6).Info("parse image", "image", image, "error", err)
+	// 	return false, fmt.Errorf("parse image %s: %v", image, err)
+	// }
+	// named := repo.(reference.Named)
+	// tag := "latest"
+	// if t, ok := repo.(reference.Tagged); ok {
+	// 	tag = t.Tag()
+	// }
+	// imageFullName := named.Name() + ":" + tag
 
-	ctx, cancel := context.WithCancel(p.ctx)
-	defer cancel()
+	// ctx, cancel := context.WithCancel(p.ctx)
+	// defer cancel()
 
-	imageSummarys, err := p.dcli.ImageList(ctx, dtypes.ImageListOptions{
-		Filters: filters.NewArgs(filters.KeyValuePair{Key: "reference", Value: imageFullName}),
-	})
-	if err != nil {
-		return false, fmt.Errorf("list images: %v", err)
-	}
-	for _, imageSummary := range imageSummarys {
-		fmt.Printf("%#v", imageSummary.RepoTags)
-	}
+	// imageSummarys, err := p.dcli.ImageList(ctx, dtypes.ImageListOptions{
+	// 	Filters: filters.NewArgs(filters.KeyValuePair{Key: "reference", Value: imageFullName}),
+	// })
+	// if err != nil {
+	// 	return false, fmt.Errorf("list images: %v", err)
+	// }
+	// for _, imageSummary := range imageSummarys {
+	// 	fmt.Printf("%#v", imageSummary.RepoTags)
+	// }
 
-	_ = imageSummarys
+	// _ = imageSummarys
 
-	return len(imageSummarys) > 0, nil
+	// return len(imageSummarys) > 0, nil
 }
 
 func (p *pkg) isImageRepositoryReady() bool {

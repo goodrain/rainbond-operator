@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/wutong-paas/wutong-operator/util/containerutil"
 	"github.com/wutong-paas/wutong-operator/util/probeutil"
 	"github.com/wutong-paas/wutong-operator/util/wtutil"
 
@@ -37,6 +38,7 @@ type chaos struct {
 	pvcParametersRWX     *pvcParameters
 	cacheStorageRequest  int64
 	wtdataStorageRequest int64
+	containerRuntime     string
 }
 
 var _ ComponentHandler = &chaos{}
@@ -53,6 +55,7 @@ func NewChaos(ctx context.Context, client client.Client, component *wutongv1alph
 		labels:               LabelsForWutongComponent(component),
 		cacheStorageRequest:  getStorageRequest("CHAOS_CACHE_STORAGE_REQUEST", 10),
 		wtdataStorageRequest: getStorageRequest("WTDATA_STORAGE_REQUEST", 40),
+		containerRuntime:     containerutil.GetContainerRuntime(),
 	}
 }
 
@@ -126,10 +129,6 @@ func (c *chaos) deployment() client.Object {
 			MountPath: "/wtdata",
 		},
 		{
-			Name:      "dockersock",
-			MountPath: "/var/run/docker.sock",
-		},
-		{
 			Name:      "cache",
 			MountPath: "/cache",
 		},
@@ -145,15 +144,6 @@ func (c *chaos) deployment() client.Object {
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 					ClaimName: constants.WTDataPVC,
-				},
-			},
-		},
-		{
-			Name: "dockersock",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/run/docker.sock",
-					Type: k8sutil.HostPath(corev1.HostPathSocket),
 				},
 			},
 		},
@@ -189,6 +179,16 @@ func (c *chaos) deployment() client.Object {
 	}
 	if c.cluster.Spec.CacheMode == "hostpath" {
 		args = append(args, "--cache-mode=hostpath")
+	}
+	if c.containerRuntime == containerutil.ContainerRuntimeDocker {
+		volume, mount := volumeByDockerSocket()
+		volumeMounts = append(volumeMounts, mount)
+		volumes = append(volumes, volume)
+		args = append(args, "--container-runtime=docker")
+	} else {
+		volume, mount := volumeByContainerdSocket()
+		volumeMounts = append(volumeMounts, mount)
+		volumes = append(volumes, volume)
 	}
 
 	if c.etcdSecret != nil {
@@ -408,4 +408,36 @@ func (c *chaos) defaultMavenSetting() *corev1.ConfigMap {
 			"mavensetting": mavensetting,
 		},
 	}
+}
+
+func volumeByContainerdSocket() (corev1.Volume, corev1.VolumeMount) {
+	volume := corev1.Volume{
+		Name: "containerdsock",
+		VolumeSource: corev1.VolumeSource{
+			HostPath: &corev1.HostPathVolumeSource{
+				Path: "/run/containerd/containerd.sock",
+			},
+		},
+	}
+	mount := corev1.VolumeMount{
+		Name:      "containerdsock",
+		MountPath: "/run/containerd/containerd.sock",
+	}
+	return volume, mount
+}
+
+func volumeByDockerSocket() (corev1.Volume, corev1.VolumeMount) {
+	volume := corev1.Volume{
+		Name: "dockersock",
+		VolumeSource: corev1.VolumeSource{
+			HostPath: &corev1.HostPathVolumeSource{
+				Path: "/var/run/docker.sock",
+			},
+		},
+	}
+	mount := corev1.VolumeMount{
+		Name:      "dockersock",
+		MountPath: "/var/run/docker.sock",
+	}
+	return volume, mount
 }

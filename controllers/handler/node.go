@@ -9,6 +9,7 @@ import (
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	"github.com/wutong-paas/wutong-operator/util/commonutil"
 	"github.com/wutong-paas/wutong-operator/util/constants"
+	"github.com/wutong-paas/wutong-operator/util/containerutil"
 	"github.com/wutong-paas/wutong-operator/util/k8sutil"
 	"github.com/wutong-paas/wutong-operator/util/probeutil"
 	"github.com/wutong-paas/wutong-operator/util/wtutil"
@@ -33,6 +34,7 @@ type node struct {
 
 	pvcParametersRWX     *pvcParameters
 	wtdataStorageRequest int64
+	containerRuntime     string
 }
 
 var _ ComponentHandler = &node{}
@@ -50,6 +52,7 @@ func NewNode(ctx context.Context, client client.Client, component *wutongv1alpha
 		cluster:              cluster,
 		labels:               LabelsForWutongComponent(component),
 		wtdataStorageRequest: getStorageRequest("WTDATA_STORAGE_REQUEST", 40),
+		containerRuntime:     containerutil.GetContainerRuntime(),
 	}
 }
 
@@ -110,16 +113,46 @@ func (n *node) Replicas() *int32 {
 	return commonutil.Int32(int32(len(nodeList.Items)))
 }
 
-func (n *node) daemonSetForWutongNode() client.Object {
+func (n *node) getDockerVolumes() ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes := []corev1.Volume{
+		{
+			Name: "docker",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/lib/docker",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+		{
+			Name: "vardocker",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/docker/lib",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+		{
+			Name: "dockercert",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/docker/certs.d",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+		{
+			Name: "dockersock",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/run/docker.sock",
+					Type: k8sutil.HostPath(corev1.HostPathSocket),
+				},
+			},
+		},
+	}
 	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      "wtdata",
-			MountPath: "/wtdata",
-		},
-		{
-			Name:      "sys",
-			MountPath: "/sys",
-		},
 		{
 			Name:      "dockersock",
 			MountPath: "/var/run/docker.sock",
@@ -135,6 +168,54 @@ func (n *node) daemonSetForWutongNode() client.Object {
 		{
 			Name:      "dockercert",
 			MountPath: "/etc/docker/certs.d",
+		},
+	}
+	return volumes, volumeMounts
+}
+
+func (n *node) getContainerdVolumes() ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes := []corev1.Volume{
+		{
+			Name: "containerdsock",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/run/containerd/containerd.sock",
+					Type: k8sutil.HostPath(corev1.HostPathSocket),
+				},
+			},
+		},
+		{
+			Name: "varlog",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/log", // for container logs
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "containerdsock", // default using containerd
+			MountPath: "/run/containerd/containerd.sock",
+		},
+		{
+			Name:      "varlog",
+			MountPath: "/var/log",
+		},
+	}
+	return volumes, volumeMounts
+}
+
+func (n *node) daemonSetForWutongNode() client.Object {
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "wtdata",
+			MountPath: "/wtdata",
+		},
+		{
+			Name:      "sys",
+			MountPath: "/sys",
 		},
 		{
 			Name:      "etc",
@@ -164,43 +245,6 @@ func (n *node) daemonSetForWutongNode() client.Object {
 			},
 		},
 		{
-			Name: "docker",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/lib/docker",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-				},
-			},
-		},
-		{
-			Name: "vardocker",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/docker/lib",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-				},
-			},
-		},
-
-		{
-			Name: "dockercert",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/etc/docker/certs.d",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-				},
-			},
-		},
-		{
-			Name: "dockersock",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/run/docker.sock",
-					Type: k8sutil.HostPath(corev1.HostPathSocket),
-				},
-			},
-		},
-		{
 			Name: "etc",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
@@ -219,6 +263,7 @@ func (n *node) daemonSetForWutongNode() client.Object {
 			},
 		},
 	}
+
 	args := []string{
 		"--etcd=" + strings.Join(etcdEndpoints(n.cluster), ","),
 		"--hostIP=$(POD_IP)",
@@ -229,6 +274,17 @@ func (n *node) daemonSetForWutongNode() client.Object {
 		"--hostsfile=/newetc/hosts",
 		"--wt-ns=" + n.component.Namespace,
 	}
+	var (
+		runtimeVolumes      []corev1.Volume
+		runtimeVolumeMounts []corev1.VolumeMount
+	)
+	runtimeVolumes, runtimeVolumeMounts = n.getContainerdVolumes()
+	if n.containerRuntime == containerutil.ContainerRuntimeDocker {
+		runtimeVolumes, runtimeVolumeMounts = n.getDockerVolumes()
+		args = append(args, "--container-runtime=docker")
+	}
+	volumes = append(volumes, runtimeVolumes...)
+	volumeMounts = append(volumeMounts, runtimeVolumeMounts...)
 
 	if n.etcdSecret != nil {
 		volume, mount := volumeByEtcd(n.etcdSecret)

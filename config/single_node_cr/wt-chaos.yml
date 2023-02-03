@@ -13,3 +13,11 @@ spec:
   image: swr.cn-southwest-2.myhuaweicloud.com/wutong/wt-chaos:v1.0.0-stable
   imagePullPolicy: IfNotPresent
   priorityComponent: false
+  volumes:
+    - name: containerdsock
+      hostPath:
+        path: /run/containerd
+        type: Directory
+  volumeMounts:
+    - name: containerdsock
+      mountPath: /run/containerd

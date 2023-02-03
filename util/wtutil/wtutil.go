@@ -84,3 +84,11 @@ func FailCondition(condition wutongv1alpha1.WutongClusterCondition, reason, msg 
 	condition.Message = msg
 	return condition
 }
+
+// GetImageRepositoryDomain returns image repository domain based on wutongcluster.
+func GetImageRepositoryDomain(cluster *wutongv1alpha1.WutongCluster) string {
+	if cluster.Spec.ImageHub == nil {
+		return constants.DefImageRepository
+	}
+	return cluster.Spec.ImageHub.Domain
+}

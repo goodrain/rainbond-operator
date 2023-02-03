@@ -14,3 +14,12 @@ spec:
   image: swr.cn-southwest-2.myhuaweicloud.com/wutong/wt-node:v1.0.0-stable
   imagePullPolicy: IfNotPresent
   priorityComponent: true
+  volumes:
+    - name: containerdsock
+      hostPath:
+        path: /run/containerd
+        type: Directory
+  volumeMounts:
+    - name: containerdsock
+      mountPath: /run/containerd
+      
