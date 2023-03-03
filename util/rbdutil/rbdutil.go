@@ -3,6 +3,7 @@ package rbdutil
 import (
 	"fmt"
 	"net"
+	"os"
 	"path"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -60,6 +61,7 @@ func LabelsForAccessModeRWO() map[string]string {
 func FilterNodesWithPortConflicts(nodes []*rainbondv1alpha1.K8sNode) []*rainbondv1alpha1.K8sNode {
 	var result []*rainbondv1alpha1.K8sNode
 	gatewayPorts := []int{80, 443, 10254, 18080, 18081, 8443, 6060, 7070}
+	check := os.Getenv("CHECK_PORT_OCCUPIED")
 	for idx := range nodes {
 		node := nodes[idx]
 		ok := true
@@ -69,7 +71,7 @@ func FilterNodesWithPortConflicts(nodes []*rainbondv1alpha1.K8sNode) []*rainbond
 				break
 			}
 		}
-		if ok {
+		if ok || check == "false" {
 			result = append(result, node)
 		}
 	}
