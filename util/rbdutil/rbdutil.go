@@ -94,3 +94,10 @@ func FailCondition(condition rainbondv1alpha1.RainbondClusterCondition, reason, 
 	condition.Message = msg
 	return condition
 }
+
+func GetenvDefault(key, def string) string {
+	if val := os.Getenv(key); val != "" {
+		return val
+	}
+	return def
+}
