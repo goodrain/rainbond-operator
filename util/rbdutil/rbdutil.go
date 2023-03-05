@@ -95,7 +95,7 @@ func FailCondition(condition rainbondv1alpha1.RainbondClusterCondition, reason, 
 	return condition
 }
 
-// Define environment variables and default values
+// GetenvDefault Used to define environment variables and default values.
 func GetenvDefault(key, def string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
