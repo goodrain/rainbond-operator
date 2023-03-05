@@ -329,8 +329,8 @@ func (a *api) deployment() client.Object {
 }
 
 func (a *api) createService() []client.Object {
-	ApiPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_PORT", "8443"), 10, 32)
-	ApiWebsocketPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_WS_PORT", "6060"), 10, 32)
+	APIPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_PORT", "8443"), 10, 32)
+	APIWebsocketPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_WS_PORT", "6060"), 10, 32)
 
 	svcAPI := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -342,9 +342,9 @@ func (a *api) createService() []client.Object {
 			Ports: []corev1.ServicePort{
 				{
 					Name: "https",
-					Port: int32(ApiPort),
+					Port: int32(APIPort),
 					TargetPort: intstr.IntOrString{
-						IntVal: int32(ApiPort),
+						IntVal: int32(APIPort),
 					},
 				},
 			},
@@ -362,9 +362,9 @@ func (a *api) createService() []client.Object {
 			Ports: []corev1.ServicePort{
 				{
 					Name: "ws",
-					Port: int32(ApiWebsocketPort),
+					Port: int32(APIWebsocketPort),
 					TargetPort: intstr.IntOrString{
-						IntVal: int32(ApiWebsocketPort),
+						IntVal: int32(APIWebsocketPort),
 					},
 				},
 			},
@@ -491,16 +491,16 @@ func (a *api) secretAndConfigMapForAPI() []client.Object {
 		},
 	})
 
-	ApiPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_PORT", "8443"), 10, 64)
-	ApiWebsocketPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_WS_PORT", "6060"), 10, 64)
+	APIPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_PORT", "8443"), 10, 64)
+	APIWebsocketPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_WS_PORT", "6060"), 10, 64)
 	re = append(re, &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "region-config",
 			Namespace: a.component.Namespace,
 		},
 		Data: map[string]string{
-			"apiAddress":          fmt.Sprintf("https://%s:%d", a.cluster.GatewayIngressIP(), ApiPort),
-			"websocketAddress":    fmt.Sprintf("ws://%s:%d", a.cluster.GatewayIngressIP(), ApiWebsocketPort),
+			"apiAddress":          fmt.Sprintf("https://%s:%d", a.cluster.GatewayIngressIP(), APIPort),
+			"websocketAddress":    fmt.Sprintf("ws://%s:%d", a.cluster.GatewayIngressIP(), APIWebsocketPort),
 			"defaultDomainSuffix": a.cluster.Spec.SuffixHTTPHost,
 			"defaultTCPHost":      a.cluster.GatewayIngressIP(),
 		},
