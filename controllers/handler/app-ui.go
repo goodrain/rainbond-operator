@@ -3,10 +3,12 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"os"
 	"strconv"
+
+	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -158,11 +160,11 @@ func (a *appui) deploymentForAppUI() client.Object {
 		},
 		{
 			Name:  "REGION_URL",
-			Value: "https://rbd-api-api:8443",
+			Value: fmt.Sprintf("https://rbd-api-api:%s", rbdutil.GetenvDefault("API_PORT", "8443")),
 		},
 		{
 			Name:  "REGION_WS_URL",
-			Value: fmt.Sprintf("ws://%s:6060", a.cluster.GatewayIngressIP()),
+			Value: fmt.Sprintf("ws://%s:%s", a.cluster.GatewayIngressIP(), rbdutil.GetenvDefault("API_WS_PORT", "6060")),
 		},
 		{
 			Name:  "REGION_HTTP_DOMAIN",
@@ -343,11 +345,11 @@ func (a *appui) migrationsJob() *batchv1.Job {
 		},
 		{
 			Name:  "REGION_URL",
-			Value: "https://rbd-api-api:8443",
+			Value: fmt.Sprintf("https://rbd-api-api:%s", rbdutil.GetenvDefault("API_PORT", "8443")),
 		},
 		{
 			Name:  "REGION_WS_URL",
-			Value: fmt.Sprintf("ws://%s:6060", a.cluster.GatewayIngressIP()),
+			Value: fmt.Sprintf("ws://%s:%s", a.cluster.GatewayIngressIP(), rbdutil.GetenvDefault("API_WS_PORT", "6060")),
 		},
 		{
 			Name:  "REGION_HTTP_DOMAIN",

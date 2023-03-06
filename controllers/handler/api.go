@@ -7,11 +7,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"github.com/sirupsen/logrus"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 
@@ -127,8 +129,8 @@ func (a *api) After() error {
 			regionInfo["sslCaCert"] = string(caPem)
 			regionInfo["keyFile"] = string(clientKey)
 			regionInfo["certFile"] = string(clientPem)
-			regionInfo["url"] = fmt.Sprintf("https://%s:%s", a.cluster.GatewayIngressIP(), "8443")
-			regionInfo["wsUrl"] = fmt.Sprintf("ws://%s:%s", a.cluster.GatewayIngressIP(), "6060")
+			regionInfo["url"] = fmt.Sprintf("https://%s:%s", a.cluster.GatewayIngressIP(), rbdutil.GetenvDefault("API_PORT", "8443"))
+			regionInfo["wsUrl"] = fmt.Sprintf("ws://%s:%s", a.cluster.GatewayIngressIP(), rbdutil.GetenvDefault("API_WS_PORT", "6060"))
 			regionInfo["httpDomain"] = a.cluster.Spec.SuffixHTTPHost
 			regionInfo["tcpDomain"] = a.cluster.GatewayIngressIP()
 			regionInfo["desc"] = "Helm"
@@ -327,6 +329,9 @@ func (a *api) deployment() client.Object {
 }
 
 func (a *api) createService() []client.Object {
+	APIPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_PORT", "8443"), 10, 32)
+	APIWebsocketPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_WS_PORT", "6060"), 10, 32)
+
 	svcAPI := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      APIName + "-api",
@@ -337,9 +342,9 @@ func (a *api) createService() []client.Object {
 			Ports: []corev1.ServicePort{
 				{
 					Name: "https",
-					Port: 8443,
+					Port: int32(APIPort),
 					TargetPort: intstr.IntOrString{
-						IntVal: 8443,
+						IntVal: int32(APIPort),
 					},
 				},
 			},
@@ -357,9 +362,9 @@ func (a *api) createService() []client.Object {
 			Ports: []corev1.ServicePort{
 				{
 					Name: "ws",
-					Port: 6060,
+					Port: int32(APIWebsocketPort),
 					TargetPort: intstr.IntOrString{
-						IntVal: 6060,
+						IntVal: int32(APIWebsocketPort),
 					},
 				},
 			},
@@ -486,14 +491,16 @@ func (a *api) secretAndConfigMapForAPI() []client.Object {
 		},
 	})
 
+	APIPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_PORT", "8443"), 10, 64)
+	APIWebsocketPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_WS_PORT", "6060"), 10, 64)
 	re = append(re, &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "region-config",
 			Namespace: a.component.Namespace,
 		},
 		Data: map[string]string{
-			"apiAddress":          fmt.Sprintf("https://%s:%d", a.cluster.GatewayIngressIP(), 8443),
-			"websocketAddress":    fmt.Sprintf("ws://%s:%d", a.cluster.GatewayIngressIP(), 6060),
+			"apiAddress":          fmt.Sprintf("https://%s:%d", a.cluster.GatewayIngressIP(), APIPort),
+			"websocketAddress":    fmt.Sprintf("ws://%s:%d", a.cluster.GatewayIngressIP(), APIWebsocketPort),
 			"defaultDomainSuffix": a.cluster.Spec.SuffixHTTPHost,
 			"defaultTCPHost":      a.cluster.GatewayIngressIP(),
 		},
@@ -510,7 +517,7 @@ func (a *api) ingressForAPI() client.Object {
 	annotations := map[string]string{
 		"nginx.ingress.kubernetes.io/l4-enable": "true",
 		"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
-		"nginx.ingress.kubernetes.io/l4-port":   "8443",
+		"nginx.ingress.kubernetes.io/l4-port":   rbdutil.GetenvDefault("API_PORT", "8443"),
 	}
 	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
 		logrus.Info("create networking v1 ingress for api")
@@ -538,7 +545,7 @@ func (a *api) ingressForWebsocket() client.Object {
 	annotations := map[string]string{
 		"nginx.ingress.kubernetes.io/l4-enable": "true",
 		"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
-		"nginx.ingress.kubernetes.io/l4-port":   "6060",
+		"nginx.ingress.kubernetes.io/l4-port":   rbdutil.GetenvDefault("API_WS_PORT", "6060"),
 	}
 	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
 		logrus.Info("create networking v1 ingress for websocket")
