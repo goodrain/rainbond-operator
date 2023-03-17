@@ -1,9 +1,0 @@
-apiVersion: v2
-name: wutong-operator
-description: Wutong wutong-operator Helm chart for Kubernetes
-type: application
-version: 2.0.0
-appVersion: 5.3.0
-home: https://github.com/wutong-paas/wutong-operator
-sources:
-  - https://github.com/wutong-paas/wutong-operator

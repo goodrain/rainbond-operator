@@ -2,11 +2,11 @@ name: commit-ci
 
 env:
   TITLE: wutong-operator
-  BASE_VERSION: v1.0.0
+  BASE_VERSION: v1.1.0
 
 on:
   push:
-    branches: [master]
+    branches: [v1.1.0-stable]
   workflow_dispatch:
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -40,7 +40,7 @@ jobs:
           file: Dockerfile.multiarch
           push: true
           tags: ${{ secrets.DOMESTIC_DOCKER_SERVER }}/wutong/${{ env.TITLE }}:${{ env.VERSION }}
-      
+
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
 

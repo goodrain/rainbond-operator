@@ -2,7 +2,7 @@ apiVersion: wutong.io/v1alpha1
 kind: WutongComponent
 metadata:
   name: wt-chaos
-  namespace: wt-system  
+  namespace: wt-system
   labels:
     belongTo: wutong-operator
     creator: Wutong
@@ -10,7 +10,7 @@ metadata:
     persistentVolumeClaimAccessModes: ReadWriteOnce
 spec:
   replicas: 1
-  image: swr.cn-southwest-2.myhuaweicloud.com/wutong/wt-chaos:v1.0.0-stable
+  image: swr.cn-southwest-2.myhuaweicloud.com/wutong/wt-chaos:v1.1.0-stable
   imagePullPolicy: IfNotPresent
   priorityComponent: false
   volumes:

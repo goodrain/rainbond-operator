@@ -18,6 +18,6 @@ spec:
       internalIP: single_node_internal_ip
       externalIP: single_node_external_ip
   installMode: WithoutPackage
-  installVersion: v1.0.0-stable
+  installVersion: v1.1.0-stable
   configCompleted: true
   cacheMode: hostpath
