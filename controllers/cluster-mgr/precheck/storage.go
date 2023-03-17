@@ -7,7 +7,6 @@ import (
 	"time"
 
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
-	"github.com/wutong-paas/wutong-operator/util/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,22 +37,6 @@ func (s *storage) Check() wutongv1alpha1.WutongClusterCondition {
 	}
 
 	if s.rwx != nil && s.rwx.StorageClassName != "" {
-		if s.rwx.StorageClassName != "" {
-			// check if pvc exists
-			pvc, err := k8sutil.GetFoobarPVC(s.ctx, s.client, s.ns)
-			if err != nil {
-				return s.failConditoin(condition, err.Error())
-			}
-
-			if !s.isPVCBound(pvc) {
-				// list Events
-				eventList, err := k8sutil.EventsForPersistentVolumeClaim(pvc)
-				if err != nil {
-					return s.failConditoin(condition, err.Error())
-				}
-				return s.failConditoin(condition, eventListToString(eventList))
-			}
-		}
 		return condition
 	}
 

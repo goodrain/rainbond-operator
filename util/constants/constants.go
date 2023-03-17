@@ -16,7 +16,7 @@ const (
 	// CachePVC -
 	CachePVC = "wt-chaos-cache"
 	// FoobarPVC -
-	FoobarPVC = "foobar"
+	// FoobarPVC = "foobar"
 	// SpecialGatewayLabelKey is a special node label, used to specify where to install the wt-gateway
 	SpecialGatewayLabelKey = "wutong.io/gateway"
 	// SpecialChaosLabelKey is a special node label, used to specify where to install the wt-chaos

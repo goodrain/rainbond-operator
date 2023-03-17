@@ -4,10 +4,6 @@ import (
 	"context"
 	"fmt"
 	"runtime"
-	"time"
-
-	"github.com/wutong-paas/wutong-operator/util/k8sutil"
-	"k8s.io/apimachinery/pkg/api/resource"
 
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	"github.com/wutong-paas/wutong-operator/util/commonutil"
@@ -103,7 +99,7 @@ func (e *etcd) Replicas() *int32 {
 
 func (e *etcd) CreateClusterScoped() []client.Object {
 	return []client.Object{
-		e.pv(),
+		// e.pv(),
 	}
 }
 
@@ -122,7 +118,10 @@ func (e *etcd) statefulsetForEtcd() client.Object {
 	}
 	env = mergeEnvs(env, e.component.Spec.Env)
 
-	pvc := e.pvc()
+	// pvc := e.pvc()
+	claimName := "data"
+	pvc := createPersistentVolumeClaimRWO(e.component.Namespace, claimName, e.pvcParametersRWO, e.labels, e.storageRequest)
+
 	tolerations := []corev1.Toleration{
 		{
 			Operator: corev1.TolerationOpExists, // tolerate everything.
@@ -473,56 +472,56 @@ func (e *etcd) serviceForEtcd() client.Object {
 	return svc
 }
 
-func (e *etcd) pv() *corev1.PersistentVolume {
-	pv := &corev1.PersistentVolume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   EtcdName,
-			Labels: e.labels,
-		},
-	}
+// func (e *etcd) pv() *corev1.PersistentVolume {
+// 	pv := &corev1.PersistentVolume{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:   EtcdName,
+// 			Labels: e.labels,
+// 		},
+// 	}
 
-	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
-	spec := corev1.PersistentVolumeSpec{
-		AccessModes: []corev1.PersistentVolumeAccessMode{
-			corev1.ReadWriteOnce,
-		},
-		Capacity: corev1.ResourceList{
-			corev1.ResourceStorage: *size,
-		},
-		StorageClassName: "manual",
-		NodeAffinity:     e.affinity,
-	}
+// 	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
+// 	spec := corev1.PersistentVolumeSpec{
+// 		AccessModes: []corev1.PersistentVolumeAccessMode{
+// 			corev1.ReadWriteOnce,
+// 		},
+// 		Capacity: corev1.ResourceList{
+// 			corev1.ResourceStorage: *size,
+// 		},
+// 		StorageClassName: "manual",
+// 		NodeAffinity:     e.affinity,
+// 	}
 
-	hostPath := &corev1.HostPathVolumeSource{
-		Path: "/opt/wutong/data/etcd" + time.Now().Format("20060102150405"),
-		Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-	}
-	spec.HostPath = hostPath
+// 	hostPath := &corev1.HostPathVolumeSource{
+// 		Path: "/opt/wutong/data/etcd" + time.Now().Format("20060102150405"),
+// 		Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+// 	}
+// 	spec.HostPath = hostPath
 
-	pv.Spec = spec
+// 	pv.Spec = spec
 
-	return pv
-}
+// 	return pv
+// }
 
-func (e *etcd) pvc() *corev1.PersistentVolumeClaim {
-	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
-	pvc := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   EtcdName,
-			Labels: e.labels,
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteOnce,
-			},
-			Resources: corev1.ResourceRequirements{
-				Requests: map[corev1.ResourceName]resource.Quantity{
-					corev1.ResourceStorage: *size,
-				},
-			},
-			VolumeName:       EtcdName,
-			StorageClassName: commonutil.String("manual"),
-		},
-	}
-	return pvc
-}
+// func (e *etcd) pvc() *corev1.PersistentVolumeClaim {
+// 	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
+// 	pvc := &corev1.PersistentVolumeClaim{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:   EtcdName,
+// 			Labels: e.labels,
+// 		},
+// 		Spec: corev1.PersistentVolumeClaimSpec{
+// 			AccessModes: []corev1.PersistentVolumeAccessMode{
+// 				corev1.ReadWriteOnce,
+// 			},
+// 			Resources: corev1.ResourceRequirements{
+// 				Requests: map[corev1.ResourceName]resource.Quantity{
+// 					corev1.ResourceStorage: *size,
+// 				},
+// 			},
+// 			VolumeName:       EtcdName,
+// 			StorageClassName: commonutil.String("manual"),
+// 		},
+// 	}
+// 	return pvc
+// }

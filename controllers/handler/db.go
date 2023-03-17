@@ -6,15 +6,12 @@ import (
 	"os"
 	"path"
 	"strings"
-	"time"
 
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	"github.com/wutong-paas/wutong-operator/util/commonutil"
-	"github.com/wutong-paas/wutong-operator/util/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -143,7 +140,7 @@ func (d *db) Replicas() *int32 {
 
 func (d *db) CreateClusterScoped() []client.Object {
 	return []client.Object{
-		d.pv(),
+		// d.pv(),
 	}
 }
 
@@ -181,7 +178,10 @@ func (d *db) statefulsetForDB() client.Object {
 		},
 	}
 
-	pvc := d.pvc()
+	// pvc := d.pvc()
+	claimName := "data"
+	pvc := createPersistentVolumeClaimRWO(d.component.Namespace, claimName, d.pvcParametersRWO, d.labels, d.storageRequest)
+
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      pvc.GetName(),
@@ -414,57 +414,57 @@ skip-name-resolve
 	return cm
 }
 
-func (d *db) pv() *corev1.PersistentVolume {
-	pv := &corev1.PersistentVolume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   DBName,
-			Labels: d.labels,
-		},
-	}
+// func (d *db) pv() *corev1.PersistentVolume {
+// 	pv := &corev1.PersistentVolume{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:   DBName,
+// 			Labels: d.labels,
+// 		},
+// 	}
 
-	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
-	spec := corev1.PersistentVolumeSpec{
-		AccessModes: []corev1.PersistentVolumeAccessMode{
-			corev1.ReadWriteOnce,
-		},
-		Capacity: corev1.ResourceList{
-			corev1.ResourceStorage: *size,
-		},
-		StorageClassName: "manual",
-	}
+// 	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
+// 	spec := corev1.PersistentVolumeSpec{
+// 		AccessModes: []corev1.PersistentVolumeAccessMode{
+// 			corev1.ReadWriteOnce,
+// 		},
+// 		Capacity: corev1.ResourceList{
+// 			corev1.ResourceStorage: *size,
+// 		},
+// 		StorageClassName: "manual",
+// 	}
 
-	spec.NodeAffinity = d.affinity
+// 	spec.NodeAffinity = d.affinity
 
-	hostPath := &corev1.HostPathVolumeSource{
-		Path: "/opt/wutong/data/db" + time.Now().Format("20060102150405"),
-		Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-	}
-	spec.HostPath = hostPath
+// 	hostPath := &corev1.HostPathVolumeSource{
+// 		Path: "/opt/wutong/data/db" + time.Now().Format("20060102150405"),
+// 		Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+// 	}
+// 	spec.HostPath = hostPath
 
-	pv.Spec = spec
+// 	pv.Spec = spec
 
-	return pv
-}
+// 	return pv
+// }
 
-func (d *db) pvc() *corev1.PersistentVolumeClaim {
-	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
-	pvc := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   DBName,
-			Labels: d.labels,
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteOnce,
-			},
-			Resources: corev1.ResourceRequirements{
-				Requests: map[corev1.ResourceName]resource.Quantity{
-					corev1.ResourceStorage: *size,
-				},
-			},
-			VolumeName:       DBName,
-			StorageClassName: commonutil.String("manual"),
-		},
-	}
-	return pvc
-}
+// func (d *db) pvc() *corev1.PersistentVolumeClaim {
+// 	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
+// 	pvc := &corev1.PersistentVolumeClaim{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:   DBName,
+// 			Labels: d.labels,
+// 		},
+// 		Spec: corev1.PersistentVolumeClaimSpec{
+// 			AccessModes: []corev1.PersistentVolumeAccessMode{
+// 				corev1.ReadWriteOnce,
+// 			},
+// 			Resources: corev1.ResourceRequirements{
+// 				Requests: map[corev1.ResourceName]resource.Quantity{
+// 					corev1.ResourceStorage: *size,
+// 				},
+// 			},
+// 			VolumeName:       DBName,
+// 			StorageClassName: commonutil.String("manual"),
+// 		},
+// 	}
+// 	return pvc
+// }

@@ -10,7 +10,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/wutong-paas/wutong-operator/util/commonutil"
-	"github.com/wutong-paas/wutong-operator/util/constants"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -175,14 +174,14 @@ func PersistentVolumeClaimForWTData(ns, claimName string, accessModes []corev1.P
 }
 
 // GetFoobarPVC -
-func GetFoobarPVC(ctx context.Context, client client.Client, ns string) (*corev1.PersistentVolumeClaim, error) {
-	pvc := corev1.PersistentVolumeClaim{}
-	err := client.Get(ctx, types.NamespacedName{Namespace: ns, Name: constants.FoobarPVC}, &pvc)
-	if err != nil {
-		return nil, err
-	}
-	return &pvc, nil
-}
+// func GetFoobarPVC(ctx context.Context, client client.Client, ns string) (*corev1.PersistentVolumeClaim, error) {
+// 	pvc := corev1.PersistentVolumeClaim{}
+// 	err := client.Get(ctx, types.NamespacedName{Namespace: ns, Name: constants.FoobarPVC}, &pvc)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &pvc, nil
+// }
 
 // EventsForPersistentVolumeClaim -
 func EventsForPersistentVolumeClaim(pvc *corev1.PersistentVolumeClaim) (*corev1.EventList, error) {

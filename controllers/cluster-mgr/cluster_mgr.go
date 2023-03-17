@@ -11,7 +11,6 @@ import (
 	"github.com/pquerna/ffjson/ffjson"
 	wutongv1alpha1 "github.com/wutong-paas/wutong-operator/api/v1alpha1"
 	"github.com/wutong-paas/wutong-operator/controllers/cluster-mgr/precheck"
-	"github.com/wutong-paas/wutong-operator/util/commonutil"
 	"github.com/wutong-paas/wutong-operator/util/constants"
 	"github.com/wutong-paas/wutong-operator/util/k8sutil"
 	"github.com/wutong-paas/wutong-operator/util/wtutil"
@@ -313,19 +312,6 @@ func (r *WutongClusteMgr) generateDockerConfig() []byte {
 	return bytes
 }
 
-// func (r *WutongClusteMgr) checkIfWtNodeReady() error {
-// 	cpt := &wutongv1alpha1.WutongComponent{}
-// 	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: "wt-node"}, cpt); err != nil {
-// 		return err
-// 	}
-
-// 	if cpt.Status.ReadyReplicas == 0 || cpt.Status.ReadyReplicas != cpt.Status.Replicas {
-// 		return fmt.Errorf("no ready replicas for wutongcomponent wt-node")
-// 	}
-
-// 	return nil
-// }
-
 func (r *WutongClusteMgr) generateConditions() []wutongv1alpha1.WutongClusterCondition {
 	// region database
 	spec := r.cluster.Spec
@@ -399,67 +385,6 @@ func (r *WutongClusteMgr) isConditionTrue(typ3 wutongv1alpha1.WutongClusterCondi
 	return false
 }
 
-// CreateFoobarPVCIfNotExists -
-func (r *WutongClusteMgr) CreateFoobarPVCIfNotExists() error {
-	var storageClassName string
-	if r.cluster.Spec.WutongVolumeSpecRWX != nil && r.cluster.Spec.WutongVolumeSpecRWX.StorageClassName != "" {
-		storageClassName = r.cluster.Spec.WutongVolumeSpecRWX.StorageClassName
-	}
-
-	pvc, err := k8sutil.GetFoobarPVC(r.ctx, r.client, r.cluster.GetNamespace())
-	if err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			return err
-		}
-		return r.createPVCForFoobar(storageClassName)
-	}
-
-	// check if storageClass is up to date
-	if *pvc.Spec.StorageClassName == storageClassName {
-		return nil
-	}
-	// otherwise, delete the old one and create the latest one
-	if err := r.client.Delete(r.ctx, pvc, &client.DeleteOptions{GracePeriodSeconds: commonutil.Int64(0)}); err != nil {
-		return err
-	}
-	if err := r.createPVCForFoobar(storageClassName); err != nil {
-		if k8sErrors.IsAlreadyExists(err) {
-			return nil
-		}
-		return err
-	}
-
-	return nil
-}
-
-func (r *WutongClusteMgr) createPVCForFoobar(storageClassName string) error {
-	if storageClassName == "" {
-		return nil
-	}
-	// create pvc
-	accessModes := []corev1.PersistentVolumeAccessMode{
-		corev1.ReadWriteMany,
-	}
-	labels := wtutil.LabelsForWutong(nil)
-	pvc := k8sutil.PersistentVolumeClaimForWTData(r.cluster.GetNamespace(), constants.FoobarPVC, accessModes, labels,
-		storageClassName, 1)
-	return r.client.Create(r.ctx, pvc)
-}
-
-// func (r *WutongClusteMgr) falseConditionNow(typ3 wutongv1alpha1.WutongClusterConditionType) *wutongv1alpha1.WutongClusterCondition {
-// 	idx, _ := r.cluster.Status.GetCondition(typ3)
-// 	if idx != -1 {
-// 		return nil
-// 	}
-// 	return &wutongv1alpha1.WutongClusterCondition{
-// 		Type:              typ3,
-// 		Status:            corev1.ConditionTrue,
-// 		LastHeartbeatTime: metav1.NewTime(time.Now()),
-// 		Reason:            "InProgress",
-// 		Message:           fmt.Sprintf("precheck for %s is in progress", string(typ3)),
-// 	}
-// }
-
 func (r *WutongClusteMgr) runningCondition() wutongv1alpha1.WutongClusterCondition {
 	condition := wutongv1alpha1.WutongClusterCondition{
 		Type:              wutongv1alpha1.WutongClusterConditionTypeRunning,
@@ -472,11 +397,6 @@ func (r *WutongClusteMgr) runningCondition() wutongv1alpha1.WutongClusterConditi
 	if err != nil {
 		return wtutil.FailCondition(condition, "ListWutongComponentFailed", err.Error())
 	}
-
-	// if len(WutongComponents) < 10 {
-	// 	return wtutil.FailCondition(condition, "InsufficientWutongComponent",
-	// 		fmt.Sprintf("insufficient number of wutongcomponents. expect %d wutongcomponents, but got %d", 10, len(WutongComponents)))
-	// }
 
 	for _, cpt := range WutongComponents {
 		idx, c := cpt.Status.GetCondition(wutongv1alpha1.WutongComponentReady)

@@ -164,11 +164,6 @@ func (r *WutongClusterReconciler) Reconcile(ctx context.Context, request ctrl.Re
 		}
 	}
 
-	// create pvc for wtdata if not exists
-	if err := mgr.CreateFoobarPVCIfNotExists(); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	for _, con := range wutongcluster.Status.Conditions {
 		if con.Status != corev1.ConditionTrue {
 			return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
