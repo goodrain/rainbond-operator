@@ -297,7 +297,7 @@ func createPersistentVolumeClaimRWO(ns, claimName string, pvcParameters *pvcPara
 }
 
 func createPersistentVolumeClaim(ns, claimName string, accessModes []corev1.PersistentVolumeAccessMode, pvcParameters *pvcParameters, labels map[string]string, storageRequest int64) *corev1.PersistentVolumeClaim {
-	if pvcParameters.storageRequest != nil {
+	if pvcParameters.storageRequest != nil && storageRequest == 0 {
 		storageRequest = int64(*pvcParameters.storageRequest)
 	}
 	size := resource.NewQuantity(storageRequest*1024*1024*1024, resource.BinarySI)
