@@ -186,9 +186,12 @@ func (c *chaos) deployment() client.Object {
 		volumes = append(volumes, volume)
 		args = append(args, "--container-runtime=docker")
 	} else {
-		volume, mount := volumeByContainerdSocket()
-		volumeMounts = append(volumeMounts, mount)
-		volumes = append(volumes, volume)
+		socketVolume, socketMount := volumeByContainerdSocket()
+		configVolume, configMount := volumeByContainerdConfig()
+		volumeMounts = append(volumeMounts, socketMount)
+		volumeMounts = append(volumeMounts, configMount)
+		volumes = append(volumes, socketVolume)
+		volumes = append(volumes, configVolume)
 	}
 
 	if c.etcdSecret != nil {
@@ -422,6 +425,22 @@ func volumeByContainerdSocket() (corev1.Volume, corev1.VolumeMount) {
 	mount := corev1.VolumeMount{
 		Name:      "containerdsock",
 		MountPath: "/run/containerd/containerd.sock",
+	}
+	return volume, mount
+}
+
+func volumeByContainerdConfig() (corev1.Volume, corev1.VolumeMount) {
+	volume := corev1.Volume{
+		Name: "containerd-hosts",
+		VolumeSource: corev1.VolumeSource{
+			HostPath: &corev1.HostPathVolumeSource{
+				Path: "/etc/containerd/certs.d",
+			},
+		},
+	}
+	mount := corev1.VolumeMount{
+		Name:      "containerd-hosts",
+		MountPath: "/etc/containerd/certs.d",
 	}
 	return volume, mount
 }
