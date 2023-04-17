@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/goodrain/rainbond-operator/util/commonutil"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"github.com/goodrain/rainbond-operator/util/retryutil"
 	"github.com/goodrain/rainbond-operator/util/suffixdomain"
 	"github.com/sirupsen/logrus"
@@ -359,7 +360,7 @@ func getK8sNode(node corev1.Node) *rainbondv1alpha1.K8sNode {
 func (r *RainbondClusterReconciler) ChoiceAvailableGatewayNode(nodes []*rainbondv1alpha1.K8sNode) []*rainbondv1alpha1.K8sNode {
 	var availableGatewayNodes []*rainbondv1alpha1.K8sNode
 	portOccupiedNode := make(map[string]struct{})
-	ports := []string{"80", "443", "6060", "8443"}
+	ports := []string{rbdutil.GetenvDefault("GATEWAY_HTTP_PORT", "80"), rbdutil.GetenvDefault("GATEWAY_HTTPS_PORT", "443"), rbdutil.GetenvDefault("API_WS_PORT", "6060"), rbdutil.GetenvDefault("API_PORT", "8443")}
 	if os.Getenv("CONSOLE_DOMAIN") == "" {
 		ports = append(ports, "7070")
 	}
