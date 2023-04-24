@@ -48,7 +48,7 @@ func NewWorker(ctx context.Context, client client.Client, component *rainbondv1a
 		component:      component,
 		cluster:        cluster,
 		labels:         LabelsForRainbondComponent(component),
-		storageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
+		storageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 50),
 	}
 }
 
@@ -108,7 +108,7 @@ func (w *worker) ResourcesCreateIfNotExists() []client.Object {
 	}
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(w.component.Namespace, constants.GrDataPVC, w.pvcParametersRWX, w.labels),
+		createPersistentVolumeClaimRWX(w.component.Namespace, constants.GrDataPVC, w.pvcParametersRWX, w.labels, w.storageRequest),
 	}
 }
 

@@ -65,7 +65,7 @@ func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alph
 		labels:               LabelsForRainbondComponent(component),
 		pvcName:              "rbd-api",
 		dataStorageRequest:   getStorageRequest("API_DATA_STORAGE_REQUEST", 1),
-		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
+		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 50),
 	}
 }
 
@@ -196,8 +196,8 @@ func (a *api) ResourcesCreateIfNotExists() []client.Object {
 	}
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(a.component.Namespace, constants.GrDataPVC, a.pvcParametersRWX, a.labels),
-		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels),
+		createPersistentVolumeClaimRWX(a.component.Namespace, constants.GrDataPVC, a.pvcParametersRWX, a.labels, a.grdataStorageRequest),
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels, a.dataStorageRequest),
 	}
 }
 

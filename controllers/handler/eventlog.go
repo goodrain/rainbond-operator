@@ -47,7 +47,7 @@ func NewEventLog(ctx context.Context, client client.Client, component *rainbondv
 		component:      component,
 		cluster:        cluster,
 		labels:         LabelsForRainbondComponent(component),
-		storageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
+		storageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 50),
 	}
 }
 
@@ -107,7 +107,7 @@ func (e *eventlog) ResourcesCreateIfNotExists() []client.Object {
 	}
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(e.component.Namespace, constants.GrDataPVC, e.pvcParametersRWX, e.labels),
+		createPersistentVolumeClaimRWX(e.component.Namespace, constants.GrDataPVC, e.pvcParametersRWX, e.labels, e.storageRequest),
 	}
 }
 

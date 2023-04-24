@@ -52,7 +52,7 @@ func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1al
 		cluster:        cluster,
 		labels:         LabelsForRainbondComponent(component),
 		pvcName:        "rbd-app-ui",
-		storageRequest: getStorageRequest("APP_UI_DATA_STORAGE_REQUEST", 1),
+		storageRequest: getStorageRequest("APP_UI_DATA_STORAGE_REQUEST", 10),
 	}
 }
 
@@ -126,7 +126,7 @@ func (a *appui) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 func (a *appui) ResourcesCreateIfNotExists() []client.Object {
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels),
+		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels, a.storageRequest),
 	}
 }
 
