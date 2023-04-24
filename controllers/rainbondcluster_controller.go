@@ -235,11 +235,6 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 		}
 	}
 
-	// create pvc for grdata if not exists
-	if err := mgr.CreateFoobarPVCIfNotExists(); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	for _, con := range rainbondcluster.Status.Conditions {
 		if con.Status != corev1.ConditionTrue {
 			return reconcile.Result{RequeueAfter: 5 * time.Second}, nil

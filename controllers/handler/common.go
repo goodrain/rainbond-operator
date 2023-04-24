@@ -282,11 +282,11 @@ func setStorageCassName(ctx context.Context, cli client.Client, ns string, obj i
 	return nil
 }
 
-func createPersistentVolumeClaimRWX(ns, claimName string, pvcParameters *pvcParameters, labels map[string]string) *corev1.PersistentVolumeClaim {
+func createPersistentVolumeClaimRWX(ns, claimName string, pvcParameters *pvcParameters, labels map[string]string, storageRequest int64) *corev1.PersistentVolumeClaim {
 	accessModes := []corev1.PersistentVolumeAccessMode{
 		corev1.ReadWriteMany,
 	}
-	return createPersistentVolumeClaim(ns, claimName, accessModes, pvcParameters, labels, 1)
+	return createPersistentVolumeClaim(ns, claimName, accessModes, pvcParameters, labels, storageRequest)
 }
 
 func createPersistentVolumeClaimRWO(ns, claimName string, pvcParameters *pvcParameters, labels map[string]string, storageRequest int64) *corev1.PersistentVolumeClaim {

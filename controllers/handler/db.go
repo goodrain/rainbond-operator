@@ -63,7 +63,7 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 		mysqlUser:      "root",
 		mysqlPassword:  string(uuid.NewUUID())[0:8],
 		databases:      []string{"console"},
-		storageRequest: getStorageRequest("DB_DATA_STORAGE_REQUEST", 21),
+		storageRequest: getStorageRequest("DB_DATA_STORAGE_REQUEST", 20),
 	}
 	regionDBName := os.Getenv("REGION_DB_NAME")
 	if regionDBName == "" {

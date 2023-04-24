@@ -56,7 +56,7 @@ func NewChaos(ctx context.Context, client client.Client, component *rainbondv1al
 		cluster:              cluster,
 		labels:               LabelsForRainbondComponent(component),
 		cacheStorageRequest:  getStorageRequest("CHAOS_CACHE_STORAGE_REQUEST", 10),
-		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 40),
+		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 50),
 		containerRuntime:     containerutil.GetContainerRuntime(),
 	}
 }
@@ -117,8 +117,8 @@ func (c *chaos) ResourcesCreateIfNotExists() []client.Object {
 		}
 	}
 	return []client.Object{
-		createPersistentVolumeClaimRWX(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX, c.labels),
-		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels),
+		createPersistentVolumeClaimRWX(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX, c.labels, c.grdataStorageRequest),
+		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels, c.cacheStorageRequest),
 	}
 }
 

@@ -47,7 +47,7 @@ func NewETCD(ctx context.Context, client client.Client, component *rainbondv1alp
 		component:      component,
 		cluster:        cluster,
 		labels:         labels,
-		storageRequest: getStorageRequest("ETCD_DATA_STORAGE_REQUEST", 21),
+		storageRequest: getStorageRequest("ETCD_DATA_STORAGE_REQUEST", 20),
 	}
 }
 

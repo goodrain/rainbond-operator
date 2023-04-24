@@ -53,7 +53,7 @@ func NewHub(ctx context.Context, client client.Client, component *rainbondv1alph
 		client:         client,
 		ctx:            ctx,
 		labels:         LabelsForRainbondComponent(component),
-		storageRequest: getStorageRequest("HUB_DATA_STORAGE_REQUEST", 40),
+		storageRequest: getStorageRequest("HUB_DATA_STORAGE_REQUEST", 50),
 	}
 }
 
@@ -228,7 +228,7 @@ func (h *hub) persistentVolumeClaimForHub() *corev1.PersistentVolumeClaim {
 	if h.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
 		return createPersistentVolumeClaimRWO(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels, h.storageRequest)
 	}
-	return createPersistentVolumeClaimRWX(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels)
+	return createPersistentVolumeClaimRWX(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels, h.storageRequest)
 }
 
 func (h *hub) ingressForHub() client.Object {

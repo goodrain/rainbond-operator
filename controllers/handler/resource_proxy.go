@@ -38,7 +38,7 @@ func NewResourceProxy(ctx context.Context, client client.Client, component *rain
 		component:      component,
 		cluster:        cluster,
 		labels:         LabelsForRainbondComponent(component),
-		storageRequest: getStorageRequest("RESOURCE_PROXY_DATA_STORAGE_REQUEST", 21),
+		storageRequest: getStorageRequest("RESOURCE_PROXY_DATA_STORAGE_REQUEST", 20),
 	}
 }
 
