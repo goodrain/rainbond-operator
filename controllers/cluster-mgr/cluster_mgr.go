@@ -10,7 +10,6 @@ import (
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/controllers/cluster-mgr/precheck"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
@@ -396,53 +395,6 @@ func (r *RainbondClusteMgr) isConditionTrue(typ3 rainbondv1alpha1.RainbondCluste
 		return true
 	}
 	return false
-}
-
-//CreateFoobarPVCIfNotExists -
-func (r *RainbondClusteMgr) CreateFoobarPVCIfNotExists() error {
-	var storageClassName string
-	if r.cluster.Spec.RainbondVolumeSpecRWX != nil && r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName != "" {
-		storageClassName = r.cluster.Spec.RainbondVolumeSpecRWX.StorageClassName
-	}
-
-	pvc, err := k8sutil.GetFoobarPVC(r.ctx, r.client, r.cluster.GetNamespace())
-	if err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			return err
-		}
-		return r.createPVCForFoobar(storageClassName)
-	}
-
-	// check if storageClass is up to date
-	if *pvc.Spec.StorageClassName == storageClassName {
-		return nil
-	}
-	// otherwise, delete the old one and create the latest one
-	if err := r.client.Delete(r.ctx, pvc, &client.DeleteOptions{GracePeriodSeconds: commonutil.Int64(0)}); err != nil {
-		return err
-	}
-	if err := r.createPVCForFoobar(storageClassName); err != nil {
-		if k8sErrors.IsAlreadyExists(err) {
-			return nil
-		}
-		return err
-	}
-
-	return nil
-}
-
-func (r *RainbondClusteMgr) createPVCForFoobar(storageClassName string) error {
-	if storageClassName == "" {
-		return nil
-	}
-	// create pvc
-	accessModes := []corev1.PersistentVolumeAccessMode{
-		corev1.ReadWriteMany,
-	}
-	labels := rbdutil.LabelsForRainbond(nil)
-	pvc := k8sutil.PersistentVolumeClaimForGrdata(r.cluster.GetNamespace(), constants.FoobarPVC, accessModes, labels,
-		storageClassName, 500)
-	return r.client.Create(r.ctx, pvc)
 }
 
 func (r *RainbondClusteMgr) falseConditionNow(typ3 rainbondv1alpha1.RainbondClusterConditionType) *rainbondv1alpha1.RainbondClusterCondition {
