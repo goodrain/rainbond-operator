@@ -200,7 +200,7 @@ func (a *appui) deploymentForAppUI() client.Object {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "app",
-			MountPath: "/data",
+			MountPath: "/app/data",
 			SubPath:   "data",
 		},
 		{
