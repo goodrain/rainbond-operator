@@ -23,19 +23,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/twinj/uuid"
+	"github.com/google/uuid"
 )
 
-//NewUUID 创建无-的32位uuid
+// NewUUID 创建无-的32位uuid
 func NewUUID() string {
-	uid := uuid.NewV4().String()
+	uid := uuid.New().String()
 	return strings.Replace(uid, "-", "", -1)
 }
 
-//TimeVersion time version
+// TimeVersion time version
 type TimeVersion string
 
-//NewTimeVersion return version string by time
+// NewTimeVersion return version string by time
 func NewTimeVersion() TimeVersion {
 	now := time.Now()
 	return TimeVersion(fmt.Sprintf("%d", now.UnixNano()))
