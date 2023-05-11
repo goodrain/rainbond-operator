@@ -193,6 +193,7 @@ func (c *chaos) deployment() client.Object {
 		volumes = append(volumes, socketVolume)
 		volumes = append(volumes, configVolume)
 		args = append(args, "--container-runtime=containerd")
+		args = append(args, "--runtime-endpoint=/run/containerd/containerd.sock")
 	}
 
 	if c.etcdSecret != nil {

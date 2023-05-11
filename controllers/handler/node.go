@@ -284,6 +284,7 @@ func (n *node) daemonSetForWutongNode() client.Object {
 		args = append(args, "--container-runtime=docker")
 	} else {
 		args = append(args, "--container-runtime=containerd")
+		args = append(args, "--runtime-endpoint=/run/containerd/containerd.sock")
 	}
 	volumes = append(volumes, runtimeVolumes...)
 	volumeMounts = append(volumeMounts, runtimeVolumeMounts...)
