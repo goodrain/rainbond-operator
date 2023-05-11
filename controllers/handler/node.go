@@ -282,6 +282,8 @@ func (n *node) daemonSetForWutongNode() client.Object {
 	if n.containerRuntime == containerutil.ContainerRuntimeDocker {
 		runtimeVolumes, runtimeVolumeMounts = n.getDockerVolumes()
 		args = append(args, "--container-runtime=docker")
+	} else {
+		args = append(args, "--container-runtime=containerd")
 	}
 	volumes = append(volumes, runtimeVolumes...)
 	volumeMounts = append(volumeMounts, runtimeVolumeMounts...)
