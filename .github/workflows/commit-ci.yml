@@ -2,7 +2,7 @@ name: commit-ci
 
 env:
   TITLE: wutong-operator
-  BASE_VERSION: v1.1.0
+  BASE_VERSION: v1.1.0-stable
 
 on:
   push:
@@ -15,9 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set ENV
-        run: |
-          echo "VERSION=${BASE_VERSION}-beta-${GITHUB_SHA::7}" >> $GITHUB_ENV
+      # - name: Set ENV
+      #   run: |
+      #     echo "VERSION=${BASE_VERSION}-beta-${GITHUB_SHA::7}" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -39,7 +39,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           file: Dockerfile.multiarch
           push: true
-          tags: ${{ secrets.DOMESTIC_DOCKER_SERVER }}/wutong/${{ env.TITLE }}:${{ env.VERSION }}
+          tags: ${{ secrets.DOMESTIC_DOCKER_SERVER }}/wutong/${{ env.TITLE }}:${{ env.BASE_VERSION }}
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
@@ -50,4 +50,4 @@ jobs:
       #   env:
       #     KUBE_CONFIG: ${{ secrets.DEV_KUBE_CONFIG }}
       #   with:
-      #     args: set image deployment/${{ env.TITLE }} -n wt-system operator=${{ secrets.DOMESTIC_DOCKER_SERVER }}/wutong/${{ env.TITLE }}:${{ env.VERSION }}
+      #     args: set image deployment/${{ env.TITLE }} -n wt-system operator=${{ secrets.DOMESTIC_DOCKER_SERVER }}/wutong/${{ env.TITLE }}:${{ env.BASE_VERSION }}
