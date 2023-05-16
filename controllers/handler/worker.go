@@ -48,7 +48,7 @@ func NewWorker(ctx context.Context, client client.Client, component *rainbondv1a
 		component:      component,
 		cluster:        cluster,
 		labels:         LabelsForRainbondComponent(component),
-		storageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 50),
+		storageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 20),
 	}
 }
 

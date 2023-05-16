@@ -56,7 +56,7 @@ func NewChaos(ctx context.Context, client client.Client, component *rainbondv1al
 		cluster:              cluster,
 		labels:               LabelsForRainbondComponent(component),
 		cacheStorageRequest:  getStorageRequest("CHAOS_CACHE_STORAGE_REQUEST", 10),
-		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 50),
+		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 20),
 		containerRuntime:     containerutil.GetContainerRuntime(),
 	}
 }

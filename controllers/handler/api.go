@@ -65,7 +65,7 @@ func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alph
 		labels:               LabelsForRainbondComponent(component),
 		pvcName:              "rbd-api",
 		dataStorageRequest:   getStorageRequest("API_DATA_STORAGE_REQUEST", 1),
-		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 50),
+		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 20),
 	}
 }
 
