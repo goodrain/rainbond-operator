@@ -26,6 +26,8 @@ steps:
       from_secret: version
     GOOS: linux
     GOARCH: arm64
+    DOCKER_BUILDKIT: 0
+    COMPOSE_DOCKER_CLI_BUILD: 0
   commands:
   - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
   - docker build --build-arg ARCH=$GOARCH --build-arg GOPROXY="https://goproxy.cn" -t rainbond/rainbond-operator:$VERSION .
