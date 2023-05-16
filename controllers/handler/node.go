@@ -51,7 +51,7 @@ func NewNode(ctx context.Context, client client.Client, component *rainbondv1alp
 		component:            component,
 		cluster:              cluster,
 		labels:               LabelsForRainbondComponent(component),
-		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 50),
+		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 20),
 		containerRuntime:     containerutil.GetContainerRuntime(),
 	}
 }
