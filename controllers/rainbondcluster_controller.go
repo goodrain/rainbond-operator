@@ -255,7 +255,7 @@ func (r *RainbondClusterReconciler) getImageHub(cluster *rainbondv1alpha1.Rainbo
 	return &rainbondv1alpha1.ImageHub{
 		Domain:   constants.DefImageRepository,
 		Username: "admin",
-		Password: uuidutil.NewUUID()[0:8],
+		Password: rbdutil.GetenvDefault("RBD_HUB_PASSWORD", uuidutil.NewUUID()[0:8]),
 	}, nil
 }
 
