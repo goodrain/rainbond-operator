@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"path"
 	"strings"
 
@@ -209,6 +210,24 @@ func (c *chaos) deployment() client.Object {
 	}
 	var affinity *corev1.Affinity
 	if len(nodeNames) > 0 {
+		affinity = affinityForRequiredNodes(nodeNames)
+	} else {
+		nodeList := &corev1.NodeList{}
+		err := c.client.List(context.Background(), nodeList)
+		if err != nil {
+			logrus.Errorf("get nodes failure: %v", err)
+		}
+		nodes := nodeList.Items
+		node_arch := make(map[string]string)
+		for _, node := range nodes {
+			arch := node.Status.NodeInfo.Architecture
+			node_arch[arch] = node.Name
+		}
+		if len(node_arch) >= 2 {
+			for _, nodeName := range node_arch {
+				nodeNames = append(nodeNames, nodeName)
+			}
+		}
 		affinity = affinityForRequiredNodes(nodeNames)
 	}
 
