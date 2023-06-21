@@ -2,11 +2,11 @@ name: commit-ci
 
 env:
   TITLE: wutong-operator
-  BASE_VERSION: v1.1.0-stable
+  BASE_VERSION: v1.2.0-stable
 
 on:
   push:
-    branches: [v1.1.0-stable]
+    branches: [v1.2.0-stable]
   workflow_dispatch:
 
 jobs:
