@@ -322,7 +322,7 @@ func (n *node) daemonSetForWutongNode() client.Object {
 	}
 	if n.cluster.Spec.ImageHub == nil || n.cluster.Spec.ImageHub.Domain == constants.DefImageRepository {
 		envs = append(envs, corev1.EnvVar{
-			Name:  "WT_DOCKER_SECRET",
+			Name:  "WT_REGISTRY_SECRET",
 			Value: hubImageRepository,
 		})
 	}
