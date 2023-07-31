@@ -4,7 +4,7 @@ IMAGE_DOMAIN=${IMAGE_DOMAIN:-'docker.io'}
 IMAGE_NAMESPACE=${IMAGE_NAMESPACE:-'rainbond'}
 DOMESTIC_BASE_NAME=${DOMESTIC_BASE_NAME:-'registry.cn-hangzhou.aliyuncs.com'}
 DOMESTIC_NAMESPACE=${DOMESTIC_NAMESPACE:-'goodrain'}
-
+ARCH=${BUILD_ARCH:-'amd64'}
 
 imageName=${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/rainbond-operator:${VERSION}
 docker build --build-arg ARCH="${ARCH}" -t "${imageName}" -f Dockerfile .
