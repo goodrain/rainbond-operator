@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//HubName name
+// HubName name
 var HubName = "rbd-hub"
 var hubDataPvcName = "rbd-hub"
 var hubImageRepository = "hub-image-repository"
@@ -45,7 +45,7 @@ type hub struct {
 var _ ComponentHandler = &hub{}
 var _ StorageClassRWXer = &hub{}
 
-//NewHub nw hub
+// NewHub nw hub
 func NewHub(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &hub{
 		component:      component,
@@ -328,6 +328,7 @@ func (h *hub) secretForHub() client.Object {
 			"tls.crt": pem,
 			"tls.key": key,
 			"cert":    pem,
+			"key":     key,
 		},
 	}
 }
