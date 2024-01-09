@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/goodrain/rainbond-operator/util/containerutil"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -77,6 +78,7 @@ func (n *node) Before() error {
 func (n *node) Resources() []client.Object {
 	return []client.Object{
 		n.daemonSetForRainbondNode(),
+		n.service(),
 	}
 }
 
@@ -372,4 +374,24 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 	}
 
 	return ds
+}
+
+func (n *node) service() client.Object {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      NodeName,
+			Namespace: n.component.Namespace,
+			Labels:    n.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name:       NodeName,
+					Port:       6100,
+					TargetPort: intstr.FromInt(6100),
+				},
+			},
+			Selector: n.labels,
+		},
+	}
 }
