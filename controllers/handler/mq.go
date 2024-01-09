@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -50,6 +51,7 @@ func (m *mq) Before() error {
 func (m *mq) Resources() []client.Object {
 	return []client.Object{
 		m.deployment(),
+		m.service(),
 	}
 }
 
@@ -127,4 +129,24 @@ func (m *mq) deployment() client.Object {
 	}
 
 	return ds
+}
+
+func (m *mq) service() client.Object {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      NodeName,
+			Namespace: m.component.Namespace,
+			Labels:    m.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name:       NodeName,
+					Port:       6300,
+					TargetPort: intstr.FromInt(6300),
+				},
+			},
+			Selector: m.labels,
+		},
+	}
 }

@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"strings"
 
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -52,6 +53,7 @@ func (w *webcli) Before() error {
 func (w *webcli) Resources() []client.Object {
 	return []client.Object{
 		w.deployment(),
+		w.service(),
 	}
 }
 
@@ -128,4 +130,24 @@ func (w *webcli) deployment() client.Object {
 	}
 
 	return ds
+}
+
+func (w *webcli) service() client.Object {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      WorkerName,
+			Namespace: w.component.Namespace,
+			Labels:    w.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name:       WorkerName,
+					Port:       7171,
+					TargetPort: intstr.FromInt(7171),
+				},
+			},
+			Selector: w.labels,
+		},
+	}
 }
