@@ -135,14 +135,14 @@ func (w *webcli) deployment() client.Object {
 func (w *webcli) service() client.Object {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      WorkerName,
+			Name:      WebCliName,
 			Namespace: w.component.Namespace,
 			Labels:    w.labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
-					Name:       WorkerName,
+					Name:       WebCliName,
 					Port:       7171,
 					TargetPort: intstr.FromInt(7171),
 				},

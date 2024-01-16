@@ -134,14 +134,14 @@ func (m *mq) deployment() client.Object {
 func (m *mq) service() client.Object {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      NodeName,
+			Name:      MQName,
 			Namespace: m.component.Namespace,
 			Labels:    m.labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
-					Name:       NodeName,
+					Name:       MQName,
 					Port:       6300,
 					TargetPort: intstr.FromInt(6300),
 				},
