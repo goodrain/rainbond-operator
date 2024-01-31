@@ -175,7 +175,7 @@ metadata:
     persistentVolumeClaimAccessModes: ReadWriteOnce
 spec:
   replicas: 1
-  image: rainbond/registry:2.6.2
+  image: registry:2.8.3
   imagePullPolicy: IfNotPresent
   priorityComponent: true
 ---
