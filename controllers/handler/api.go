@@ -2,20 +2,15 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"time"
-
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"github.com/sirupsen/logrus"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
+	"os"
+	"strconv"
+	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -109,73 +104,6 @@ func (a *api) Resources() []client.Object {
 }
 
 func (a *api) After() error {
-	var url string
-	url = os.Getenv("CONSOLE_DOMAIN")
-	if url == "" {
-		logrus.Error("CONSOLE_DOMAIN not find in env")
-		return nil
-	}
-	var ips = strings.ReplaceAll(strings.Join(a.cluster.GatewayIngressIPs(), "-"), ".", "_")
-	serverSecret, _ := a.getSecret(apiServerSecretName)
-	if serverSecret != nil {
-		a.serverSecret = serverSecret
-		if availableips, ok := serverSecret.Labels["availableips"]; ok && availableips == ips {
-			caPem := serverSecret.Data["ca.pem"]
-			clientPem := serverSecret.Data["server.pem"]
-			clientKey := serverSecret.Data["server.key.pem"]
-			regionInfo := make(map[string]interface{})
-			regionInfo["regionName"] = time.Now().Unix()
-			regionInfo["regionType"] = []string{"custom"}
-			regionInfo["sslCaCert"] = string(caPem)
-			regionInfo["keyFile"] = string(clientKey)
-			regionInfo["certFile"] = string(clientPem)
-			regionInfo["url"] = fmt.Sprintf("https://%s:%s", a.cluster.GatewayIngressIP(), rbdutil.GetenvDefault("API_PORT", "8443"))
-			regionInfo["wsUrl"] = fmt.Sprintf("ws://%s:%s", a.cluster.GatewayIngressIP(), rbdutil.GetenvDefault("API_WS_PORT", "6060"))
-			regionInfo["httpDomain"] = a.cluster.Spec.SuffixHTTPHost
-			regionInfo["tcpDomain"] = a.cluster.GatewayIngressIP()
-			regionInfo["desc"] = "Helm"
-			regionInfo["regionAlias"] = "对接集群"
-			regionInfo["provider"] = "helm"
-			regionInfo["providerClusterId"] = ""
-
-			if os.Getenv("HELM_TOKEN") != "" {
-				regionInfo["token"] = os.Getenv("HELM_TOKEN")
-			}
-			if os.Getenv("ENTERPRISE_ID") != "" {
-				regionInfo["enterpriseId"] = os.Getenv("ENTERPRISE_ID")
-			}
-			if os.Getenv("CLOUD_SERVER") != "" {
-				cloud := os.Getenv("CLOUD_SERVER")
-				switch cloud {
-				case "aliyun":
-					regionInfo["regionType"] = []string{"aliyun"}
-				case "huawei":
-					regionInfo["regionType"] = []string{"huawei"}
-				case "tencent":
-					regionInfo["regionType"] = []string{"tencent"}
-				}
-			}
-			reqParam, err := json.Marshal(regionInfo)
-			if err != nil {
-				logrus.Error("Marshal RequestParam fail", err)
-				return nil
-			}
-			resp, err := http.Post(url,
-				"application/json",
-				strings.NewReader(string(reqParam)))
-			if err != nil {
-				logrus.Error("request reader fail", err)
-				return nil
-			}
-			defer resp.Body.Close()
-			body, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				logrus.Error("ReadAll error", err)
-				return nil
-			}
-			logrus.Debug("Response body:", string(body))
-		}
-	}
 	return nil
 }
 
@@ -277,6 +205,10 @@ func (a *api) deployment() client.Object {
 		{
 			Name:  "LOGGER_DRIVER_NAME",
 			Value: "streamlog",
+		},
+		{
+			Name:  "HELM_TOKEN",
+			Value: os.Getenv("HELM_TOKEN"),
 		},
 	}
 
