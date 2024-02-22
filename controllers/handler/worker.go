@@ -3,11 +3,9 @@ package handler
 import (
 	"context"
 	"fmt"
+	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"path"
-	"strings"
-
-	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 
@@ -134,7 +132,6 @@ func (w *worker) deployment() client.Object {
 	args := []string{
 		"--host-ip=$(POD_IP)",
 		"--node-name=$(POD_IP)",
-		"--etcd-endpoints=" + strings.Join(etcdEndpoints(w.cluster), ","),
 		"--rbd-system-namespace=" + w.component.Namespace,
 	}
 	if !checksqllite.IsSQLLite() {

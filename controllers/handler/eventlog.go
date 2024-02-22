@@ -167,9 +167,6 @@ func (e *eventlog) statefulset() client.Object {
 	if !checksqllite.IsSQLLite() {
 		args = append(args, "--db.url="+strings.Replace(e.db.RegionDataSource(), "--mysql=", "", 1))
 	}
-	if !strings.Contains(e.component.Spec.Image, "5.2.0") {
-		args = append(args, "--node-id=$(NODE_ID)")
-	}
 
 	volumeMounts := []corev1.VolumeMount{
 		{

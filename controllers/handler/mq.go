@@ -3,14 +3,12 @@ package handler
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	"strings"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -65,7 +63,6 @@ func (m *mq) ListPods() ([]corev1.Pod, error) {
 
 func (m *mq) deployment() client.Object {
 	args := []string{
-		"--etcd-endpoints=" + strings.Join(etcdEndpoints(m.cluster), ","),
 		"--hostIP=$(POD_IP)",
 	}
 	var volumeMounts []corev1.VolumeMount
