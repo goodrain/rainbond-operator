@@ -162,7 +162,6 @@ func (e *eventlog) statefulset() client.Object {
 		"--cluster.instance.ip=$(POD_IP)",
 		"--eventlog.bind.ip=$(POD_IP)",
 		"--websocket.bind.ip=$(POD_IP)",
-		"--discover.etcd.addr=" + strings.Join(etcdEndpoints(e.cluster), ","),
 	}
 	if !checksqllite.IsSQLLite() {
 		args = append(args, "--db.url="+strings.Replace(e.db.RegionDataSource(), "--mysql=", "", 1))
