@@ -3,12 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"path"
-	"strings"
-
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"github.com/goodrain/rainbond-operator/util/containerutil"
+	"github.com/sirupsen/logrus"
+	"path"
 
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
@@ -175,7 +173,6 @@ func (c *chaos) deployment() client.Object {
 	}
 	args := []string{
 		"--hostIP=$(POD_IP)",
-		"--etcd-endpoints=" + strings.Join(etcdEndpoints(c.cluster), ","),
 		"--pvc-grdata-name=" + constants.GrDataPVC,
 		"--pvc-cache-name=" + constants.CachePVC,
 		"--rbd-namespace=" + c.component.Namespace,

@@ -161,7 +161,6 @@ func (a *api) deployment() client.Object {
 	args := []string{
 		"--api-addr=0.0.0.0:8888",
 		"--enable-feature=privileged",
-		"--etcd=" + strings.Join(etcdEndpoints(a.cluster), ","),
 	}
 	if !checksqllite.IsSQLLite() {
 		args = append(args, a.db.RegionDataSource())
