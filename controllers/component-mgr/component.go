@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	v2 "github.com/goodrain/rainbond-operator/api/v2"
 	"io"
 	"os"
 	"reflect"
@@ -33,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-//RbdcomponentMgr -
+// RbdcomponentMgr -
 type RbdcomponentMgr struct {
 	ctx      context.Context
 	client   client.Client
@@ -44,7 +45,7 @@ type RbdcomponentMgr struct {
 	replicaser handler.Replicaser
 }
 
-//NewRbdcomponentMgr -
+// NewRbdcomponentMgr -
 func NewRbdcomponentMgr(ctx context.Context, client client.Client, recorder record.EventRecorder, log logr.Logger, cpt *rainbondv1alpha1.RbdComponent) *RbdcomponentMgr {
 	mgr := &RbdcomponentMgr{
 		ctx:      ctx,
@@ -56,12 +57,12 @@ func NewRbdcomponentMgr(ctx context.Context, client client.Client, recorder reco
 	return mgr
 }
 
-//SetReplicaser -
+// SetReplicaser -
 func (r *RbdcomponentMgr) SetReplicaser(replicaser handler.Replicaser) {
 	r.replicaser = replicaser
 }
 
-//UpdateStatus -
+// UpdateStatus -
 func (r *RbdcomponentMgr) UpdateStatus() error {
 	status := r.cpt.Status.DeepCopy()
 	// make sure status has ready conditoin
@@ -77,13 +78,13 @@ func (r *RbdcomponentMgr) UpdateStatus() error {
 	})
 }
 
-//SetConfigCompletedCondition -
+// SetConfigCompletedCondition -
 func (r *RbdcomponentMgr) SetConfigCompletedCondition() {
 	condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.ClusterConfigCompeleted, corev1.ConditionTrue, "ConfigCompleted", "")
 	_ = r.cpt.Status.UpdateCondition(condition)
 }
 
-//SetPackageReadyCondition -
+// SetPackageReadyCondition -
 func (r *RbdcomponentMgr) SetPackageReadyCondition(pkg *rainbondv1alpha1.RainbondPackage) {
 	if pkg == nil {
 		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionTrue, "PackageReady", "")
@@ -105,7 +106,7 @@ func (r *RbdcomponentMgr) SetPackageReadyCondition(pkg *rainbondv1alpha1.Rainbon
 	_ = r.cpt.Status.UpdateCondition(condition)
 }
 
-//CheckPrerequisites -
+// CheckPrerequisites -
 func (r *RbdcomponentMgr) CheckPrerequisites(cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) bool {
 	if r.cpt.Spec.PriorityComponent {
 		// If ImageHub is empty, the priority component no need to wait until rainbondpackage is completed.
@@ -121,7 +122,7 @@ func (r *RbdcomponentMgr) CheckPrerequisites(cluster *rainbondv1alpha1.RainbondC
 	return true
 }
 
-//GenerateStatus -
+// GenerateStatus -
 func (r *RbdcomponentMgr) GenerateStatus(pods []corev1.Pod) {
 	status := r.cpt.Status.DeepCopy()
 	var replicas int32 = 1
@@ -300,7 +301,7 @@ func handleRegionInfo() (regionPods []*logutil.Pod, isReady bool) {
 	return pods, false
 }
 
-//IsRbdComponentReady -
+// IsRbdComponentReady -
 func (r *RbdcomponentMgr) IsRbdComponentReady() bool {
 	_, condition := r.cpt.Status.GetCondition(rainbondv1alpha1.RbdComponentReady)
 	if condition == nil {
@@ -310,7 +311,7 @@ func (r *RbdcomponentMgr) IsRbdComponentReady() bool {
 	return condition.Status == corev1.ConditionTrue && r.cpt.Status.ReadyReplicas == r.cpt.Status.Replicas
 }
 
-//ResourceCreateIfNotExists -
+// ResourceCreateIfNotExists -
 func (r *RbdcomponentMgr) ResourceCreateIfNotExists(obj client.Object) error {
 	err := r.client.Get(r.ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj)
 	if err != nil {
@@ -323,7 +324,7 @@ func (r *RbdcomponentMgr) ResourceCreateIfNotExists(obj client.Object) error {
 	return nil
 }
 
-//UpdateOrCreateResource -
+// UpdateOrCreateResource -
 func (r *RbdcomponentMgr) UpdateOrCreateResource(obj client.Object) (reconcile.Result, error) {
 	var oldOjb = reflect.New(reflect.ValueOf(obj).Elem().Type()).Interface().(client.Object)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
@@ -360,8 +361,6 @@ func (r *RbdcomponentMgr) UpdateOrCreateResource(obj client.Object) (reconcile.R
 }
 
 func (r *RbdcomponentMgr) updateRuntimeObject(old, new client.Object) client.Object {
-	// TODO: maybe use patch is better
-	// spec.clusterIP: Invalid value: \"\": field is immutable
 	if n, ok := new.(*corev1.Service); ok {
 		r.log.V(6).Info("copy necessary fields from old service before updating")
 		o := old.(*corev1.Service)
@@ -369,6 +368,28 @@ func (r *RbdcomponentMgr) updateRuntimeObject(old, new client.Object) client.Obj
 		n.Spec.ClusterIP = o.Spec.ClusterIP
 		return n
 	}
+
+	if n, ok := new.(*v2.ApisixRoute); ok {
+		r.log.V(6).Info("copy necessary fields from old ApisixRoute before updating")
+		o := old.(*v2.ApisixRoute)
+		n.ResourceVersion = o.ResourceVersion
+		return n
+	}
+
+	if n, ok := new.(*v2.ApisixTls); ok {
+		r.log.V(6).Info("copy necessary fields from old ApisixTls before updating")
+		o := old.(*v2.ApisixTls)
+		n.ResourceVersion = o.ResourceVersion
+		return n
+	}
+
+	if n, ok := new.(*v2.ApisixGlobalRule); ok {
+		r.log.V(6).Info("copy necessary fields from old ApisixRoute before updating")
+		o := old.(*v2.ApisixGlobalRule)
+		n.ResourceVersion = o.ResourceVersion
+		return n
+	}
+
 	return new
 }
 
@@ -392,7 +413,7 @@ func objectCanUpdate(obj client.Object) bool {
 	return true
 }
 
-//DeleteResources -
+// DeleteResources -
 func (r *RbdcomponentMgr) DeleteResources(deleter handler.ResourcesDeleter) (*reconcile.Result, error) {
 	resources := deleter.ResourcesNeedDelete()
 	for _, res := range resources {

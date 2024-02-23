@@ -62,7 +62,6 @@ type RbdComponentReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *RbdComponentReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("rbdcomponent", request.NamespacedName)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
