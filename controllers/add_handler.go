@@ -13,7 +13,7 @@ import (
 
 func init() {
 	AddHandlerFunc(handler.EtcdName, handler.NewETCD)
-	AddHandlerFunc(handler.GatewayName, handler.NewGateway)
+	AddHandlerFunc(handler.ApiGatewayName, handler.NewApiGateway)
 	AddHandlerFunc(handler.HubName, handler.NewHub)
 	AddHandlerFunc(handler.APIName, handler.NewAPI)
 	AddHandlerFunc(handler.AppUIName, handler.NewAppUI)

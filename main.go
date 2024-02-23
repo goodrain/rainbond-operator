@@ -18,8 +18,8 @@ package main
 
 import (
 	"flag"
+	apisixv2 "github.com/goodrain/rainbond-operator/api/v2"
 	"os"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "github.com/go-sql-driver/mysql"
@@ -43,6 +43,8 @@ var (
 )
 
 func init() {
+	utilruntime.Must(apisixv2.AddToScheme(scheme))
+
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(rainbondiov1alpha1.AddToScheme(scheme))
@@ -70,8 +72,6 @@ func main() {
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "c3e7a49c.rainbond.io",
