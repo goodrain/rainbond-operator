@@ -4,10 +4,7 @@ import (
 	"context"
 	"fmt"
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
-	"github.com/sirupsen/logrus"
-	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"os"
 	"strconv"
 	"strings"
@@ -97,9 +94,9 @@ func (a *api) Resources() []client.Object {
 	resources := a.secretAndConfigMapForAPI()
 	resources = append(resources, a.deployment())
 	resources = append(resources, a.createService()...)
-	resources = append(resources, a.ingressForAPI())
-	resources = append(resources, a.ingressForWebsocket())
-	resources = append(resources, a.ingressForAPIHealthz())
+	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-api", 8443))
+	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-healthz", 8889))
+	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-websocket", 6060))
 	return resources
 }
 
@@ -442,46 +439,4 @@ func (a *api) secretAndConfigMapForAPI() []client.Object {
 		},
 	})
 	return re
-}
-
-func (a *api) ingressForAPI() client.Object {
-	annotations := map[string]string{
-		"nginx.ingress.kubernetes.io/l4-enable": "true",
-		"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
-		"nginx.ingress.kubernetes.io/l4-port":   rbdutil.GetenvDefault("API_PORT", "8443"),
-	}
-	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
-		logrus.Info("create networking v1 ingress for api")
-		return createIngress(APIName, a.component.Namespace, annotations, a.labels, APIName+"-api", "https")
-	}
-	logrus.Info("create networking beta v1 ingress for api")
-	return createLegacyIngress(APIName, a.component.Namespace, annotations, a.labels, APIName+"-api", intstr.FromString("https"))
-}
-
-func (a *api) ingressForAPIHealthz() client.Object {
-	annotations := map[string]string{
-		"nginx.ingress.kubernetes.io/l4-enable": "true",
-		"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
-		"nginx.ingress.kubernetes.io/l4-port":   "8889",
-	}
-	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
-		logrus.Info("create networking v1 ingress for healthz")
-		return createIngress(APIName+"-healthz", a.component.Namespace, annotations, a.labels, APIName+"-healthz", "healthz")
-	}
-	logrus.Info("create networking beta v1 ingress for healthz")
-	return createLegacyIngress(APIName+"-healthz", a.component.Namespace, annotations, a.labels, APIName+"-healthz", intstr.FromString("healthz"))
-}
-
-func (a *api) ingressForWebsocket() client.Object {
-	annotations := map[string]string{
-		"nginx.ingress.kubernetes.io/l4-enable": "true",
-		"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
-		"nginx.ingress.kubernetes.io/l4-port":   rbdutil.GetenvDefault("API_WS_PORT", "6060"),
-	}
-	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
-		logrus.Info("create networking v1 ingress for websocket")
-		return createIngress(APIName+"-websocket", a.component.Namespace, annotations, a.labels, APIName+"-websocket", "ws")
-	}
-	logrus.Info("create networking beta v1 ingress for websocket")
-	return createLegacyIngress(APIName+"-websocket", a.component.Namespace, annotations, a.labels, APIName+"-websocket", intstr.FromString("ws"))
 }

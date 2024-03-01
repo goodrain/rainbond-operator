@@ -6,13 +6,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
-	utilversion "k8s.io/apimachinery/pkg/util/version"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/probeutil"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -94,7 +91,7 @@ func (a *appui) Resources() []client.Object {
 	}
 	res := []client.Object{
 		a.serviceForAppUI(int32(p)),
-		a.ingressForAppUI(port),
+		rbdDefaultRouteTemplateForTCP("rbd-app-ui", 7070),
 		a.migrationsJob(),
 	}
 
@@ -295,18 +292,6 @@ func (a *appui) serviceForAppUI(port int32) client.Object {
 	}
 
 	return svc
-}
-
-func (a *appui) ingressForAppUI(port string) client.Object {
-	annotations := map[string]string{
-		"nginx.ingress.kubernetes.io/l4-enable": "true",
-		"nginx.ingress.kubernetes.io/l4-host":   "0.0.0.0",
-		"nginx.ingress.kubernetes.io/l4-port":   port,
-	}
-	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
-		return createIngress(AppUIName, a.component.Namespace, annotations, a.labels, AppUIName, "http")
-	}
-	return createLegacyIngress(AppUIName, a.component.Namespace, annotations, a.labels, AppUIName, intstr.FromString("http"))
 }
 
 func (a *appui) migrationsJob() *batchv1.Job {
