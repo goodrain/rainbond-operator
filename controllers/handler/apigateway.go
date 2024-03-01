@@ -38,6 +38,34 @@ func NewApiGateway(ctx context.Context, client client.Client, component *rainbon
 	}
 }
 
+func rbdDefaultRouteTemplateForTCP(name string, port int) client.Object {
+	return &v2.ApisixRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: constants.Namespace,
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       constants.ApisixRoute,
+			APIVersion: constants.APISixAPIVersion,
+		},
+		Spec: v2.ApisixRouteSpec{
+			Stream: []v2.ApisixRouteStream{
+				{
+					Name:     name,
+					Protocol: string(corev1.ProtocolTCP),
+					Match: v2.ApisixRouteStreamMatch{
+						IngressPort: int32(port),
+					},
+					Backend: v2.ApisixRouteStreamBackend{
+						ServiceName: name,
+						ServicePort: intstr.FromInt(port),
+					},
+				},
+			},
+		},
+	}
+}
+
 // Before -
 func (a *apigateway) Before() error {
 	k8sNodes, err := k8sutil.ListNodes(context.Background(), a.client)
@@ -72,11 +100,9 @@ func (a *apigateway) Before() error {
 // Resources -
 func (a *apigateway) Resources() []client.Object {
 	return []client.Object{
-		a.deploy(),
 		a.configmap(),
+		a.deploy(),
 		a.monitorGlobalRule(),
-		a.defaultRoute(),
-		a.hubImageRepository(),
 		a.monitorService(),
 	}
 }
@@ -254,115 +280,6 @@ func (a *apigateway) monitorService() client.Object {
 			},
 			Selector: a.labels,
 			Type:     corev1.ServiceTypeClusterIP,
-		},
-	}
-}
-
-// defaultRoute 可以让rainbond 平台正常工作的路由
-func (a *apigateway) defaultRoute() client.Object {
-	return &v2.ApisixRoute{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "default-route",
-			Namespace: constants.Namespace,
-		},
-		TypeMeta: metav1.TypeMeta{
-			Kind:       constants.ApisixRoute,
-			APIVersion: constants.APISixAPIVersion,
-		},
-		Spec: v2.ApisixRouteSpec{
-			Stream: []v2.ApisixRouteStream{
-				{
-					Name:     "rbd-app-ui",
-					Protocol: string(corev1.ProtocolTCP),
-					Match: v2.ApisixRouteStreamMatch{
-						IngressPort: 7070,
-					},
-					Backend: v2.ApisixRouteStreamBackend{
-						ServiceName: "rbd-app-ui",
-						ServicePort: intstr.FromInt(7070),
-					},
-				},
-				{
-					Name:     "rbd-api",
-					Protocol: string(corev1.ProtocolTCP),
-					Match: v2.ApisixRouteStreamMatch{
-						IngressPort: 8443,
-					},
-					Backend: v2.ApisixRouteStreamBackend{
-						ServiceName: "rbd-api-api",
-						ServicePort: intstr.FromInt(8443),
-					},
-				},
-				{
-					Name:     "rbd-api-health",
-					Protocol: string(corev1.ProtocolTCP),
-					Match: v2.ApisixRouteStreamMatch{
-						IngressPort: 8889,
-					},
-					Backend: v2.ApisixRouteStreamBackend{
-						ServiceName: "rbd-api-healthz",
-						ServicePort: intstr.FromInt(8889),
-					},
-				},
-				{
-					Name:     "rbd-api-websocket",
-					Protocol: string(corev1.ProtocolTCP),
-					Match: v2.ApisixRouteStreamMatch{
-						IngressPort: 6060,
-					},
-					Backend: v2.ApisixRouteStreamBackend{
-						ServiceName: "rbd-api-websocket",
-						ServicePort: intstr.FromInt(6060),
-					},
-				},
-			},
-			HTTP: []v2.ApisixRouteHTTP{
-				{
-					Name: "rbd-hub",
-					Match: v2.ApisixRouteHTTPMatch{
-						Hosts: []string{
-							"goodrain.me",
-						},
-						Paths: []string{
-							"/*",
-						},
-					},
-					Backends: []v2.ApisixRouteHTTPBackend{
-						{
-							ServicePort: intstr.FromInt(5000),
-							ServiceName: "rbd-hub",
-						},
-					},
-					Authentication: v2.ApisixRouteAuthentication{
-						Enable: false,
-						Type:   "basicAuth",
-					},
-				},
-			},
-		},
-	}
-}
-
-// hubImageRepository 自动给goodrain.me绑定https证书
-func (a *apigateway) hubImageRepository() client.Object {
-	const Name = "hub-image-repository"
-	return &v2.ApisixTls{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      Name,
-			Namespace: constants.Namespace,
-		},
-		TypeMeta: metav1.TypeMeta{
-			Kind:       constants.ApisixTls,
-			APIVersion: constants.APISixAPIVersion,
-		},
-		Spec: &v2.ApisixTlsSpec{
-			Hosts: []v2.HostType{
-				"goodrain.me",
-			},
-			Secret: v2.ApisixSecret{
-				Name:      Name,
-				Namespace: constants.Namespace,
-			},
 		},
 	}
 }

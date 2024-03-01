@@ -3,20 +3,17 @@ package handler
 import (
 	"context"
 	"fmt"
+	v2 "github.com/goodrain/rainbond-operator/api/v2"
 	"github.com/sirupsen/logrus"
-	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"os/exec"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -91,7 +88,69 @@ func (h *hub) Resources() []client.Object {
 		h.deployment(),
 		h.serviceForHub(),
 		h.persistentVolumeClaimForHub(),
-		h.ingressForHub(),
+		h.hubImageRepository(), // 绑定这个镜像仓库的secret
+		h.ingressForHub(),      //创建这个域名的路由
+	}
+}
+
+func (h *hub) hubImageRepository() client.Object {
+	const Name = "hub-image-repository"
+	return &v2.ApisixTls{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      Name,
+			Namespace: constants.Namespace,
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       constants.ApisixTls,
+			APIVersion: constants.APISixAPIVersion,
+		},
+		Spec: &v2.ApisixTlsSpec{
+			Hosts: []v2.HostType{
+				"goodrain.me",
+			},
+			Secret: v2.ApisixSecret{
+				Name:      Name,
+				Namespace: constants.Namespace,
+			},
+		},
+	}
+}
+
+func (h *hub) ingressForHub() client.Object {
+	return &v2.ApisixRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rbd-hub",
+			Namespace: constants.Namespace,
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       constants.ApisixRoute,
+			APIVersion: constants.APISixAPIVersion,
+		},
+		Spec: v2.ApisixRouteSpec{
+			HTTP: []v2.ApisixRouteHTTP{
+				{
+					Name: "rbd-hub",
+					Match: v2.ApisixRouteHTTPMatch{
+						Hosts: []string{
+							"goodrain.me",
+						},
+						Paths: []string{
+							"/*",
+						},
+					},
+					Backends: []v2.ApisixRouteHTTPBackend{
+						{
+							ServicePort: intstr.FromInt(5000),
+							ServiceName: "rbd-hub",
+						},
+					},
+					Authentication: v2.ApisixRouteAuthentication{
+						Enable: false,
+						Type:   "basicAuth",
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -229,80 +288,6 @@ func (h *hub) persistentVolumeClaimForHub() *corev1.PersistentVolumeClaim {
 		return createPersistentVolumeClaimRWO(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels, h.storageRequest)
 	}
 	return createPersistentVolumeClaimRWX(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels, h.storageRequest)
-}
-
-func (h *hub) ingressForHub() client.Object {
-	annotations := map[string]string{
-		"nginx.ingress.kubernetes.io/weight":                       "100",
-		"nginx.ingress.kubernetes.io/upstream-hash-by":             "$remote_addr", // consistent hashing
-		"nginx.ingress.kubernetes.io/proxy-body-size":              "0",
-		"nginx.ingress.kubernetes.io/set-header-Host":              "$http_host",
-		"nginx.ingress.kubernetes.io/set-header-X-Forwarded-Host":  "$http_host",
-		"nginx.ingress.kubernetes.io/set-header-X-Forwarded-Proto": "https",
-		"nginx.ingress.kubernetes.io/set-header-X-Scheme":          "$scheme",
-	}
-	objectMeta := createIngressMeta(HubName, h.component.Namespace, annotations, h.labels)
-	if k8sutil.GetKubeVersion().AtLeast(utilversion.MustParseSemantic("v1.19.0")) {
-		rules := []networkingv1.IngressRule{
-			{
-				Host: constants.DefImageRepository,
-				IngressRuleValue: networkingv1.IngressRuleValue{
-					HTTP: &networkingv1.HTTPIngressRuleValue{
-						Paths: []networkingv1.HTTPIngressPath{
-							{
-								Path:     "/v2/",
-								PathType: k8sutil.IngressPathType(networkingv1.PathTypeExact),
-								Backend: networkingv1.IngressBackend{
-									Service: &networkingv1.IngressServiceBackend{
-										Name: HubName,
-										Port: networkingv1.ServiceBackendPort{
-											Number: 5000,
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-		tls := []networkingv1.IngressTLS{
-			{
-				Hosts:      []string{rbdutil.GetImageRepository(h.cluster)},
-				SecretName: hubImageRepository,
-			},
-		}
-		return &networkingv1.Ingress{ObjectMeta: objectMeta, Spec: networkingv1.IngressSpec{Rules: rules, TLS: tls}}
-	}
-	return &networkingv1beta1.Ingress{
-		ObjectMeta: objectMeta,
-		Spec: networkingv1beta1.IngressSpec{
-			Rules: []networkingv1beta1.IngressRule{
-				{
-					Host: constants.DefImageRepository,
-					IngressRuleValue: networkingv1beta1.IngressRuleValue{
-						HTTP: &networkingv1beta1.HTTPIngressRuleValue{
-							Paths: []networkingv1beta1.HTTPIngressPath{
-								{
-									Path: "/v2/",
-									Backend: networkingv1beta1.IngressBackend{
-										ServiceName: HubName,
-										ServicePort: intstr.FromInt(5000),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			TLS: []networkingv1beta1.IngressTLS{
-				{
-					Hosts:      []string{rbdutil.GetImageRepository(h.cluster)},
-					SecretName: hubImageRepository,
-				},
-			},
-		},
-	}
 }
 
 func (h *hub) secretForHub() client.Object {
