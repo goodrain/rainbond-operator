@@ -54,46 +54,46 @@ func NewHub(ctx context.Context, client client.Client, component *rainbondv1alph
 	}
 }
 
-func (a *hub) Before() error {
-	if a.cluster.Spec.ImageHub != nil && a.cluster.Spec.ImageHub.Domain != constants.DefImageRepository {
+func (h *hub) Before() error {
+	if h.cluster.Spec.ImageHub != nil && h.cluster.Spec.ImageHub.Domain != constants.DefImageRepository {
 		return NewIgnoreError("use custom image repository")
 	}
 
-	if a.cluster.Spec.ImageHub == nil {
+	if h.cluster.Spec.ImageHub == nil {
 		return NewIgnoreError("imageHub is empty")
 	}
 
-	htpasswd, err := a.generateHtpasswd()
+	htpasswd, err := h.generateHtpasswd()
 	if err != nil {
 		return fmt.Errorf("generate htpasswd: %v", err)
 	}
-	a.htpasswd = htpasswd
+	h.htpasswd = htpasswd
 
-	if a.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		sc, err := storageClassNameFromRainbondVolumeRWO(a.ctx, a.client, a.component.Namespace)
+	if h.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
+		sc, err := storageClassNameFromRainbondVolumeRWO(h.ctx, h.client, h.component.Namespace)
 		if err != nil {
 			return err
 		}
-		a.SetStorageClassNameRWX(sc)
+		h.SetStorageClassNameRWX(sc)
 		return nil
 	}
 
-	return setStorageCassName(a.ctx, a.client, a.component.Namespace, a)
+	return setStorageCassName(h.ctx, h.client, h.component.Namespace, h)
 }
 
-func (a *hub) Resources() []client.Object {
+func (h *hub) Resources() []client.Object {
 	return []client.Object{
-		a.secretForHub(), // important! create secret before ingress.
-		a.passwordSecret(),
-		a.deployment(),
-		a.serviceForHub(),
-		a.persistentVolumeClaimForHub(),
-		a.hubImageRepository(), // 绑定这个镜像仓库的secret
-		a.ingressForHub(),      //创建这个域名的路由
+		h.secretForHub(), // important! create secret before ingress.
+		h.passwordSecret(),
+		h.deployment(),
+		h.serviceForHub(),
+		h.persistentVolumeClaimForHub(),
+		h.hubImageRepository(), // 绑定这个镜像仓库的secret
+		h.ingressForHub(),      //创建这个域名的路由
 	}
 }
 
-func (a *hub) hubImageRepository() client.Object {
+func (h *hub) hubImageRepository() client.Object {
 	const Name = "hub-image-repository"
 	return &v2.ApisixTls{
 		ObjectMeta: metav1.ObjectMeta{
@@ -116,7 +116,7 @@ func (a *hub) hubImageRepository() client.Object {
 	}
 }
 
-func (a *hub) ingressForHub() client.Object {
+func (h *hub) ingressForHub() client.Object {
 	return &v2.ApisixRoute{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rbd-hub",
@@ -154,19 +154,19 @@ func (a *hub) ingressForHub() client.Object {
 	}
 }
 
-func (a *hub) After() error {
+func (h *hub) After() error {
 	return nil
 }
 
-func (a *hub) ListPods() ([]corev1.Pod, error) {
-	return listPods(a.ctx, a.client, a.component.Namespace, a.labels)
+func (h *hub) ListPods() ([]corev1.Pod, error) {
+	return listPods(h.ctx, h.client, h.component.Namespace, h.labels)
 }
 
-func (a *hub) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
-	a.pvcParametersRWX = pvcParameters
+func (h *hub) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
+	h.pvcParametersRWX = pvcParameters
 }
 
-func (a *hub) deployment() client.Object {
+func (h *hub) deployment() client.Object {
 	env := []corev1.EnvVar{
 		{
 			Name:  "REGISTRY_AUTH",
@@ -217,37 +217,37 @@ func (a *hub) deployment() client.Object {
 		},
 	}
 
-	env = mergeEnvs(env, a.component.Spec.Env)
-	volumeMounts = mergeVolumeMounts(volumeMounts, a.component.Spec.VolumeMounts)
-	volumes = mergeVolumes(volumes, a.component.Spec.Volumes)
+	env = mergeEnvs(env, h.component.Spec.Env)
+	volumeMounts = mergeVolumeMounts(volumeMounts, h.component.Spec.VolumeMounts)
+	volumes = mergeVolumes(volumes, h.component.Spec.Volumes)
 
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
-			Namespace: a.component.Namespace,
-			Labels:    a.labels,
+			Namespace: h.component.Namespace,
+			Labels:    h.labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: a.component.Spec.Replicas,
+			Replicas: h.component.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: a.labels,
+				MatchLabels: h.labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   HubName,
-					Labels: a.labels,
+					Labels: h.labels,
 				},
 				Spec: corev1.PodSpec{
-					ImagePullSecrets:              imagePullSecrets(a.component, a.cluster),
+					ImagePullSecrets:              imagePullSecrets(h.component, h.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{
 							Name:            "rbd-hub",
-							Image:           a.component.Spec.Image,
-							ImagePullPolicy: a.component.ImagePullPolicy(),
+							Image:           h.component.Spec.Image,
+							ImagePullPolicy: h.component.ImagePullPolicy(),
 							Env:             env,
 							VolumeMounts:    volumeMounts,
-							Resources:       a.component.Spec.Resources,
+							Resources:       h.component.Spec.Resources,
 						},
 					},
 					Volumes: volumes,
@@ -259,12 +259,12 @@ func (a *hub) deployment() client.Object {
 	return ds
 }
 
-func (a *hub) serviceForHub() client.Object {
+func (h *hub) serviceForHub() client.Object {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      HubName,
-			Namespace: a.component.Namespace,
-			Labels:    a.labels,
+			Namespace: h.component.Namespace,
+			Labels:    h.labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
@@ -276,22 +276,22 @@ func (a *hub) serviceForHub() client.Object {
 					},
 				},
 			},
-			Selector: a.labels,
+			Selector: h.labels,
 		},
 	}
 
 	return svc
 }
 
-func (a *hub) persistentVolumeClaimForHub() *corev1.PersistentVolumeClaim {
-	if a.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		return createPersistentVolumeClaimRWO(a.component.Namespace, hubDataPvcName, a.pvcParametersRWX, a.labels, a.storageRequest)
+func (h *hub) persistentVolumeClaimForHub() *corev1.PersistentVolumeClaim {
+	if h.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
+		return createPersistentVolumeClaimRWO(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels, h.storageRequest)
 	}
-	return createPersistentVolumeClaimRWX(a.component.Namespace, hubDataPvcName, a.pvcParametersRWX, a.labels, a.storageRequest)
+	return createPersistentVolumeClaimRWX(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels, h.storageRequest)
 }
 
-func (a *hub) secretForHub() client.Object {
-	secret, err := a.getSecret(hubImageRepository)
+func (h *hub) secretForHub() client.Object {
+	secret, err := h.getSecret(hubImageRepository)
 	if secret != nil {
 		// never update hub secret
 		return nil
@@ -300,13 +300,13 @@ func (a *hub) secretForHub() client.Object {
 		logrus.Errorf("get secret %s: %v", hubImageRepository, err)
 		return nil
 	}
-	labels := copyLabels(a.labels)
+	labels := copyLabels(h.labels)
 	labels["name"] = hubImageRepository
-	_, pem, key, _ := commonutil.DomainSign(nil, rbdutil.GetImageRepository(a.cluster))
+	_, pem, key, _ := commonutil.DomainSign(nil, rbdutil.GetImageRepository(h.cluster))
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      hubImageRepository,
-			Namespace: a.component.Namespace,
+			Namespace: h.component.Namespace,
 			Labels:    labels,
 		},
 		Data: map[string][]byte{
@@ -318,27 +318,27 @@ func (a *hub) secretForHub() client.Object {
 	}
 }
 
-func (a *hub) passwordSecret() client.Object {
-	labels := copyLabels(a.labels)
+func (h *hub) passwordSecret() client.Object {
+	labels := copyLabels(h.labels)
 	labels["name"] = hubPasswordSecret
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      hubPasswordSecret,
-			Namespace: a.component.Namespace,
+			Namespace: h.component.Namespace,
 			Labels:    labels,
 		},
 		Data: map[string][]byte{
-			"HTPASSWD": a.htpasswd,
-			"password": []byte(a.password),
+			"HTPASSWD": h.htpasswd,
+			"password": []byte(h.password),
 		},
 	}
 }
 
-func (a *hub) getSecret(name string) (*corev1.Secret, error) {
-	return getSecret(a.ctx, a.client, a.component.Namespace, name)
+func (h *hub) getSecret(name string) (*corev1.Secret, error) {
+	return getSecret(h.ctx, h.client, h.component.Namespace, name)
 }
 
-func (a *hub) generateHtpasswd() ([]byte, error) {
-	cmd := exec.Command("htpasswd", "-Bbn", a.cluster.Spec.ImageHub.Username, a.cluster.Spec.ImageHub.Password)
+func (h *hub) generateHtpasswd() ([]byte, error) {
+	cmd := exec.Command("htpasswd", "-Bbn", h.cluster.Spec.ImageHub.Username, h.cluster.Spec.ImageHub.Password)
 	return cmd.CombinedOutput()
 }
