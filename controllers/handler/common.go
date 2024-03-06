@@ -321,6 +321,19 @@ func createPersistentVolumeClaim(ns, claimName string, accessModes []corev1.Pers
 	return pvc
 }
 
+func getNodeNames(cli client.Client) ([]string, error) {
+	nodeList := &corev1.NodeList{}
+	if err := cli.List(context.Background(), nodeList); err != nil {
+		return nil, err
+	}
+
+	var nodeNames []string
+	for _, n := range nodeList.Items {
+		nodeNames = append(nodeNames, n.Name)
+	}
+	return nodeNames, nil
+}
+
 func affinityForRequiredNodes(nodeNames []string) *corev1.Affinity {
 	return &corev1.Affinity{
 		NodeAffinity: &corev1.NodeAffinity{

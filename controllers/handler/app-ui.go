@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"os"
 	"strconv"
 
@@ -93,6 +94,17 @@ func (a *appui) Resources() []client.Object {
 		a.serviceForAppUI(int32(p)),
 		rbdDefaultRouteTemplateForTCP("rbd-app-ui", 7070),
 		a.migrationsJob(),
+	}
+
+	// 获取所有的node name
+	names, err := getNodeNames(a.client)
+
+	if err == nil {
+		for i, name := range names {
+			res = append(res, a.nodeJob(affinityForRequiredNodes([]string{name}), i))
+		}
+	} else {
+		log.Error(err, "get node names step")
 	}
 
 	if err := isUIDBMigrateOK(a.ctx, a.client, a.component); err != nil {
@@ -294,6 +306,66 @@ func (a *appui) serviceForAppUI(port int32) client.Object {
 	return svc
 }
 
+// 需要每一个节点都运行一遍
+func (a *appui) nodeJob(aff *corev1.Affinity, index int) *batchv1.Job {
+
+	name := "node-job-" + strconv.Itoa(index)
+	labels := map[string]string{
+		"name": name,
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "etc",
+			MountPath: "/newetc",
+		},
+	}
+	volumes := []corev1.Volume{
+		{
+			Name: "etc",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc",
+					Type: k8sutil.HostPath(corev1.HostPathDirectory),
+				},
+			},
+		},
+	}
+
+	runtimeVolumes, runtimeVolumeMounts := a.getDockerVolumes()
+
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "rbd-system",
+			Labels:    labels,
+		},
+		Spec: batchv1.JobSpec{
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+				Spec: corev1.PodSpec{
+					SecurityContext: &corev1.PodSecurityContext{
+						RunAsUser: commonutil.Int64(0),
+					},
+					Affinity:           aff,
+					ServiceAccountName: "rainbond-operator",
+					Volumes:            append(volumes, runtimeVolumes...),
+					Containers: []corev1.Container{
+						{
+							Name:         name,
+							Image:        "registry.cn-hangzhou.aliyuncs.com/goodrain/node-job",
+							VolumeMounts: append(volumeMounts, runtimeVolumeMounts...),
+						},
+					},
+					RestartPolicy: corev1.RestartPolicyNever,
+				},
+			},
+		},
+	}
+	return job
+}
 func (a *appui) migrationsJob() *batchv1.Job {
 	var dbName = "console"
 	if a.cluster.Spec.UIDatabase != nil && a.cluster.Spec.UIDatabase.Name != "" {
@@ -398,4 +470,64 @@ func (a *appui) migrationsJob() *batchv1.Job {
 		},
 	}
 	return job
+}
+
+func (a *appui) getDockerVolumes() ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes := []corev1.Volume{
+		{
+			Name: "docker",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/lib/docker",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+		{
+			Name: "vardocker",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/docker/lib",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+		{
+			Name: "dockercert",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/docker/certs.d",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+		{
+			Name: "dockersock",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/run/docker.sock",
+					Type: k8sutil.HostPath(corev1.HostPathSocket),
+				},
+			},
+		},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "dockersock",
+			MountPath: "/var/run/docker.sock",
+		},
+		{
+			Name:      "docker", // for container logs, ubuntu
+			MountPath: "/var/lib/docker",
+		},
+		{
+			Name:      "vardocker", // for container logs, centos
+			MountPath: "/var/docker/lib",
+		},
+		{
+			Name:      "dockercert",
+			MountPath: "/etc/docker/certs.d",
+		},
+	}
+	return volumes, volumeMounts
 }
