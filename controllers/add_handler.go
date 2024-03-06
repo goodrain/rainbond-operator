@@ -12,7 +12,6 @@ import (
 )
 
 func init() {
-	AddHandlerFunc(handler.EtcdName, handler.NewETCD)
 	AddHandlerFunc(handler.ApiGatewayName, handler.NewApiGateway)
 	AddHandlerFunc(handler.HubName, handler.NewHub)
 	AddHandlerFunc(handler.APIName, handler.NewAPI)
@@ -23,11 +22,9 @@ func init() {
 	AddHandlerFunc(handler.WorkerName, handler.NewWorker)
 	AddHandlerFunc(handler.MQName, handler.NewMQ)
 	AddHandlerFunc(handler.ResourceProxyName, handler.NewResourceProxy)
-	AddHandlerFunc(handler.NodeName, handler.NewNode)
 	AddHandlerFunc(handler.DBName, handler.NewDB)
 	AddHandlerFunc(handler.WebCliName, handler.NewWebCli)
 	AddHandlerFunc(handler.MetricsServerName, handler.NewMetricsServer)
-	AddHandlerFunc(handler.NFSName, handler.NewNFS)
 	AddHandlerFunc(handler.KubernetesDashboardName, handler.NewK8sDashboard)
 	AddHandlerFunc(handler.DashboardMetricsScraperName, handler.NewDashboardMetricsScraper)
 	AddHandlerFunc(handler.NFSName, handler.NewNFS)
