@@ -2,12 +2,9 @@ package handler
 
 import (
 	"context"
-	"fmt"
-	"strings"
-
+	"github.com/goodrain/rainbond-operator/util/constants"
 	"k8s.io/apimachinery/pkg/api/resource"
-
-	"github.com/goodrain/rainbond-operator/util/probeutil"
+	"os"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -41,9 +38,8 @@ var _ StorageClassRWOer = &monitor{}
 // NewMonitor returns a new rbd-monitor handler.
 func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &monitor{
-		ctx:    ctx,
-		client: client,
-
+		ctx:            ctx,
+		client:         client,
 		component:      component,
 		cluster:        cluster,
 		labels:         LabelsForRainbondComponent(component),
@@ -52,21 +48,12 @@ func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1
 }
 
 func (m *monitor) Before() error {
-	secret, err := etcdSecret(m.ctx, m.client, m.cluster)
-	if err != nil {
-		return fmt.Errorf("failed to get etcd secret: %v", err)
-	}
-	m.etcdSecret = secret
-
-	if err := setStorageCassName(m.ctx, m.client, m.component.Namespace, m); err != nil {
-		return err
-	}
-
-	return nil
+	return setStorageCassName(m.ctx, m.client, m.component.Namespace, m)
 }
 
 func (m *monitor) Resources() []client.Object {
 	return []client.Object{
+		m.configmap(),
 		m.statefulset(),
 		m.serviceForMonitor(),
 	}
@@ -88,38 +75,6 @@ func (m *monitor) statefulset() client.Object {
 	claimName := "data" // unnecessary
 	promDataPVC := createPersistentVolumeClaimRWO(m.component.Namespace, claimName, m.pvcParametersRWO, m.labels, m.storageRequest)
 
-	args := []string{
-		"--advertise-addr=$(POD_IP):9999",
-		"--alertmanager-address=$(POD_IP):9093",
-		"--storage.tsdb.path=/prometheusdata",
-		"--storage.tsdb.no-lockfile",
-		"--storage.tsdb.retention=7d",
-		"--etcd-endpoints=" + strings.Join(etcdEndpoints(m.cluster), ","),
-	}
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      claimName,
-			MountPath: "/prometheusdata",
-		},
-	}
-	var volumes []corev1.Volume
-	if m.etcdSecret != nil {
-		volume, mount := volumeByEtcd(m.etcdSecret)
-		volumeMounts = append(volumeMounts, mount)
-		volumes = append(volumes, volume)
-		args = append(args, etcdSSLArgs()...)
-	}
-	env := []corev1.EnvVar{
-		{
-			Name: "POD_IP",
-			ValueFrom: &corev1.EnvVarSource{
-				FieldRef: &corev1.ObjectFieldSelector{
-					FieldPath: "status.podIP",
-				},
-			},
-		},
-	}
-
 	resources := corev1.ResourceRequirements{
 		Limits: corev1.ResourceList{
 			corev1.ResourceMemory: resource.MustParse("2048Mi"),
@@ -131,14 +86,50 @@ func (m *monitor) statefulset() client.Object {
 		},
 	}
 
-	env = mergeEnvs(env, m.component.Spec.Env)
 	resources = mergeResources(resources, m.component.Spec.Resources)
-	args = mergeArgs(args, m.component.Spec.Args)
-	volumeMounts = mergeVolumeMounts(volumeMounts, m.component.Spec.VolumeMounts)
-	volumes = mergeVolumes(volumes, m.component.Spec.Volumes)
 
-	// prepare probe
-	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/monitor/health", 3329)
+	vms := append(m.component.Spec.VolumeMounts, []corev1.VolumeMount{
+		{
+			Name:      claimName,
+			MountPath: "/prometheusdata",
+		},
+		{
+			Name:      "prom-config",
+			MountPath: "/etc/prometheus/prometheus.yml",
+			SubPath:   "prometheus.yml",
+		},
+		{
+			Name:      "rules-config",
+			MountPath: "/etc/prometheus/rules.yml",
+			SubPath:   "rules.yml",
+		},
+	}...)
+
+	vs := append(m.component.Spec.Volumes, []corev1.Volume{
+		{
+			Name: "prom-config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					DefaultMode: commonutil.Int32(420),
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "prometheus-config",
+					},
+				},
+			},
+		},
+		{
+			Name: "rules-config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					DefaultMode: commonutil.Int32(420),
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "prometheus-config",
+					},
+				},
+			},
+		},
+	}...)
+
 	ds := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      MonitorName,
@@ -161,17 +152,13 @@ func (m *monitor) statefulset() client.Object {
 					ServiceAccountName:            "rainbond-operator",
 					Containers: []corev1.Container{
 						{
-							Name:            MonitorName,
-							Image:           m.component.Spec.Image,
-							ImagePullPolicy: m.component.ImagePullPolicy(),
-							Env:             env,
-							Args:            args,
-							VolumeMounts:    volumeMounts,
-							ReadinessProbe:  readinessProbe,
-							Resources:       resources,
+							Name:         MonitorName,
+							Image:        "registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-monitor:v2.20.0",
+							VolumeMounts: vms,
+							Resources:    resources,
 						},
 					},
-					Volumes: volumes,
+					Volumes: vs,
 				},
 			},
 			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*promDataPVC},
@@ -194,7 +181,7 @@ func (m *monitor) serviceForMonitor() client.Object {
 					Name: "http",
 					Port: 9999,
 					TargetPort: intstr.IntOrString{
-						IntVal: 9999,
+						IntVal: 9090,
 					},
 				},
 			},
@@ -203,4 +190,20 @@ func (m *monitor) serviceForMonitor() client.Object {
 	}
 
 	return svc
+}
+
+// configmap 配置文件
+func (m *monitor) configmap() client.Object {
+	prometheus, _ := os.ReadFile("config/prom/prometheus.yml")
+	rules, _ := os.ReadFile("config/prom/rules.yml")
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "prometheus-config",
+			Namespace: constants.Namespace,
+		},
+		Data: map[string]string{
+			"prometheus.yml": string(prometheus),
+			"rules.yml":      string(rules),
+		},
+	}
 }
