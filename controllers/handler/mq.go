@@ -142,6 +142,11 @@ func (m *mq) service() client.Object {
 					Port:       6300,
 					TargetPort: intstr.FromInt(6300),
 				},
+				{
+					Name:       MQName + "metrics",
+					Port:       6301,
+					TargetPort: intstr.FromInt(6301),
+				},
 			},
 			Selector: m.labels,
 		},

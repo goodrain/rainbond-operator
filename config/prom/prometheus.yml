@@ -1,0 +1,95 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 30s
+rule_files:
+  - /etc/prometheus/rules.yml
+  - /etc/prometheus/rules/*.yml
+scrape_configs:
+  - job_name: rbdapi
+    honor_labels: true
+    scrape_interval: 1m
+    scrape_timeout: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets: [ 'rbd-api-api-inner:8888' ]
+
+  - job_name: api_gateway
+    honor_labels: true
+    scrape_interval: 15s
+    scrape_timeout: 15s
+    metrics_path: /apisix/prometheus/metrics
+    static_configs:
+      - targets: [ 'apisix-monitor:9091' ]
+
+
+  - job_name: worker
+    scrape_interval: 3m
+    scrape_timeout: 1m
+    metrics_path: /metrics
+    static_configs:
+      - targets: [ 'rbd-worker:6369' ]
+        labels:
+          component: worker
+          service_name: worker
+    metric_relabel_configs:
+      - source_labels: [ tenant_id ]
+        target_label: namespace
+
+
+  - job_name: mq
+    honor_labels: true
+    scrape_interval: 1m
+    scrape_timeout: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets: [ 'rbd-mq:6301']
+        labels:
+          component: mq
+          service_name: mq
+
+
+  - job_name: builder
+    honor_labels: true
+    scrape_interval: 1m
+    scrape_timeout: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets: [ 'rbd-chaos:3228']
+        labels:
+          component: builder
+          service_name: builder
+
+
+  - job_name: webcli
+    honor_labels: true
+    scrape_interval: 1m
+    scrape_timeout: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets: [ 'rbd-webcli:7171']
+        labels:
+          component: webcli
+          service_name: webcli
+
+
+  - job_name: eventlog
+    honor_labels: true
+    scrape_interval: 1m
+    scrape_timeout: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets: [ 'rbd-eventlog:6363' ]
+        labels:
+          component: eventlog
+          service_name: eventlog
+
+
+  - job_name: prometheus
+    honor_labels: true
+    scrape_interval: 1m
+    scrape_timeout: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets: [ 'rbd-monitor:9999' ]
+        labels:
+          component: prometheus

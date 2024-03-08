@@ -1,0 +1,274 @@
+groups:
+  - name: BuilderHealth
+    rules:
+      - alert: BuilderDown
+        expr: absent(up{component="builder"}) or up{component="builder"}==0
+        for: 1m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: 构建组件(rbd-chaos) {{ $labels.instance }} 出现故障
+          summary: 构建组件(rbd-chaos)故障
+      - alert: BuilderUnhealthy
+        expr: builder_exporter_health_status == 0
+        for: 3m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: 构建组件(rbd-chaos) {{ $labels.instance }} 不健康
+      - alert: BuilderTaskError
+        expr: builder_exporter_builder_current_concurrent_task == builder_exporter_builder_max_concurrent_task
+        for: 20s
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          summary: 构建组件(rbd-chaos)并发执行任务数量达到最大,负载过高
+  - name: WorkerHealth
+    rules:
+      - alert: WorkerDown
+        expr: absent(worker_exporter_health_status) or worker_exporter_health_status==0
+        for: 5m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "false"
+          Region: cloud
+        annotations:
+          description: rbd-worker组件 {{ $labels.instance }} 出现故障
+          summary: rbd-worker组件故障
+      - alert: WorkerUnhealthy
+        expr: app_resource_exporter_health_status == 0
+        for: 5m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "false"
+          Region: cloud
+        annotations:
+          description: rbd-worker组件 {{ $labels.instance }} 不健康
+          summary: rbd-worker组件不健康
+      - alert: WorkerTaskError
+        expr: worker_exporter_worker_task_error >10
+        for: 5m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: rbd-worker组件 {{ $labels.instance }} 执行任务错误数大于10
+  - name: MqHealth
+    rules:
+      - alert: MqDown
+        expr: absent(up{component="mq"}) or up{component="mq"}==0
+        for: 2m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: 消息队列组件(rbd-mq) {{ $labels.instance }} 出现故障
+          summary: 消息队列组件(rbd-mq)出现故障
+      - alert: MqUnhealthy
+        expr: acp_mq_exporter_health_status == 0
+        for: 3m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          summary: 消息队列组件(rbd-mq)不健康
+      - alert: MqMessageQueueBlock
+        expr: acp_mq_queue_message_number > 0
+        for: 1m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: 消息 {{ $labels.topic }} 阻塞, 消息大小为 {{ humanize $value }}
+          summary: 消息队列阻塞
+  - name: EventlogHealth
+    rules:
+      - alert: EventLogUnhealthy
+        expr: event_log_exporter_health_status == 0
+        for: 3m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          summary: rbd-eventlog组件 {{ $labels.instance }} 不健康
+      - alert: EventLogDown
+        expr: absent(up{component="eventlog"}) or up{component="eventlog"}==0
+        for: 3m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: rbd-eventlog组件 {{ $labels.instance }} 出现故障
+          summary: rbd-eventlog组件出现故障
+  - name: WebcliHealth
+    rules:
+      - alert: WebcliDown
+        expr: absent(up{component="webcli"}) or up{component="webcli"}==0
+        for: 20s
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: rbd-webcli组件 {{ $labels.instance }} 出现故障
+          summary: rbd-webcli组件故障
+      - alert: WebcliUnhealthy
+        expr: webcli_exporter_health_status == 0
+        for: 3m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          summary: rbd-webcli 组件 {{ $labels.instance }} 不健康
+      - alert: WebcliUnhealthy
+        expr: rate(webcli_exporter_execute_command_failed[5m]) > 5
+        for: 3m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          summary: 5分钟内, rbd-webcli组件执行命令错误数大于5个
+  - name: NodeHealth
+    rules:
+      - alert: NodeDown
+        expr: absent(up{component="rbd_node"}) or up{component="rbd_node"} == 0
+        for: 30s
+        labels:
+          Alert: Rainbond
+          PageAlarm: "false"
+          Region: cloud
+        annotations:
+          description: rbd_node组件 {{ $labels.instance }} 出现故障
+          summary: rbd_node组件故障
+      - alert: HighLoadOnNode
+        expr: sum(node_load5{component="rbd_node"}) by(instance) > count by(instance)(node_cpu_seconds_total{mode="idle",job="rbd_node"})
+          *0.7
+        for: 5m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: 节点 {{ $labels.instance }} 正处于高负载状态. 5分钟负载量为 {{ humanize $value}}
+          summary: 节点高负载警告
+      - alert: InodeFreerateLow
+        expr: node_filesystem_files_free{fstype=~"ext4|xfs",job="rbd_node"} / node_filesystem_files{fstype=~"ext4|xfs",job="rbd_node"}
+          <0.3
+        for: 5m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: 节点 {{ $labels.instance }} 上 inode 剩余可用率过低, 当前可用率为 {{ humanize $value
+            }}%
+      - alert: HighRootdiskUsageOnNode
+        expr: (node_filesystem_size_bytes{mountpoint='/',job="rbd_node"} - node_filesystem_free_bytes{mountpoint='/',job="rbd_node"})
+          * 100 / node_filesystem_size_bytes{mountpoint='/',job="rbd_node"} >70
+        for: 5m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: 磁盘使用率高于70%, 当前使用率为 {{ humanize $value }}%. 被使用磁盘的挂载点为 {{ $labels.mountpoint
+            }}
+          summary: 根分区磁盘使用率过高警告
+      - alert: HighDockerdiskUsageOnNode
+        expr: (node_filesystem_size_bytes{mountpoint='/var/lib/docker',job="rbd_node"}
+          - node_filesystem_free_bytes{mountpoint='/var/lib/docker',job="rbd_node"}) *
+          100 / node_filesystem_size_bytes{mountpoint='/var/lib/docker',job="rbd_node"}
+          >70
+        for: 5m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: 磁盘使用率高于70%, 当前使用率为 {{ humanize $value }}%. 被使用磁盘的挂载点为 {{ $labels.mountpoint
+            }}
+          summary: Docker分区磁盘使用率过高警告
+      - alert: HighMemoryUsageOnNode
+        expr: ((node_memory_MemTotal_bytes{job="rbd_node"} - node_memory_MemAvailable_bytes{job="rbd_node"})
+          / node_memory_MemTotal_bytes{job="rbd_node"}) * 100 >80
+        for: 5m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: 节点 {{ $labels.instance }} 使用内存过高. 内存使用率大概为 {{ humanize $value}}%
+          summary: 内存使用率过高警告
+      - alert: StorageFull
+        expr: (node_filesystem_size_bytes{mountpoint="/grdata",job="rbd_node"} - node_filesystem_free_bytes{mountpoint="/grdata",job="rbd_node"})
+          * 100 / node_filesystem_size_bytes{mountpoint="/grdata",job="rbd_node"} >80
+        for: 1m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: 节点 {{ $labels.instance }} 上的共享存储空间已经使用80%,
+          summary: 共享存储使用率过高警告
+  - name: ClusterHealth
+    rules:
+      - alert: InsufficientClusteMemoryResources
+        expr: max(rbd_api_exporter_cluster_memory_total) - max(sum(namespace_resource_memory_request)
+          by (instance)) < 2048
+        for: 2m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "false"
+          Region: cloud
+        annotations:
+          description: 集群剩余调度内存为 {{ humanize $value }} MB, 不足2048MB
+          summary: 集群内存资源不足
+      - alert: InsufficientClusteCPUResources
+        expr: max(rbd_api_exporter_cluster_cpu_total) - max(sum(namespace_resource_cpu_request)
+          by (instance)) < 500
+        for: 2m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "false"
+          Region: cloud
+        annotations:
+          description: 集群剩余调度cpu资源为 {{ humanize $value }}, 不足500m
+          summary: 集群cpu资源不足
+      - alert: InsufficientTenantResources
+        expr: sum(rbd_api_exporter_tenant_memory_limit) by(namespace) - sum(namespace_resource_memory_request)by
+          (namespace) < sum(rbd_api_exporter_tenant_memory_limit) by(namespace) *0.2 and
+          sum(rbd_api_exporter_tenant_memory_limit) by(namespace) > 0
+        for: 2m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: 租户剩余可用内存容量为 {{ humanize $value }} MB, 不足限制的20%
+          summary: 租户内存资源不足
+  - name: APIHealth
+    rules:
+      - alert: APIDown
+        expr: absent(up{job="rbdapi"}) or up{job="rbdapi"}==0
+        for: 1m
+        labels:
+          Alert: Rainbond
+          PageAlarm: "true"
+          Region: cloud
+        annotations:
+          description: rbd-api组件 {{ $labels.instance }} 出现故障
+          summary: rbd-api组件故障

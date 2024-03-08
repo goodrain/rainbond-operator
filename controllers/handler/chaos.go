@@ -350,11 +350,9 @@ func (c *chaos) service() *corev1.Service {
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
-					Name: "api",
-					Port: 3228,
-					TargetPort: intstr.IntOrString{
-						IntVal: 3228,
-					},
+					Name:       "api",
+					Port:       3228,
+					TargetPort: intstr.FromInt(3228),
 				},
 			},
 			Selector: c.labels,

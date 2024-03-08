@@ -256,6 +256,11 @@ func (w *worker) service() client.Object {
 					Port:       6535,
 					TargetPort: intstr.FromInt(6535),
 				},
+				{
+					Name:       WorkerName + "metrics",
+					Port:       6369,
+					TargetPort: intstr.FromInt(6369),
+				},
 			},
 			Selector: w.labels,
 		},
