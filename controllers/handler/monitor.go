@@ -152,10 +152,11 @@ func (m *monitor) statefulset() client.Object {
 					ServiceAccountName:            "rainbond-operator",
 					Containers: []corev1.Container{
 						{
-							Name:         MonitorName,
-							Image:        "registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-monitor:v2.20.0",
-							VolumeMounts: vms,
-							Resources:    resources,
+							Image:           m.component.Spec.Image,
+							ImagePullPolicy: m.component.ImagePullPolicy(),
+							Name:            MonitorName,
+							VolumeMounts:    vms,
+							Resources:       resources,
 						},
 					},
 					Volumes: vs,
