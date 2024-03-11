@@ -301,7 +301,7 @@ func (a *apigateway) monitorGlobalRule() client.Object {
 					Name:   "prometheus",
 					Enable: true,
 					Config: v2.ApisixRoutePluginConfig{
-						"prefer_name": "true",
+						"prefer_name": true,
 					},
 				},
 			},
