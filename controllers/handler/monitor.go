@@ -195,8 +195,8 @@ func (m *monitor) serviceForMonitor() client.Object {
 
 // configmap 配置文件
 func (m *monitor) configmap() client.Object {
-	prometheus, _ := os.ReadFile("config/prom/prometheus.yml")
-	rules, _ := os.ReadFile("config/prom/rules.yml")
+	prometheus, _ := os.ReadFile("/config/prom/prometheus.yml")
+	rules, _ := os.ReadFile("/config/prom/rules.yml")
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "prometheus-config",
