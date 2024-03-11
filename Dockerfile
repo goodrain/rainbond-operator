@@ -28,6 +28,8 @@ RUN apk add --update tzdata \
     && rm -rf /var/cache/apk/*
 ENV TZ=Asia/Shanghai
 WORKDIR /
-COPY --from=builder /workspace/manager .
 
+COPY config/prom config/prom/
+
+COPY --from=builder /workspace/manager .
 CMD ["/manager"]
