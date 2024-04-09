@@ -93,8 +93,7 @@ func (a *appui) Resources() []client.Object {
 	res := []client.Object{
 		a.serviceForAppUI(int32(p)),
 		a.serviceForProxy(),
-		rbdDefaultRouteTemplateForTCP("rbd-app-ui", 7070),
-		rbdDefaultRouteTemplateForTCP("rbd-app-ui-proxy", 6060),
+		rbdDefaultRouteForHTTP(),
 		a.migrationsJob(),
 	}
 
@@ -338,7 +337,6 @@ func (a *appui) serviceForProxy() client.Object {
 			Selector: a.labels,
 		},
 	}
-
 	return svc
 }
 
