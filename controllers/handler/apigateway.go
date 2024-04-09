@@ -71,7 +71,7 @@ func rbdDefaultRouteForHTTP() client.Object {
 									Name:  "server_port",
 								},
 								Op:  "In",
-								Set: []string{"7070"},
+								Set: []string{"7070", "7071"},
 							},
 						},
 					},
@@ -101,7 +101,7 @@ func rbdDefaultRouteForHTTP() client.Object {
 									Name:  "server_port",
 								},
 								Op:  "In",
-								Set: []string{"7070"},
+								Set: []string{"7070", "7071"},
 							},
 						},
 					},
@@ -427,6 +427,7 @@ apisix:
   node_listen:
     - 80
     - 7070
+    - 7071
   stream_proxy:
     tcp:
       - addr: 8443
