@@ -92,7 +92,8 @@ func (a *appui) Resources() []client.Object {
 	}
 	res := []client.Object{
 		a.serviceForAppUI(int32(p)),
-		rbdDefaultRouteTemplateForTCP("rbd-app-ui", 7070),
+		a.serviceForProxy(),
+		rbdDefaultRouteForHTTP(),
 		a.migrationsJob(),
 	}
 
@@ -263,6 +264,15 @@ func (a *appui) deploymentForAppUI() client.Object {
 							ReadinessProbe:  readinessProbe,
 							Resources:       a.component.Spec.Resources,
 						},
+						{
+							Name:  "proxy-pass",
+							Image: "registry.cn-hangzhou.aliyuncs.com/goodrain/proxy-pass",
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 80,
+								},
+							},
+						},
 					},
 					Volumes: volumes,
 				},
@@ -303,6 +313,30 @@ func (a *appui) serviceForAppUI(port int32) client.Object {
 		},
 	}
 
+	return svc
+}
+
+// serviceForProxy 将容器内的80暴露到6060端口
+func (a *appui) serviceForProxy() client.Object {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rbd-app-ui-proxy",
+			Namespace: a.component.Namespace,
+			Labels:    a.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "proxy",
+					Port: 6060,
+					TargetPort: intstr.IntOrString{
+						IntVal: 80,
+					},
+				},
+			},
+			Selector: a.labels,
+		},
+	}
 	return svc
 }
 
