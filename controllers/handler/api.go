@@ -96,7 +96,7 @@ func (a *api) Resources() []client.Object {
 	resources = append(resources, a.createService()...)
 	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-api", 8443))
 	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-healthz", 8889))
-	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-websocket", 6060))
+	//resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-websocket", 6060)) 废弃之前单控制台暴露单集群的端口
 	return resources
 }
 
