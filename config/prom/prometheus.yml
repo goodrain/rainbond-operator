@@ -21,6 +21,34 @@ scrape_configs:
     static_configs:
       - targets: [ 'apisix-monitor:9091' ]
 
+  - job_name: cadvisor
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    scheme: https
+    kubernetes_sd_configs:
+      - role: node
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
+    relabel_configs:
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+      - regex: __meta_kubernetes_node_label_(.+)
+        action: labelmap
+    metric_relabel_configs:
+      - source_labels: [name]
+        regex: k8s_(.*)_(.*)_(.*)_(.*)_(.*)
+        target_label: service_id
+        replacement: ${1}
+      - source_labels: [name]
+        regex: k8s_POD_(.*)-deployment-(.*)
+        target_label: service_id
+        replacement: ${1}
 
   - job_name: worker
     scrape_interval: 3m
@@ -35,7 +63,6 @@ scrape_configs:
       - source_labels: [ tenant_id ]
         target_label: namespace
 
-
   - job_name: mq
     honor_labels: true
     scrape_interval: 1m
@@ -46,7 +73,6 @@ scrape_configs:
         labels:
           component: mq
           service_name: mq
-
 
   - job_name: builder
     honor_labels: true
@@ -71,7 +97,6 @@ scrape_configs:
           component: webcli
           service_name: webcli
 
-
   - job_name: eventlog
     honor_labels: true
     scrape_interval: 1m
@@ -82,7 +107,6 @@ scrape_configs:
         labels:
           component: eventlog
           service_name: eventlog
-
 
   - job_name: prometheus
     honor_labels: true
