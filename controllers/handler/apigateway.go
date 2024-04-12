@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 // ApiGatewayName name for rbd-gateway.
@@ -200,6 +201,11 @@ func (a *apigateway) deploy() client.Object {
 	var nodeNames []string
 	for _, n := range a.cluster.Spec.NodesForGateway {
 		nodeNames = append(nodeNames, n.Name)
+
+		//转换小写如果不一致，则增加一份小写，兼容rke2，rke2安装的k8s的hostname被转小写了
+		if strings.ToLower(n.Name) != n.Name {
+			nodeNames = append(nodeNames, strings.ToLower(n.Name))
+		}
 	}
 	var affinity *corev1.Affinity
 	if len(nodeNames) > 0 {
