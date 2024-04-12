@@ -7,6 +7,7 @@ import (
 	"github.com/goodrain/rainbond-operator/util/containerutil"
 	"github.com/sirupsen/logrus"
 	"path"
+	"strings"
 
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
@@ -202,8 +203,13 @@ func (c *chaos) deployment() client.Object {
 	}
 
 	var nodeNames []string
-	for _, node := range c.cluster.Spec.NodesForChaos {
-		nodeNames = append(nodeNames, node.Name)
+	for _, n := range c.cluster.Spec.NodesForChaos {
+		nodeNames = append(nodeNames, n.Name)
+
+		//转换小写如果不一致，则增加一份小写，兼容rke2，rke2安装的k8s的hostname被转小写了
+		if strings.ToLower(n.Name) != n.Name {
+			nodeNames = append(nodeNames, strings.ToLower(n.Name))
+		}
 	}
 	var affinity *corev1.Affinity
 	if len(nodeNames) > 0 {
