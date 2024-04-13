@@ -71,8 +71,8 @@ func rbdDefaultRouteForHTTP() client.Object {
 									Scope: "Variable",
 									Name:  "server_port",
 								},
-								Op:  "In",
-								Set: []string{"7070", "7071"},
+								Op:  "NotIn",
+								Set: []string{"80", "443"},
 							},
 						},
 					},
@@ -101,8 +101,8 @@ func rbdDefaultRouteForHTTP() client.Object {
 									Scope: "Variable",
 									Name:  "server_port",
 								},
-								Op:  "In",
-								Set: []string{"7070", "7071"},
+								Op:  "NotIn",
+								Set: []string{"80", "443"},
 							},
 						},
 					},
@@ -427,7 +427,6 @@ apisix:
     enable: true
     listen:
       - port: 443
-      - port: 7443
   enable_control: true
   enable_reuseport: true
   node_listen:
