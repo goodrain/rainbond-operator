@@ -72,7 +72,7 @@ func rbdDefaultRouteForHTTP() client.Object {
 									Name:  "server_port",
 								},
 								Op:  "In",
-								Set: []string{"7070", "7071"},
+								Set: []string{"7070"},
 							},
 						},
 					},
@@ -102,7 +102,67 @@ func rbdDefaultRouteForHTTP() client.Object {
 									Name:  "server_port",
 								},
 								Op:  "In",
-								Set: []string{"7070", "7071"},
+								Set: []string{"7070"},
+							},
+						},
+					},
+					Websocket: false,
+					Authentication: v2.ApisixRouteAuthentication{
+						Enable: false,
+						Type:   "basicAuth",
+					},
+				},
+				{
+					Name:     "proxy-user",
+					Priority: 2,
+					Backends: []v2.ApisixRouteHTTPBackend{
+						{
+							ServiceName: "rbd-app-ui-proxy-user",
+							ServicePort: intstr.FromInt(6060),
+						},
+					},
+					Match: v2.ApisixRouteHTTPMatch{
+						Paths: []string{
+							"/proxy/*",
+						},
+						NginxVars: []v2.ApisixRouteHTTPMatchExpr{
+							{
+								Subject: v2.ApisixRouteHTTPMatchExprSubject{
+									Scope: "Variable",
+									Name:  "server_port",
+								},
+								Op:  "In",
+								Set: []string{"7071"},
+							},
+						},
+					},
+					Websocket: true,
+					Authentication: v2.ApisixRouteAuthentication{
+						Enable: false,
+						Type:   "basicAuth",
+					},
+				},
+				{
+					Name:     "http-user",
+					Priority: 1,
+					Backends: []v2.ApisixRouteHTTPBackend{
+						{
+							ServiceName: "rbd-app-ui-user",
+							ServicePort: intstr.FromInt(7070),
+						},
+					},
+					Match: v2.ApisixRouteHTTPMatch{
+						Paths: []string{
+							"/*",
+						},
+						NginxVars: []v2.ApisixRouteHTTPMatchExpr{
+							{
+								Subject: v2.ApisixRouteHTTPMatchExprSubject{
+									Scope: "Variable",
+									Name:  "server_port",
+								},
+								Op:  "In",
+								Set: []string{"7071"},
 							},
 						},
 					},

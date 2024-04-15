@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// AppUIName name for rbd-app-ui resources.
+// AppUINameUSER name for rbd-app-ui resources.
 var AppUINameUSER = "rbd-app-ui-user"
 
 type appuiuser struct {
@@ -77,21 +77,9 @@ func (a *appuiuser) Before() error {
 }
 
 func (a *appuiuser) Resources() []client.Object {
-	port, ok := a.component.Labels["port"]
-	if !ok {
-		port = "7070"
-	}
-	p, err := strconv.Atoi(port)
-	if err != nil {
-		p = 7070
-		port = "7070"
-		log.Error(err, "strconv.Atoi(port)")
-	}
 	res := []client.Object{
-		a.serviceForAppUI(int32(p)),
+		a.serviceForAppUI(int32(7071)),
 		a.serviceForProxy(),
-		rbdDefaultRouteForHTTP(),
-		a.migrationsJob(),
 	}
 
 	// 获取所有的node name
@@ -238,7 +226,7 @@ func (a *appuiuser) deploymentForAppUI() client.Object {
 	readinessProbe := probeutil.MakeReadinessProbeTCP("", 7070)
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      AppUIName,
+			Name:      AppUINameUSER,
 			Namespace: cpt.Namespace,
 			Labels:    a.labels,
 		},
@@ -249,7 +237,7 @@ func (a *appuiuser) deploymentForAppUI() client.Object {
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   AppUIName,
+					Name:   AppUINameUSER,
 					Labels: a.labels,
 				},
 				Spec: corev1.PodSpec{
@@ -257,7 +245,7 @@ func (a *appuiuser) deploymentForAppUI() client.Object {
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{
-							Name:            AppUIName,
+							Name:            AppUINameUSER,
 							Image:           cpt.Spec.Image,
 							ImagePullPolicy: cpt.ImagePullPolicy(),
 							Env:             envs,
@@ -296,7 +284,7 @@ func (a *appuiuser) deploymentForAppUI() client.Object {
 func (a *appuiuser) serviceForAppUI(port int32) client.Object {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      AppUIName,
+			Name:      AppUINameUSER,
 			Namespace: a.component.Namespace,
 			Labels:    a.labels,
 		},
@@ -321,7 +309,7 @@ func (a *appuiuser) serviceForAppUI(port int32) client.Object {
 func (a *appuiuser) serviceForProxy() client.Object {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rbd-app-ui-proxy",
+			Name:      "rbd-app-ui-proxy-user",
 			Namespace: a.component.Namespace,
 			Labels:    a.labels,
 		},
@@ -397,111 +385,6 @@ func (a *appuiuser) nodeJob(aff *corev1.Affinity, index int) *batchv1.Job {
 					RestartPolicy: corev1.RestartPolicyNever,
 				},
 			},
-		},
-	}
-	return job
-}
-func (a *appuiuser) migrationsJob() *batchv1.Job {
-	var dbName = "console"
-	if a.cluster.Spec.UIDatabase != nil && a.cluster.Spec.UIDatabase.Name != "" {
-		dbName = a.cluster.Spec.UIDatabase.Name
-	}
-	name := "rbd-app-ui-migrations"
-	labels := copyLabels(a.labels)
-	labels["name"] = name
-
-	envs := []corev1.EnvVar{
-		{
-			Name:  "CRYPTOGRAPHY_ALLOW_OPENSSL_102",
-			Value: "true",
-		},
-		{
-			Name:  "MYSQL_HOST",
-			Value: a.db.Host,
-		},
-		{
-			Name:  "MYSQL_PORT",
-			Value: strconv.Itoa(a.db.Port),
-		},
-		{
-			Name:  "MYSQL_USER",
-			Value: a.db.Username,
-		},
-		{
-			Name:  "MYSQL_PASS",
-			Value: a.db.Password,
-		},
-		{
-			Name:  "MYSQL_DB",
-			Value: dbName,
-		},
-		{
-			Name:  "REGION_URL",
-			Value: fmt.Sprintf("https://rbd-api-api:%s", rbdutil.GetenvDefault("API_PORT", "8443")),
-		},
-		{
-			Name:  "REGION_WS_URL",
-			Value: fmt.Sprintf("ws://%s:%s", a.cluster.GatewayIngressIP(), rbdutil.GetenvDefault("API_WS_PORT", "6060")),
-		},
-		{
-			Name:  "REGION_HTTP_DOMAIN",
-			Value: a.cluster.Spec.SuffixHTTPHost,
-		},
-		{
-			Name:  "REGION_TCP_DOMAIN",
-			Value: a.cluster.GatewayIngressIP(),
-		},
-		{
-			Name:  "IMAGE_REPO",
-			Value: a.cluster.Spec.ImageHub.Domain,
-		},
-	}
-	envs = mergeEnvs(envs, a.component.Spec.Env)
-
-	job := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: a.component.Namespace,
-			Labels:    labels,
-		},
-		Spec: batchv1.JobSpec{
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:   name,
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					ImagePullSecrets:              imagePullSecrets(a.component, a.cluster),
-					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					RestartPolicy:                 corev1.RestartPolicyOnFailure,
-					Containers: []corev1.Container{
-						{
-							Name:            name,
-							Image:           a.component.Spec.Image,
-							ImagePullPolicy: a.component.ImagePullPolicy(),
-							Command:         []string{"./entrypoint.sh", "init"},
-							Env:             envs,
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "ssl",
-									MountPath: "/app/region/ssl",
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "ssl",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: apiClientSecretName,
-								},
-							},
-						},
-					},
-				},
-			},
-			BackoffLimit: commonutil.Int32(3),
 		},
 	}
 	return job

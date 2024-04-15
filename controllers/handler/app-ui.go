@@ -80,18 +80,8 @@ func (a *appui) Before() error {
 }
 
 func (a *appui) Resources() []client.Object {
-	port, ok := a.component.Labels["port"]
-	if !ok {
-		port = "7070"
-	}
-	p, err := strconv.Atoi(port)
-	if err != nil {
-		p = 7070
-		port = "7070"
-		log.Error(err, "strconv.Atoi(port)")
-	}
 	res := []client.Object{
-		a.serviceForAppUI(int32(p)),
+		a.serviceForAppUI(int32(7070)),
 		a.serviceForProxy(),
 		rbdDefaultRouteForHTTP(),
 		a.migrationsJob(),
@@ -144,6 +134,10 @@ func (a *appui) deploymentForAppUI() client.Object {
 	cpt := a.component
 
 	envs := []corev1.EnvVar{
+		{
+			Name:  "PLATFORM_ROLE",
+			Value: "admin",
+		},
 		{
 			Name:  "CRYPTOGRAPHY_ALLOW_OPENSSL_102",
 			Value: "true",
@@ -410,10 +404,7 @@ func (a *appui) migrationsJob() *batchv1.Job {
 	labels["name"] = name
 
 	envs := []corev1.EnvVar{
-		{
-			Name:  "PLATFORM_ROLE",
-			Value: "admin",
-		},
+
 		{
 			Name:  "CRYPTOGRAPHY_ALLOW_OPENSSL_102",
 			Value: "true",
