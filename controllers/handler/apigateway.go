@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 // ApiGatewayName name for rbd-gateway.
@@ -35,6 +36,84 @@ func NewApiGateway(ctx context.Context, client client.Client, component *rainbon
 		cluster:   cluster,
 		component: component,
 		labels:    LabelsForRainbondComponent(component),
+	}
+}
+
+// rbdDefaultRouteForHTTP 代理转发控制台的所有路由
+func rbdDefaultRouteForHTTP() client.Object {
+	return &v2.ApisixRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rbd-app-ui",
+			Namespace: constants.Namespace,
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       constants.ApisixRoute,
+			APIVersion: constants.APISixAPIVersion,
+		},
+		Spec: v2.ApisixRouteSpec{
+			HTTP: []v2.ApisixRouteHTTP{
+				{
+					Name:     "proxy",
+					Priority: 2,
+					Backends: []v2.ApisixRouteHTTPBackend{
+						{
+							ServiceName: "rbd-app-ui-proxy",
+							ServicePort: intstr.FromInt(6060),
+						},
+					},
+					Match: v2.ApisixRouteHTTPMatch{
+						Paths: []string{
+							"/proxy/*",
+						},
+						NginxVars: []v2.ApisixRouteHTTPMatchExpr{
+							{
+								Subject: v2.ApisixRouteHTTPMatchExprSubject{
+									Scope: "Variable",
+									Name:  "server_port",
+								},
+								Op:  "In",
+								Set: []string{"7070", "7071"},
+							},
+						},
+					},
+					Websocket: true,
+					Authentication: v2.ApisixRouteAuthentication{
+						Enable: false,
+						Type:   "basicAuth",
+					},
+				},
+				{
+					Name:     "http",
+					Priority: 1,
+					Backends: []v2.ApisixRouteHTTPBackend{
+						{
+							ServiceName: "rbd-app-ui",
+							ServicePort: intstr.FromInt(7070),
+						},
+					},
+					Match: v2.ApisixRouteHTTPMatch{
+						Paths: []string{
+							"/*",
+						},
+						NginxVars: []v2.ApisixRouteHTTPMatchExpr{
+							{
+								Subject: v2.ApisixRouteHTTPMatchExprSubject{
+									Scope: "Variable",
+									Name:  "server_port",
+								},
+								Op:  "In",
+								Set: []string{"7070", "7071"},
+							},
+						},
+					},
+					Websocket: false,
+					Authentication: v2.ApisixRouteAuthentication{
+						Enable: false,
+						Type:   "basicAuth",
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -122,6 +201,11 @@ func (a *apigateway) deploy() client.Object {
 	var nodeNames []string
 	for _, n := range a.cluster.Spec.NodesForGateway {
 		nodeNames = append(nodeNames, n.Name)
+
+		//转换小写如果不一致，则增加一份小写，兼容rke2，rke2安装的k8s的hostname被转小写了
+		if strings.ToLower(n.Name) != n.Name {
+			nodeNames = append(nodeNames, strings.ToLower(n.Name))
+		}
 	}
 	var affinity *corev1.Affinity
 	if len(nodeNames) > 0 {
@@ -343,13 +427,15 @@ apisix:
     enable: true
     listen:
       - port: 443
+      - port: 7443
   enable_control: true
   enable_reuseport: true
   node_listen:
     - 80
+    - 7070
+    - 7071
   stream_proxy:
     tcp:
-      - addr: 7070
       - addr: 8443
       - addr: 8889
       - addr: 6060

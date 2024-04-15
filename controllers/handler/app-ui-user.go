@@ -20,12 +20,9 @@ import (
 )
 
 // AppUIName name for rbd-app-ui resources.
-var AppUIName = "rbd-app-ui"
+var AppUINameUSER = "rbd-app-ui-user"
 
-// AppUIDBMigrationsName -
-var AppUIDBMigrationsName = "rbd-app-ui-migrations"
-
-type appui struct {
+type appuiuser struct {
 	ctx       context.Context
 	client    client.Client
 	labels    map[string]string
@@ -38,12 +35,12 @@ type appui struct {
 	storageRequest   int64
 }
 
-var _ ComponentHandler = &appui{}
-var _ StorageClassRWXer = &appui{}
+var _ ComponentHandler = &appuiuser{}
+var _ StorageClassRWXer = &appuiuser{}
 
 // NewAppUI creates a new rbd-app-ui handler.
-func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
-	return &appui{
+func NewAppUIUser(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
+	return &appuiuser{
 		ctx:            ctx,
 		client:         client,
 		component:      component,
@@ -54,7 +51,7 @@ func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1al
 	}
 }
 
-func (a *appui) Before() error {
+func (a *appuiuser) Before() error {
 	db, err := getDefaultDBInfo(a.ctx, a.client, a.cluster.Spec.UIDatabase, a.component.Namespace, DBName)
 	if err != nil {
 		return fmt.Errorf("get db info: %v", err)
@@ -79,7 +76,7 @@ func (a *appui) Before() error {
 	return nil
 }
 
-func (a *appui) Resources() []client.Object {
+func (a *appuiuser) Resources() []client.Object {
 	port, ok := a.component.Labels["port"]
 	if !ok {
 		port = "7070"
@@ -121,26 +118,26 @@ func (a *appui) Resources() []client.Object {
 	return res
 }
 
-func (a *appui) After() error {
+func (a *appuiuser) After() error {
 	return nil
 }
 
-func (a *appui) ListPods() ([]corev1.Pod, error) {
+func (a *appuiuser) ListPods() ([]corev1.Pod, error) {
 	return listPods(a.ctx, a.client, a.component.Namespace, a.labels)
 }
 
-func (a *appui) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
+func (a *appuiuser) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 	a.pvcParametersRWX = pvcParameters
 }
 
-func (a *appui) ResourcesCreateIfNotExists() []client.Object {
+func (a *appuiuser) ResourcesCreateIfNotExists() []client.Object {
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
 		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels, a.storageRequest),
 	}
 }
 
-func (a *appui) deploymentForAppUI() client.Object {
+func (a *appuiuser) deploymentForAppUI() client.Object {
 	cpt := a.component
 
 	envs := []corev1.EnvVar{
@@ -151,6 +148,10 @@ func (a *appui) deploymentForAppUI() client.Object {
 		{
 			Name:  "MYSQL_HOST",
 			Value: a.db.Host,
+		},
+		{
+			Name:  "PLATFORM_ROLE",
+			Value: "user",
 		},
 		{
 			Name:  "MYSQL_PORT",
@@ -292,7 +293,7 @@ func (a *appui) deploymentForAppUI() client.Object {
 	return deploy
 }
 
-func (a *appui) serviceForAppUI(port int32) client.Object {
+func (a *appuiuser) serviceForAppUI(port int32) client.Object {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      AppUIName,
@@ -317,7 +318,7 @@ func (a *appui) serviceForAppUI(port int32) client.Object {
 }
 
 // serviceForProxy 将容器内的80暴露到6060端口
-func (a *appui) serviceForProxy() client.Object {
+func (a *appuiuser) serviceForProxy() client.Object {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rbd-app-ui-proxy",
@@ -341,7 +342,7 @@ func (a *appui) serviceForProxy() client.Object {
 }
 
 // 需要每一个节点都运行一遍
-func (a *appui) nodeJob(aff *corev1.Affinity, index int) *batchv1.Job {
+func (a *appuiuser) nodeJob(aff *corev1.Affinity, index int) *batchv1.Job {
 
 	name := "node-job-" + strconv.Itoa(index)
 	labels := map[string]string{
@@ -400,7 +401,7 @@ func (a *appui) nodeJob(aff *corev1.Affinity, index int) *batchv1.Job {
 	}
 	return job
 }
-func (a *appui) migrationsJob() *batchv1.Job {
+func (a *appuiuser) migrationsJob() *batchv1.Job {
 	var dbName = "console"
 	if a.cluster.Spec.UIDatabase != nil && a.cluster.Spec.UIDatabase.Name != "" {
 		dbName = a.cluster.Spec.UIDatabase.Name
@@ -410,10 +411,6 @@ func (a *appui) migrationsJob() *batchv1.Job {
 	labels["name"] = name
 
 	envs := []corev1.EnvVar{
-		{
-			Name:  "PLATFORM_ROLE",
-			Value: "admin",
-		},
 		{
 			Name:  "CRYPTOGRAPHY_ALLOW_OPENSSL_102",
 			Value: "true",
@@ -510,7 +507,7 @@ func (a *appui) migrationsJob() *batchv1.Job {
 	return job
 }
 
-func (a *appui) getDockerVolumes() ([]corev1.Volume, []corev1.VolumeMount) {
+func (a *appuiuser) getDockerVolumes() ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes := []corev1.Volume{
 		{
 			Name: "docker",
