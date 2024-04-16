@@ -148,7 +148,7 @@ func rbdDefaultRouteForHTTP() client.Object {
 					Backends: []v2.ApisixRouteHTTPBackend{
 						{
 							ServiceName: "rbd-app-ui-user",
-							ServicePort: intstr.FromInt(7070),
+							ServicePort: intstr.FromInt(7071),
 						},
 					},
 					Match: v2.ApisixRouteHTTPMatch{
