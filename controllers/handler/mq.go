@@ -3,8 +3,9 @@ package handler
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -111,6 +112,7 @@ func (m *mq) deployment() client.Object {
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ImagePullSecrets:              imagePullSecrets(m.component, m.cluster),
+					Affinity:                      antiAffinityForRequiredNodes([]string{MQName}),
 					Containers: []corev1.Container{
 						{
 							Name:            MQName,

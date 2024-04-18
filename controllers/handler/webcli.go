@@ -3,8 +3,9 @@ package handler
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 
@@ -103,6 +104,7 @@ func (w *webcli) deployment() client.Object {
 					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
 					ServiceAccountName:            "rainbond-operator",
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					Affinity:                      antiAffinityForRequiredNodes([]string{WebCliName}),
 					Containers: []corev1.Container{
 						{
 							Name:            WebCliName,

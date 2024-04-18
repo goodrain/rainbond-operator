@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"os"
 	"path"
 	"strconv"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
@@ -346,6 +347,30 @@ func affinityForRequiredNodes(nodeNames []string) *corev1.Affinity {
 								Values:   nodeNames,
 							},
 						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func antiAffinityForRequiredNodes(componentLabelName []string) *corev1.Affinity {
+	return &corev1.Affinity{
+		PodAntiAffinity: &corev1.PodAntiAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+				{
+					Weight: 100,
+					PodAffinityTerm: corev1.PodAffinityTerm{
+						LabelSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "name",
+									Operator: metav1.LabelSelectorOpIn,
+									Values:   componentLabelName,
+								},
+							},
+						},
+						TopologyKey: "kubernetes.io/hostname,k3s.io/hostname",
 					},
 				},
 			},
