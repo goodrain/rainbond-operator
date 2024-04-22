@@ -3,14 +3,15 @@ package handler
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
+
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"github.com/sirupsen/logrus"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
-	"os"
-	"strconv"
-	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -238,6 +239,7 @@ func (a *api) deployment() client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(a.component, a.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					Affinity:                      antiAffinityForRequiredNodes([]string{APIName}),
 					Containers: []corev1.Container{
 						{
 							Name:            APIName,

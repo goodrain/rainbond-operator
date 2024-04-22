@@ -3,11 +3,12 @@ package handler
 import (
 	"context"
 	"fmt"
+	"os/exec"
+
 	"github.com/sirupsen/logrus"
 	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
-	"os/exec"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -181,6 +182,7 @@ func (h *hub) deployment() client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(h.component, h.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					Affinity:                      antiAffinityForRequiredNodes([]string{HubName}),
 					Containers: []corev1.Container{
 						{
 							Name:            "rbd-hub",

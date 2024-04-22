@@ -3,9 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"path"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 
@@ -224,6 +225,7 @@ func (w *worker) deployment() client.Object {
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
 					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
+					Affinity:                      antiAffinityForRequiredNodes([]string{WorkerName}),
 					Containers: []corev1.Container{
 						{
 							Name:            WorkerName,
