@@ -3,10 +3,12 @@ package handler
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	"github.com/goodrain/rainbond-operator/util/commonutil"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -101,7 +103,7 @@ func (w *webcli) deployment() client.Object {
 				},
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{

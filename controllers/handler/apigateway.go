@@ -3,18 +3,20 @@ package handler
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	v2 "github.com/goodrain/rainbond-operator/api/v2"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 // ApiGatewayName name for rbd-gateway.
@@ -276,7 +278,7 @@ func (a *apigateway) deploy() client.Object {
 				Spec: corev1.PodSpec{
 					Affinity:                      affinity,
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					HostNetwork:                   true,
 					DNSPolicy:                     corev1.DNSClusterFirst,
 					RestartPolicy:                 corev1.RestartPolicyAlways,

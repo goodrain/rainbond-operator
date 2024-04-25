@@ -3,11 +3,12 @@ package handler
 import (
 	"context"
 	"fmt"
+	"path"
+	"strings"
+
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"github.com/goodrain/rainbond-operator/util/containerutil"
 	"github.com/sirupsen/logrus"
-	"path"
-	"strings"
 
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
@@ -316,7 +317,7 @@ func (c *chaos) deployment() client.Object {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					ImagePullSecrets:              imagePullSecrets(c.component, c.cluster),
 					Tolerations: []corev1.Toleration{
 						{

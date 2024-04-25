@@ -11,6 +11,7 @@ import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -180,7 +181,7 @@ func (m *metricsServer) deployment() client.Object {
 				},
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(m.component, m.cluster),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{

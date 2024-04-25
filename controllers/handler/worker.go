@@ -3,9 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
-	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"path"
+
+	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 
@@ -219,7 +221,7 @@ func (w *worker) deployment() client.Object {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
 					Containers: []corev1.Container{
 						{

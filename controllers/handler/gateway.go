@@ -3,9 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	"github.com/sirupsen/logrus"
 	"strings"
+
+	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	"github.com/sirupsen/logrus"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -70,7 +72,7 @@ func (g *gateway) Before() error {
 	nodeForGateway := g.cluster.Spec.NodesForGateway
 	if nodeForGateway != nil {
 		for _, currentNode := range nodeForGateway {
-			if  _, ok := k8sNodeNames[currentNode.Name]; !ok {
+			if _, ok := k8sNodeNames[currentNode.Name]; !ok {
 				fmt.Printf("\033[1;31;40m%s\033[0m\n", fmt.Sprintf("Node %v cannot be found in the cluster", currentNode.Name))
 			}
 			if _, ok := nodeLabels[currentNode.Name]; !ok {
@@ -162,7 +164,7 @@ func (g *gateway) daemonset() client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(g.component, g.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					HostNetwork:                   true,
 					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 					Tolerations: []corev1.Toleration{

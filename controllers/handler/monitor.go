@@ -2,9 +2,11 @@ package handler
 
 import (
 	"context"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"os"
+
+	"github.com/goodrain/rainbond-operator/util/constants"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -149,7 +151,7 @@ func (m *monitor) statefulset() client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(m.component, m.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					Containers: []corev1.Container{
 						{
 							Image:           m.component.Spec.Image,
