@@ -352,7 +352,7 @@ func (a *apigateway) deploy() client.Object {
 					Containers: []corev1.Container{
 						{
 							Name:            "ingress-apisix",
-							Image:           "apache/apisix-ingress-controller:1.8.0",
+							Image:           "registry.ap-southeast-1.aliyuncs.com/goodrain-ee/apisix-ingress-controller:1.8.0",
 							ImagePullPolicy: a.component.ImagePullPolicy(),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),
@@ -388,7 +388,7 @@ func (a *apigateway) deploy() client.Object {
 						},
 						{
 							Name:            "apisix",
-							Image:           "apache/apisix:3.8.0-debian",
+							Image:           "registry.ap-southeast-1.aliyuncs.com/goodrain-ee/apisix:3.8.0-debian",
 							ImagePullPolicy: a.component.ImagePullPolicy(),
 							SecurityContext: &corev1.SecurityContext{
 								RunAsUser:  commonutil.Int64(0),
