@@ -3,11 +3,12 @@ package handler
 import (
 	"context"
 	"fmt"
-	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"os"
 	"strconv"
 	"strings"
+
+	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -246,7 +247,7 @@ func (a *api) deployment() client.Object {
 							Resources:       a.component.Spec.Resources,
 						},
 					},
-					ServiceAccountName: "rainbond-operator",
+					ServiceAccountName: rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					Volumes:            volumes,
 				},
 			},

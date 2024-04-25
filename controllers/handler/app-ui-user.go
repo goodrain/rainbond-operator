@@ -3,9 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"os"
 	"strconv"
+
+	"github.com/goodrain/rainbond-operator/util/k8sutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -373,7 +374,7 @@ func (a *appuiuser) nodeJob(aff *corev1.Affinity, index int) *batchv1.Job {
 						RunAsUser: commonutil.Int64(0),
 					},
 					Affinity:           aff,
-					ServiceAccountName: "rainbond-operator",
+					ServiceAccountName: rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					Volumes:            append(volumes, runtimeVolumes...),
 					Containers: []corev1.Container{
 						{
