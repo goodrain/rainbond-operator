@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	v2 "github.com/goodrain/rainbond-operator/api/v2"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"io"
 	"os"
 	"reflect"
@@ -246,7 +247,7 @@ func getPodLogs(pod corev1.Pod, containerName string) string {
 
 func handleRegionInfo() (regionPods []*logutil.Pod, isReady bool) {
 	clientSet := k8sutil.GetClientSet()
-	podList, err := clientSet.CoreV1().Pods(constants.Namespace).List(context.Background(), metav1.ListOptions{})
+	podList, err := clientSet.CoreV1().Pods(rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace)).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, false
 	}
@@ -271,7 +272,7 @@ func handleRegionInfo() (regionPods []*logutil.Pod, isReady bool) {
 		pod.Log = failureContainerLog
 		podInfos[podName] = pod
 
-		eventLists, err := clientSet.CoreV1().Events(constants.Namespace).List(context.Background(), metav1.ListOptions{FieldSelector: fields.Set{"involvedObject.name": podName}.String()})
+		eventLists, err := clientSet.CoreV1().Events(rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace)).List(context.Background(), metav1.ListOptions{FieldSelector: fields.Set{"involvedObject.name": podName}.String()})
 		if err != nil {
 			return nil, false
 		}
