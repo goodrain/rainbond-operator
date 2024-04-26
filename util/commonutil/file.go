@@ -164,7 +164,6 @@ func WriteHosts(hostspath, ip string) {
 	if err != nil {
 		logrus.Error("open host file error", err)
 		return
-		panic(err)
 	}
 	defer hostFile.Close()
 	//  check ip and rainbond hub url is exist
