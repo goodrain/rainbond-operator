@@ -46,7 +46,7 @@ func rbdDefaultRouteForHTTP() client.Object {
 	return &v2.ApisixRoute{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rbd-app-ui",
-			Namespace: constants.Namespace,
+			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       constants.ApisixRoute,
@@ -183,7 +183,7 @@ func rbdDefaultRouteTemplateForTCP(name string, port int) client.Object {
 	return &v2.ApisixRoute{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: constants.Namespace,
+			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       constants.ApisixRoute,
@@ -323,7 +323,7 @@ func (a *apigateway) deploy() client.Object {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ApiGatewayName,
-			Namespace: constants.Namespace,
+			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 			Labels:    a.labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -333,7 +333,7 @@ func (a *apigateway) deploy() client.Object {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      GatewayName,
-					Namespace: constants.Namespace,
+					Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 					Labels:    a.labels,
 				},
 				Spec: corev1.PodSpec{
@@ -414,7 +414,7 @@ func (a *apigateway) monitorService() client.Object {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "apisix-monitor",
-			Namespace: constants.Namespace,
+			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
@@ -480,7 +480,7 @@ func (a *apigateway) monitorGlobalRule() client.Object {
 	return &v2.ApisixGlobalRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "monitor",
-			Namespace: constants.Namespace,
+			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       constants.ApisixGlobalRule,
@@ -505,7 +505,7 @@ func (a *apigateway) configmap() client.Object {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "apisix-gw-config.yaml",
-			Namespace: constants.Namespace,
+			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 		},
 		Data: map[string]string{
 			"config.yaml": `plugin_attr:

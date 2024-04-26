@@ -98,7 +98,7 @@ func (h *hub) hubImageRepository() client.Object {
 	return &v2.ApisixTls{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      Name,
-			Namespace: constants.Namespace,
+			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       constants.ApisixTls,
@@ -110,7 +110,7 @@ func (h *hub) hubImageRepository() client.Object {
 			},
 			Secret: v2.ApisixSecret{
 				Name:      Name,
-				Namespace: constants.Namespace,
+				Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 			},
 		},
 	}
@@ -120,7 +120,7 @@ func (h *hub) ingressForHub() client.Object {
 	return &v2.ApisixRoute{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rbd-hub",
-			Namespace: constants.Namespace,
+			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       constants.ApisixRoute,
