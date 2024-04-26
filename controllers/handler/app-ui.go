@@ -3,9 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"os"
 	"strconv"
+
+	"github.com/goodrain/rainbond-operator/util/k8sutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -144,6 +145,10 @@ func (a *appui) deploymentForAppUI() client.Object {
 	cpt := a.component
 
 	envs := []corev1.EnvVar{
+		{
+			Name:  "RBD_NAMESPACE",
+			Value: a.component.Namespace,
+		},
 		{
 			Name:  "CRYPTOGRAPHY_ALLOW_OPENSSL_102",
 			Value: "true",
@@ -371,7 +376,7 @@ func (a *appui) nodeJob(aff *corev1.Affinity, index int) *batchv1.Job {
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: "rbd-system",
+			Namespace: a.component.Namespace,
 			Labels:    labels,
 		},
 		Spec: batchv1.JobSpec{
@@ -384,7 +389,7 @@ func (a *appui) nodeJob(aff *corev1.Affinity, index int) *batchv1.Job {
 						RunAsUser: commonutil.Int64(0),
 					},
 					Affinity:           aff,
-					ServiceAccountName: "rainbond-operator",
+					ServiceAccountName: rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					Volumes:            append(volumes, runtimeVolumes...),
 					Containers: []corev1.Container{
 						{

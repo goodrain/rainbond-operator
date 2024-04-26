@@ -115,7 +115,7 @@ func (p *aliyunclouddiskPlugin) daemonset() *appsv1.DaemonSet {
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					HostNetwork:                   true,
 					HostPID:                       true,
 					Tolerations: []corev1.Toleration{
@@ -345,7 +345,7 @@ func (p *aliyunclouddiskPlugin) statefulset() client.Object {
 							},
 						},
 					},
-					ServiceAccountName: "rainbond-operator",
+					ServiceAccountName: rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					HostNetwork:        true,
 					Containers: []corev1.Container{
 						{

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"strings"
 
 	"github.com/goodrain/rainbond-operator/util/commonutil"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -70,7 +70,6 @@ func (w *webcli) deployment() client.Object {
 	volumes := []corev1.Volume{}
 	args := []string{
 		"--hostIP=$(POD_IP)",
-		"--etcd-endpoints=" + strings.Join(etcdEndpoints(w.cluster), ","),
 	}
 	if w.etcdSecret != nil {
 		volume, mount := volumeByEtcd(w.etcdSecret)
@@ -101,7 +100,7 @@ func (w *webcli) deployment() client.Object {
 				},
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					Containers: []corev1.Container{
 						{
@@ -109,6 +108,10 @@ func (w *webcli) deployment() client.Object {
 							Image:           w.component.Spec.Image,
 							ImagePullPolicy: w.component.ImagePullPolicy(),
 							Env: []corev1.EnvVar{
+								{
+									Name:  "RBD_NAMESPACE",
+									Value: w.component.Namespace,
+								},
 								{
 									Name: "POD_IP",
 									ValueFrom: &corev1.EnvVarSource{

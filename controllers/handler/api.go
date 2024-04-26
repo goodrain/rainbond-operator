@@ -3,11 +3,12 @@ package handler
 import (
 	"context"
 	"fmt"
-	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"os"
 	"strconv"
 	"strings"
+
+	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -183,6 +184,10 @@ func (a *api) deployment() client.Object {
 	a.labels["name"] = APIName
 	envs := []corev1.EnvVar{
 		{
+			Name:  "RBD_NAMESPACE",
+			Value: a.component.Namespace,
+		},
+		{
 			Name: "POD_IP",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
@@ -246,7 +251,7 @@ func (a *api) deployment() client.Object {
 							Resources:       a.component.Spec.Resources,
 						},
 					},
-					ServiceAccountName: "rainbond-operator",
+					ServiceAccountName: rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					Volumes:            volumes,
 				},
 			},

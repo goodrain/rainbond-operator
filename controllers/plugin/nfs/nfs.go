@@ -113,7 +113,7 @@ func (p *nfsPlugin) statefulset() client.Object {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: "rainbond-operator", // TODO: do not hard code, get sa from configuration.
+					ServiceAccountName: rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					Tolerations: []corev1.Toleration{
 						{
 							Operator: corev1.TolerationOpExists,

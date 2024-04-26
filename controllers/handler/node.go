@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/goodrain/rainbond-operator/util/containerutil"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"strings"
 
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -266,7 +265,6 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 		},
 	}
 	args := []string{
-		"--etcd=" + strings.Join(etcdEndpoints(n.cluster), ","),
 		"--hostIP=$(POD_IP)",
 		"--run-mode master",
 		"--noderule manage,compute", // TODO: Let rbd-node recognize itself
@@ -346,7 +344,7 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(n.component, n.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					HostAliases:                   hostsAliases(n.cluster),
 					HostPID:                       true,
 					DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
