@@ -41,7 +41,7 @@ var (
 func GetClientSet() kubernetes.Interface {
 	if clientset == nil {
 		once.Do(func() {
-			config := MustNewKubeConfig("")
+			config := MustNewKubeConfig("/Users/zhangxiaoyuan/.kube/config")
 			clientset = kubernetes.NewForConfigOrDie(config)
 		})
 	}

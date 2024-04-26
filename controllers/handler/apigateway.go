@@ -218,6 +218,10 @@ func (a *apigateway) deploy() client.Object {
 	}
 	envs := append(a.component.Spec.Env, []corev1.EnvVar{
 		{
+			Name:  "RBD_NAMESPACE",
+			Value: a.component.Namespace,
+		},
+		{
 			Name: "POD_NAMESPACE",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{

@@ -112,6 +112,10 @@ func (w *webcli) deployment() client.Object {
 							ImagePullPolicy: w.component.ImagePullPolicy(),
 							Env: []corev1.EnvVar{
 								{
+									Name:  "RBD_NAMESPACE",
+									Value: w.component.Namespace,
+								},
+								{
 									Name: "POD_IP",
 									ValueFrom: &corev1.EnvVarSource{
 										FieldRef: &corev1.ObjectFieldSelector{

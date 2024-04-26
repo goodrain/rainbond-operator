@@ -275,7 +275,7 @@ func (r *RainbondClusterReconciler) getOrCreateUUIDAndAuth(rainbondcluster *rain
 // GetRainbondGatewayNodeAndChaosNodes get gateway nodes
 func (r *RainbondClusterReconciler) GetRainbondGatewayNodeAndChaosNodes() (gatewayNodes, chaosNodes []*rainbondv1alpha1.K8sNode) {
 	nodeList := &corev1.NodeList{}
-	reqLogger := r.Log.WithValues("rainbondcluster", types.NamespacedName{Name: "rbd-system"})
+	reqLogger := r.Log.WithValues("rainbondcluster", types.NamespacedName{Name: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace)})
 	err := r.Client.List(context.Background(), nodeList)
 	if err != nil {
 		reqLogger.V(4).Error(err, "get rainbond gatewayNodes or ChaosNodes")

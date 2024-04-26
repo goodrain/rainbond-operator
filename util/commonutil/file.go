@@ -162,6 +162,8 @@ func WriteHosts(hostspath, ip string) {
 	// open hostfile in operator
 	hostFile, err := os.OpenFile(hostspath, os.O_RDWR|os.O_APPEND, 0777)
 	if err != nil {
+		logrus.Error("open host file error", err)
+		return
 		panic(err)
 	}
 	defer hostFile.Close()
