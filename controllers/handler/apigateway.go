@@ -245,6 +245,7 @@ func (a *apigateway) Resources() []client.Object {
 		a.deploy(),
 		a.monitorGlobalRule(),
 		a.monitorService(),
+		a.service(),
 	}
 }
 
@@ -426,6 +427,50 @@ func (a *apigateway) monitorService() client.Object {
 			},
 			Selector: a.labels,
 			Type:     corev1.ServiceTypeClusterIP,
+		},
+	}
+}
+
+// service 将网关的四个端口暴露出来，80，443是用户业务端口，7070是管理端口，7071是用户端
+func (a *apigateway) service() client.Object {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ApiGatewayName,
+			Namespace: a.component.Namespace,
+			Labels:    a.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "admin",
+					Port: int32(7070),
+					TargetPort: intstr.IntOrString{
+						IntVal: int32(7070),
+					},
+				},
+				{
+					Name: "user",
+					Port: int32(7071),
+					TargetPort: intstr.IntOrString{
+						IntVal: int32(7071),
+					},
+				},
+				{
+					Name: "http",
+					Port: int32(80),
+					TargetPort: intstr.IntOrString{
+						IntVal: int32(80),
+					},
+				},
+				{
+					Name: "https",
+					Port: int32(443),
+					TargetPort: intstr.IntOrString{
+						IntVal: int32(443),
+					},
+				},
+			},
+			Selector: a.labels,
 		},
 	}
 }
