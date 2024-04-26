@@ -3,8 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/goodrain/rainbond-operator/util/containerutil"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -267,7 +265,6 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 		},
 	}
 	args := []string{
-		"--etcd=" + strings.Join(etcdEndpoints(n.cluster), ","),
 		"--hostIP=$(POD_IP)",
 		"--run-mode master",
 		"--noderule manage,compute", // TODO: Let rbd-node recognize itself

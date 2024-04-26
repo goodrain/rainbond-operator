@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 
@@ -205,11 +204,7 @@ func volumeByAPISecret(apiServerSecret *corev1.Secret) (corev1.Volume, corev1.Vo
 }
 
 func etcdSSLArgs() []string {
-	return []string{
-		"--etcd-ca=" + path.Join(EtcdSSLPath, "ca-file"),
-		"--etcd-cert=" + path.Join(EtcdSSLPath, "cert-file"),
-		"--etcd-key=" + path.Join(EtcdSSLPath, "key-file"),
-	}
+	return []string{}
 }
 
 func storageClassNameFromRainbondVolumeRWX(ctx context.Context, cli client.Client, ns string) (*pvcParameters, error) {
