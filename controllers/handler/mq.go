@@ -75,6 +75,10 @@ func (m *mq) deployment() client.Object {
 	}
 	env := []corev1.EnvVar{
 		{
+			Name:  "RBD_NAMESPACE",
+			Value: m.component.Namespace,
+		},
+		{
 			Name: "POD_IP",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{

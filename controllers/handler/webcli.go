@@ -3,8 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -72,7 +70,6 @@ func (w *webcli) deployment() client.Object {
 	volumes := []corev1.Volume{}
 	args := []string{
 		"--hostIP=$(POD_IP)",
-		"--etcd-endpoints=" + strings.Join(etcdEndpoints(w.cluster), ","),
 	}
 	if w.etcdSecret != nil {
 		volume, mount := volumeByEtcd(w.etcdSecret)
@@ -111,6 +108,10 @@ func (w *webcli) deployment() client.Object {
 							Image:           w.component.Spec.Image,
 							ImagePullPolicy: w.component.ImagePullPolicy(),
 							Env: []corev1.EnvVar{
+								{
+									Name:  "RBD_NAMESPACE",
+									Value: w.component.Namespace,
+								},
 								{
 									Name: "POD_IP",
 									ValueFrom: &corev1.EnvVarSource{

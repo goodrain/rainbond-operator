@@ -169,6 +169,10 @@ func (h *hub) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 func (h *hub) deployment() client.Object {
 	env := []corev1.EnvVar{
 		{
+			Name:  "RBD_NAMESPACE",
+			Value: h.component.Namespace,
+		},
+		{
 			Name:  "REGISTRY_AUTH",
 			Value: "htpasswd",
 		},
