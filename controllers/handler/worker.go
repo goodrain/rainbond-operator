@@ -225,7 +225,7 @@ func (w *worker) deployment() client.Object {
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            "rainbond-operator",
 					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
-					Affinity:                      antiAffinityForRequiredNodes([]string{WorkerName}),
+					// Affinity:                      antiAffinityForRequiredNodes([]string{WorkerName}),
 					Containers: []corev1.Container{
 						{
 							Name:            WorkerName,

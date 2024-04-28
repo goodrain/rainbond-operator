@@ -239,7 +239,7 @@ func (a *api) deployment() client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(a.component, a.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					Affinity:                      antiAffinityForRequiredNodes([]string{APIName}),
+					// Affinity:                      antiAffinityForRequiredNodes([]string{APIName}),
 					Containers: []corev1.Container{
 						{
 							Name:            APIName,

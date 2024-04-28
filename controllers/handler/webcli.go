@@ -104,7 +104,7 @@ func (w *webcli) deployment() client.Object {
 					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
 					ServiceAccountName:            "rainbond-operator",
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					Affinity:                      antiAffinityForRequiredNodes([]string{WebCliName}),
+					// Affinity:                      antiAffinityForRequiredNodes([]string{WebCliName}),
 					Containers: []corev1.Container{
 						{
 							Name:            WebCliName,

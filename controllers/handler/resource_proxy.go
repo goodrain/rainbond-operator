@@ -110,7 +110,7 @@ func (r *resourceProxy) resource() []client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(r.component, r.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					Affinity:                      antiAffinityForRequiredNodes([]string{ResourceProxyName}),
+					// Affinity:                      antiAffinityForRequiredNodes([]string{ResourceProxyName}),
 					Containers: []corev1.Container{
 						{
 							Name:            ResourceProxyName,
