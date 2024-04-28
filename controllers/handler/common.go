@@ -370,7 +370,7 @@ func antiAffinityForRequiredNodes(componentLabelName []string) *corev1.Affinity 
 								},
 							},
 						},
-						TopologyKey: "kubernetes.io/hostname,k3s.io/hostname",
+						TopologyKey: "kubernetes.io/hostname",
 					},
 				},
 			},
