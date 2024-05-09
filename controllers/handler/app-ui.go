@@ -3,9 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"os"
 	"strconv"
+
+	"github.com/goodrain/rainbond-operator/util/k8sutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -86,17 +87,17 @@ func (a *appui) Resources() []client.Object {
 		rbdDefaultRouteForHTTP(),
 		a.migrationsJob(),
 	}
-
-	// 获取所有的node name
-	names, err := getNodeNames(a.client)
-
-	if err == nil {
-		for i, name := range names {
-			res = append(res, a.nodeJob(affinityForRequiredNodes([]string{name}), i))
-		}
-	} else {
-		log.Error(err, "get node names step")
-	}
+	//
+	//// 获取所有的node name
+	//names, err := getNodeNames(a.client)
+	//
+	//if err == nil {
+	//	for i, name := range names {
+	//		res = append(res, a.nodeJob(affinityForRequiredNodes([]string{name}), i))
+	//	}
+	//} else {
+	//	log.Error(err, "get node names step")
+	//}
 
 	if err := isUIDBMigrateOK(a.ctx, a.client, a.component); err != nil {
 		if IsIgnoreError(err) {
@@ -378,7 +379,7 @@ func (a *appui) nodeJob(aff *corev1.Affinity, index int) *batchv1.Job {
 						RunAsUser: commonutil.Int64(0),
 					},
 					Affinity:           aff,
-					ServiceAccountName: "rainbond-operator",
+					ServiceAccountName: rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					Volumes:            append(volumes, runtimeVolumes...),
 					Containers: []corev1.Container{
 						{

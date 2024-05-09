@@ -3,18 +3,20 @@ package handler
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	v2 "github.com/goodrain/rainbond-operator/api/v2"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 // ApiGatewayName name for rbd-gateway.
@@ -243,6 +245,7 @@ func (a *apigateway) Resources() []client.Object {
 		a.deploy(),
 		a.monitorGlobalRule(),
 		a.monitorService(),
+		a.service(),
 	}
 }
 
@@ -336,7 +339,7 @@ func (a *apigateway) deploy() client.Object {
 				Spec: corev1.PodSpec{
 					Affinity:                      affinity,
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					ServiceAccountName:            "rainbond-operator",
+					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					HostNetwork:                   true,
 					DNSPolicy:                     corev1.DNSClusterFirst,
 					RestartPolicy:                 corev1.RestartPolicyAlways,
@@ -352,7 +355,7 @@ func (a *apigateway) deploy() client.Object {
 					Containers: []corev1.Container{
 						{
 							Name:            "ingress-apisix",
-							Image:           "apache/apisix-ingress-controller:1.8.0",
+							Image:           "registry.ap-southeast-1.aliyuncs.com/goodrain-ee/apisix-ingress-controller:1.8.0",
 							ImagePullPolicy: a.component.ImagePullPolicy(),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),
@@ -388,7 +391,7 @@ func (a *apigateway) deploy() client.Object {
 						},
 						{
 							Name:            "apisix",
-							Image:           "apache/apisix:3.8.0-debian",
+							Image:           "registry.ap-southeast-1.aliyuncs.com/goodrain-ee/apisix:3.8.0-debian",
 							ImagePullPolicy: a.component.ImagePullPolicy(),
 							SecurityContext: &corev1.SecurityContext{
 								RunAsUser:  commonutil.Int64(0),
@@ -424,6 +427,50 @@ func (a *apigateway) monitorService() client.Object {
 			},
 			Selector: a.labels,
 			Type:     corev1.ServiceTypeClusterIP,
+		},
+	}
+}
+
+// service 将网关的四个端口暴露出来，80，443是用户业务端口，7070是管理端口，7071是用户端
+func (a *apigateway) service() client.Object {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ApiGatewayName,
+			Namespace: a.component.Namespace,
+			Labels:    a.labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "admin",
+					Port: int32(7070),
+					TargetPort: intstr.IntOrString{
+						IntVal: int32(7070),
+					},
+				},
+				{
+					Name: "user",
+					Port: int32(7071),
+					TargetPort: intstr.IntOrString{
+						IntVal: int32(7071),
+					},
+				},
+				{
+					Name: "http",
+					Port: int32(80),
+					TargetPort: intstr.IntOrString{
+						IntVal: int32(80),
+					},
+				},
+				{
+					Name: "https",
+					Port: int32(443),
+					TargetPort: intstr.IntOrString{
+						IntVal: int32(443),
+					},
+				},
+			},
+			Selector: a.labels,
 		},
 	}
 }
