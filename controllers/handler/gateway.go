@@ -3,10 +3,9 @@ package handler
 import (
 	"context"
 	"fmt"
-	"strings"
+	"github.com/goodrain/rainbond-operator/util/rbdutil"
 
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"github.com/sirupsen/logrus"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -105,7 +104,6 @@ func (g *gateway) daemonset() client.Object {
 	args := []string{
 		"--error-log=/dev/stderr",
 		"--errlog-level=error",
-		"--etcd-endpoints=" + strings.Join(etcdEndpoints(g.cluster), ","),
 	}
 	envs := []corev1.EnvVar{
 		{

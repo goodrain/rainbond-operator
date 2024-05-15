@@ -148,6 +148,10 @@ func (w *worker) deployment() client.Object {
 
 	env := []corev1.EnvVar{
 		{
+			Name:  "RBD_NAMESPACE",
+			Value: w.component.Namespace,
+		},
+		{
 			Name: "POD_IP",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{

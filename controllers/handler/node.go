@@ -267,7 +267,6 @@ func (n *node) daemonSetForRainbondNode() client.Object {
 		},
 	}
 	args := []string{
-		"--etcd=" + strings.Join(etcdEndpoints(n.cluster), ","),
 		"--hostIP=$(POD_IP)",
 		"--run-mode master",
 		"--noderule manage,compute", // TODO: Let rbd-node recognize itself

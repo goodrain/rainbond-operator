@@ -136,8 +136,8 @@ func (a *appui) deploymentForAppUI() client.Object {
 
 	envs := []corev1.EnvVar{
 		{
-			Name:  "PLATFORM_ROLE",
-			Value: "admin",
+			Name:  "RBD_NAMESPACE",
+			Value: a.component.Namespace,
 		},
 		{
 			Name:  "CRYPTOGRAPHY_ALLOW_OPENSSL_102",
@@ -357,7 +357,7 @@ func (a *appui) nodeJob(aff *corev1.Affinity, index int) *batchv1.Job {
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: "rbd-system",
+			Namespace: a.component.Namespace,
 			Labels:    labels,
 		},
 		Spec: batchv1.JobSpec{
@@ -396,7 +396,6 @@ func (a *appui) migrationsJob() *batchv1.Job {
 	labels["name"] = name
 
 	envs := []corev1.EnvVar{
-
 		{
 			Name:  "CRYPTOGRAPHY_ALLOW_OPENSSL_102",
 			Value: "true",

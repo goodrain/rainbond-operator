@@ -202,7 +202,7 @@ func (m *monitor) configmap() client.Object {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "prometheus-config",
-			Namespace: constants.Namespace,
+			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 		},
 		Data: map[string]string{
 			"prometheus.yml": string(prometheus),
