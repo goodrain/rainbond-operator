@@ -16,7 +16,7 @@ func init() {
 	AddHandlerFunc(handler.HubName, handler.NewHub)
 	AddHandlerFunc(handler.APIName, handler.NewAPI)
 	AddHandlerFunc(handler.AppUIName, handler.NewAppUI)
-	AddHandlerFunc(handler.AppUINameUSER, handler.NewAppUIUser)
+	//AddHandlerFunc(handler.AppUINameUSER, handler.NewAppUIUser)
 	AddHandlerFunc(handler.ChaosName, handler.NewChaos)
 	AddHandlerFunc(handler.EventLogName, handler.NewEventLog)
 	AddHandlerFunc(handler.MonitorName, handler.NewMonitor)

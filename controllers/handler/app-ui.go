@@ -259,15 +259,6 @@ func (a *appui) deploymentForAppUI() client.Object {
 							ReadinessProbe:  readinessProbe,
 							Resources:       a.component.Spec.Resources,
 						},
-						{
-							Name:  "proxy-pass",
-							Image: "registry.cn-hangzhou.aliyuncs.com/goodrain/proxy-pass",
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 80,
-								},
-							},
-						},
 					},
 					Volumes: volumes,
 				},
