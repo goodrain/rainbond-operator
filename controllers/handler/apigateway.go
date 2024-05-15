@@ -323,7 +323,7 @@ func (a *apigateway) deploy() client.Object {
 			},
 		},
 	}...)
-	images := strings.Split(a.component.Spec.Image, ",")
+	images := strings.Split(a.component.Spec.Image, "@")
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ApiGatewayName,
