@@ -3,8 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/goodrain/rainbond-operator/util/containerutil"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
