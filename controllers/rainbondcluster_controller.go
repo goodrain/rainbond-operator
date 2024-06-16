@@ -321,6 +321,10 @@ func (r *RainbondClusterReconciler) GetRainbondGatewayNodeAndChaosNodes() (gatew
 func getK8sNode(node corev1.Node) *rainbondv1alpha1.K8sNode {
 	var Knode rainbondv1alpha1.K8sNode
 	for _, address := range node.Status.Addresses {
+		// skip ipv6
+		if len(net.ParseIP(address.Address)) == net.IPv6len {
+			continue
+		}
 		if address.Type == corev1.NodeInternalIP {
 			Knode.InternalIP = address.Address
 		}
