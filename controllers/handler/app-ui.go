@@ -232,6 +232,16 @@ func (a *appui) deploymentForAppUI() client.Object {
 			MountPath: "/app/lock",
 			SubPath:   "lock",
 		},
+		{
+			Name:      "app",
+			MountPath: "/app/ui/console/migrations",
+			SubPath:   "console/migrations",
+		},
+		{
+			Name:      "app",
+			MountPath: "/app/ui/www/migrations",
+			SubPath:   "www/migrations",
+		},
 	}
 
 	envs = mergeEnvs(envs, a.component.Spec.Env)
