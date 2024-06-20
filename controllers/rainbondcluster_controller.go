@@ -210,6 +210,14 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 		return reconcile.Result{}, r.Update(ctx, rc)
 	}
 
+	if os.Getenv("image_repository") != "" && os.Getenv("image_username") != "" && os.Getenv("image_password") != "" {
+		//创建secret
+		err := mgr.CreateCustomImageSecret()
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	// create secret for pulling images.
 	if rainbondcluster.Spec.ImageHub != nil && rainbondcluster.Spec.ImageHub.Username != "" && rainbondcluster.Spec.ImageHub.Password != "" {
 		err := mgr.CreateImagePullSecret()
