@@ -174,6 +174,10 @@ func (a *api) deployment() client.Object {
 		volumeMounts = append(volumeMounts, mount)
 		volumes = append(volumes, volume)
 		args = append(args, "--api-ssl-enable=true",
+			"--es-url="+rbdutil.GetenvDefault("ES_URL", ""),
+			"--es-username="+rbdutil.GetenvDefault("ES_USERNAME", ""),
+			"--es-password="+rbdutil.GetenvDefault("ES_PASSWORD", ""),
+
 			"--builder-api="+ChaosName+":3228",
 			"--api-addr-ssl=0.0.0.0:8443",
 			"--api-ssl-certfile=/etc/goodrain/region.goodrain.me/ssl/server.pem",
