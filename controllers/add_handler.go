@@ -39,6 +39,7 @@ type handlerFunc func(ctx context.Context, client client.Client, component *rain
 var handlerFuncs map[string]handlerFunc
 
 // AddHandlerFunc adds handlerFunc to handlerFuncs.
+// 重点方法，用于初始化 RbdComponent 资源的监听触发函数，例如 rbd-api、worker。
 func AddHandlerFunc(name string, fn handlerFunc) {
 	if handlerFuncs == nil {
 		handlerFuncs = map[string]handlerFunc{}

@@ -58,11 +58,13 @@ import (
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 )
 
-var errorClusterConfigNotReady = fmt.Errorf("cluster config can not be ready")
-var errorClusterConfigNoLocalHub = fmt.Errorf("cluster spec not have local image hub info ")
-var pkgDst = "/opt/rainbond/pkg/files"
+var (
+	errorClusterConfigNotReady   = fmt.Errorf("集群配置无法就绪")
+	errorClusterConfigNoLocalHub = fmt.Errorf("集群规格中没有本地镜像仓库信息")
+	pkgDst                       = "/opt/rainbond/pkg/files"
+)
 
-// RainbondPackageReconciler reconciles a RainbondPackage object
+// RainbondPackageReconciler 处理 RainbondPackage 对象的 Reconciler
 type RainbondPackageReconciler struct {
 	client.Client
 	Log      logr.Logger
@@ -74,31 +76,27 @@ type RainbondPackageReconciler struct {
 // +kubebuilder:rbac:groups=rainbond.io,resources=rainbondpackages/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=rainbond.io,resources=rainbondpackages/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the RainbondPackage object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
+// Reconcile 是 Kubernetes 主循环的一部分，旨在将集群的当前状态移动到期望状态。
+// TODO(user): 修改 Reconcile 函数，比较 RainbondPackage 对象指定的状态与实际集群状态，并执行操作，使集群状态反映用户指定的状态。
 //
-// For more details, check Reconcile and its Result here:
+// 有关更详细的信息，请查看 Reconcile 及其结果：
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *RainbondPackageReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("rainbondpackage", request.NamespacedName)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Fetch the RainbondPackage instance
+	// 获取 RainbondPackage 实例
 	pkg := &rainbondv1alpha1.RainbondPackage{}
 	err := r.Get(ctx, request.NamespacedName, pkg)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
+			// 请求对象未找到，可能在重新申请请求后被删除。
+			// 所有权的对象会被自动垃圾回收。要进行额外的清理逻辑，使用 finalizers。
+			// 返回并不重新排队
 			return reconcile.Result{}, nil
 		}
-		// Error reading the object - requeue the request.
+		// 读取对象时出错 - 重新排队请求。
 		return reconcile.Result{}, err
 	}
 
@@ -113,7 +111,7 @@ func (r *RainbondPackageReconciler) Reconcile(ctx context.Context, request ctrl.
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
-	// if instsall mode is full online, set package to ready directly
+	// 如果安装模式是全在线模式，直接将包设置为就绪状态
 	if cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeFullOnline {
 		log.Info("set package to ready directly", "install mode", cluster.Spec.InstallMode)
 		pkg.Status = initPackageStatus(rainbondv1alpha1.Completed)
@@ -136,7 +134,7 @@ func (r *RainbondPackageReconciler) Reconcile(ctx context.Context, request ctrl.
 		return *re, nil
 	}
 
-	//need handle condition
+	// 需要处理条件
 	p, err := newpkg(ctx, r.Client, pkg, cluster, log)
 	if err != nil {
 		if p != nil {
@@ -148,14 +146,14 @@ func (r *RainbondPackageReconciler) Reconcile(ctx context.Context, request ctrl.
 		return reconcile.Result{RequeueAfter: time.Second * 5}, nil
 	}
 
-	// handle package
+	// 处理包
 	if err = p.handle(); err != nil {
 		if err == errorClusterConfigNoLocalHub {
-			log.V(4).Info("waiting local image hub ready")
+			log.V(4).Info("等待本地镜像仓库就绪")
 		} else if err == errorClusterConfigNotReady {
-			log.Info("waiting cluster config ready")
+			log.Info("等待集群配置就绪")
 		} else {
-			log.Error(err, "failed to handle rainbond package.")
+			log.Error(err, "处理 rainbond 包失败.")
 		}
 		return reconcile.Result{RequeueAfter: 8 * time.Second}, nil
 	}
@@ -163,13 +161,14 @@ func (r *RainbondPackageReconciler) Reconcile(ctx context.Context, request ctrl.
 	return reconcile.Result{}, nil
 }
 
-// SetupWithManager sets up the controller with the Manager.
+// SetupWithManager 使用 Manager 设置控制器。
 func (r *RainbondPackageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&rainbondv1alpha1.RainbondPackage{}).
 		Complete(r)
 }
 
+// initPackageStatus 初始化 RainbondPackage 的状态。
 func initPackageStatus(status rainbondv1alpha1.PackageConditionStatus) rainbondv1alpha1.RainbondPackageStatus {
 	return rainbondv1alpha1.RainbondPackageStatus{
 		Conditions: []rainbondv1alpha1.PackageCondition{
@@ -208,7 +207,7 @@ func initPackageStatus(status rainbondv1alpha1.PackageConditionStatus) rainbondv
 	}
 }
 
-//checkStatusCanReturn if pkg status in the working state, straight back
+// checkStatusCanReturn 检查包状态是否处于可以立即返回的状态。
 func checkStatusCanReturn(pkg *rainbondv1alpha1.RainbondPackage) (updateStatus bool, re *reconcile.Result) {
 	if len(pkg.Status.Conditions) == 0 {
 		pkg.Status = initPackageStatus(rainbondv1alpha1.Waiting)
@@ -219,7 +218,7 @@ func checkStatusCanReturn(pkg *rainbondv1alpha1.RainbondPackage) (updateStatus b
 		if cond.Status == rainbondv1alpha1.Running {
 			return false, &reconcile.Result{}
 		}
-		//have failed conditions, retry
+		// 有失败的条件，重试
 		if cond.Status == rainbondv1alpha1.Failed {
 			return false, nil
 		}
@@ -234,6 +233,7 @@ func checkStatusCanReturn(pkg *rainbondv1alpha1.RainbondPackage) (updateStatus b
 	return false, nil
 }
 
+// pkg 包含处理 Rainbond 包的相关信息。
 type pkg struct {
 	ctx              context.Context
 	client           client.Client
@@ -250,12 +250,13 @@ type pkg struct {
 	pushImageDomain     string
 	// Deprecated: no longer download installation package.
 	totalImageNum int32
-	//need download images
+	// 需要下载的镜像
 	images        map[string]string
 	version       string
 	containerdCli *initcontainerd.ContainerdAPI
 }
 
+// newpkg 创建一个新的 pkg 实例。
 func newpkg(ctx context.Context, client client.Client, p *rainbondv1alpha1.RainbondPackage, cluster *rainbondv1alpha1.RainbondCluster, reqLogger logr.Logger) (*pkg, error) {
 	containerdCli, err := initcontainerd.InitContainerd()
 	if err != nil {
@@ -276,12 +277,13 @@ func newpkg(ctx context.Context, client client.Client, p *rainbondv1alpha1.Rainb
 	return pkg, nil
 }
 
+// configByCluster 根据集群配置更新 pkg 的设置。
 func (p *pkg) configByCluster(c *rainbondv1alpha1.RainbondCluster) error {
 	if !c.Spec.ConfigCompleted {
 		return errorClusterConfigNotReady
 	}
 
-	// check if image repository is ready
+	// 检查镜像仓库是否准备就绪
 	if !p.isImageRepositoryReady() {
 		return errorClusterConfigNoLocalHub
 	}
@@ -299,10 +301,12 @@ func (p *pkg) configByCluster(c *rainbondv1alpha1.RainbondCluster) error {
 	return nil
 }
 
+// updateCRStatus 更新 RainbondPackage 的状态。
 func (p *pkg) updateCRStatus() error {
 	return updateCRStatus(p.client, p.pkg)
 }
 
+// updateCRStatus 更新 RainbondPackage 的状态。
 func updateCRStatus(client client.Client, pkg *rainbondv1alpha1.RainbondPackage) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
@@ -319,6 +323,7 @@ func updateCRStatus(client client.Client, pkg *rainbondv1alpha1.RainbondPackage)
 	return nil
 }
 
+// checkClusterConfig 检查集群配置。
 func (p *pkg) checkClusterConfig() error {
 	cluster := p.cluster
 	if err := p.configByCluster(cluster); err != nil {
@@ -343,6 +348,7 @@ func (p *pkg) checkClusterConfig() error {
 	return nil
 }
 
+// findCondition 查找特定类型的包条件。
 func (p *pkg) findCondition(typ3 rainbondv1alpha1.PackageConditionType) *rainbondv1alpha1.PackageCondition {
 	for i, condition := range p.pkg.Status.Conditions {
 		if condition.Type == typ3 {
@@ -351,6 +357,8 @@ func (p *pkg) findCondition(typ3 rainbondv1alpha1.PackageConditionType) *rainbon
 	}
 	return nil
 }
+
+// updateConditionStatus 更新包条件的状态。
 func (p *pkg) updateConditionStatus(typ3 rainbondv1alpha1.PackageConditionType, status rainbondv1alpha1.PackageConditionStatus) {
 	for i, condition := range p.pkg.Status.Conditions {
 		if condition.Type == typ3 {
@@ -368,6 +376,8 @@ func (p *pkg) updateConditionStatus(typ3 rainbondv1alpha1.PackageConditionType, 
 		}
 	}
 }
+
+// updateConditionResion 更新包条件的原因和消息。
 func (p *pkg) updateConditionResion(typ3 rainbondv1alpha1.PackageConditionType, resion, message string) {
 	for i, condition := range p.pkg.Status.Conditions {
 		if condition.Type == typ3 {
@@ -378,6 +388,8 @@ func (p *pkg) updateConditionResion(typ3 rainbondv1alpha1.PackageConditionType, 
 		}
 	}
 }
+
+// updateConditionProgress 更新包条件的进度。
 func (p *pkg) updateConditionProgress(typ3 rainbondv1alpha1.PackageConditionType, progress int32) bool {
 	if progress > 100 {
 		progress = 100
@@ -393,6 +405,8 @@ func (p *pkg) updateConditionProgress(typ3 rainbondv1alpha1.PackageConditionType
 	}
 	return false
 }
+
+// completeCondition 完成特定的包条件。
 func (p *pkg) completeCondition(con *rainbondv1alpha1.PackageCondition) error {
 	if con == nil {
 		return nil
@@ -400,6 +414,8 @@ func (p *pkg) completeCondition(con *rainbondv1alpha1.PackageCondition) error {
 	p.updateConditionStatus(con.Type, rainbondv1alpha1.Completed)
 	return p.updateCRStatus()
 }
+
+// runningCondition 设置特定的包条件为运行中。
 func (p *pkg) runningCondition(con *rainbondv1alpha1.PackageCondition) error {
 	if con == nil {
 		return nil
@@ -407,6 +423,8 @@ func (p *pkg) runningCondition(con *rainbondv1alpha1.PackageCondition) error {
 	p.updateConditionStatus(con.Type, rainbondv1alpha1.Running)
 	return p.updateCRStatus()
 }
+
+// canDownload 检查是否可以下载包。
 func (p *pkg) canDownload() bool {
 	if con := p.findCondition(rainbondv1alpha1.DownloadPackage); con != nil {
 		if con.Status != rainbondv1alpha1.Completed {
@@ -484,7 +502,7 @@ func (p *pkg) setInitStatus() error {
 	return nil
 }
 
-//donwnloadPackage download package
+// donwnloadPackage download package
 func (p *pkg) donwnloadPackage() error {
 	p.log.Info(fmt.Sprintf("start download package from %s", p.downloadPackageURL))
 	downloadListener := &downloadutil.DownloadWithProgress{
@@ -539,7 +557,7 @@ func (p *pkg) donwnloadPackage() error {
 	return nil
 }
 
-//handle
+// handle
 func (p *pkg) handle() error {
 	p.log.V(5).Info("start handling rainbond package.")
 	// check prerequisites

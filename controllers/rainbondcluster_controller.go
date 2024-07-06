@@ -39,14 +39,11 @@ type RainbondClusterReconciler struct {
 // +kubebuilder:rbac:groups=rainbond.io,resources=rainbondclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=rainbond.io,resources=rainbondclusters/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the RainbondCluster object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
+// Reconcile 是主 Kubernetes 协调循环的一部分，旨在将集群的当前状态移动到期望的状态附近。
+// TODO(user): 修改 Reconcile 函数，比较 RainbondCluster 对象指定的状态与实际集群状态，
+// 然后执行操作以使集群状态反映用户指定的状态。
 //
-// For more details, check Reconcile and its Result here:
+// 更多详细信息，请查看这里的 Reconcile 和其 Result:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("rainbondcluster", request.NamespacedName)
@@ -61,7 +58,9 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 			// Return and don't requeue
 			return reconcile.Result{}, nil
 		}
-		// Error reading the object - requeue the request.
+		// 未找到请求的对象，可能已在协调请求后被删除。
+		// 拥有的对象会自动进行垃圾回收。要进行额外的清理逻辑，请使用 finalizers。
+		// 返回并且不重新排队
 		return reconcile.Result{}, err
 	}
 
