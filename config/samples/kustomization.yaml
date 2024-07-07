@@ -1,7 +1,0 @@
-## Append samples you want in your CSV to this file as resources ##
-resources:
-- rainbond.io_v1alpha1_rainbondcluster.yaml
-- rainbond.io_v1alpha1_rainbondpackage.yaml
-- rainbond.io_v1alpha1_rainbondvolume.yaml
-- rainbond.io_v1alpha1_rbdcomponent.yaml
-# +kubebuilder:scaffold:manifestskustomizesamples

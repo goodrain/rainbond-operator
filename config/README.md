@@ -1,0 +1,8 @@
+- crd
+  - rainbond.io_rainbondclusters.yaml：Rainbond 集群配置，用于声明一些配置供 rbdcomponent 组件调用。
+  - rainbond.io_rainbondpackages.yaml：之前用于备份用，现已废弃。
+  - rainbond.io_rainbondvolumes.yaml：Rainbond 存储定义，用于声明 Rainbond 所使用的存储。
+  - rainbond.io_rbdcomponents.yaml：Rainbond 组件的CRD定义，用于创建真正的 deploy、sts 等资源，例如（rbd-worker、rbd-api、...）
+- prom
+  - prometheus.yml：prome的配置
+  - rules.yml：报警规则配置
