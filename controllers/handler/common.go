@@ -35,8 +35,6 @@ const (
 	RegionDatabaseName = "region"
 	// ConsoleDatabaseName -
 	ConsoleDatabaseName = "console"
-	// RdbCustomImageRepository
-	RdbCustomImageRepository = "custom-image-repository"
 )
 
 // pvcParameters holds parameters to create pvc.
@@ -431,9 +429,6 @@ func imagePullSecrets(cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alp
 		return nil
 	}
 	return []corev1.LocalObjectReference{
-		{
-			RdbCustomImageRepository,
-		},
 		*cluster.Status.ImagePullSecret,
 	}
 }
