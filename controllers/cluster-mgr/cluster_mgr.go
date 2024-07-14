@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"os"
 	"sort"
 	"time"
 
@@ -28,8 +27,6 @@ import (
 const (
 	// RdbHubCredentialsName name for rbd-hub-credentials
 	RdbHubCredentialsName = "rbd-hub-credentials"
-	// RdbCustomImageRepository
-	RdbCustomImageRepository = "custom-image-repository"
 )
 
 var provisionerAccessModes = map[string]corev1.PersistentVolumeAccessMode{
@@ -68,7 +65,7 @@ func (s k8sNodesSortByName) Len() int           { return len(s) }
 func (s k8sNodesSortByName) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s k8sNodesSortByName) Less(i, j int) bool { return s[i].Name < s[j].Name }
 
-// RainbondClusteMgr -
+//RainbondClusteMgr -
 type RainbondClusteMgr struct {
 	ctx    context.Context
 	client client.Client
@@ -78,7 +75,7 @@ type RainbondClusteMgr struct {
 	cluster *rainbondv1alpha1.RainbondCluster
 }
 
-// NewClusterMgr new Cluster Mgr
+//NewClusterMgr new Cluster Mgr
 func NewClusterMgr(ctx context.Context, client client.Client, log logr.Logger, cluster *rainbondv1alpha1.RainbondCluster, scheme *runtime.Scheme) *RainbondClusteMgr {
 	mgr := &RainbondClusteMgr{
 		ctx:     ctx,
@@ -238,49 +235,7 @@ func (r *RainbondClusteMgr) listMasterNodes(masterRoleLabelKey string) []*rainbo
 	return r.listNodesByLabels(labels)
 }
 
-func (r *RainbondClusteMgr) CreateCustomImageSecret() error {
-	var secret corev1.Secret
-	//先判断这个secret是否存在
-	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: RdbCustomImageRepository}, &secret); err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			return err
-		}
-	}
-	if config, exist := secret.Data[".dockerconfigjson"]; exist && string(config) == string(r.customImageRepositoryConfig()) {
-		r.log.V(5).Info("dockerconfig not change")
-		return nil
-	}
-	secret = corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      RdbCustomImageRepository,
-			Namespace: r.cluster.Namespace,
-		},
-		Data: map[string][]byte{
-			".dockerconfigjson": r.customImageRepositoryConfig(),
-		},
-		Type: corev1.SecretTypeDockerConfigJson,
-	}
-
-	if err := controllerutil.SetControllerReference(r.cluster, &secret, r.scheme); err != nil {
-		return fmt.Errorf("set controller reference for secret %s: %v", RdbCustomImageRepository, err)
-	}
-
-	err := r.client.Create(r.ctx, &secret)
-	if err != nil {
-		if k8sErrors.IsAlreadyExists(err) {
-			r.log.V(7).Info("update image pull secret", "name", RdbCustomImageRepository)
-			err = r.client.Update(r.ctx, &secret)
-			if err == nil {
-				return nil
-			}
-		}
-		return fmt.Errorf("create secret for pulling images: %v", err)
-	}
-
-	return nil
-}
-
-// CreateImagePullSecret create image pull secret
+//CreateImagePullSecret create image pull secret
 func (r *RainbondClusteMgr) CreateImagePullSecret() error {
 	var secret corev1.Secret
 	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: RdbHubCredentialsName}, &secret); err != nil {
@@ -332,26 +287,6 @@ func (r *RainbondClusteMgr) checkIfImagePullSecretExists() bool {
 		return false
 	}
 	return true
-}
-
-func (r *RainbondClusteMgr) customImageRepositoryConfig() []byte {
-	type dockerConfig struct {
-		Auths map[string]map[string]string `json:"auths"`
-	}
-	auth := map[string]string{
-		"username": os.Getenv("image_username"),
-		"password": os.Getenv("image_password"),
-		"auth":     base64.StdEncoding.EncodeToString([]byte(os.Getenv("image_username") + ":" + os.Getenv("image_password"))),
-	}
-
-	dockercfg := dockerConfig{
-		Auths: map[string]map[string]string{
-			os.Getenv("image_repository"): auth,
-		},
-	}
-
-	bytes, _ := ffjson.Marshal(dockercfg)
-	return bytes
 }
 
 func (r *RainbondClusteMgr) generateDockerConfig() []byte {
