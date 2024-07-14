@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"os"
 	"strconv"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
@@ -421,6 +422,14 @@ func getStorageRequest(env string, defSize int64) int64 {
 }
 
 func imagePullSecrets(cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) []corev1.LocalObjectReference {
+	customImagePullSecret := os.Getenv("CUSTOM_IMAGE_PULL_SECRETS")
+	if customImagePullSecret != "" {
+		return []corev1.LocalObjectReference{
+			{
+				Name: customImagePullSecret,
+			},
+		}
+	}
 	// pirority component does not support pulling images with credentials
 	if cpt.Spec.PriorityComponent {
 		return nil
