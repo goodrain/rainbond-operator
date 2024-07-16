@@ -1,6 +1,6 @@
 module github.com/goodrain/rainbond-operator
 
-go 1.18
+go 1.20
 
 require (
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.5+incompatible
