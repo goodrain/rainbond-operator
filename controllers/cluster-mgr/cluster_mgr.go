@@ -372,13 +372,6 @@ func (r *RainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 	memoryCondition := memory.Check()
 	r.cluster.Status.UpdateCondition(&memoryCondition)
 
-	// container network
-	if r.cluster.Spec.SentinelImage != "" {
-		containerNetworkPrechecker := precheck.NewContainerNetworkPrechecker(r.ctx, r.client, r.scheme, r.log, r.cluster)
-		containerNetworkCondition := containerNetworkPrechecker.Check()
-		r.cluster.Status.UpdateCondition(&containerNetworkCondition)
-	}
-
 	if idx, condition := r.cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeRunning); idx == -1 || condition.Status != corev1.ConditionTrue {
 		running := r.runningCondition()
 		r.cluster.Status.UpdateCondition(&running)
