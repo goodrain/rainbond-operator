@@ -119,33 +119,6 @@ func (r *RbdComponentReconciler) Reconcile(ctx context.Context, request ctrl.Req
 	}
 	mgr.SetConfigCompletedCondition()
 
-	var pkg *rainbondv1alpha1.RainbondPackage
-	if cluster.Spec.InstallMode != rainbondv1alpha1.InstallationModeFullOnline {
-		pkg = &rainbondv1alpha1.RainbondPackage{}
-		if err := r.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: constants.RainbondPackageName}, pkg); err != nil {
-			condition := packageCondition(err)
-			changed := cpt.Status.UpdateCondition(condition)
-			if changed {
-				r.Recorder.Event(cpt, corev1.EventTypeWarning, condition.Reason, condition.Message)
-				return reconcile.Result{RequeueAfter: 3 * time.Second}, mgr.UpdateStatus()
-			}
-
-			return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
-		}
-	}
-	mgr.SetPackageReadyCondition(pkg)
-
-	if !mgr.CheckPrerequisites(cluster, pkg) {
-		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse,
-			"PrerequisitesFailed", "failed to check prerequisites")
-		changed := cpt.Status.UpdateCondition(condition)
-		if changed {
-			r.Recorder.Event(cpt, corev1.EventTypeWarning, condition.Reason, condition.Message)
-			return reconcile.Result{RequeueAfter: 3 * time.Second}, mgr.UpdateStatus()
-		}
-		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
-	}
-
 	hdl := fn(ctx, r.Client, cpt, cluster)
 	if err := hdl.Before(); err != nil {
 		// TODO: merge with mgr.checkPrerequisites
@@ -322,14 +295,4 @@ func clusterCondition(err error) *rainbondv1alpha1.RbdComponentCondition {
 	}
 
 	return rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.ClusterConfigCompeleted, corev1.ConditionFalse, reason, msg)
-}
-
-func packageCondition(err error) *rainbondv1alpha1.RbdComponentCondition {
-	reason := "PackageNotFound"
-	msg := "rainbondpackage not found"
-	if !k8sErrors.IsNotFound(err) {
-		reason = "UnknownErr"
-		msg = fmt.Sprintf("failed to get rainbondpackage: %v", err)
-	}
-	return rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionFalse, reason, msg)
 }

@@ -9,10 +9,6 @@ resources:
   version: v1alpha1
 - crdVersion: v1
   group: rainbond.io
-  kind: RainbondPackage
-  version: v1alpha1
-- crdVersion: v1
-  group: rainbond.io
   kind: RainbondVolume
   version: v1alpha1
 - crdVersion: v1

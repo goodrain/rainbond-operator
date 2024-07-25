@@ -22,17 +22,6 @@ spec:
   cacheMode: hostpath
 ---
 apiVersion: rainbond.io/v1alpha1
-kind: RainbondPackage
-metadata:
-  name: rainbondpackage
-  namespace: rbd-system
-  labels: {}
-spec:
-  pkgPath: /opt/rainbond/pkg/tgz/rainbond.tgz
-  imageHubUser: ""
-  imageHubPass: ""
----
-apiVersion: rainbond.io/v1alpha1
 kind: RainbondVolume
 metadata:
   name: local-path
