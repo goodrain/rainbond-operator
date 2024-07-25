@@ -22,9 +22,6 @@ const (
 	// RainbondClusterName rainbond cluster resource name
 	RainbondClusterName = "rainbondcluster"
 
-	// RainbondPackageName rainbond package resource name
-	RainbondPackageName = "rainbondpackage"
-
 	// DefImageRepository is the default domain name of the mirror repository that Rainbond is installed.
 	DefImageRepository = "goodrain.me"
 

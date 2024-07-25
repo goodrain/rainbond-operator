@@ -78,8 +78,6 @@ type RbdComponentConditionType string
 const (
 	// ClusterConfigCompeleted indicates whether the configuration of the rainbondcluster cluster is complete.
 	ClusterConfigCompeleted RbdComponentConditionType = "ClusterConfigCompeleted"
-	// ClusterConfigCompeleted indicates whether the rainbondpackage is ready.
-	RainbondPackageReady RbdComponentConditionType = "RainbondPackageReady"
 	// RbdComponentReady means all pods related to the rbdcomponent are ready.
 	RbdComponentReady RbdComponentConditionType = "Ready"
 )

@@ -3,7 +3,6 @@ package componentmgr
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	v2 "github.com/goodrain/rainbond-operator/api/v2"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
@@ -83,44 +82,6 @@ func (r *RbdcomponentMgr) UpdateStatus() error {
 func (r *RbdcomponentMgr) SetConfigCompletedCondition() {
 	condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.ClusterConfigCompeleted, corev1.ConditionTrue, "ConfigCompleted", "")
 	_ = r.cpt.Status.UpdateCondition(condition)
-}
-
-// SetPackageReadyCondition -
-func (r *RbdcomponentMgr) SetPackageReadyCondition(pkg *rainbondv1alpha1.RainbondPackage) {
-	if pkg == nil {
-		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionTrue, "PackageReady", "")
-		_ = r.cpt.Status.UpdateCondition(condition)
-		return
-	}
-	_, pkgcondition := pkg.Status.GetCondition(rainbondv1alpha1.Ready)
-	if pkgcondition == nil {
-		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionFalse, "PackageNotReady", "")
-		_ = r.cpt.Status.UpdateCondition(condition)
-		return
-	}
-	if pkgcondition.Status != rainbondv1alpha1.Completed {
-		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionFalse, "PackageNotReady", pkgcondition.Message)
-		_ = r.cpt.Status.UpdateCondition(condition)
-		return
-	}
-	condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RainbondPackageReady, corev1.ConditionTrue, "PackageReady", "")
-	_ = r.cpt.Status.UpdateCondition(condition)
-}
-
-// CheckPrerequisites -
-func (r *RbdcomponentMgr) CheckPrerequisites(cluster *rainbondv1alpha1.RainbondCluster, pkg *rainbondv1alpha1.RainbondPackage) bool {
-	if r.cpt.Spec.PriorityComponent {
-		// If ImageHub is empty, the priority component no need to wait until rainbondpackage is completed.
-		return true
-	}
-	// Otherwise, we have to make sure rainbondpackage is completed before we create the resource.
-	if cluster.Spec.InstallMode != rainbondv1alpha1.InstallationModeFullOnline {
-		if err := checkPackageStatus(pkg); err != nil {
-			r.log.V(6).Info(err.Error())
-			return false
-		}
-	}
-	return true
 }
 
 // GenerateStatus -
@@ -439,20 +400,6 @@ func (r *RbdcomponentMgr) deleteResourcesIfExists(obj client.Object) error {
 	err := r.client.Delete(r.ctx, obj, &client.DeleteOptions{GracePeriodSeconds: commonutil.Int64(0)})
 	if err != nil && !k8sErrors.IsNotFound(err) {
 		return err
-	}
-	return nil
-}
-
-func checkPackageStatus(pkg *rainbondv1alpha1.RainbondPackage) error {
-	var packageCompleted bool
-	for _, cond := range pkg.Status.Conditions {
-		if cond.Type == rainbondv1alpha1.Ready && cond.Status == rainbondv1alpha1.Completed {
-			packageCompleted = true
-			break
-		}
-	}
-	if !packageCompleted {
-		return errors.New("rainbond package is not completed in InstallationModeWithoutPackage mode")
 	}
 	return nil
 }

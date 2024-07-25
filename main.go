@@ -84,20 +84,12 @@ func main() {
 		Client:   mgr.GetClient(),
 		Log:      ctrl.Log.WithName("controllers").WithName("RainbondCluster"),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("RainbondPackage"),
+		Recorder: mgr.GetEventRecorderFor("RainbondCluster"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RainbondCluster")
 		os.Exit(1)
 	}
-	if err = (&controllers.RainbondPackageReconciler{
-		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("RainbondPackage"),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("RainbondPackage"),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "RainbondPackage")
-		os.Exit(1)
-	}
+
 	if err = (&controllers.RainbondVolumeReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("RainbondVolume"),
