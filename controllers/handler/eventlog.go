@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
-	"path"
 	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
@@ -187,7 +186,6 @@ func (e *eventlog) statefulset() client.Object {
 		volume, mount := volumeByEtcd(e.etcdSecret)
 		volumeMounts = append(volumeMounts, mount)
 		volumes = append(volumes, volume)
-		args = append(args, eventLogEtcdArgs()...)
 	}
 
 	env := []corev1.EnvVar{
@@ -266,12 +264,4 @@ func (e *eventlog) statefulset() client.Object {
 	}
 
 	return sts
-}
-
-func eventLogEtcdArgs() []string {
-	return []string{
-		"--discover.etcd.ca=" + path.Join(EtcdSSLPath, "ca-file"),
-		"--discover.etcd.cert=" + path.Join(EtcdSSLPath, "cert-file"),
-		"--discover.etcd.key=" + path.Join(EtcdSSLPath, "key-file"),
-	}
 }
