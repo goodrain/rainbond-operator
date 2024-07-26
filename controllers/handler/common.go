@@ -329,6 +329,14 @@ func getNodeNames(cli client.Client) ([]string, error) {
 	return nodeNames, nil
 }
 
+func getNodeInfo(cli client.Client) (*corev1.NodeList, error) {
+	nodeList := &corev1.NodeList{}
+	if err := cli.List(context.Background(), nodeList); err != nil {
+		return nil, err
+	}
+	return nodeList, nil
+}
+
 func affinityForRequiredNodes(nodeNames []string) *corev1.Affinity {
 	return &corev1.Affinity{
 		NodeAffinity: &corev1.NodeAffinity{

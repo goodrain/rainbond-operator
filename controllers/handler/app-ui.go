@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
 
@@ -99,11 +100,25 @@ func (a *appui) Resources() []client.Object {
 	}
 
 	// 获取所有的node name
-	names, err := getNodeNames(a.client)
+	//names, err := getNodeNames(a.client)
+	//
+	//if err == nil {
+	//	for i, name := range names {
+	//		res = append(res, a.nodeJob(affinityForRequiredNodes([]string{name}), i))
+	//	}
+	//} else {
+	//	log.Error(err, "get node names step")
+	//}
 
+	//在获取到节点后，去检测节点的运行时
+	nodeList, err := getNodeInfo(a.client)
 	if err == nil {
-		for i, name := range names {
-			res = append(res, a.nodeJob(affinityForRequiredNodes([]string{name}), i))
+		for i, n := range nodeList.Items {
+			containerRuntime := strings.Split(n.Status.NodeInfo.ContainerRuntimeVersion, ":")
+			if len(containerRuntime) != 0 && containerRuntime[0] == "containerd" {
+				continue
+			}
+			res = append(res, a.nodeJob(affinityForRequiredNodes([]string{n.Name}), i))
 		}
 	} else {
 		log.Error(err, "get node names step")
