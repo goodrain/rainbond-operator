@@ -444,21 +444,8 @@ func (a *apigateway) service() client.Object {
 			Labels:    a.labels,
 		},
 		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeLoadBalancer,
 			Ports: []corev1.ServicePort{
-				{
-					Name: "admin",
-					Port: int32(7070),
-					TargetPort: intstr.IntOrString{
-						IntVal: int32(7070),
-					},
-				},
-				{
-					Name: "user",
-					Port: int32(7071),
-					TargetPort: intstr.IntOrString{
-						IntVal: int32(7071),
-					},
-				},
 				{
 					Name: "http",
 					Port: int32(80),
