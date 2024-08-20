@@ -66,7 +66,6 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.Parse()
 
 	// Custom zap configuration for JSON formatted logs
 	timeEncoder := func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
@@ -86,14 +85,15 @@ func main() {
 	}
 
 	zapOpts := []zap.Option{zap.AddCaller()}
+
 	opts := logzap.Options{
 		Development:     true,
 		Encoder:         zapcore.NewJSONEncoder(encoderConfig),
-		Level:           zapcore.InfoLevel,
 		StacktraceLevel: zapcore.DPanicLevel,
 		ZapOpts:         zapOpts,
 	}
-
+	opts.BindFlags(flag.CommandLine)
+	flag.Parse()
 	ctrl.SetLogger(logzap.New(logzap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
