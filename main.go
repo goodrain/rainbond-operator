@@ -19,21 +19,25 @@ package main
 import (
 	"flag"
 	apisixv2 "github.com/goodrain/rainbond-operator/api/v2"
+	"github.com/goodrain/rainbond-operator/controllers"
+	"go.uber.org/zap/zapcore"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"time"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "github.com/go-sql-driver/mysql"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	kubeaggregatorv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	logzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	rainbondiov1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/controllers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -62,13 +66,35 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	opts := zap.Options{
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	// Custom zap configuration for JSON formatted logs
+	timeEncoder := func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+		enc.AppendString(t.Format("2006-01-02 15:04:05.000"))
+	}
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		CallerKey:      "caller",
+		MessageKey:     "message",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.LowercaseLevelEncoder, // 将日志级别转为小写
+		EncodeTime:     timeEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+		EncodeCaller:   zapcore.FullCallerEncoder, // 显示完整的调用路径
+	}
+
+	zapOpts := []zap.Option{zap.AddCaller()}
+	opts := logzap.Options{
+		Development:     true,
+		Encoder:         zapcore.NewJSONEncoder(encoderConfig),
+		Level:           zapcore.InfoLevel,
+		StacktraceLevel: zapcore.DPanicLevel,
+		ZapOpts:         zapOpts,
+	}
+
+	ctrl.SetLogger(logzap.New(logzap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
