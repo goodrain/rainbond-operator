@@ -1,3 +1,20 @@
+/*
+precheck 包为 Operator 提供了安装平台集群所需的环境和参数的预检查功能。
+
+该包中的 `storage` 结构体实现了存储资源的预检查器，用于检查 Kubernetes 集群中指定的 PersistentVolumeClaim (PVC) 是否已绑定，并确保存储类 (StorageClass) 配置正确。
+
+`NewStorage` 函数创建一个新的存储预检查器实例，该实例用于执行存储资源的检查，并将检查结果作为 `RainbondClusterCondition` 返回。
+
+主要组件：
+- `storage`：一个结构体，包含上下文、Kubernetes 客户端、命名空间和 RainbondVolumeSpec，用于执行存储资源的预检查。
+- `NewStorage`：一个函数，用于创建新的 `storage` 预检查器实例。
+- `Check`：`storage` 结构体上的一个方法，执行存储资源的检查，并返回表示检查状态的 `RainbondClusterCondition`。如果 PVC 未绑定或存在其他存储问题，将返回失败的条件状态。
+- `isPVCBound`：一个辅助方法，用于检查指定的 PVC 是否已绑定。
+- `pvcForGrdata`：一个辅助方法，用于创建与 Rainbond 相关的 PVC 资源。
+- `failCondition`：`storage` 结构体上的一个辅助方法，用于设置检查失败时的状态和错误消息，并返回失败的 `RainbondClusterCondition`。
+- `eventListToString`：一个辅助函数，用于将与 PVC 相关的事件列表转换为字符串形式，以便在日志和消息中使用。
+*/
+
 package precheck
 
 import (
@@ -22,7 +39,7 @@ type storage struct {
 	rwx    *rainbondv1alpha1.RainbondVolumeSpec
 }
 
-//NewStorage -
+// NewStorage -
 func NewStorage(ctx context.Context, client client.Client, ns string, rwx *rainbondv1alpha1.RainbondVolumeSpec) PreChecker {
 	return &storage{
 		ctx:    ctx,

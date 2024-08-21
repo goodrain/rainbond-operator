@@ -1,3 +1,17 @@
+/*
+precheck 包为 Operator 提供了预检查功能。
+
+该包中的 `k8sversion` 结构体实现了 Kubernetes 版本的预检查器，用于检查当前 Kubernetes 集群的版本是否符合平台所需的最低版本要求（v1.13.0 及以上）。
+
+`NewK8sVersionPrechecker` 函数创建一个新的 Kubernetes 版本预检查器实例，该实例用于执行 Kubernetes 版本的检查，并将检查结果作为 `RainbondClusterCondition` 返回。
+
+主要组件：
+- `k8sversion`：一个结构体，包含上下文、日志记录器和 Kubernetes 客户端，用于执行 Kubernetes 版本的预检查。
+- `NewK8sVersionPrechecker`：一个函数，用于创建新的 `k8sversion` 预检查器实例。
+- `Check`：`k8sversion` 结构体上的一个方法，执行 Kubernetes 版本的检查，并返回表示检查状态的 `RainbondClusterCondition`。如果 Kubernetes 版本低于 v1.13.0，将返回失败的条件状态。
+- `getKubernetesVersion`：一个辅助方法，用于获取当前 Kubernetes 集群的版本信息。如果获取失败或版本不符合要求，将返回相应的错误信息。
+*/
+
 package precheck
 
 import (
