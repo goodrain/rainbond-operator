@@ -9,10 +9,8 @@ import (
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
-	"github.com/goodrain/rainbond-operator/util/suffixdomain"
 	"github.com/goodrain/rainbond-operator/util/uuidutil"
 	"github.com/juju/errors"
-	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,7 +21,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
 	"time"
 )
 
@@ -240,36 +237,6 @@ func (r *RainbondClusterReconciler) getImageHub(cluster *rainbondv1alpha1.Rainbo
 		Username: "admin",
 		Password: rbdutil.GetenvDefault("RBD_HUB_PASSWORD", uuidutil.NewUUID()[0:8]),
 	}, nil
-}
-
-func (r *RainbondClusterReconciler) genSuffixHTTPHost(ip string, rainbondcluster *rainbondv1alpha1.RainbondCluster) (domain string, err error) {
-	id, auth, err := r.getOrCreateUUIDAndAuth(rainbondcluster)
-	if err != nil {
-		return "", err
-	}
-	domain, err = suffixdomain.GenerateDomain(ip, id, auth)
-	if err != nil {
-		return "", err
-	}
-	return domain, nil
-}
-
-func (r *RainbondClusterReconciler) getOrCreateUUIDAndAuth(rainbondcluster *rainbondv1alpha1.RainbondCluster) (id, auth string, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-	cm := &corev1.ConfigMap{}
-	err = r.Client.Get(context.Background(), types.NamespacedName{Name: "rbd-suffix-host", Namespace: rainbondcluster.Namespace}, cm)
-	if err != nil && !strings.Contains(err.Error(), "not found") {
-		return "", "", err
-	}
-	if err != nil && strings.Contains(err.Error(), "not found") {
-		logrus.Info("not found configmap rbd-suffix-host, create it")
-		cm = suffixdomain.GenerateSuffixConfigMap("rbd-suffix-host", rainbondcluster.Namespace)
-		if err = r.Client.Create(ctx, cm); err != nil {
-			return "", "", err
-		}
-	}
-	return cm.Data["uuid"], cm.Data["auth"], nil
 }
 
 // GetRainbondGatewayNodeAndChaosNodes get gateway nodes

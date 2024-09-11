@@ -10,20 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// MakeLivenessProbeHTTP -
-func MakeLivenessProbeHTTP(host, path string, port int) *corev1.Probe {
-	probe := MakeProbe(ProbeKindHTTP, host, path, port, corev1.URISchemeHTTP, nil)
-	SetProbeArgs(probe, 10, 5, 10, 0, 0)
-	return probe
-}
-
-// MakeLivenessProbeTCP -
-func MakeLivenessProbeTCP(host string, port int) *corev1.Probe {
-	probe := MakeProbe(ProbeKindTCP, host, "", port, corev1.URISchemeHTTP, nil)
-	SetProbeArgs(probe, 10, 5, 10, 0, 0)
-	return probe
-}
-
 // MakeReadinessProbeHTTP -
 func MakeReadinessProbeHTTP(host, path string, port int) *corev1.Probe {
 	probe := MakeProbe(ProbeKindHTTP, host, path, port, corev1.URISchemeHTTP, nil)
