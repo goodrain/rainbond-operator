@@ -344,7 +344,6 @@ func (a *apigateway) deploy() client.Object {
 					Affinity:                      affinity,
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
-					HostNetwork:                   true,
 					DNSPolicy:                     corev1.DNSClusterFirst,
 					RestartPolicy:                 corev1.RestartPolicyAlways,
 					SchedulerName:                 "default-scheduler",
