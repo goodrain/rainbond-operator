@@ -426,7 +426,7 @@ func (a *appui) migrationsJob() *batchv1.Job {
 		},
 		{
 			Name:  "REGION_WS_URL",
-			Value: fmt.Sprintf("ws://%s:%s", a.cluster.GatewayIngressIP(), rbdutil.GetenvDefault("API_WS_PORT", "6060")),
+			Value: fmt.Sprintf("ws://%s:%s", a.cluster.GatewayIngressIP(), rbdutil.GetenvDefault("API_WS_PORT", "32060")),
 		},
 		{
 			Name:  "REGION_HTTP_DOMAIN",

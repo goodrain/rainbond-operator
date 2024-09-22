@@ -95,9 +95,6 @@ func (a *api) Resources() []client.Object {
 	resources := a.secretAndConfigMapForAPI()
 	resources = append(resources, a.deployment())
 	resources = append(resources, a.createService()...)
-	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-api", 8443))
-	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-healthz", 8889))
-	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-websocket", 6060))
 	return resources
 }
 
@@ -263,8 +260,9 @@ func (a *api) deployment() client.Object {
 
 func (a *api) createService() []client.Object {
 	APIPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_PORT", "8443"), 10, 32)
+	APINodePort, _ := strconv.ParseInt(rbdutil.GetenvDefault("APINodePort", "32443"), 10, 32)
 	APIWebsocketPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_WS_PORT", "6060"), 10, 32)
-
+	APIWebsocketNodePort, _ := strconv.ParseInt(rbdutil.GetenvDefault("APIWebsocketNodePort", "32060"), 10, 32)
 	svcAPI := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      APIName + "-api",
@@ -279,9 +277,11 @@ func (a *api) createService() []client.Object {
 					TargetPort: intstr.IntOrString{
 						IntVal: int32(APIPort),
 					},
+					NodePort: int32(APINodePort),
 				},
 			},
 			Selector: a.labels,
+			Type:     corev1.ServiceTypeNodePort,
 		},
 	}
 
@@ -299,9 +299,11 @@ func (a *api) createService() []client.Object {
 					TargetPort: intstr.IntOrString{
 						IntVal: int32(APIWebsocketPort),
 					},
+					NodePort: int32(APIWebsocketNodePort),
 				},
 			},
 			Selector: a.labels,
+			Type:     corev1.ServiceTypeNodePort,
 		},
 	}
 
@@ -379,12 +381,12 @@ func (a *api) secretAndConfigMapForAPI() []client.Object {
 		}
 	}
 	//rbd-api-api domain support in cluster
-	serverPem, serverKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "rbd-api-api")
+	serverPem, serverKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "rbd-api-api", rbdutil.GetenvDefault("RBD_API_DOMAIN", "*.appstore.9n1m.com"))
 	if err != nil {
 		log.Error(err, "create serverSecret cert for api")
 		return nil
 	}
-	clientPem, clientKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "rbd-api-api")
+	clientPem, clientKey, err := ca.CreateCert(a.cluster.GatewayIngressIPs(), "rbd-api-api", rbdutil.GetenvDefault("RBD_API_DOMAIN", "*.appstore.9n1m.com"))
 	if err != nil {
 		log.Error(err, "create client cert for api")
 		return nil
@@ -424,16 +426,16 @@ func (a *api) secretAndConfigMapForAPI() []client.Object {
 		},
 	})
 
-	APIPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_PORT", "8443"), 10, 64)
-	APIWebsocketPort, _ := strconv.ParseInt(rbdutil.GetenvDefault("API_WS_PORT", "6060"), 10, 64)
+	APINodePort, _ := strconv.ParseInt(rbdutil.GetenvDefault("APINodePort", "32443"), 10, 32)
+	APIWebsocketNodePort, _ := strconv.ParseInt(rbdutil.GetenvDefault("APIWebsocketNodePort", "32060"), 10, 32)
 	re = append(re, &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "region-config",
 			Namespace: a.component.Namespace,
 		},
 		Data: map[string]string{
-			"apiAddress":          fmt.Sprintf("https://%s:%d", a.cluster.GatewayIngressIP(), APIPort),
-			"websocketAddress":    fmt.Sprintf("ws://%s:%d", a.cluster.GatewayIngressIP(), APIWebsocketPort),
+			"apiAddress":          fmt.Sprintf("https://%s:%d", a.cluster.GatewayIngressIP(), APINodePort),
+			"websocketAddress":    fmt.Sprintf("ws://%s:%d", a.cluster.GatewayIngressIP(), APIWebsocketNodePort),
 			"defaultDomainSuffix": a.cluster.Spec.SuffixHTTPHost,
 			"defaultTCPHost":      a.cluster.GatewayIngressIP(),
 		},
