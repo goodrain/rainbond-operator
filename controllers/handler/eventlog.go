@@ -8,7 +8,6 @@ import (
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -29,12 +28,10 @@ type eventlog struct {
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
 
-	pvcParametersRWX *pvcParameters
-	storageRequest   int64
+	storageRequest int64
 }
 
 var _ ComponentHandler = &eventlog{}
-var _ StorageClassRWXer = &eventlog{}
 var _ ResourcesCreator = &eventlog{}
 var _ ResourcesDeleter = &eventlog{}
 
@@ -67,16 +64,7 @@ func (e *eventlog) Before() error {
 		return fmt.Errorf("failed to get etcd secret: %v", err)
 	}
 	e.etcdSecret = secret
-
-	if e.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		sc, err := storageClassNameFromRainbondVolumeRWO(e.ctx, e.client, e.component.Namespace)
-		if err != nil {
-			return err
-		}
-		e.SetStorageClassNameRWX(sc)
-		return nil
-	}
-	return setStorageCassName(e.ctx, e.client, e.component.Namespace, e)
+	return nil
 }
 
 func (e *eventlog) Resources() []client.Object {
@@ -94,20 +82,8 @@ func (e *eventlog) ListPods() ([]corev1.Pod, error) {
 	return listPods(e.ctx, e.client, e.component.Namespace, e.labels)
 }
 
-func (e *eventlog) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
-	e.pvcParametersRWX = pvcParameters
-}
-
 func (e *eventlog) ResourcesCreateIfNotExists() []client.Object {
-	if e.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		return []client.Object{
-			createPersistentVolumeClaimRWO(e.component.Namespace, constants.GrDataPVC, e.pvcParametersRWX, e.labels, e.storageRequest),
-		}
-	}
-	return []client.Object{
-		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(e.component.Namespace, constants.GrDataPVC, e.pvcParametersRWX, e.labels, e.storageRequest),
-	}
+	return []client.Object{}
 }
 
 func (e *eventlog) ResourcesNeedDelete() []client.Object {
@@ -166,22 +142,8 @@ func (e *eventlog) statefulset() client.Object {
 		args = append(args, "--db.url="+strings.Replace(e.db.RegionDataSource(), "--mysql=", "", 1))
 	}
 
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      "grdata",
-			MountPath: "/grdata",
-		},
-	}
-	volumes := []corev1.Volume{
-		{
-			Name: "grdata",
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: constants.GrDataPVC,
-				},
-			},
-		},
-	}
+	var volumeMounts []corev1.VolumeMount
+	var volumes []corev1.Volume
 	if e.etcdSecret != nil {
 		volume, mount := volumeByEtcd(e.etcdSecret)
 		volumeMounts = append(volumeMounts, mount)

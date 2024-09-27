@@ -137,8 +137,6 @@ type RainbondClusterSpec struct {
 	InstallVersion string `json:"installVersion,omitempty"`
 	// CIVersion define builder and runner version
 	CIVersion string `json:"ciVersion,omitempty"`
-	// Whether the configuration has been completed
-	ConfigCompleted bool `json:"configCompleted,omitempty"`
 
 	RainbondVolumeSpecRWX *RainbondVolumeSpec `json:"rainbondVolumeSpecRWX,omitempty"`
 	RainbondVolumeSpecRWO *RainbondVolumeSpec `json:"rainbondVolumeSpecRWO,omitempty"`
@@ -149,7 +147,7 @@ type RainbondClusterSpec struct {
 	CacheMode string `json:"cacheMode,omitempty"`
 }
 
-//InstallPackageConfig define install package download config
+// InstallPackageConfig define install package download config
 type InstallPackageConfig struct {
 	URL string `json:"url,omitempty"`
 	MD5 string `json:"md5,omitempty"`
@@ -249,7 +247,7 @@ func (in *RainbondCluster) GatewayIngressIP() string {
 	return ""
 }
 
-//GatewayIngressIPs get all gateway ips
+// GatewayIngressIPs get all gateway ips
 func (in *RainbondCluster) GatewayIngressIPs() (ips []string) {
 	// custom ip ,contain eip
 	if len(in.Spec.GatewayIngressIPs) > 0 && in.Spec.GatewayIngressIPs[0] != "" {
@@ -334,7 +332,7 @@ func (r *RainbondClusterStatus) UpdateCondition(condition *RainbondClusterCondit
 	return !isEqual
 }
 
-//DeleteCondition -
+// DeleteCondition -
 func (r *RainbondClusterStatus) DeleteCondition(typ3 RainbondClusterConditionType) {
 	idx, _ := r.GetCondition(typ3)
 	if idx == -1 {

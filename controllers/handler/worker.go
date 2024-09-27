@@ -11,10 +11,8 @@ import (
 
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 
-	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/constants"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	"github.com/goodrain/rainbond-operator/util/commonutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -34,12 +32,10 @@ type worker struct {
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
 
-	pvcParametersRWX *pvcParameters
-	storageRequest   int64
+	storageRequest int64
 }
 
 var _ ComponentHandler = &worker{}
-var _ StorageClassRWXer = &worker{}
 
 // NewWorker creates a new rbd-worker hanlder.
 func NewWorker(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -70,17 +66,7 @@ func (w *worker) Before() error {
 		return fmt.Errorf("failed to get etcd secret: %v", err)
 	}
 	w.etcdSecret = secret
-
-	if w.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		sc, err := storageClassNameFromRainbondVolumeRWO(w.ctx, w.client, w.component.Namespace)
-		if err != nil {
-			return err
-		}
-		w.SetStorageClassNameRWX(sc)
-		return nil
-	}
-
-	return setStorageCassName(w.ctx, w.client, w.component.Namespace, w)
+	return nil
 }
 
 func (w *worker) Resources() []client.Object {
@@ -98,39 +84,13 @@ func (w *worker) ListPods() ([]corev1.Pod, error) {
 	return listPods(w.ctx, w.client, w.component.Namespace, w.labels)
 }
 
-func (w *worker) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
-	w.pvcParametersRWX = pvcParameters
-}
-
 func (w *worker) ResourcesCreateIfNotExists() []client.Object {
-	if w.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		return []client.Object{
-			createPersistentVolumeClaimRWO(w.component.Namespace, constants.GrDataPVC, w.pvcParametersRWX, w.labels, w.storageRequest),
-		}
-	}
-	return []client.Object{
-		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(w.component.Namespace, constants.GrDataPVC, w.pvcParametersRWX, w.labels, w.storageRequest),
-	}
+	return []client.Object{}
 }
 
 func (w *worker) deployment() client.Object {
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      "grdata",
-			MountPath: "/grdata",
-		},
-	}
-	volumes := []corev1.Volume{
-		{
-			Name: "grdata",
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: constants.GrDataPVC,
-				},
-			},
-		},
-	}
+	var volumeMounts []corev1.VolumeMount
+	var volumes []corev1.Volume
 	args := []string{
 		"--host-ip=$(POD_IP)",
 		"--node-name=$(POD_IP)",

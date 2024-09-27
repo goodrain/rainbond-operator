@@ -14,12 +14,6 @@ type ComponentHandler interface {
 	ListPods() ([]corev1.Pod, error)
 }
 
-// StorageClassRWXer provides methods to setup storageclass with
-// access mode RWX for rbdcomponent.
-type StorageClassRWXer interface {
-	SetStorageClassNameRWX(pvcParameters *pvcParameters)
-}
-
 // StorageClassRWOer provides methods to setup storageclass with
 // access mode RWO for rbdcomponent.
 type StorageClassRWOer interface {

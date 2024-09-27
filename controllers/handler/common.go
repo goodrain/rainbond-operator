@@ -207,81 +207,19 @@ func etcdSSLArgs() []string {
 	return []string{}
 }
 
-func storageClassNameFromRainbondVolumeRWX(ctx context.Context, cli client.Client, ns string) (*pvcParameters, error) {
-	return storageClassNameFromRainbondVolume(ctx, cli, ns, false)
-}
-
-func storageClassNameFromRainbondVolumeRWO(ctx context.Context, cli client.Client, ns string) (*pvcParameters, error) {
-	pvcParameters, err := storageClassNameFromRainbondVolume(ctx, cli, ns, true)
-	if err != nil {
-		if !IsRainbondVolumeNotFound(err) {
-			return nil, err
-		}
-		return storageClassNameFromRainbondVolumeRWX(ctx, cli, ns)
+func storageClassNameFromLocalPath() *pvcParameters {
+	return &pvcParameters{
+		storageClassName: "local-path",
 	}
-	return pvcParameters, nil
-}
-
-func storageClassNameFromRainbondVolume(ctx context.Context, cli client.Client, ns string, rwo bool) (*pvcParameters, error) {
-	var labels map[string]string
-	if rwo {
-		labels = rbdutil.LabelsForAccessModeRWO()
-	} else {
-		labels = rbdutil.LabelsForAccessModeRWX()
-	}
-	volumeList := &rainbondv1alpha1.RainbondVolumeList{}
-	var opts []client.ListOption
-	opts = append(opts, client.InNamespace(ns))
-	opts = append(opts, client.MatchingLabels(labels))
-	if err := cli.List(ctx, volumeList, opts...); err != nil {
-		return nil, err
-	}
-
-	if len(volumeList.Items) == 0 {
-		return nil, NewIgnoreError(rainbondVolumeNotFound)
-	}
-
-	volume := volumeList.Items[0]
-	if volume.Spec.StorageClassName == "" {
-		return nil, NewIgnoreError("storage class not ready")
-	}
-
-	pvcParameters := &pvcParameters{
-		storageClassName: volume.Spec.StorageClassName,
-	}
-	if !rwo {
-		pvcParameters.storageRequest = commonutil.Int32(1)
-	}
-	return pvcParameters, nil
 }
 
 func setStorageCassName(ctx context.Context, cli client.Client, ns string, obj interface{}) error {
-	storageClassRWXer, ok := obj.(StorageClassRWXer)
-	if ok {
-		sc, err := storageClassNameFromRainbondVolumeRWX(ctx, cli, ns)
-		if err != nil {
-			return err
-		}
-		storageClassRWXer.SetStorageClassNameRWX(sc)
-	}
-
 	storageClassRWOer, ok := obj.(StorageClassRWOer)
 	if ok {
-		sc, err := storageClassNameFromRainbondVolumeRWO(ctx, cli, ns)
-		if err != nil {
-			return err
-		}
+		sc := storageClassNameFromLocalPath()
 		storageClassRWOer.SetStorageClassNameRWO(sc)
 	}
-
 	return nil
-}
-
-func createPersistentVolumeClaimRWX(ns, claimName string, pvcParameters *pvcParameters, labels map[string]string, storageRequest int64) *corev1.PersistentVolumeClaim {
-	accessModes := []corev1.PersistentVolumeAccessMode{
-		corev1.ReadWriteMany,
-	}
-	return createPersistentVolumeClaim(ns, claimName, accessModes, pvcParameters, labels, storageRequest)
 }
 
 func createPersistentVolumeClaimRWO(ns, claimName string, pvcParameters *pvcParameters, labels map[string]string, storageRequest int64) *corev1.PersistentVolumeClaim {
@@ -401,23 +339,6 @@ func listPods(ctx context.Context, cli client.Client, namespace string, labels m
 		log.V(6).Info("pod list is empty", "labels", labels)
 	}
 	return podList.Items, nil
-}
-
-func isEtcdAvailable(ctx context.Context, cli client.Client, cpt *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) error {
-	if cluster.Spec.EtcdConfig != nil {
-		return nil
-	}
-
-	dbcpt := &rainbondv1alpha1.RbdComponent{}
-	if err := cli.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: EtcdName}, dbcpt); err != nil {
-		return err
-	}
-
-	if dbcpt.Status.ReadyReplicas == 0 {
-		return errors.New("no ready replicas for rbdcomponent rbd-etcd")
-	}
-
-	return nil
 }
 
 func getStorageRequest(env string, defSize int64) int64 {

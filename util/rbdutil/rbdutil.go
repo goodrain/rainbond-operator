@@ -43,13 +43,6 @@ func GetImageRepositoryDomain(cluster *rainbondv1alpha1.RainbondCluster) string 
 	return cluster.Spec.ImageHub.Domain
 }
 
-// LabelsForAccessModeRWX returns rainbond labels with access mode rwx.
-func LabelsForAccessModeRWX() map[string]string {
-	return map[string]string{
-		"accessModes": "rwx",
-	}
-}
-
 // LabelsForAccessModeRWO returns rainbond labels with access mode rwo.
 func LabelsForAccessModeRWO() map[string]string {
 	return map[string]string{

@@ -275,7 +275,7 @@ func (a *apigateway) deploy() client.Object {
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      GatewayName,
+					Name:      ApiGatewayName,
 					Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 					Labels:    a.labels,
 				},

@@ -7,7 +7,6 @@ import (
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/controllers/handler"
-	"github.com/goodrain/rainbond-operator/util/constants"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -21,15 +20,10 @@ func init() {
 	AddHandlerFunc(handler.MonitorName, handler.NewMonitor)
 	AddHandlerFunc(handler.WorkerName, handler.NewWorker)
 	AddHandlerFunc(handler.MQName, handler.NewMQ)
-	AddHandlerFunc(handler.ResourceProxyName, handler.NewResourceProxy)
 	AddHandlerFunc(handler.DBName, handler.NewDB)
 	AddHandlerFunc(handler.WebCliName, handler.NewWebCli)
-	AddHandlerFunc(handler.KubernetesDashboardName, handler.NewK8sDashboard)
-	AddHandlerFunc(handler.NFSName, handler.NewNFS)
-	AddHandlerFunc(constants.AliyunCSINasPlugin, handler.NewAliyunCSINasPlugin)
-	AddHandlerFunc(constants.AliyunCSINasProvisioner, handler.NewAliyunCSINasProvisioner)
-	AddHandlerFunc(constants.AliyunCSIDiskPlugin, handler.NewAliyunCSIDiskPlugin)
-	AddHandlerFunc(constants.AliyunCSIDiskProvisioner, handler.NewaliyunCSIDiskProvisioner)
+	AddHandlerFunc(handler.LocalPathName, handler.NewLocalPath)
+	AddHandlerFunc(handler.MinIOName, handler.NewMinIO)
 }
 
 type handlerFunc func(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) handler.ComponentHandler

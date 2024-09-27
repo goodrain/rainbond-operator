@@ -35,12 +35,10 @@ type hub struct {
 	password string
 	htpasswd []byte
 
-	pvcParametersRWX *pvcParameters
-	storageRequest   int64
+	storageRequest int64
 }
 
 var _ ComponentHandler = &hub{}
-var _ StorageClassRWXer = &hub{}
 
 // NewHub nw hub
 func NewHub(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -69,16 +67,7 @@ func (h *hub) Before() error {
 	}
 	h.htpasswd = htpasswd
 
-	if h.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		sc, err := storageClassNameFromRainbondVolumeRWO(h.ctx, h.client, h.component.Namespace)
-		if err != nil {
-			return err
-		}
-		h.SetStorageClassNameRWX(sc)
-		return nil
-	}
-
-	return setStorageCassName(h.ctx, h.client, h.component.Namespace, h)
+	return nil
 }
 
 func (h *hub) Resources() []client.Object {
@@ -87,7 +76,6 @@ func (h *hub) Resources() []client.Object {
 		h.passwordSecret(),
 		h.deployment(),
 		h.serviceForHub(),
-		h.persistentVolumeClaimForHub(),
 		h.hubImageRepository(), // 绑定这个镜像仓库的secret
 		h.ingressForHub(),      //创建这个域名的路由
 	}
@@ -162,10 +150,6 @@ func (h *hub) ListPods() ([]corev1.Pod, error) {
 	return listPods(h.ctx, h.client, h.component.Namespace, h.labels)
 }
 
-func (h *hub) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
-	h.pvcParametersRWX = pvcParameters
-}
-
 func (h *hub) deployment() client.Object {
 	env := []corev1.EnvVar{
 		{
@@ -187,24 +171,12 @@ func (h *hub) deployment() client.Object {
 	}
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      "hubdata",
-			MountPath: "/var/lib/registry",
-		},
-		{
 			Name:      "htpasswd",
 			MountPath: "/auth",
 			ReadOnly:  true,
 		},
 	}
 	volumes := []corev1.Volume{
-		{
-			Name: "hubdata",
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: hubDataPvcName,
-				},
-			},
-		},
 		{
 			Name: "htpasswd",
 			VolumeSource: corev1.VolumeSource{
@@ -285,13 +257,6 @@ func (h *hub) serviceForHub() client.Object {
 	}
 
 	return svc
-}
-
-func (h *hub) persistentVolumeClaimForHub() *corev1.PersistentVolumeClaim {
-	if h.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		return createPersistentVolumeClaimRWO(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels, h.storageRequest)
-	}
-	return createPersistentVolumeClaimRWX(h.component.Namespace, hubDataPvcName, h.pvcParametersRWX, h.labels, h.storageRequest)
 }
 
 func (h *hub) secretForHub() client.Object {

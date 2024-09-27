@@ -25,12 +25,6 @@ const (
 	// DefImageRepository is the default domain name of the mirror repository that Rainbond is installed.
 	DefImageRepository = "goodrain.me"
 
-	// GrDataPVC -
-	GrDataPVC = "rbd-cpt-grdata"
-
-	// CachePVC -
-	CachePVC = "rbd-chaos-cache"
-
 	// FoobarPVC -
 	FoobarPVC = "foobar"
 
@@ -54,7 +48,4 @@ const (
 
 	// AliyunCSINasProvisioner name for aliyun csi nas provisioner
 	AliyunCSINasProvisioner = "aliyun-csi-nas-provisioner"
-
-	// ServiceAccountName is the name of service account
-	ServiceAccountName = "rainbond-operator"
 )

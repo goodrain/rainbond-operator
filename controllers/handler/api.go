@@ -12,7 +12,6 @@ import (
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -39,14 +38,11 @@ type api struct {
 	component                *rainbondv1alpha1.RbdComponent
 	cluster                  *rainbondv1alpha1.RainbondCluster
 
-	pvcParametersRWX     *pvcParameters
-	pvcName              string
 	dataStorageRequest   int64
 	grdataStorageRequest int64
 }
 
 var _ ComponentHandler = &api{}
-var _ StorageClassRWXer = &api{}
 
 // NewAPI new api handle
 func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -56,7 +52,6 @@ func NewAPI(ctx context.Context, client client.Client, component *rainbondv1alph
 		component:            component,
 		cluster:              cluster,
 		labels:               LabelsForRainbondComponent(component),
-		pvcName:              "rbd-api",
 		dataStorageRequest:   getStorageRequest("API_DATA_STORAGE_REQUEST", 1),
 		grdataStorageRequest: getStorageRequest("GRDATA_STORAGE_REQUEST", 20),
 	}
@@ -79,16 +74,7 @@ func (a *api) Before() error {
 		return fmt.Errorf("failed to get etcd secret: %v", err)
 	}
 	a.etcdSecret = secret
-
-	if a.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		sc, err := storageClassNameFromRainbondVolumeRWO(a.ctx, a.client, a.component.Namespace)
-		if err != nil {
-			return err
-		}
-		a.SetStorageClassNameRWX(sc)
-		return nil
-	}
-	return setStorageCassName(a.ctx, a.client, a.component.Namespace, a)
+	return nil
 }
 
 func (a *api) Resources() []client.Object {
@@ -109,53 +95,13 @@ func (a *api) ListPods() ([]corev1.Pod, error) {
 	return listPods(a.ctx, a.client, a.component.Namespace, a.labels)
 }
 
-func (a *api) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
-	a.pvcParametersRWX = pvcParameters
-}
-
 func (a *api) ResourcesCreateIfNotExists() []client.Object {
-	if a.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		return []client.Object{
-			createPersistentVolumeClaimRWO(a.component.Namespace, constants.GrDataPVC, a.pvcParametersRWX, a.labels, a.grdataStorageRequest),
-			createPersistentVolumeClaimRWO(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels, a.dataStorageRequest),
-		}
-	}
-	return []client.Object{
-		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(a.component.Namespace, constants.GrDataPVC, a.pvcParametersRWX, a.labels, a.grdataStorageRequest),
-		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels, a.dataStorageRequest),
-	}
+	return []client.Object{}
 }
 
 func (a *api) deployment() client.Object {
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      "grdata",
-			MountPath: "/grdata",
-		},
-		{
-			Name:      "accesslog",
-			MountPath: "/logs",
-		},
-	}
-	volumes := []corev1.Volume{
-		{
-			Name: "grdata",
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: constants.GrDataPVC,
-				},
-			},
-		},
-		{
-			Name: "accesslog",
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: a.pvcName,
-				},
-			},
-		},
-	}
+	var volumeMounts []corev1.VolumeMount
+	var volumes []corev1.Volume
 	args := []string{
 		"--api-addr=0.0.0.0:8888",
 		"--enable-feature=privileged",

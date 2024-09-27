@@ -106,17 +106,6 @@ func (r *RbdComponentReconciler) Reconcile(ctx context.Context, request ctrl.Req
 		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
-	if !cluster.Spec.ConfigCompleted {
-		log.V(6).Info("rainbondcluster configuration is not complete")
-		condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.ClusterConfigCompeleted,
-			corev1.ConditionFalse, "ConfigNotCompleted", "rainbondcluster configuration is not complete")
-		changed := cpt.Status.UpdateCondition(condition)
-		if changed {
-			r.Recorder.Event(cpt, corev1.EventTypeWarning, condition.Reason, condition.Message)
-			return reconcile.Result{RequeueAfter: 3 * time.Second}, mgr.UpdateStatus()
-		}
-		return reconcile.Result{RequeueAfter: 3 * time.Second}, err
-	}
 	mgr.SetConfigCompletedCondition()
 
 	hdl := fn(ctx, r.Client, cpt, cluster)
@@ -215,17 +204,19 @@ func (r *RbdComponentReconciler) Reconcile(ctx context.Context, request ctrl.Req
 		if res == nil {
 			continue
 		}
-		// Set RbdComponent cpt as the owner and controller
-		if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.Scheme); err != nil {
-			log.Error(err, "set controller reference")
-			condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse,
-				"SetControllerReferenceFailed", err.Error())
-			changed := cpt.Status.UpdateCondition(condition)
-			if changed {
-				r.Recorder.Event(cpt, corev1.EventTypeWarning, condition.Reason, condition.Message)
-				return reconcile.Result{Requeue: true}, mgr.UpdateStatus()
+		if res.GetNamespace() != "" {
+			// Set RbdComponent cpt as the owner and controller
+			if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.Scheme); err != nil {
+				log.Error(err, "set controller reference")
+				condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse,
+					"SetControllerReferenceFailed", err.Error())
+				changed := cpt.Status.UpdateCondition(condition)
+				if changed {
+					r.Recorder.Event(cpt, corev1.EventTypeWarning, condition.Reason, condition.Message)
+					return reconcile.Result{Requeue: true}, mgr.UpdateStatus()
+				}
+				return reconcile.Result{}, err
 			}
-			return reconcile.Result{}, err
 		}
 		// Check if the resource already exists, if not create a new one
 		reconcileResult, err := mgr.UpdateOrCreateResource(res)

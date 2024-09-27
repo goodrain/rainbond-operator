@@ -16,9 +16,6 @@ import (
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/constants"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,14 +35,12 @@ type chaos struct {
 	db         *rainbondv1alpha1.Database
 	etcdSecret *corev1.Secret
 
-	pvcParametersRWX     *pvcParameters
 	cacheStorageRequest  int64
 	grdataStorageRequest int64
 	containerRuntime     string
 }
 
 var _ ComponentHandler = &chaos{}
-var _ StorageClassRWXer = &chaos{}
 var _ Replicaser = &chaos{}
 
 // NewChaos creates a new rbd-chaos handler.
@@ -79,16 +74,7 @@ func (c *chaos) Before() error {
 		return fmt.Errorf("failed to get etcd secret: %v", err)
 	}
 	c.etcdSecret = secret
-
-	if c.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		sc, err := storageClassNameFromRainbondVolumeRWO(c.ctx, c.client, c.component.Namespace)
-		if err != nil {
-			return err
-		}
-		c.SetStorageClassNameRWX(sc)
-		return nil
-	}
-	return setStorageCassName(c.ctx, c.client, c.component.Namespace, c)
+	return nil
 }
 
 func (c *chaos) Resources() []client.Object {
@@ -106,21 +92,8 @@ func (c *chaos) ListPods() ([]corev1.Pod, error) {
 	return listPods(c.ctx, c.client, c.component.Namespace, c.labels)
 }
 
-func (c *chaos) SetStorageClassNameRWX(pvcParametersRWX *pvcParameters) {
-	c.pvcParametersRWX = pvcParametersRWX
-}
-
 func (c *chaos) ResourcesCreateIfNotExists() []client.Object {
-	if c.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
-		return []client.Object{
-			createPersistentVolumeClaimRWO(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX, c.labels, c.grdataStorageRequest),
-			createPersistentVolumeClaimRWO(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels, c.cacheStorageRequest),
-		}
-	}
-	return []client.Object{
-		createPersistentVolumeClaimRWX(c.component.Namespace, constants.GrDataPVC, c.pvcParametersRWX, c.labels, c.grdataStorageRequest),
-		createPersistentVolumeClaimRWX(c.component.Namespace, constants.CachePVC, c.pvcParametersRWX, c.labels, c.cacheStorageRequest),
-	}
+	return []client.Object{}
 }
 
 func (c *chaos) Replicas() *int32 {
@@ -128,57 +101,11 @@ func (c *chaos) Replicas() *int32 {
 }
 
 func (c *chaos) deployment() client.Object {
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      "grdata",
-			MountPath: "/grdata",
-		},
-		{
-			Name:      "cache",
-			MountPath: "/cache",
-		},
-		{
-			Name:      "grdata",
-			MountPath: "/root/.ssh",
-			SubPath:   "services/ssh",
-		},
-	}
-	volumes := []corev1.Volume{
-		{
-			Name: "grdata",
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: constants.GrDataPVC,
-				},
-			},
-		},
-	}
-	if c.cluster.Spec.CacheMode == "hostpath" {
-		volumes = append(volumes, corev1.Volume{
-			Name: "cache",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/cache",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-				},
-			},
-		})
-	} else {
-		volumes = append(volumes, corev1.Volume{
-			Name: "cache",
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: constants.CachePVC,
-				},
-			},
-		})
-	}
+	var volumeMounts []corev1.VolumeMount
+	var volumes []corev1.Volume
 	args := []string{
 		"--hostIP=$(POD_IP)",
-		"--pvc-grdata-name=" + constants.GrDataPVC,
-		"--pvc-cache-name=" + constants.CachePVC,
 		"--rbd-namespace=" + c.component.Namespace,
-		"--rbd-repo=" + ResourceProxyName,
 	}
 	if !checksqllite.IsSQLLite() {
 		args = append(args, c.db.RegionDataSource())

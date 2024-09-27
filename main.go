@@ -89,15 +89,6 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "RainbondCluster")
 		os.Exit(1)
 	}
-
-	if err = (&controllers.RainbondVolumeReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("RainbondVolume"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "RainbondVolume")
-		os.Exit(1)
-	}
 	if err = (&controllers.RbdComponentReconciler{
 		Client:   mgr.GetClient(),
 		Log:      ctrl.Log.WithName("controllers").WithName("RbdComponent"),

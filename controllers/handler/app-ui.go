@@ -34,25 +34,18 @@ type appui struct {
 	db        *rainbondv1alpha1.Database
 	component *rainbondv1alpha1.RbdComponent
 	cluster   *rainbondv1alpha1.RainbondCluster
-
-	pvcParametersRWX *pvcParameters
-	pvcName          string
-	storageRequest   int64
 }
 
 var _ ComponentHandler = &appui{}
-var _ StorageClassRWXer = &appui{}
 
 // NewAppUI creates a new rbd-app-ui handler.
 func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &appui{
-		ctx:            ctx,
-		client:         client,
-		component:      component,
-		cluster:        cluster,
-		labels:         LabelsForRainbondComponent(component),
-		pvcName:        "rbd-app-ui",
-		storageRequest: getStorageRequest("APP_UI_DATA_STORAGE_REQUEST", 10),
+		ctx:       ctx,
+		client:    client,
+		component: component,
+		cluster:   cluster,
+		labels:    LabelsForRainbondComponent(component),
 	}
 }
 
@@ -65,10 +58,6 @@ func (a *appui) Before() error {
 		db.Name = ConsoleDatabaseName
 	}
 	a.db = db
-
-	if err := setStorageCassName(a.ctx, a.client, a.component.Namespace, a); err != nil {
-		return err
-	}
 
 	if err := isUIDBReady(a.ctx, a.client, a.component, a.cluster); err != nil {
 		return err
@@ -145,15 +134,8 @@ func (a *appui) ListPods() ([]corev1.Pod, error) {
 	return listPods(a.ctx, a.client, a.component.Namespace, a.labels)
 }
 
-func (a *appui) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
-	a.pvcParametersRWX = pvcParameters
-}
-
 func (a *appui) ResourcesCreateIfNotExists() []client.Object {
-	return []client.Object{
-		// pvc is immutable after creation except resources.requests for bound claims
-		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels, a.storageRequest),
-	}
+	return []client.Object{}
 }
 
 func (a *appui) deploymentForAppUI() client.Object {
@@ -221,8 +203,12 @@ func (a *appui) deploymentForAppUI() client.Object {
 		{
 			Name: "app",
 			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: a.pvcName,
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/rainbonddata", // 请替换为实际的主机路径
+					Type: func() *corev1.HostPathType {
+						hp := corev1.HostPathDirectoryOrCreate
+						return &hp
+					}(),
 				},
 			},
 		},
@@ -236,16 +222,6 @@ func (a *appui) deploymentForAppUI() client.Object {
 		{
 			Name:      "ssl",
 			MountPath: "/app/region/ssl",
-		},
-		{
-			Name:      "app",
-			MountPath: "/app/logs/",
-			SubPath:   "logs",
-		},
-		{
-			Name:      "app",
-			MountPath: "/app/lock",
-			SubPath:   "lock",
 		},
 		{
 			Name:      "app",

@@ -7,9 +7,7 @@ import (
 	"time"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,7 +20,7 @@ type storage struct {
 	rwx    *rainbondv1alpha1.RainbondVolumeSpec
 }
 
-//NewStorage -
+// NewStorage -
 func NewStorage(ctx context.Context, client client.Client, ns string, rwx *rainbondv1alpha1.RainbondVolumeSpec) PreChecker {
 	return &storage{
 		ctx:    ctx,
@@ -75,11 +73,6 @@ func (s *storage) isPVCBound(pvc *corev1.PersistentVolumeClaim) bool {
 		return true
 	}
 	return false
-}
-
-func (s *storage) pvcForGrdata(accessModes []corev1.PersistentVolumeAccessMode, storageClassName string) *corev1.PersistentVolumeClaim {
-	labels := rbdutil.LabelsForRainbond(nil)
-	return k8sutil.PersistentVolumeClaimForGrdata(s.ns, constants.GrDataPVC, accessModes, labels, storageClassName, 1)
 }
 
 func (s *storage) failConditoin(condition rainbondv1alpha1.RainbondClusterCondition, msg string) rainbondv1alpha1.RainbondClusterCondition {
