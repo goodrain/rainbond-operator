@@ -92,9 +92,9 @@ func (w *worker) deployment() client.Object {
 	var volumeMounts []corev1.VolumeMount
 	var volumes []corev1.Volume
 	args := []string{
-		"--host-ip=$(POD_IP)",
+		"--hostIP=$(POD_IP)",
 		"--node-name=$(POD_IP)",
-		"--rbd-system-namespace=" + w.component.Namespace,
+		"--rbd-namespace=" + w.component.Namespace,
 	}
 	if !checksqllite.IsSQLLite() {
 		args = append(args, w.db.RegionDataSource())
