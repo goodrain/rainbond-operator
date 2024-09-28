@@ -266,6 +266,10 @@ func (a *api) createService() []client.Object {
 						IntVal: 8888,
 					},
 				},
+				{
+					Name: "eventlog-grpc-server",
+					Port: 6366,
+				},
 			},
 			Selector: a.labels,
 		},
