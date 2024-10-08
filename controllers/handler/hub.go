@@ -168,6 +168,30 @@ func (h *hub) deployment() client.Object {
 			Name:  "REGISTRY_AUTH_HTPASSWD_PATH",
 			Value: "/auth/htpasswd",
 		},
+		{
+			Name:  "REGISTRY_STORAGE",
+			Value: "s3",
+		},
+		{
+			Name:  "REGISTRY_STORAGE_S3_REGION",
+			Value: "rainbond",
+		},
+		{
+			Name:  "REGISTRY_STORAGE_S3_ACCESSKEY",
+			Value: "minioadmin",
+		},
+		{
+			Name:  "REGISTRY_STORAGE_S3_SECRETKEY",
+			Value: "minioadmin",
+		},
+		{
+			Name:  "REGISTRY_STORAGE_S3_REGIONENDPOINT",
+			Value: "http://minio-service:9000",
+		},
+		{
+			Name:  "REGISTRY_STORAGE_S3_BUCKET",
+			Value: "rbd-hub",
+		},
 	}
 	volumeMounts := []corev1.VolumeMount{
 		{
