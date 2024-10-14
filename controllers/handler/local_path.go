@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -65,7 +66,7 @@ func (l *localPath) configMap() client.Object {
             "nodePathMap": [
                 {
                     "node": "DEFAULT_PATH_FOR_NON_LISTED_NODES",
-                    "paths": ["/opt/local-path-provisioner"]
+                    "paths": ["/var/lib/rancher/local-path-provisioner"]
                 }
             ]
         }`,
