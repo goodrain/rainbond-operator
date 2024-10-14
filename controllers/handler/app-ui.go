@@ -85,19 +85,7 @@ func (a *appui) Resources() []client.Object {
 		a.serviceForAppUI(int32(p)),
 		a.serviceForProxy(),
 		rbdDefaultRouteForHTTP(),
-		a.migrationsJob(),
 	}
-
-	// 获取所有的node name
-	//names, err := getNodeNames(a.client)
-	//
-	//if err == nil {
-	//	for i, name := range names {
-	//		res = append(res, a.nodeJob(affinityForRequiredNodes([]string{name}), i))
-	//	}
-	//} else {
-	//	log.Error(err, "get node names step")
-	//}
 
 	//在获取到节点后，去检测节点的运行时
 	nodeList, err := getNodeInfo(a.client)
@@ -112,17 +100,7 @@ func (a *appui) Resources() []client.Object {
 	} else {
 		log.Error(err, "get node names step")
 	}
-
-	if err := isUIDBMigrateOK(a.ctx, a.client, a.component); err != nil {
-		if IsIgnoreError(err) {
-			log.V(6).Info(fmt.Sprintf("check if ui db migrations is ok: %v", err))
-		} else {
-			log.Error(err, "check if ui db migrations is ok")
-		}
-	} else {
-		res = append(res, a.deploymentForAppUI())
-	}
-
+	res = append(res, a.deploymentForAppUI())
 	return res
 }
 
@@ -402,111 +380,6 @@ func (a *appui) nodeJob(aff *corev1.Affinity, index int) *batchv1.Job {
 					RestartPolicy: corev1.RestartPolicyNever,
 				},
 			},
-		},
-	}
-	return job
-}
-func (a *appui) migrationsJob() *batchv1.Job {
-	var dbName = "console"
-	if a.cluster.Spec.UIDatabase != nil && a.cluster.Spec.UIDatabase.Name != "" {
-		dbName = a.cluster.Spec.UIDatabase.Name
-	}
-	name := "rbd-app-ui-migrations"
-	labels := copyLabels(a.labels)
-	labels["name"] = name
-
-	envs := []corev1.EnvVar{
-		{
-			Name:  "CRYPTOGRAPHY_ALLOW_OPENSSL_102",
-			Value: "true",
-		},
-		{
-			Name:  "MYSQL_HOST",
-			Value: a.db.Host,
-		},
-		{
-			Name:  "MYSQL_PORT",
-			Value: strconv.Itoa(a.db.Port),
-		},
-		{
-			Name:  "MYSQL_USER",
-			Value: a.db.Username,
-		},
-		{
-			Name:  "MYSQL_PASS",
-			Value: a.db.Password,
-		},
-		{
-			Name:  "MYSQL_DB",
-			Value: dbName,
-		},
-		{
-			Name:  "REGION_URL",
-			Value: fmt.Sprintf("https://rbd-api-api:%s", rbdutil.GetenvDefault("API_PORT", "8443")),
-		},
-		{
-			Name:  "REGION_WS_URL",
-			Value: fmt.Sprintf("ws://%s:%s", a.cluster.GatewayIngressIP(), rbdutil.GetenvDefault("API_WS_PORT", "6060")),
-		},
-		{
-			Name:  "REGION_HTTP_DOMAIN",
-			Value: a.cluster.Spec.SuffixHTTPHost,
-		},
-		{
-			Name:  "REGION_TCP_DOMAIN",
-			Value: a.cluster.GatewayIngressIP(),
-		},
-		{
-			Name:  "IMAGE_REPO",
-			Value: a.cluster.Spec.ImageHub.Domain,
-		},
-	}
-	envs = mergeEnvs(envs, a.component.Spec.Env)
-
-	job := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: a.component.Namespace,
-			Labels:    labels,
-		},
-		Spec: batchv1.JobSpec{
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:   name,
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					ImagePullSecrets:              imagePullSecrets(a.component, a.cluster),
-					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					RestartPolicy:                 corev1.RestartPolicyOnFailure,
-					Containers: []corev1.Container{
-						{
-							Name:            name,
-							Image:           a.component.Spec.Image,
-							ImagePullPolicy: a.component.ImagePullPolicy(),
-							Command:         []string{"./entrypoint.sh", "init"},
-							Env:             envs,
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "ssl",
-									MountPath: "/app/region/ssl",
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "ssl",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: apiClientSecretName,
-								},
-							},
-						},
-					},
-				},
-			},
-			BackoffLimit: commonutil.Int32(3),
 		},
 	}
 	return job

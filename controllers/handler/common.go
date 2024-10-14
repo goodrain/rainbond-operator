@@ -14,7 +14,6 @@ import (
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	networkingv1beta1 "k8s.io/api/networking/v1beta1"
@@ -62,30 +61,6 @@ func isUIDBReady(ctx context.Context, cli client.Client, cpt *rainbondv1alpha1.R
 
 	if dbcpt.Status.ReadyReplicas == 0 {
 		return errors.New("no ready replicas for rbdcomponent rbd-db")
-	}
-
-	return nil
-}
-
-func isUIDBMigrateOK(ctx context.Context, cli client.Client, cpt *rainbondv1alpha1.RbdComponent) error {
-	job := &batchv1.Job{}
-	if err := cli.Get(ctx, types.NamespacedName{Namespace: cpt.Namespace, Name: AppUIDBMigrationsName}, job); err != nil {
-		if k8sErrors.IsNotFound(err) {
-			return NewIgnoreError(fmt.Sprintf("job %s not found", AppUIDBMigrationsName))
-		}
-		return err
-	}
-
-	var complete bool
-	for _, cond := range job.Status.Conditions {
-		if cond.Type == batchv1.JobComplete && cond.Status == corev1.ConditionTrue {
-			complete = true
-			break
-		}
-	}
-
-	if !complete {
-		return NewIgnoreError(fmt.Sprintf("job %s not complete", AppUIDBMigrationsName))
 	}
 
 	return nil
