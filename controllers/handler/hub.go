@@ -3,10 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
+	"os/exec"
+
 	v2 "github.com/goodrain/rainbond-operator/api/v2"
 	"github.com/sirupsen/logrus"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	"os/exec"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -178,11 +179,11 @@ func (h *hub) deployment() client.Object {
 		},
 		{
 			Name:  "REGISTRY_STORAGE_S3_ACCESSKEY",
-			Value: "minioadmin",
+			Value: "admin",
 		},
 		{
 			Name:  "REGISTRY_STORAGE_S3_SECRETKEY",
-			Value: "minioadmin",
+			Value: rbdutil.GetenvDefault("RBD_MINIO_ROOT_PASSWORD", "admin1234"),
 		},
 		{
 			Name:  "REGISTRY_STORAGE_S3_REGIONENDPOINT",

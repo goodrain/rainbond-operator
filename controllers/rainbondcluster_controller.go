@@ -3,6 +3,10 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"net"
+	"os"
+	"time"
+
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	clustermgr "github.com/goodrain/rainbond-operator/controllers/cluster-mgr"
@@ -16,12 +20,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
-	"net"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"time"
 )
 
 // RainbondClusterReconciler reconciles a RainbondCluster object
@@ -235,7 +236,7 @@ func (r *RainbondClusterReconciler) getImageHub(cluster *rainbondv1alpha1.Rainbo
 	return &rainbondv1alpha1.ImageHub{
 		Domain:   constants.DefImageRepository,
 		Username: "admin",
-		Password: rbdutil.GetenvDefault("RBD_HUB_PASSWORD", uuidutil.NewUUID()[0:8]),
+		Password: rbdutil.GetenvDefault("RBD_HUB_PASSWORD", "admin1234"),
 	}, nil
 }
 

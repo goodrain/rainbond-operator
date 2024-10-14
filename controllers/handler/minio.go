@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
@@ -113,7 +114,7 @@ func (m *minIO) statefulSet() client.Object {
 									Value: "admin",
 								}, {
 									Name:  "MINIO_ROOT_PASSWORD",
-									Value: "admin",
+									Value: rbdutil.GetenvDefault("RBD_MINIO_ROOT_PASSWORD", "admin1234"),
 								},
 							},
 						},
