@@ -192,6 +192,10 @@ func (h *hub) deployment() client.Object {
 			Name:  "REGISTRY_STORAGE_S3_BUCKET",
 			Value: "rbd-hub",
 		},
+		{
+			Name:  "REGISTRY_STORAGE_REDIRECT_DISABLE",
+			Value: "true",
+		},
 	}
 	volumeMounts := []corev1.VolumeMount{
 		{
