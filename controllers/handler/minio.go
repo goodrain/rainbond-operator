@@ -104,6 +104,18 @@ func (m *minIO) statefulSet() client.Object {
 							},
 							VolumeMounts: vms,
 							Resources:    m.component.Spec.Resources,
+							Env: []corev1.EnvVar{
+								{
+									Name:  "MINIO_BUCKETS",
+									Value: "rbd-hub",
+								}, {
+									Name:  "MINIO_ROOT_USER",
+									Value: "admin",
+								}, {
+									Name:  "MINIO_ROOT_PASSWORD",
+									Value: "admin",
+								},
+							},
 						},
 					},
 					Volumes: []corev1.Volume{

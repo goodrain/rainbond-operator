@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"path"
 	"strings"
 
@@ -101,8 +102,23 @@ func (c *chaos) Replicas() *int32 {
 }
 
 func (c *chaos) deployment() client.Object {
-	var volumeMounts []corev1.VolumeMount
-	var volumes []corev1.Volume
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "cache",
+			MountPath: "/cache",
+		},
+	}
+	volumes := []corev1.Volume{
+		{
+			Name: "cache",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/cache",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		},
+	}
 	args := []string{
 		"--hostIP=$(POD_IP)",
 		"--rbd-namespace=" + c.component.Namespace,
