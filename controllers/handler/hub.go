@@ -77,6 +77,7 @@ func (h *hub) Resources() []client.Object {
 		h.passwordSecret(),
 		h.deployment(),
 		h.serviceForHub(),
+		h.daemonSet(),
 		h.hubImageRepository(), // 绑定这个镜像仓库的secret
 		h.ingressForHub(),      //创建这个域名的路由
 	}
