@@ -2,10 +2,12 @@ package handler
 
 import (
 	"context"
-
+	"fmt"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	minio "github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,6 +54,28 @@ func (m *minIO) Resources() []client.Object {
 }
 
 func (m *minIO) After() error {
+	ctx := context.Background()
+	minioClient, err := minio.New("http://minio-service:9000", &minio.Options{
+		Creds:  credentials.NewStaticV4("admin", "admin1234", ""),
+		Secure: false, // 如果使用 HTTP，设置为 false
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create minio client: %w", err)
+	}
+
+	// 检查桶是否存在
+	exists, err := minioClient.BucketExists(ctx, "rbd-hub")
+	if err != nil {
+		return fmt.Errorf("failed to check bucket existence: %w", err)
+	}
+
+	// 如果桶不存在，则创建桶
+	if !exists {
+		err = minioClient.MakeBucket(ctx, "rbd-hub", minio.MakeBucketOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to create bucket: %w", err)
+		}
+	}
 	return nil
 }
 

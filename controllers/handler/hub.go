@@ -264,6 +264,63 @@ func (h *hub) deployment() client.Object {
 	return ds
 }
 
+func (h *hub) daemonSet() client.Object {
+	gatewayNodes := h.cluster.Spec.NodesForGateway
+	var gatewayHost string
+	if gatewayNodes != nil && len(gatewayNodes) > 0 {
+		gatewayHost = gatewayNodes[0].InternalIP
+	}
+	// 创建 DaemonSet 对象
+	return &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "modify-hub-hosts",
+			Namespace: h.component.Namespace,
+		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": "modify-hub-hosts",
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": "modify-hosts",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "modify-hosts-container",
+							Image: "alpine", // 使用轻量级的 Alpine 镜像
+							Command: []string{
+								"/bin/sh", "-c", "echo ' goodrain.me' >> /etc/hosts; tail -f /dev/null",
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "hosts",
+									MountPath: "/etc/hosts",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "hosts",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/etc/hosts",
+								},
+							},
+						},
+					},
+					HostPID: true, // 允许在宿主机 PID 命名空间中运行
+				},
+			},
+		},
+	}
+}
+
 func (h *hub) serviceForHub() client.Object {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
