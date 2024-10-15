@@ -75,8 +75,8 @@ spec:
       effect: NoSchedule
   containers:
     - name: helper-pod
-      image: %s
-      imagePullPolicy: IfNotPresent`, os.Getenv("RBD_HELPER_IMAGE"))
+      image: %s/busybox:latest
+      imagePullPolicy: IfNotPresent`, os.Getenv("RAINBOND_IMAGE_REPOSITORY"))
 	data := map[string]string{
 		"config.json": `{
             "nodePathMap": [
