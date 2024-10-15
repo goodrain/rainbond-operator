@@ -280,15 +280,11 @@ func (h *hub) daemonSet() client.Object {
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": "modify-hub-hosts",
-				},
+				MatchLabels: h.labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": "modify-hosts",
-					},
+					Labels: h.labels,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{

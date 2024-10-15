@@ -1,6 +1,6 @@
 module github.com/goodrain/rainbond-operator
 
-go 1.18
+go 1.22
 
 require (
 	github.com/docker/cli v0.0.0-20191017083524-a8ff7f821017
