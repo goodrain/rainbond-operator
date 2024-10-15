@@ -1,7 +1,7 @@
 # Build the manager binary
 FROM golang:1.18 as builder
-ARG ARCH=amd64
-ARG GOPROXY=
+ARG TARGETARCH
+ARG GOPROXY
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -18,7 +18,7 @@ COPY controllers/ controllers/
 COPY util util/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH="${ARCH}" GO111MODULE=on go build -a -o manager main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH="${TARGETARCH}" GO111MODULE=on go build -a -o manager main.go
 
 
 FROM alpine:3.11.2
