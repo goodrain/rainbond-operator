@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -61,6 +63,20 @@ func (l *localPath) ListPods() ([]corev1.Pod, error) {
 }
 
 func (l *localPath) configMap() client.Object {
+	helperPodYaml := fmt.Sprintf(`apiVersion: v1
+kind: Pod
+metadata:
+  name: helper-pod
+spec:
+  priorityClassName: system-node-critical
+  tolerations:
+    - key: node.kubernetes.io/disk-pressure
+      operator: Exists
+      effect: NoSchedule
+  containers:
+    - name: helper-pod
+      image: %s
+      imagePullPolicy: IfNotPresent`, os.Getenv("RBD_HELPER_IMAGE"))
 	data := map[string]string{
 		"config.json": `{
             "nodePathMap": [
@@ -76,20 +92,7 @@ mkdir -m 0777 -p "$VOL_DIR"`,
 		"teardown": `#!/bin/sh
 set -eu
 rm -rf "$VOL_DIR"`,
-		"helperPod.yaml": `apiVersion: v1
-kind: Pod
-metadata:
-  name: helper-pod
-spec:
-  priorityClassName: system-node-critical
-  tolerations:
-    - key: node.kubernetes.io/disk-pressure
-      operator: Exists
-      effect: NoSchedule
-  containers:
-    - name: helper-pod
-      image: busybox
-      imagePullPolicy: IfNotPresent`,
+		"helperPod.yaml": helperPodYaml,
 	}
 
 	cm := &corev1.ConfigMap{
