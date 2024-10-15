@@ -314,7 +314,7 @@ func (h *hub) daemonSet() client.Object {
 	if gatewayNodes != nil && len(gatewayNodes) > 0 {
 		gatewayHost = gatewayNodes[0].InternalIP
 	}
-	hostCMD := fmt.Sprintf("echo '%v goodrain.me' >> /etc/hosts; tail -f /dev/null", gatewayHost)
+	hostCMD := fmt.Sprintf("grep -qxF '%v goodrain.me' /etc/hosts || echo '%v goodrain.me' >> /etc/hosts; tail -f /dev/null", gatewayHost, gatewayHost)
 	// 创建 DaemonSet 对象
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
