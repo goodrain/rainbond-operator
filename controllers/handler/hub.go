@@ -3,11 +3,15 @@ package handler
 import (
 	"context"
 	"fmt"
-	"os/exec"
-
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	v2 "github.com/goodrain/rainbond-operator/api/v2"
 	"github.com/sirupsen/logrus"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	"os/exec"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -145,6 +149,45 @@ func (h *hub) ingressForHub() client.Object {
 }
 
 func (h *hub) After() error {
+	sess, err := session.NewSession(&aws.Config{
+		Endpoint:         aws.String("http://minio-service:9000"),
+		Region:           aws.String("rainbond"), // 可以根据需要选择区域
+		Credentials:      credentials.NewStaticCredentials("admin", rbdutil.GetenvDefault("RBD_MINIO_ROOT_PASSWORD", "admin1234"), ""),
+		S3ForcePathStyle: aws.Bool(true), // 使用路径风格
+	})
+	if err != nil {
+		logrus.Errorf("failed to create session: %v", err)
+		return err
+	}
+	s3Client := s3.New(sess)
+
+	bucketName := "rbd-hub"
+
+	// 检查桶是否存在
+	_, err = s3Client.HeadBucket(&s3.HeadBucketInput{
+		Bucket: aws.String(bucketName),
+	})
+	if err != nil {
+		// 如果桶不存在，则创建
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == s3.ErrCodeNoSuchBucket {
+			logrus.Infof("Bucket %s does not exist, creating it now.", bucketName)
+
+			_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+				Bucket: aws.String(bucketName),
+			})
+			if err != nil {
+				logrus.Errorf("failed to create bucket: %v", err)
+				return err
+			}
+			logrus.Infof("Bucket %s created successfully.", bucketName)
+		} else {
+			logrus.Errorf("failed to check if bucket exists: %v", err)
+			return err
+		}
+	} else {
+		logrus.Infof("Bucket %s already exists.", bucketName)
+	}
+
 	return nil
 }
 
