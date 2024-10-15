@@ -79,13 +79,13 @@ spec:
       imagePullPolicy: IfNotPresent`, os.Getenv("RAINBOND_IMAGE_REPOSITORY"))
 	data := map[string]string{
 		"config.json": `{
-            "nodePathMap": [
-                {
-                    "node": "DEFAULT_PATH_FOR_NON_LISTED_NODES",
-                    "paths": ["/var/lib/rancher/local-path-provisioner"]
-                }
-            ]
-        }`,
+        "nodePathMap": [
+          {
+            "node": "DEFAULT_PATH_FOR_NON_LISTED_NODES",
+            "paths": ["/var/lib/rancher/local-path-provisioner"]
+          }
+        ]
+      }`,
 		"setup": `#!/bin/sh
 set -eu
 mkdir -m 0777 -p "$VOL_DIR"`,
