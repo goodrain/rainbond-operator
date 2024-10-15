@@ -271,6 +271,7 @@ func (h *hub) daemonSet() client.Object {
 	if gatewayNodes != nil && len(gatewayNodes) > 0 {
 		gatewayHost = gatewayNodes[0].InternalIP
 	}
+	hostCMD := fmt.Sprintf("echo '%v goodrain.me' >> /etc/hosts; tail -f /dev/null", gatewayHost)
 	// 创建 DaemonSet 对象
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -295,7 +296,7 @@ func (h *hub) daemonSet() client.Object {
 							Name:  "modify-hosts-container",
 							Image: "alpine", // 使用轻量级的 Alpine 镜像
 							Command: []string{
-								"/bin/sh", "-c", "echo ' goodrain.me' >> /etc/hosts; tail -f /dev/null",
+								"/bin/sh", "-c", hostCMD,
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
