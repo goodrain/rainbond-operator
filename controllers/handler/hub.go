@@ -3,6 +3,9 @@ package handler
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -11,7 +14,6 @@ import (
 	v2 "github.com/goodrain/rainbond-operator/api/v2"
 	"github.com/sirupsen/logrus"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	"os/exec"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -333,7 +335,7 @@ func (h *hub) daemonSet() client.Object {
 					Containers: []corev1.Container{
 						{
 							Name:  "modify-hosts-container",
-							Image: "alpine", // 使用轻量级的 Alpine 镜像
+							Image: os.Getenv("RAINBOND_IMAGE_REPOSITORY") + "/alpine:latest",
 							Command: []string{
 								"/bin/sh", "-c", hostCMD,
 							},
