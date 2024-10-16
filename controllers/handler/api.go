@@ -430,9 +430,15 @@ func (a *api) ingressForLangProxy() client.Object {
 							Weight: &weight,
 						},
 					},
-					Authentication: v2.ApisixRouteAuthentication{
-						Enable: false,
-						Type:   "basicAuth",
+					Plugins: []v2.ApisixRoutePlugin{
+						{
+							Name:   "proxy-rewrite",
+							Enable: true,
+							Config: v2.ApisixRoutePluginConfig{
+								"scheme": "https",
+								"host":   "buildpack.oss-cn-shanghai.aliyuncs.com",
+							},
+						},
 					},
 				},
 			},
@@ -451,7 +457,8 @@ func (a *api) upstreamForExternalDomain() *v2.ApisixUpstream {
 			ExternalNodes: []v2.ApisixUpstreamExternalNode{
 				{
 					Name: "buildpack.oss-cn-shanghai.aliyuncs.com", // 外部服务地址
-					Port: &port,                                    // 端口
+					Type: "Domain",
+					Port: &port, // 端口
 				},
 			},
 			ApisixUpstreamConfig: v2.ApisixUpstreamConfig{
