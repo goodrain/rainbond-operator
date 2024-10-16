@@ -55,36 +55,6 @@ func rbdDefaultRouteForHTTP() client.Object {
 		Spec: v2.ApisixRouteSpec{
 			HTTP: []v2.ApisixRouteHTTP{
 				{
-					Name:     "proxy",
-					Priority: 2,
-					Backends: []v2.ApisixRouteHTTPBackend{
-						{
-							ServiceName: "rbd-app-ui-proxy",
-							ServicePort: intstr.FromInt(6060),
-						},
-					},
-					Match: v2.ApisixRouteHTTPMatch{
-						Paths: []string{
-							"/proxy/*",
-						},
-						NginxVars: []v2.ApisixRouteHTTPMatchExpr{
-							{
-								Subject: v2.ApisixRouteHTTPMatchExprSubject{
-									Scope: "Variable",
-									Name:  "server_port",
-								},
-								Op:  "In",
-								Set: []string{"7070", "7071"},
-							},
-						},
-					},
-					Websocket: true,
-					Authentication: v2.ApisixRouteAuthentication{
-						Enable: false,
-						Type:   "basicAuth",
-					},
-				},
-				{
 					Name:     "http",
 					Priority: 1,
 					Backends: []v2.ApisixRouteHTTPBackend{
@@ -104,7 +74,7 @@ func rbdDefaultRouteForHTTP() client.Object {
 									Name:  "server_port",
 								},
 								Op:  "In",
-								Set: []string{"7070", "7071"},
+								Set: []string{"7070"},
 							},
 						},
 					},
@@ -439,7 +409,6 @@ apisix:
   node_listen:
     - 80
     - 7070
-    - 7071
   stream_proxy:
     tcp:
       - addr: 8443
