@@ -7,7 +7,6 @@ import (
 	"os/exec"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -164,32 +163,18 @@ func (h *hub) After() error {
 	s3Client := s3.New(sess)
 
 	bucketName := "rbd-hub"
-
-	// 检查桶是否存在
 	_, err = s3Client.HeadBucket(&s3.HeadBucketInput{
 		Bucket: aws.String(bucketName),
 	})
 	if err != nil {
-		// 如果桶不存在，则创建
-		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == s3.ErrCodeNoSuchBucket {
-			logrus.Infof("Bucket %s does not exist, creating it now.", bucketName)
-
-			_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
-				Bucket: aws.String(bucketName),
-			})
-			if err != nil {
-				logrus.Errorf("failed to create bucket: %v", err)
-				return err
-			}
-			logrus.Infof("Bucket %s created successfully.", bucketName)
-		} else {
-			logrus.Errorf("failed to check if bucket exists: %v", err)
-			return err
+		// 如果桶不存在，创建桶
+		_, err = s3Client.CreateBucket(&s3.CreateBucketInput{
+			Bucket: aws.String(bucketName),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create bucket: %w", err)
 		}
-	} else {
-		logrus.Infof("Bucket %s already exists.", bucketName)
 	}
-
 	return nil
 }
 
