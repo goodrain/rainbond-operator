@@ -3,6 +3,8 @@ package handler
 import (
 	"context"
 	"fmt"
+	v2 "github.com/goodrain/rainbond-operator/api/v2"
+	"github.com/goodrain/rainbond-operator/util/constants"
 	"os"
 	"strconv"
 	"strings"
@@ -84,6 +86,8 @@ func (a *api) Resources() []client.Object {
 	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-api", 8443))
 	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-healthz", 8889))
 	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-websocket", 6060))
+	resources = append(resources, a.ingressForLangProxy())
+	resources = append(resources, a.upstreamForExternalDomain())
 	return resources
 }
 
@@ -394,4 +398,65 @@ func (a *api) secretAndConfigMapForAPI() []client.Object {
 		},
 	})
 	return re
+}
+
+func (a *api) ingressForLangProxy() client.Object {
+	weight := 1
+	return &v2.ApisixRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "lang-proxy",
+			Namespace: a.component.Namespace,
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       constants.ApisixRoute,
+			APIVersion: constants.APISixAPIVersion,
+		},
+		Spec: v2.ApisixRouteSpec{
+			HTTP: []v2.ApisixRouteHTTP{
+				{
+					Name: "lang-proxy",
+					Match: v2.ApisixRouteHTTPMatch{
+						Hosts: []string{
+							"lang.goodrain.me",
+							"maven.goodrain.me",
+						},
+						Paths: []string{
+							"/*",
+						},
+					},
+					Upstreams: []v2.ApisixRouteUpstreamReference{
+						{
+							Name:   "buildpack-upstream",
+							Weight: &weight,
+						},
+					},
+					Authentication: v2.ApisixRouteAuthentication{
+						Enable: false,
+						Type:   "basicAuth",
+					},
+				},
+			},
+		},
+	}
+}
+
+func (a *api) upstreamForExternalDomain() *v2.ApisixUpstream {
+	port := 443 // HTTPS 默认端口
+	return &v2.ApisixUpstream{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "buildpack-upstream",
+			Namespace: a.component.Namespace,
+		},
+		Spec: &v2.ApisixUpstreamSpec{
+			ExternalNodes: []v2.ApisixUpstreamExternalNode{
+				{
+					Name: "buildpack.oss-cn-shanghai.aliyuncs.com", // 外部服务地址
+					Port: &port,                                    // 端口
+				},
+			},
+			ApisixUpstreamConfig: v2.ApisixUpstreamConfig{
+				Scheme: "https",
+			},
+		},
+	}
 }
