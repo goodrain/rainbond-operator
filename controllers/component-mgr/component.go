@@ -338,6 +338,13 @@ func (r *RbdcomponentMgr) updateRuntimeObject(old, new client.Object) client.Obj
 		return n
 	}
 
+	if n, ok := new.(*v2.ApisixUpstream); ok {
+		r.log.V(6).Info("copy necessary fields from old ApisixRoute before updating")
+		o := old.(*v2.ApisixUpstream)
+		n.ResourceVersion = o.ResourceVersion
+		return n
+	}
+
 	if n, ok := new.(*v2.ApisixTls); ok {
 		r.log.V(6).Info("copy necessary fields from old ApisixTls before updating")
 		o := old.(*v2.ApisixTls)
