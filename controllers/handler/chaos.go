@@ -106,6 +106,9 @@ func (c *chaos) deployment() client.Object {
 		{
 			Name:      "cache",
 			MountPath: "/cache",
+		}, {
+			Name:      "grdata",
+			MountPath: "/grdata",
 		},
 	}
 	volumes := []corev1.Volume{
@@ -113,7 +116,15 @@ func (c *chaos) deployment() client.Object {
 			Name: "cache",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/cache",
+					Path: "/opt/rainbond/cache",
+					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
+				},
+			},
+		}, {
+			Name: "grdata",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/opt/rainbond/grdata",
 					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
 				},
 			},
