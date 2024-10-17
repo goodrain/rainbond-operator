@@ -301,11 +301,11 @@ func (h *hub) daemonSet() client.Object {
 	if gatewayNodes != nil && len(gatewayNodes) > 0 {
 		gatewayHost = gatewayNodes[0].InternalIP
 	}
-	hostCMD := fmt.Sprintf("grep -qxF '%v goodrain.me' /etc/hosts || echo '%v goodrain.me' >> /etc/hosts; tail -f /dev/null", gatewayHost, gatewayHost)
+	hostCMD := fmt.Sprintf("grep -qxF '%v goodrain.me' /etc/hosts || echo '%v goodrain.me' >> /etc/hosts;", gatewayHost, gatewayHost)
 	// 创建 DaemonSet 对象
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "modify-hub-hosts",
+			Name:      "hosts-job",
 			Namespace: h.component.Namespace,
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -319,7 +319,7 @@ func (h *hub) daemonSet() client.Object {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:  "modify-hosts-container",
+							Name:  "hosts-job",
 							Image: os.Getenv("RAINBOND_IMAGE_REPOSITORY") + "/alpine:latest",
 							Command: []string{
 								"/bin/sh", "-c", hostCMD,
@@ -342,7 +342,7 @@ func (h *hub) daemonSet() client.Object {
 							},
 						},
 					},
-					HostPID: true, // 允许在宿主机 PID 命名空间中运行
+					RestartPolicy: corev1.RestartPolicyOnFailure,
 				},
 			},
 		},

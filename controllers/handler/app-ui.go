@@ -5,16 +5,12 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
-
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -83,23 +79,9 @@ func (a *appui) Resources() []client.Object {
 	}
 	res := []client.Object{
 		a.serviceForAppUI(int32(p)),
-		a.serviceForProxy(),
 		rbdDefaultRouteForHTTP(),
 	}
 
-	//在获取到节点后，去检测节点的运行时
-	nodeList, err := getNodeInfo(a.client)
-	if err == nil {
-		for i, n := range nodeList.Items {
-			containerRuntime := strings.Split(n.Status.NodeInfo.ContainerRuntimeVersion, ":")
-			if len(containerRuntime) != 0 && containerRuntime[0] == "containerd" {
-				continue
-			}
-			res = append(res, a.nodeJob(affinityForRequiredNodes([]string{n.Name}), i))
-		}
-	} else {
-		log.Error(err, "get node names step")
-	}
 	res = append(res, a.deploymentForAppUI())
 	return res
 }
@@ -248,15 +230,6 @@ func (a *appui) deploymentForAppUI() client.Object {
 							ReadinessProbe:  readinessProbe,
 							Resources:       a.component.Spec.Resources,
 						},
-						{
-							Name:  "proxy-pass",
-							Image: "registry.cn-hangzhou.aliyuncs.com/goodrain/proxy-pass",
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 80,
-								},
-							},
-						},
 					},
 					Volumes: volumes,
 				},
@@ -298,149 +271,4 @@ func (a *appui) serviceForAppUI(port int32) client.Object {
 	}
 
 	return svc
-}
-
-// serviceForProxy 将容器内的80暴露到6060端口
-func (a *appui) serviceForProxy() client.Object {
-	svc := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rbd-app-ui-proxy",
-			Namespace: a.component.Namespace,
-			Labels:    a.labels,
-		},
-		Spec: corev1.ServiceSpec{
-			Ports: []corev1.ServicePort{
-				{
-					Name: "proxy",
-					Port: 6060,
-					TargetPort: intstr.IntOrString{
-						IntVal: 80,
-					},
-				},
-			},
-			Selector: a.labels,
-		},
-	}
-	return svc
-}
-
-// 需要每一个节点都运行一遍
-func (a *appui) nodeJob(aff *corev1.Affinity, index int) *batchv1.Job {
-
-	name := "node-job-" + strconv.Itoa(index)
-	labels := map[string]string{
-		"name": name,
-	}
-
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      "etc",
-			MountPath: "/newetc",
-		},
-	}
-	volumes := []corev1.Volume{
-		{
-			Name: "etc",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/etc",
-					Type: k8sutil.HostPath(corev1.HostPathDirectory),
-				},
-			},
-		},
-	}
-
-	runtimeVolumes, runtimeVolumeMounts := a.getDockerVolumes()
-
-	job := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: a.component.Namespace,
-			Labels:    labels,
-		},
-		Spec: batchv1.JobSpec{
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					SecurityContext: &corev1.PodSecurityContext{
-						RunAsUser: commonutil.Int64(0),
-					},
-					Affinity:           aff,
-					ServiceAccountName: rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
-					Volumes:            append(volumes, runtimeVolumes...),
-					Containers: []corev1.Container{
-						{
-							Name:         name,
-							Image:        "registry.cn-hangzhou.aliyuncs.com/goodrain/node-job",
-							VolumeMounts: append(volumeMounts, runtimeVolumeMounts...),
-						},
-					},
-					RestartPolicy: corev1.RestartPolicyNever,
-				},
-			},
-		},
-	}
-	return job
-}
-
-func (a *appui) getDockerVolumes() ([]corev1.Volume, []corev1.VolumeMount) {
-	volumes := []corev1.Volume{
-		{
-			Name: "docker",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/lib/docker",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-				},
-			},
-		},
-		{
-			Name: "vardocker",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/docker/lib",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-				},
-			},
-		},
-		{
-			Name: "dockercert",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/etc/docker/certs.d",
-					Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-				},
-			},
-		},
-		{
-			Name: "dockersock",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/run/docker.sock",
-					Type: k8sutil.HostPath(corev1.HostPathSocket),
-				},
-			},
-		},
-	}
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      "dockersock",
-			MountPath: "/var/run/docker.sock",
-		},
-		{
-			Name:      "docker", // for container logs, ubuntu
-			MountPath: "/var/lib/docker",
-		},
-		{
-			Name:      "vardocker", // for container logs, centos
-			MountPath: "/var/docker/lib",
-		},
-		{
-			Name:      "dockercert",
-			MountPath: "/etc/docker/certs.d",
-		},
-	}
-	return volumes, volumeMounts
 }
