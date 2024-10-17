@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	v2 "github.com/goodrain/rainbond-operator/api/v2"
-	"github.com/goodrain/rainbond-operator/util/constants"
 	"os"
 	"strconv"
 	"strings"
@@ -406,10 +405,6 @@ func (a *api) ingressForLangProxy() client.Object {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "lang-proxy",
 			Namespace: a.component.Namespace,
-		},
-		TypeMeta: metav1.TypeMeta{
-			Kind:       constants.ApisixRoute,
-			APIVersion: constants.APISixAPIVersion,
 		},
 		Spec: v2.ApisixRouteSpec{
 			HTTP: []v2.ApisixRouteHTTP{
