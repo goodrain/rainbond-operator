@@ -3,10 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
-	batchv1 "k8s.io/api/batch/v1"
-	"k8s.io/utils/pointer"
 	"os"
 	"os/exec"
+
+	batchv1 "k8s.io/api/batch/v1"
+	"k8s.io/utils/pointer"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -317,9 +318,10 @@ func (h *hub) hostsJob() client.Object {
 			Namespace: h.component.Namespace,
 		},
 		Spec: batchv1.JobSpec{
-			Parallelism:  pointer.Int32Ptr(int32(len(nodeList.Items))), // 并行数应等于节点数
-			Completions:  pointer.Int32Ptr(int32(len(nodeList.Items))), // 确保每个节点完成一次
-			BackoffLimit: pointer.Int32Ptr(0),                          // 设置重试次数
+			TTLSecondsAfterFinished: pointer.Int32Ptr(60),
+			Parallelism:             pointer.Int32Ptr(int32(len(nodeList.Items))), // 并行数应等于节点数
+			Completions:             pointer.Int32Ptr(int32(len(nodeList.Items))), // 确保每个节点完成一次
+			BackoffLimit:            pointer.Int32Ptr(0),                          // 设置重试次数
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: h.labels,
@@ -366,7 +368,6 @@ func (h *hub) hostsJob() client.Object {
 							},
 						},
 					},
-					RestartPolicy: corev1.RestartPolicyOnFailure,
 				},
 			},
 		},

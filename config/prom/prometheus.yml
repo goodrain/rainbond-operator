@@ -85,29 +85,6 @@ scrape_configs:
           component: builder
           service_name: builder
 
-
-  - job_name: webcli
-    honor_labels: true
-    scrape_interval: 1m
-    scrape_timeout: 30s
-    metrics_path: /metrics
-    static_configs:
-      - targets: [ 'rbd-webcli:7171']
-        labels:
-          component: webcli
-          service_name: webcli
-
-  - job_name: eventlog
-    honor_labels: true
-    scrape_interval: 1m
-    scrape_timeout: 30s
-    metrics_path: /metrics
-    static_configs:
-      - targets: [ 'rbd-eventlog:6363' ]
-        labels:
-          component: eventlog
-          service_name: eventlog
-
   - job_name: prometheus
     honor_labels: true
     scrape_interval: 1m
