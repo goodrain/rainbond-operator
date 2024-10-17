@@ -3,6 +3,8 @@ package handler
 import (
 	"context"
 	"fmt"
+	batchv1 "k8s.io/api/batch/v1"
+	"k8s.io/utils/pointer"
 	"os"
 	"os/exec"
 
@@ -82,7 +84,7 @@ func (h *hub) Resources() []client.Object {
 		h.passwordSecret(),
 		h.deployment(),
 		h.serviceForHub(),
-		h.daemonSet(),
+		h.hostsJob(),
 		h.hubImageRepository(), // 绑定这个镜像仓库的secret
 		h.ingressForHub(),      //创建这个域名的路由
 	}
@@ -295,28 +297,50 @@ func (h *hub) deployment() client.Object {
 	return ds
 }
 
-func (h *hub) daemonSet() client.Object {
+func (h *hub) hostsJob() client.Object {
 	gatewayNodes := h.cluster.Spec.NodesForGateway
 	var gatewayHost string
 	if gatewayNodes != nil && len(gatewayNodes) > 0 {
 		gatewayHost = gatewayNodes[0].InternalIP
 	}
 	hostCMD := fmt.Sprintf("grep -qxF '%v goodrain.me' /etc/hosts || echo '%v goodrain.me' >> /etc/hosts;", gatewayHost, gatewayHost)
-	// 创建 DaemonSet 对象
-	return &appsv1.DaemonSet{
+	nodeList := &corev1.NodeList{}
+	if err := h.client.List(context.TODO(), nodeList, &client.ListOptions{}); err != nil {
+		logrus.Errorf("get node len failure: %v", err)
+		return nil
+	}
+
+	// 创建 Job 对象
+	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "hosts-job",
 			Namespace: h.component.Namespace,
 		},
-		Spec: appsv1.DaemonSetSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: h.labels,
-			},
+		Spec: batchv1.JobSpec{
+			Parallelism:  pointer.Int32Ptr(int32(len(nodeList.Items))), // 并行数应等于节点数
+			Completions:  pointer.Int32Ptr(int32(len(nodeList.Items))), // 确保每个节点完成一次
+			BackoffLimit: pointer.Int32Ptr(0),                          // 设置重试次数
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: h.labels,
 				},
 				Spec: corev1.PodSpec{
+					Affinity: &corev1.Affinity{
+						NodeAffinity: &corev1.NodeAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+								NodeSelectorTerms: []corev1.NodeSelectorTerm{
+									{
+										MatchExpressions: []corev1.NodeSelectorRequirement{
+											{
+												Key:      "kubernetes.io/hostname",
+												Operator: corev1.NodeSelectorOpExists, // 确保在所有节点上运行
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:  "hosts-job",
