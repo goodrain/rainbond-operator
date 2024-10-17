@@ -435,6 +435,10 @@ func (a *api) ingressForLangProxy() client.Object {
 							},
 						},
 					},
+					Authentication: v2.ApisixRouteAuthentication{
+						Enable: false,
+						Type:   "basicAuth",
+					},
 				},
 			},
 		},
