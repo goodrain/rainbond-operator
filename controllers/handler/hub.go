@@ -368,6 +368,7 @@ func (h *hub) hostsJob() client.Object {
 							},
 						},
 					},
+					RestartPolicy: corev1.RestartPolicyOnFailure,
 				},
 			},
 		},
