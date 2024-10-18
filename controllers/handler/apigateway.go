@@ -186,6 +186,7 @@ func (a *apigateway) deploy() client.Object {
 	if affinity == nil {
 		return nil
 	}
+	replicas := int32(len(nodeNames))
 	envs := append(a.component.Spec.Env, []corev1.EnvVar{
 		{
 			Name:  "RBD_NAMESPACE",
@@ -240,6 +241,7 @@ func (a *apigateway) deploy() client.Object {
 			Labels:    a.labels,
 		},
 		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: a.labels,
 			},
