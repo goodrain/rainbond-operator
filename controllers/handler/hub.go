@@ -345,8 +345,9 @@ func (h *hub) hostsJob() client.Object {
 					},
 					Containers: []corev1.Container{
 						{
-							Name:  "hosts-job",
-							Image: os.Getenv("RAINBOND_IMAGE_REPOSITORY") + "/alpine:latest",
+							Name:            "hosts-job",
+							Image:           os.Getenv("RAINBOND_IMAGE_REPOSITORY") + "/alpine:latest",
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Command: []string{
 								"/bin/sh", "-c", hostCMD,
 							},
