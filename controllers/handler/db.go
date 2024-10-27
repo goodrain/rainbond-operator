@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/distribution/reference"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
@@ -52,7 +51,7 @@ var _ ComponentHandler = &db{}
 var _ StorageClassRWOer = &db{}
 var _ ClusterScopedResourcesCreator = &db{}
 
-//NewDB new db
+// NewDB new db
 func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	d := &db{
 		ctx:            ctx,
@@ -115,7 +114,6 @@ func (d *db) Resources() []client.Object {
 		d.initdbCMForDB(),
 		d.statefulsetForDB(),
 		d.serviceForDB(),
-		d.serviceForExporter(),
 	}
 }
 
@@ -151,9 +149,6 @@ func (d *db) CreateClusterScoped() []client.Object {
 }
 
 func (d *db) statefulsetForDB() client.Object {
-	repo, _ := reference.Parse(d.component.Spec.Image)
-	name := repo.(reference.Named).Name()
-	exporterImage := strings.Replace(name, "rbd-db", "mysqld-exporter", 1)
 
 	regionDBName := os.Getenv("REGION_DB_NAME")
 	if regionDBName == "" {
@@ -270,17 +265,6 @@ func (d *db) statefulsetForDB() client.Object {
 							},
 							Resources: d.component.Spec.Resources,
 						},
-						{
-							Name:            DBName + "-exporter",
-							Image:           exporterImage,
-							ImagePullPolicy: d.component.ImagePullPolicy(),
-							Env: []corev1.EnvVar{
-								{
-									Name:  "DATA_SOURCE_NAME",
-									Value: fmt.Sprintf("%s:%s@tcp(127.0.0.1:3306)/", d.mysqlUser, d.mysqlPassword),
-								},
-							},
-						},
 					},
 					Volumes: volumes,
 				},
@@ -311,26 +295,6 @@ func (d *db) serviceForDB() client.Object {
 		},
 	}
 	return mysqlSvc
-}
-
-func (d *db) serviceForExporter() client.Object {
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      DBName + "-exporter",
-			Namespace: d.component.Namespace,
-			Labels:    d.labels,
-		},
-		Spec: corev1.ServiceSpec{
-			ClusterIP: "None",
-			Ports: []corev1.ServicePort{
-				{
-					Name: "exporter",
-					Port: 9104,
-				},
-			},
-			Selector: d.labels,
-		},
-	}
 }
 
 func (d *db) initdbCMForDB() client.Object {
