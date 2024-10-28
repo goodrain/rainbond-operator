@@ -102,7 +102,6 @@ func (a *appui) ResourcesCreateIfNotExists() []client.Object {
 
 func (a *appui) deploymentForAppUI() client.Object {
 	cpt := a.component
-
 	envs := []corev1.EnvVar{
 		{
 			Name:  "RBD_NAMESPACE",
@@ -111,26 +110,6 @@ func (a *appui) deploymentForAppUI() client.Object {
 		{
 			Name:  "CRYPTOGRAPHY_ALLOW_OPENSSL_102",
 			Value: "true",
-		},
-		{
-			Name:  "MYSQL_HOST",
-			Value: a.db.Host,
-		},
-		{
-			Name:  "MYSQL_PORT",
-			Value: strconv.Itoa(a.db.Port),
-		},
-		{
-			Name:  "MYSQL_USER",
-			Value: a.db.Username,
-		},
-		{
-			Name:  "MYSQL_PASS",
-			Value: a.db.Password,
-		},
-		{
-			Name:  "MYSQL_DB",
-			Value: a.db.Name,
 		},
 		{
 			Name:  "REGION_URL",
@@ -152,6 +131,31 @@ func (a *appui) deploymentForAppUI() client.Object {
 			Name:  "IMAGE_REPO",
 			Value: a.cluster.Spec.ImageHub.Domain,
 		},
+	}
+	if !checksqllite.IsSQLLite() {
+		mysqlEnvs := []corev1.EnvVar{
+			{
+				Name:  "MYSQL_HOST",
+				Value: a.db.Host,
+			},
+			{
+				Name:  "MYSQL_PORT",
+				Value: strconv.Itoa(a.db.Port),
+			},
+			{
+				Name:  "MYSQL_USER",
+				Value: a.db.Username,
+			},
+			{
+				Name:  "MYSQL_PASS",
+				Value: a.db.Password,
+			},
+			{
+				Name:  "MYSQL_DB",
+				Value: a.db.Name,
+			},
+		}
+		envs = append(envs, mysqlEnvs...)
 	}
 	volumes := []corev1.Volume{
 		{
