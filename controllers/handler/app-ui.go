@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
@@ -46,17 +47,18 @@ func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1al
 }
 
 func (a *appui) Before() error {
-	db, err := getDefaultDBInfo(a.ctx, a.client, a.cluster.Spec.UIDatabase, a.component.Namespace, DBName)
-	if err != nil {
-		return fmt.Errorf("get db info: %v", err)
-	}
-	if db.Name == "" {
-		db.Name = ConsoleDatabaseName
-	}
-	a.db = db
-
-	if err := isUIDBReady(a.ctx, a.client, a.component, a.cluster); err != nil {
-		return err
+	if !checksqllite.IsSQLLite() {
+		db, err := getDefaultDBInfo(a.ctx, a.client, a.cluster.Spec.UIDatabase, a.component.Namespace, DBName)
+		if err != nil {
+			return fmt.Errorf("get db info: %v", err)
+		}
+		if db.Name == "" {
+			db.Name = ConsoleDatabaseName
+		}
+		a.db = db
+		if err := isUIDBReady(a.ctx, a.client, a.component, a.cluster); err != nil {
+			return err
+		}
 	}
 
 	if a.cluster.Spec.ImageHub == nil {
