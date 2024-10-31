@@ -85,8 +85,8 @@ func (a *api) Resources() []client.Object {
 	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-api", 8443))
 	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-healthz", 8889))
 	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-websocket", 6060))
-	resources = append(resources, a.ingressForLangProxy())
 	resources = append(resources, a.upstreamForExternalDomain())
+	resources = append(resources, a.ingressForLangProxy())
 	return resources
 }
 

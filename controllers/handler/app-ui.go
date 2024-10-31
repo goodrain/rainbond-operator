@@ -79,12 +79,12 @@ func (a *appui) Resources() []client.Object {
 		port = "7070"
 		log.Error(err, "strconv.Atoi(port)")
 	}
-	res := []client.Object{
-		a.serviceForAppUI(int32(p)),
-		rbdDefaultRouteForHTTP(),
-	}
+	var res []client.Object
 
 	res = append(res, a.deploymentForAppUI())
+	res = append(res, a.serviceForAppUI(int32(p)))
+	res = append(res, rbdDefaultRouteForHTTP())
+
 	return res
 }
 

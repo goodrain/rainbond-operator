@@ -245,6 +245,9 @@ func (a *apigateway) deploy() client.Object {
 			Selector: &metav1.LabelSelector{
 				MatchLabels: a.labels,
 			},
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RecreateDeploymentStrategyType,
+			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ApiGatewayName,
