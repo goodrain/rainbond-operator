@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"time"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
@@ -81,35 +80,6 @@ func (a *appui) Resources() []client.Object {
 		log.Error(err, "strconv.Atoi(port)")
 	}
 	var res []client.Object
-
-	// 定义标签选择器，筛选出 name=rbd-gateway 的 Pod
-	labelSelector := client.MatchingLabels{"name": "rbd-gateway"}
-	// 定义 Pod 列表对象，用于存储查询结果
-	var podList corev1.PodList
-
-	// 查询符合标签和命名空间的 Pod 列表
-	listOptions := []client.ListOption{
-		client.InNamespace(a.component.Namespace), // 指定命名空间
-		labelSelector, // 指定标签
-	}
-	for {
-		time.Sleep(5 * time.Second)
-		if err := a.client.List(a.ctx, &podList, listOptions...); err != nil {
-			log.Error(err, "list client failure")
-			continue
-		}
-
-		// 检查 Pod 是否已启动
-		AllRun := true
-		for _, pod := range podList.Items {
-			if pod.Status.Phase != corev1.PodRunning {
-				AllRun = false
-			}
-		}
-		if AllRun {
-			break
-		}
-	}
 
 	res = append(res, a.deploymentForAppUI())
 	res = append(res, a.serviceForAppUI(int32(p)))
