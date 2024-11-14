@@ -83,7 +83,7 @@ func (a *appui) Resources() []client.Object {
 
 	res = append(res, a.deploymentForAppUI())
 	res = append(res, a.serviceForAppUI(int32(p)))
-	res = append(res, rbdDefaultRouteForHTTP())
+	res = append(res, rbdDefaultRouteTemplateForTCP("rbd-app-ui", 7070))
 
 	return res
 }
