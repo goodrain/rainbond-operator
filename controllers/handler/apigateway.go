@@ -60,8 +60,9 @@ func rbdDefaultRouteTemplateForTCP(name string, port int) client.Object {
 						IngressPort: int32(port),
 					},
 					Backend: v2.ApisixRouteStreamBackend{
-						ServiceName: name,
-						ServicePort: intstr.FromInt(port),
+						ServiceName:        name,
+						ServicePort:        intstr.FromInt(port),
+						ResolveGranularity: "service",
 					},
 				},
 			},
