@@ -60,7 +60,9 @@ func (a *appui) Before() error {
 			return err
 		}
 	}
-
+	if a.cluster.Spec.SuffixHTTPHost == "" {
+		return fmt.Errorf("wait suffixHTTPHost")
+	}
 	if a.cluster.Spec.ImageHub == nil {
 		return NewIgnoreError("image repository not ready")
 	}
