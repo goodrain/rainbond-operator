@@ -69,6 +69,9 @@ func (a *api) Before() error {
 		}
 		a.db = db
 	}
+	if a.cluster.Spec.SuffixHTTPHost == "" {
+		return fmt.Errorf("wait suffixHTTPHost")
+	}
 
 	secret, err := etcdSecret(a.ctx, a.client, a.cluster)
 	if err != nil {
