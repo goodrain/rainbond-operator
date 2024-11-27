@@ -2,20 +2,24 @@ package handler
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
-	"os"
-	"strconv"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/probeutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/mem"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"os"
+	"runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
 )
 
 // AppUIName name for rbd-app-ui resources.
@@ -132,6 +136,10 @@ func (a *appui) deploymentForAppUI() client.Object {
 		{
 			Name:  "IMAGE_REPO",
 			Value: a.cluster.Spec.ImageHub.Domain,
+		},
+		{
+			Name:  "SECRET_KEY",
+			Value: getHashMac(),
 		},
 	}
 	if !checksqllite.IsSQLLite() {
@@ -279,4 +287,60 @@ func (a *appui) serviceForAppUI(port int32) client.Object {
 	}
 
 	return svc
+}
+
+func getSystemInfo() string {
+	// 获取操作系统信息
+	os := runtime.GOOS
+
+	// 获取系统架构
+	arch := runtime.GOARCH
+
+	// 获取 CPU 核心数
+	cpuCount := runtime.NumCPU()
+
+	// 获取 CPU 相关信息
+	cpus, err := cpu.Info()
+	if err != nil {
+		fmt.Println("Error getting CPU info:", err)
+		return ""
+	}
+
+	// 获取内存信息
+	vmStat, err := mem.VirtualMemory()
+	if err != nil {
+		fmt.Println("Error getting memory info:", err)
+		return ""
+	}
+
+	// 获取总内存（GB）
+	totalMemory := vmStat.Total / (1024 * 1024 * 1024) // 转换为 GB
+
+	// 将系统信息拼接成一个字符串
+	systemInfo := fmt.Sprintf("OS:%s-Arch:%s-CPUs:%d-Mem:%dGB-CPU:%s",
+		os,
+		arch,
+		cpuCount,
+		totalMemory,
+		cpus[0].ModelName)
+
+	return systemInfo
+}
+
+// 计算MD5值
+func calculateMD5(input string) string {
+	hash := md5.New()
+	hash.Write([]byte(input))
+	hashInBytes := hash.Sum(nil)
+	return hex.EncodeToString(hashInBytes)
+}
+
+// 获取系统信息并计算 MD5 值
+func getHashMac() string {
+	// 获取系统信息
+	systemInfo := getSystemInfo()
+	// 计算系统信息的 MD5 值
+	md5Value := calculateMD5(systemInfo)
+	// 返回一个包含 "SECRET_KEY" 和 MD5 值的映射
+	return md5Value
 }

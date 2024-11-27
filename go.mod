@@ -12,6 +12,7 @@ require (
 	github.com/juju/errors v0.0.0-20200330140219-3fe23663418f
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
+	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.9.0
 	github.com/twinj/uuid v1.0.0
@@ -19,6 +20,7 @@ require (
 	k8s.io/apimachinery v0.20.6
 	k8s.io/client-go v0.20.6
 	k8s.io/kube-aggregator v0.20.1
+	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	sigs.k8s.io/controller-runtime v0.7.0
 )
 
@@ -44,6 +46,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-logr/zapr v0.2.0 // indirect
+	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.0 // indirect
@@ -71,6 +74,9 @@ require (
 	github.com/prometheus/common v0.10.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/tklauser/go-sysconf v0.3.14 // indirect
+	github.com/tklauser/numcpus v0.8.0 // indirect
+	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/atomic v1.6.0 // indirect
 	go.uber.org/multierr v1.5.0 // indirect
 	go.uber.org/zap v1.15.0 // indirect
@@ -95,7 +101,6 @@ require (
 	k8s.io/component-base v0.20.6 // indirect
 	k8s.io/klog/v2 v2.4.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd // indirect
-	k8s.io/utils v0.0.0-20201110183641-67b214c5f920 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.0.3 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
