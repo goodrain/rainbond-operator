@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/aws/aws-sdk-go v1.15.11
-	github.com/docker/cli v0.0.0-20191017083524-a8ff7f821017
+	github.com/docker/cli v20.10.9+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v20.10.2+incompatible
 	github.com/go-logr/logr v0.3.0
