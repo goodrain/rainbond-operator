@@ -138,8 +138,9 @@ func (h *hub) ingressForHub() client.Object {
 					},
 					Backends: []v2.ApisixRouteHTTPBackend{
 						{
-							ServicePort: intstr.FromInt(5000),
-							ServiceName: "rbd-hub",
+							ServicePort:        intstr.FromInt(5000),
+							ServiceName:        "rbd-hub",
+							ResolveGranularity: "service",
 						},
 					},
 					Authentication: v2.ApisixRouteAuthentication{
@@ -393,7 +394,13 @@ func (h *hub) serviceForHub() client.Object {
 					},
 				},
 			},
-			Selector: h.labels,
+			Selector:        h.labels,
+			SessionAffinity: corev1.ServiceAffinityClientIP,
+			SessionAffinityConfig: &corev1.SessionAffinityConfig{
+				ClientIP: &corev1.ClientIPConfig{
+					TimeoutSeconds: commonutil.Int32(600),
+				},
+			},
 		},
 	}
 
