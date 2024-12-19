@@ -158,7 +158,7 @@ func (m *minIO) service() client.Object {
 				},
 			},
 			Selector: m.labels,
-			Type:     corev1.ServiceTypeNodePort, // 或者改为 LoadBalancer
+			Type:     corev1.ServiceTypeClusterIP, // 或者改为 LoadBalancer
 		},
 	}
 
