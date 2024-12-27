@@ -3,10 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
-	v2 "github.com/goodrain/rainbond-operator/api/v2"
 	"os"
 	"strconv"
 	"strings"
+
+	v2 "github.com/goodrain/rainbond-operator/api/v2"
 
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
@@ -458,7 +459,7 @@ func (a *api) upstreamForExternalDomain() *v2.ApisixUpstream {
 		Spec: &v2.ApisixUpstreamSpec{
 			ExternalNodes: []v2.ApisixUpstreamExternalNode{
 				{
-					Name: "buildpack.oss-cn-shanghai.aliyuncs.com", // 外部服务地址
+					Name: "buildpack.rainbond.com", // 外部服务地址
 					Type: "Domain",
 					Port: &port, // 端口
 				},
