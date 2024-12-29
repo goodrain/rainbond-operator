@@ -19,6 +19,7 @@ type LogCollectRequest struct {
 	OS            string       `json:"os"`
 	OSArch        string       `json:"os_arch"`
 	KernelVersion string       `json:"kernel_version"`
+	EnableCluster string       `json:"enable_cluster"`
 	DockerInfo    *DockerInfo  `json:"docker_info"`
 	ClusterInfo   *ClusterInfo `json:"cluster_info"`
 	RegionInfo    *RegionInfo  `json:"region_info"`

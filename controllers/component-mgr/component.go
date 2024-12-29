@@ -176,6 +176,7 @@ func (r *RbdcomponentMgr) CollectStatus() {
 		KernelVersion: kernelVersion,
 		ClusterInfo:   &logutil.ClusterInfo{Status: clusterStatus},
 		RegionInfo:    &logutil.RegionInfo{Status: regionStatus, Pods: regionPods},
+		EnableCluster: os.Getenv("DEPLOY_VERSION"),
 	}
 	logutil.SendLog(log)
 }
