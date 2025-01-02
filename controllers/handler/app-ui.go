@@ -87,6 +87,24 @@ func (a *appui) Resources() []client.Object {
 	}
 	var res []client.Object
 
+	// Create PVC
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rbd-app-ui-data",
+			Namespace: a.component.Namespace,
+			Labels:    a.labels,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: resource.MustParse("10Gi"),
+				},
+			},
+			StorageClassName: commonutil.String("local-path"),
+		},
+	}
+	res = append(res, pvc)
 	res = append(res, a.deploymentForAppUI())
 	res = append(res, a.serviceForAppUI(int32(p)))
 	res = append(res, rbdDefaultRouteTemplateForTCP("rbd-app-ui", 7070))
@@ -179,12 +197,8 @@ func (a *appui) deploymentForAppUI() client.Object {
 		{
 			Name: "app",
 			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/rainbonddata", // 请替换为实际的主机路径
-					Type: func() *corev1.HostPathType {
-						hp := corev1.HostPathDirectoryOrCreate
-						return &hp
-					}(),
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: "rbd-app-ui-data",
 				},
 			},
 		},
