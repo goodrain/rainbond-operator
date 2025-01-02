@@ -29,12 +29,14 @@ var AppUIName = "rbd-app-ui"
 var AppUIDBMigrationsName = "rbd-app-ui-migrations"
 
 type appui struct {
-	ctx       context.Context
-	client    client.Client
-	labels    map[string]string
-	db        *rainbondv1alpha1.Database
-	component *rainbondv1alpha1.RbdComponent
-	cluster   *rainbondv1alpha1.RainbondCluster
+	ctx              context.Context
+	client           client.Client
+	labels           map[string]string
+	db               *rainbondv1alpha1.Database
+	component        *rainbondv1alpha1.RbdComponent
+	cluster          *rainbondv1alpha1.RainbondCluster
+	pvcParametersRWO *pvcParameters
+	storageRequest   int64
 }
 
 var _ ComponentHandler = &appui{}
@@ -42,11 +44,12 @@ var _ ComponentHandler = &appui{}
 // NewAppUI creates a new rbd-app-ui handler.
 func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
 	return &appui{
-		ctx:       ctx,
-		client:    client,
-		component: component,
-		cluster:   cluster,
-		labels:    LabelsForRainbondComponent(component),
+		ctx:            ctx,
+		client:         client,
+		component:      component,
+		labels:         LabelsForRainbondComponent(component),
+		cluster:        cluster,
+		storageRequest: getStorageRequest("APP_UI_DATA_STORAGE_REQUEST", 5),
 	}
 }
 
@@ -71,7 +74,11 @@ func (a *appui) Before() error {
 		return NewIgnoreError("image repository not ready")
 	}
 
-	return nil
+	return setStorageCassName(a.ctx, a.client, a.component.Namespace, a)
+}
+
+func (a *appui) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
+	a.pvcParametersRWO = pvcParameters
 }
 
 func (a *appui) Resources() []client.Object {
@@ -86,6 +93,10 @@ func (a *appui) Resources() []client.Object {
 		log.Error(err, "strconv.Atoi(port)")
 	}
 	var res []client.Object
+
+	// Create PVC
+	appUIPVC := createPersistentVolumeClaimRWO(a.component.Namespace, "rbd-app-ui-data", a.pvcParametersRWO, a.labels, a.storageRequest)
+	res = append(res, appUIPVC)
 
 	res = append(res, a.deploymentForAppUI())
 	res = append(res, a.serviceForAppUI(int32(p)))
@@ -179,12 +190,8 @@ func (a *appui) deploymentForAppUI() client.Object {
 		{
 			Name: "app",
 			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/rainbonddata", // 请替换为实际的主机路径
-					Type: func() *corev1.HostPathType {
-						hp := corev1.HostPathDirectoryOrCreate
-						return &hp
-					}(),
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: "rbd-app-ui-data",
 				},
 			},
 		},
