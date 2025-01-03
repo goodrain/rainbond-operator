@@ -292,8 +292,8 @@ func (a *apigateway) monitorService() client.Object {
 				{
 					Name:       "http",
 					Protocol:   corev1.ProtocolTCP,
-					Port:       9091,
-					TargetPort: intstr.FromInt(9091),
+					Port:       8099,
+					TargetPort: intstr.FromInt(8099),
 				},
 			},
 			Selector: a.labels,
@@ -337,9 +337,14 @@ func (a *apigateway) configmap() client.Object {
 		Data: map[string]string{
 			"config.yaml": `plugin_attr:
   prometheus:
+    metrics:
+        http_status:
+            extra_labels:
+                - upstream_addr: $upstream_addr
+                - upstream_status: $upstream_status
     export_addr:
       ip: 0.0.0.0
-      port: 9091
+      port: 8099
 
 deployment:
   admin:
