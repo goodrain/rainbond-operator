@@ -435,7 +435,7 @@ func (a *api) ingressForLangProxy() client.Object {
 							Enable: true,
 							Config: v2.ApisixRoutePluginConfig{
 								"scheme": "https",
-								"host":   "buildpack.oss-cn-shanghai.aliyuncs.com",
+								"host":   "buildpack.rainbond.com",
 							},
 						},
 					},

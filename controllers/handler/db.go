@@ -5,15 +5,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -49,7 +46,6 @@ type db struct {
 
 var _ ComponentHandler = &db{}
 var _ StorageClassRWOer = &db{}
-var _ ClusterScopedResourcesCreator = &db{}
 
 // NewDB new db
 func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -62,7 +58,7 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 		mysqlUser:      "root",
 		mysqlPassword:  string(uuid.NewUUID())[0:8],
 		databases:      []string{"console"},
-		storageRequest: getStorageRequest("DB_DATA_STORAGE_REQUEST", 20),
+		storageRequest: getStorageRequest("DB_DATA_STORAGE_REQUEST", 5),
 	}
 	regionDBName := os.Getenv("REGION_DB_NAME")
 	if regionDBName == "" {
@@ -142,18 +138,16 @@ func (d *db) Replicas() *int32 {
 	return nil
 }
 
-func (d *db) CreateClusterScoped() []client.Object {
-	return []client.Object{
-		d.pv(),
-	}
-}
-
 func (d *db) statefulsetForDB() client.Object {
 
 	regionDBName := os.Getenv("REGION_DB_NAME")
 	if regionDBName == "" {
 		regionDBName = "region"
 	}
+
+	// Create PVC using VolumeClaimTemplates
+	dbPVC := createPersistentVolumeClaimRWO(d.component.Namespace, DBName, d.pvcParametersRWO, d.labels, d.storageRequest)
+
 	env := []corev1.EnvVar{
 		{
 			Name:  "MYSQL_ROOT_HOST",
@@ -181,10 +175,9 @@ func (d *db) statefulsetForDB() client.Object {
 		},
 	}
 
-	pvc := d.pvc()
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      pvc.GetName(),
+			Name:      DBName,
 			MountPath: "/var/lib/mysql",
 		},
 		{
@@ -269,7 +262,7 @@ func (d *db) statefulsetForDB() client.Object {
 					Volumes: volumes,
 				},
 			},
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*pvc},
+			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*dbPVC},
 		},
 	}
 
@@ -370,59 +363,4 @@ skip-name-resolve
 	}
 
 	return cm
-}
-
-func (d *db) pv() *corev1.PersistentVolume {
-	pv := &corev1.PersistentVolume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   DBName,
-			Labels: d.labels,
-		},
-	}
-
-	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
-	spec := corev1.PersistentVolumeSpec{
-		AccessModes: []corev1.PersistentVolumeAccessMode{
-			corev1.ReadWriteOnce,
-		},
-		Capacity: corev1.ResourceList{
-			corev1.ResourceStorage: *size,
-		},
-		StorageClassName: "manual",
-	}
-
-	spec.NodeAffinity = d.affinity
-
-	hostPath := &corev1.HostPathVolumeSource{
-		Path: "/opt/rainbond/data/db" + time.Now().Format("20060102150405"),
-		Type: k8sutil.HostPath(corev1.HostPathDirectoryOrCreate),
-	}
-	spec.HostPath = hostPath
-
-	pv.Spec = spec
-
-	return pv
-}
-
-func (d *db) pvc() *corev1.PersistentVolumeClaim {
-	size := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
-	pvc := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   DBName,
-			Labels: d.labels,
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteOnce,
-			},
-			Resources: corev1.ResourceRequirements{
-				Requests: map[corev1.ResourceName]resource.Quantity{
-					corev1.ResourceStorage: *size,
-				},
-			},
-			VolumeName:       DBName,
-			StorageClassName: commonutil.String("manual"),
-		},
-	}
-	return pvc
 }
