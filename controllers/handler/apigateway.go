@@ -334,6 +334,7 @@ func (a *apigateway) deploy() client.Object {
 			Selector: &metav1.LabelSelector{
 				MatchLabels: a.labels,
 			},
+			Replicas: a.component.Spec.Replicas,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      GatewayName,
