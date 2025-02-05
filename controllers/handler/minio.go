@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
@@ -34,7 +35,7 @@ func NewMinIO(ctx context.Context, client client.Client, component *rainbondv1al
 		client:         client,
 		component:      component,
 		labels:         LabelsForRainbondComponent(component),
-		storageRequest: getStorageRequest("MINIO_DATA_STORAGE_REQUEST", 20),
+		storageRequest: getStorageRequest("MINIO_DATA_STORAGE_REQUEST", 1),
 		cluster:        cluster,
 	}
 }

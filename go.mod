@@ -3,7 +3,6 @@ module github.com/goodrain/rainbond-operator
 go 1.22
 
 require (
-	github.com/aws/aws-sdk-go v1.15.11
 	github.com/docker/cli v0.0.0-20191017083524-a8ff7f821017
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v20.10.2+incompatible
@@ -44,7 +43,6 @@ require (
 	github.com/evanphx/json-patch v4.9.0+incompatible // indirect
 	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-logr/zapr v0.2.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -57,7 +55,6 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
-	github.com/jmespath/go-jmespath v0.0.0-20160803190731-bd40a432e4c7 // indirect
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/juju/testing v0.0.0-20201216035041-2be42bba85f3 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
