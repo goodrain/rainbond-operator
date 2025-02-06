@@ -9,10 +9,6 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/utils/pointer"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 	v2 "github.com/goodrain/rainbond-operator/api/v2"
 	"github.com/sirupsen/logrus"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -44,10 +40,12 @@ type hub struct {
 	password string
 	htpasswd []byte
 
-	storageRequest int64
+	pvcParametersRWO *pvcParameters
+	storageRequest   int64
 }
 
 var _ ComponentHandler = &hub{}
+var _ StorageClassRWOer = &hub{}
 
 // NewHub nw hub
 func NewHub(ctx context.Context, client client.Client, component *rainbondv1alpha1.RbdComponent, cluster *rainbondv1alpha1.RainbondCluster) ComponentHandler {
@@ -57,7 +55,7 @@ func NewHub(ctx context.Context, client client.Client, component *rainbondv1alph
 		client:         client,
 		ctx:            ctx,
 		labels:         LabelsForRainbondComponent(component),
-		storageRequest: getStorageRequest("HUB_DATA_STORAGE_REQUEST", 10),
+		storageRequest: getStorageRequest("HUB_DATA_STORAGE_REQUEST", 1),
 	}
 }
 
@@ -76,11 +74,19 @@ func (h *hub) Before() error {
 	}
 	h.htpasswd = htpasswd
 
+	if err := setStorageCassName(h.ctx, h.client, h.component.Namespace, h); err != nil {
+		return err
+	}
+
 	return nil
 }
 
+func (h *hub) SetStorageClassNameRWO(pvcParameters *pvcParameters) {
+	h.pvcParametersRWO = pvcParameters
+}
+
 func (h *hub) Resources() []client.Object {
-	return []client.Object{
+	resources := []client.Object{
 		h.secretForHub(), // important! create secret before ingress.
 		h.passwordSecret(),
 		h.deployment(),
@@ -88,7 +94,16 @@ func (h *hub) Resources() []client.Object {
 		h.hostsJob(),
 		h.hubImageRepository(), // 绑定这个镜像仓库的secret
 		h.ingressForHub(),      //创建这个域名的路由
+		createPersistentVolumeClaimRWO(h.component.Namespace, hubDataPvcName, h.pvcParametersRWO, h.labels, h.storageRequest),
 	}
+
+	// Add PVC if using local-path storage
+	if h.pvcParametersRWO != nil {
+		hubPVC := createPersistentVolumeClaimRWO(h.component.Namespace, hubDataPvcName, h.pvcParametersRWO, h.labels, h.storageRequest)
+		resources = append([]client.Object{hubPVC}, resources...)
+	}
+
+	return resources
 }
 
 func (h *hub) hubImageRepository() client.Object {
@@ -154,31 +169,6 @@ func (h *hub) ingressForHub() client.Object {
 }
 
 func (h *hub) After() error {
-	sess, err := session.NewSession(&aws.Config{
-		Endpoint:         aws.String("http://minio-service:9000"),
-		Region:           aws.String("rainbond"), // 可以根据需要选择区域
-		Credentials:      credentials.NewStaticCredentials("admin", rbdutil.GetenvDefault("RBD_MINIO_ROOT_PASSWORD", "admin1234"), ""),
-		S3ForcePathStyle: aws.Bool(true), // 使用路径风格
-	})
-	if err != nil {
-		logrus.Errorf("failed to create session: %v", err)
-		return err
-	}
-	s3Client := s3.New(sess)
-
-	bucketName := "rbd-hub"
-	_, err = s3Client.HeadBucket(&s3.HeadBucketInput{
-		Bucket: aws.String(bucketName),
-	})
-	if err != nil {
-		// 如果桶不存在，创建桶
-		_, err = s3Client.CreateBucket(&s3.CreateBucketInput{
-			Bucket: aws.String(bucketName),
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create bucket: %w", err)
-		}
-	}
 	return nil
 }
 
@@ -205,28 +195,16 @@ func (h *hub) deployment() client.Object {
 			Value: "/auth/htpasswd",
 		},
 		{
+			Name:  "REGISTRY_HTTP_SECRET",
+			Value: "rainbond-registry-secret",
+		},
+		{
 			Name:  "REGISTRY_STORAGE",
-			Value: "s3",
+			Value: "filesystem",
 		},
 		{
-			Name:  "REGISTRY_STORAGE_S3_REGION",
-			Value: "rainbond",
-		},
-		{
-			Name:  "REGISTRY_STORAGE_S3_ACCESSKEY",
-			Value: "admin",
-		},
-		{
-			Name:  "REGISTRY_STORAGE_S3_SECRETKEY",
-			Value: rbdutil.GetenvDefault("RBD_MINIO_ROOT_PASSWORD", "admin1234"),
-		},
-		{
-			Name:  "REGISTRY_STORAGE_S3_REGIONENDPOINT",
-			Value: "http://minio-service:9000",
-		},
-		{
-			Name:  "REGISTRY_STORAGE_S3_BUCKET",
-			Value: "rbd-hub",
+			Name:  "REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY",
+			Value: "/var/lib/registry",
 		},
 		{
 			Name:  "REGISTRY_STORAGE_REDIRECT_DISABLE",
@@ -238,6 +216,10 @@ func (h *hub) deployment() client.Object {
 			Name:      "htpasswd",
 			MountPath: "/auth",
 			ReadOnly:  true,
+		},
+		{
+			Name:      "data",
+			MountPath: "/var/lib/registry",
 		},
 	}
 	volumes := []corev1.Volume{
@@ -252,6 +234,14 @@ func (h *hub) deployment() client.Object {
 							Path: "htpasswd",
 						},
 					},
+				},
+			},
+		},
+		{
+			Name: "data",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: hubDataPvcName,
 				},
 			},
 		},

@@ -5,6 +5,10 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"os"
+	"runtime"
+	"strconv"
+
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -16,10 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"os"
-	"runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strconv"
 )
 
 // AppUIName name for rbd-app-ui resources.
@@ -49,7 +50,7 @@ func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1al
 		component:      component,
 		labels:         LabelsForRainbondComponent(component),
 		cluster:        cluster,
-		storageRequest: getStorageRequest("APP_UI_DATA_STORAGE_REQUEST", 5),
+		storageRequest: getStorageRequest("APP_UI_DATA_STORAGE_REQUEST", 1),
 	}
 }
 
