@@ -239,8 +239,8 @@ func (a *apigateway) deploy() client.Object {
 								"--apisix-resource-sync-interval",
 								"1h",
 								"--apisix-resource-sync-comparison=true",
-								//"--http-listen",
-								//":7080",
+								"--http-listen",
+								":7080",
 								//"--https-listen",
 								//":7443",
 								"--default-apisix-cluster-name",
@@ -335,7 +335,8 @@ func (a *apigateway) configmap() client.Object {
 			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 		},
 		Data: map[string]string{
-			"config.yaml": `plugin_attr:
+			"config.yaml": `
+plugin_attr:
   prometheus:
     metrics:
         http_status:
@@ -366,7 +367,6 @@ apisix:
     enable: true
     listen:
       - port: 443
-      - port: 7443
   enable_control: true
   enable_reuseport: true
   node_listen:
@@ -463,7 +463,7 @@ plugins: # plugin list (sorted by priority)
   - serverless-post-function       # priority: -2000
   - ext-plugin-post-req            # priority: -3000
   - ext-plugin-post-resp           # priority: -4000
-        `,
+`,
 		},
 	}
 
