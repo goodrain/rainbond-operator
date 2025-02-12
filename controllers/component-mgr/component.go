@@ -253,15 +253,16 @@ func handleRegionInfo() (regionPods []*logutil.Pod, isReady bool) {
 
 	// handle Pod
 	var pods []*logutil.Pod
+	isAPIReady := false
 	for _, value := range podInfos {
 		pods = append(pods, value)
 		if strings.Contains(value.Name, "rbd-api") {
 			if value.Status == string(corev1.PodRunning) && value.Ready == "1/1" {
-				return pods, true
+				isAPIReady = true
 			}
 		}
 	}
-	return pods, false
+	return pods, isAPIReady
 }
 
 // IsRbdComponentReady -
