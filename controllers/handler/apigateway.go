@@ -394,8 +394,16 @@ func (a *apigateway) deploy() client.Object {
 							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 						},
 						{
-							Name:            "apisix",
-							Image:           images[1],
+							Name:  "apisix",
+							Image: images[1],
+							Command: []string{
+								"sh",
+								"-c",
+								`
+		sleep 10;
+		exec apisix start
+		`,
+							},
 							ImagePullPolicy: a.component.ImagePullPolicy(),
 							SecurityContext: &corev1.SecurityContext{
 								RunAsUser:  commonutil.Int64(0),
