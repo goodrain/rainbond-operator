@@ -159,6 +159,19 @@ func (m *monitor) statefulset() client.Object {
 							Name:            MonitorName,
 							VolumeMounts:    vms,
 							Resources:       resources,
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/-/healthy",
+										Port: intstr.FromInt(9999),
+									},
+								},
+								InitialDelaySeconds: 30,
+								TimeoutSeconds:      2,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
 						},
 					},
 					Volumes: vs,

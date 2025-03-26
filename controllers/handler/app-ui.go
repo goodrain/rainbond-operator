@@ -253,6 +253,19 @@ func (a *appui) deploymentForAppUI() client.Object {
 							VolumeMounts:    volumeMounts,
 							ReadinessProbe:  readinessProbe,
 							Resources:       a.component.Spec.Resources,
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/console/config/info",
+										Port: intstr.FromInt(7070),
+									},
+								},
+								InitialDelaySeconds: 30,
+								TimeoutSeconds:      2,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
 						},
 					},
 					Volumes: volumes,

@@ -121,6 +121,19 @@ func (m *mq) deployment() client.Object {
 							Args:            args,
 							VolumeMounts:    volumeMounts,
 							Resources:       m.component.Spec.Resources,
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/health",
+										Port: intstr.FromInt(6301),
+									},
+								},
+								InitialDelaySeconds: 30,
+								TimeoutSeconds:      2,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
 						},
 					},
 					Volumes: volumes,

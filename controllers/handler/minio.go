@@ -117,6 +117,19 @@ func (m *minIO) statefulSet() client.Object {
 									Value: rbdutil.GetenvDefault("RBD_MINIO_ROOT_PASSWORD", "admin1234"),
 								},
 							},
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/minio/health/live",
+										Port: intstr.FromInt(9000),
+									},
+								},
+								InitialDelaySeconds: 30,
+								TimeoutSeconds:      2,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
 						},
 					},
 					Volumes: []corev1.Volume{
