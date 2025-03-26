@@ -294,6 +294,19 @@ func (c *chaos) deployment() client.Object {
 							VolumeMounts:    volumeMounts,
 							ReadinessProbe:  readinessProbe,
 							Resources:       c.component.Spec.Resources,
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/v2/builder/health",
+										Port: intstr.FromInt(3228),
+									},
+								},
+								InitialDelaySeconds: 30,
+								TimeoutSeconds:      2,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
 						},
 					},
 					Volumes: volumes,

@@ -197,6 +197,19 @@ func (w *worker) deployment() client.Object {
 							VolumeMounts:    volumeMounts,
 							ReadinessProbe:  readinessProbe,
 							Resources:       w.component.Spec.Resources,
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/worker/health",
+										Port: intstr.FromInt(6369),
+									},
+								},
+								InitialDelaySeconds: 30,
+								TimeoutSeconds:      2,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
 						},
 					},
 					Volumes: volumes,
