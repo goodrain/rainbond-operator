@@ -172,6 +172,19 @@ func (m *monitor) statefulset() client.Object {
 								SuccessThreshold:    1,
 								FailureThreshold:    3,
 							},
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/-/healthy",
+										Port: intstr.FromInt(9090),
+									},
+								},
+								InitialDelaySeconds: 30,
+								TimeoutSeconds:      2,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
 						},
 					},
 					Volumes: vs,
