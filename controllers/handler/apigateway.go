@@ -272,6 +272,19 @@ func (a *apigateway) deploy() client.Object {
 								SuccessThreshold:    1,
 								FailureThreshold:    3,
 							},
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/healthz",
+										Port: intstr.FromInt(7080),
+									},
+								},
+								InitialDelaySeconds: 30,
+								TimeoutSeconds:      2,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
 						},
 						{
 							Name:            "apisix",
