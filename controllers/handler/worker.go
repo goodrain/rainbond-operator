@@ -9,8 +9,6 @@ import (
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/goodrain/rainbond-operator/util/probeutil"
-
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 
@@ -166,7 +164,6 @@ func (w *worker) deployment() client.Object {
 	volumes = mergeVolumes(volumes, w.component.Spec.Volumes)
 
 	// prepare probe
-	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/worker/health", 6369)
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      WorkerName,
@@ -195,8 +192,20 @@ func (w *worker) deployment() client.Object {
 							Env:             env,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
-							ReadinessProbe:  readinessProbe,
-							Resources:       w.component.Spec.Resources,
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/worker/health",
+										Port: intstr.FromInt(6369),
+									},
+								},
+								InitialDelaySeconds: 30,
+								TimeoutSeconds:      20,
+								PeriodSeconds:       60,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
+							Resources: w.component.Spec.Resources,
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -205,8 +214,8 @@ func (w *worker) deployment() client.Object {
 									},
 								},
 								InitialDelaySeconds: 30,
-								TimeoutSeconds:      2,
-								PeriodSeconds:       10,
+								TimeoutSeconds:      20,
+								PeriodSeconds:       60,
 								SuccessThreshold:    1,
 								FailureThreshold:    3,
 							},

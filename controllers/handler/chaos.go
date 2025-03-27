@@ -11,7 +11,6 @@ import (
 	"github.com/goodrain/rainbond-operator/util/containerutil"
 	"github.com/sirupsen/logrus"
 
-	"github.com/goodrain/rainbond-operator/util/probeutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -256,8 +255,6 @@ func (c *chaos) deployment() client.Object {
 	volumes = mergeVolumes(volumes, c.component.Spec.Volumes)
 	args = mergeArgs(args, c.component.Spec.Args)
 
-	// prepare probe
-	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/builder/health", 3228)
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ChaosName,
@@ -292,8 +289,20 @@ func (c *chaos) deployment() client.Object {
 							Env:             env,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
-							ReadinessProbe:  readinessProbe,
-							Resources:       c.component.Spec.Resources,
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/v2/builder/health",
+										Port: intstr.FromInt(3228),
+									},
+								},
+								InitialDelaySeconds: 30,
+								TimeoutSeconds:      20,
+								PeriodSeconds:       60,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
+							Resources: c.component.Spec.Resources,
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -302,8 +311,8 @@ func (c *chaos) deployment() client.Object {
 									},
 								},
 								InitialDelaySeconds: 30,
-								TimeoutSeconds:      2,
-								PeriodSeconds:       10,
+								TimeoutSeconds:      20,
+								PeriodSeconds:       60,
 								SuccessThreshold:    1,
 								FailureThreshold:    3,
 							},
