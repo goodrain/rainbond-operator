@@ -3,13 +3,12 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/goodrain/rainbond-operator/util/k8sutil"
-	"path"
-	"strings"
-
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"github.com/goodrain/rainbond-operator/util/containerutil"
+	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/sirupsen/logrus"
+	"path"
+	"strings"
 
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 
@@ -409,6 +408,36 @@ func (c *chaos) defaultMavenSetting() *corev1.ConfigMap {
   </profiles>
 </settings>
 	`
+
+	url := commonutil.CompareLatency("maven.aliyun.com", "maven.apache.org")
+	// 选择延迟最小的配置
+	if url == "maven.apache.org" {
+		mavensetting = `<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <localRepository/>
+  <interactiveMode/>
+  <offline/>
+  <pluginGroups/>
+  <servers/>
+  <mirrors/>
+  <proxies/>
+  <profiles/>
+  <activeProfiles/>
+</settings>`
+		return &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "java-maven-aliyun",
+				Namespace: c.component.Namespace,
+				Labels: rbdutil.LabelsForRainbond(map[string]string{
+					"configtype": "mavensetting",
+					"default":    "true",
+				}),
+			},
+			Data: map[string]string{
+				"mavensetting": mavensetting,
+			},
+		}
+	}
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "java-maven-aliyun",
