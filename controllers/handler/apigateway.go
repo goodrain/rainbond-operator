@@ -347,6 +347,12 @@ func (a *apigateway) monitorGlobalRule() client.Object {
 					Config: v2.ApisixRoutePluginConfig{
 						"prefer_name": true,
 					},
+				}, {
+					Name:   "k8s-upstream-metrics",
+					Enable: true,
+					Config: v2.ApisixRoutePluginConfig{
+						"enable_service_id": true,
+					},
 				},
 			},
 		},
@@ -412,6 +418,7 @@ plugins: # plugin list (sorted by priority)
   - proxy-control                  # priority: 21990
   - request-id                     # priority: 12015
   - zipkin                         # priority: 12011
+  - k8s-upstream-metrics           # priority: 12010
   #- skywalking                    # priority: 12010
   #- opentelemetry                 # priority: 12009
   - ext-plugin-pre-req             # priority: 12000
