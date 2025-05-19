@@ -399,6 +399,7 @@ apisix:
     enable: true
     listen:
       - port: 443
+  enable_ipv6: false
   enable_control: true
   enable_reuseport: true
   node_listen:
