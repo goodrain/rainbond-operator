@@ -1,0 +1,58 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - rainbond.io
+  resources:
+  - rainbondclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rainbond.io
+  resources:
+  - rainbondclusters/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - rainbond.io
+  resources:
+  - rainbondclusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - rainbond.io
+  resources:
+  - rbdcomponents
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rainbond.io
+  resources:
+  - rbdcomponents/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - rainbond.io
+  resources:
+  - rbdcomponents/status
+  verbs:
+  - get
+  - patch
+  - update

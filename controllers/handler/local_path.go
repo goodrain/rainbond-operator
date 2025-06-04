@@ -192,6 +192,7 @@ func (l *localPath) deployment() client.Object {
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: LocalPathSAName,
+					Affinity:           l.component.Spec.Affinity,
 					Containers: []corev1.Container{
 						container,
 					},

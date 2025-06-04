@@ -184,6 +184,7 @@ func (w *worker) deployment() client.Object {
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
+					Affinity:                      w.component.Spec.Affinity,
 					Containers: []corev1.Container{
 						{
 							Name:            WorkerName,

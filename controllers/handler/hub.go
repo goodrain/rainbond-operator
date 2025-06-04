@@ -270,6 +270,7 @@ func (h *hub) deployment() client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(h.component, h.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					Affinity:                      h.component.Spec.Affinity,
 					Containers: []corev1.Container{
 						{
 							Name:            "rbd-hub",

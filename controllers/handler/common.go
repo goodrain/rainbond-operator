@@ -404,6 +404,15 @@ func mergeVolumeMounts(commonMountVolumes, priorityMountVolumes []corev1.VolumeM
 	return priorityMountVolumes
 }
 
+// mergeAffinity merges the component affinity with the default affinity.
+// Component affinity takes priority over default affinity.
+func mergeAffinity(defaultAffinity, componentAffinity *corev1.Affinity) *corev1.Affinity {
+	if componentAffinity != nil {
+		return componentAffinity
+	}
+	return defaultAffinity
+}
+
 func createIngress(name, namespace string, annotations, labels map[string]string, serviceName, servicePortName string) *networkingv1.Ingress {
 	return &networkingv1.Ingress{
 		ObjectMeta: createIngressMeta(name, namespace, annotations, labels),
@@ -418,7 +427,6 @@ func createIngress(name, namespace string, annotations, labels map[string]string
 			},
 		},
 	}
-
 }
 
 func createLegacyIngress(name, namespace string, annotations, labels map[string]string, serviceName string, servicePort intstr.IntOrString) *networkingv1beta1.Ingress {
