@@ -102,6 +102,7 @@ func (w *webcli) deployment() client.Object {
 					ImagePullSecrets:              imagePullSecrets(w.component, w.cluster),
 					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					Affinity:                      w.component.Spec.Affinity,
 					Containers: []corev1.Container{
 						{
 							Name:            WebCliName,

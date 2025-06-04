@@ -112,6 +112,7 @@ func (m *mq) deployment() client.Object {
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ImagePullSecrets:              imagePullSecrets(m.component, m.cluster),
+					Affinity:                      m.component.Spec.Affinity,
 					Containers: []corev1.Container{
 						{
 							Name:            MQName,

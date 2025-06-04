@@ -136,6 +136,9 @@ func (a *apigateway) deploy() client.Object {
 	if len(nodeNames) > 0 {
 		affinity = affinityForRequiredNodes(nodeNames)
 	}
+	// Merge component affinity with default affinity
+	affinity = mergeAffinity(affinity, a.component.Spec.Affinity)
+
 	if affinity == nil {
 		return nil
 	}

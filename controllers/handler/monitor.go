@@ -163,7 +163,7 @@ func (m *monitor) statefulset() client.Object {
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/-/healthy",
-										Port: intstr.FromInt(9090),
+										Port: intstr.FromInt(9999),
 									},
 								},
 								InitialDelaySeconds: 30,
@@ -187,7 +187,8 @@ func (m *monitor) statefulset() client.Object {
 							},
 						},
 					},
-					Volumes: vs,
+					Volumes:  vs,
+					Affinity: m.component.Spec.Affinity,
 				},
 			},
 			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{*promDataPVC},
