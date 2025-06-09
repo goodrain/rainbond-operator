@@ -163,7 +163,7 @@ func (m *monitor) statefulset() client.Object {
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/-/healthy",
-										Port: intstr.FromInt(9999),
+										Port: intstr.FromInt(9090),
 									},
 								},
 								InitialDelaySeconds: 30,
