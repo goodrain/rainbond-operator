@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -103,12 +104,22 @@ func (a *apigateway) Before() error {
 
 // Resources -
 func (a *apigateway) Resources() []client.Object {
-	return []client.Object{
-		a.configmap(),
+	// 检查 configmap 是否存在，不存在才创建
+	var objs []client.Object
+	var cm corev1.ConfigMap
+	err := a.client.Get(a.ctx, client.ObjectKey{
+		Name:      "apisix-gw-config.yaml",
+		Namespace: a.component.Namespace,
+	}, &cm)
+	if err != nil && apierrors.IsNotFound(err) {
+		objs = append(objs, a.configmap())
+	}
+	objs = append(objs,
 		a.deploy(),
 		a.monitorGlobalRule(),
 		a.monitorService(),
-	}
+	)
+	return objs
 }
 
 // After -
