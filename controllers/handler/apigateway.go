@@ -426,14 +426,12 @@ apisix:
       - addr: 7070
 
 plugins: # plugin list (sorted by priority)
-  - coraza-filter                  # priority: 7999
   - real-ip                        # priority: 23000
   - ai                             # priority: 22900
   - client-control                 # priority: 22000
   - proxy-control                  # priority: 21990
   - request-id                     # priority: 12015
   - zipkin                         # priority: 12011
-  - k8s-upstream-metrics           # priority: 12010
   #- skywalking                    # priority: 12010
   #- opentelemetry                 # priority: 12009
   - ext-plugin-pre-req             # priority: 12000
