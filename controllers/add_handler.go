@@ -20,7 +20,6 @@ func init() {
 	AddHandlerFunc(handler.WorkerName, handler.NewWorker)
 	AddHandlerFunc(handler.MQName, handler.NewMQ)
 	AddHandlerFunc(handler.DBName, handler.NewDB)
-	AddHandlerFunc(handler.WebCliName, handler.NewWebCli)
 	AddHandlerFunc(handler.LocalPathName, handler.NewLocalPath)
 	AddHandlerFunc(handler.MinIOName, handler.NewMinIO)
 }
