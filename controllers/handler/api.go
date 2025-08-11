@@ -89,8 +89,6 @@ func (a *api) Resources() []client.Object {
 	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-api", 8443))
 	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-healthz", 8889))
 	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-websocket", 6060))
-	resources = append(resources, a.upstreamForExternalDomain())
-	resources = append(resources, a.ingressForLangProxy())
 	return resources
 }
 
@@ -103,7 +101,10 @@ func (a *api) ListPods() ([]corev1.Pod, error) {
 }
 
 func (a *api) ResourcesCreateIfNotExists() []client.Object {
-	return []client.Object{}
+	return []client.Object{
+		a.upstreamForExternalDomain(),
+		a.ingressForLangProxy(),
+	}
 }
 
 func (a *api) deployment() client.Object {
