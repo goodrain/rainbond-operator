@@ -210,6 +210,10 @@ func (h *hub) deployment() client.Object {
 			Name:  "REGISTRY_STORAGE_REDIRECT_DISABLE",
 			Value: "true",
 		},
+		{
+			Name:  "REGISTRY_STORAGE_DELETE_ENABLED",
+			Value: "true",
+		},
 	}
 	volumeMounts := []corev1.VolumeMount{
 		{
