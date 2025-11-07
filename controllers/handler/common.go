@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"os"
 	"strconv"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
@@ -183,8 +184,13 @@ func etcdSSLArgs() []string {
 }
 
 func storageClassNameFromLocalPath() *pvcParameters {
+	// Check environment variable first, fall back to local-path
+	scName := os.Getenv("STORAGE_CLASS_NAME")
+	if scName == "" {
+		scName = "local-path"
+	}
 	return &pvcParameters{
-		storageClassName: "local-path",
+		storageClassName: scName,
 	}
 }
 
