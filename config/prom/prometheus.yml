@@ -19,7 +19,6 @@ scrape_configs:
     metrics_path: /api/v1/metrics
     static_configs:
       - targets: [ 'gr2dd58b.rbd-prd.svc.cluster.local:8080' ]
-
   - job_name: api_gateway
     honor_labels: true
     scrape_interval: 15s
@@ -27,7 +26,6 @@ scrape_configs:
     metrics_path: /apisix/prometheus/metrics
     static_configs:
       - targets: [ 'apisix-monitor:8099' ]
-
   - job_name: cadvisor
     scrape_interval: 15s
     scrape_timeout: 10s
@@ -56,7 +54,6 @@ scrape_configs:
         regex: k8s_POD_(.*)-deployment-(.*)
         target_label: service_id
         replacement: ${1}
-
   - job_name: worker
     scrape_interval: 3m
     scrape_timeout: 1m
@@ -69,7 +66,6 @@ scrape_configs:
     metric_relabel_configs:
       - source_labels: [ tenant_id ]
         target_label: namespace
-
   - job_name: mq
     honor_labels: true
     scrape_interval: 1m
@@ -80,7 +76,6 @@ scrape_configs:
         labels:
           component: mq
           service_name: mq
-
   - job_name: builder
     honor_labels: true
     scrape_interval: 1m
@@ -91,7 +86,6 @@ scrape_configs:
         labels:
           component: builder
           service_name: builder
-
   - job_name: prometheus
     honor_labels: true
     scrape_interval: 1m
@@ -101,7 +95,6 @@ scrape_configs:
       - targets: [ 'rbd-monitor:9999' ]
         labels:
           component: prometheus
-
   - job_name: nodes
     scrape_interval: 1m
     scrape_timeout: 10s
@@ -129,7 +122,6 @@ scrape_configs:
       target_label: __metrics_path__
       replacement: /api/v1/nodes/${1}/proxy/metrics
       action: replace
-  
   - job_name: node-exporter
     kubernetes_sd_configs:
     - role: node
@@ -139,3 +131,12 @@ scrape_configs:
       regex: '(.*):10250'
       replacement: '${1}:9100'
       target_label: __address__
+  - job_name: kube-state-metrics
+    honor_labels: true
+    scrape_interval: 1m
+    scrape_timeout: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['kube-state-metrics.rbd-plugins.svc.cluster.local:8080']
+        labels:
+          component: kube-state-metrics
