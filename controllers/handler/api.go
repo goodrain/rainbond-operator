@@ -86,9 +86,6 @@ func (a *api) Resources() []client.Object {
 	resources := a.secretAndConfigMapForAPI()
 	resources = append(resources, a.deployment())
 	resources = append(resources, a.createService()...)
-	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-api", 8443))
-	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-healthz", 8889))
-	resources = append(resources, rbdDefaultRouteTemplateForTCP("rbd-api-websocket", 6060))
 	return resources
 }
 
@@ -104,6 +101,9 @@ func (a *api) ResourcesCreateIfNotExists() []client.Object {
 	return []client.Object{
 		a.upstreamForExternalDomain(),
 		a.ingressForLangProxy(),
+		rbdDefaultRouteTemplateForTCP("rbd-api-api", 8443),
+		rbdDefaultRouteTemplateForTCP("rbd-api-healthz", 8889),
+		rbdDefaultRouteTemplateForTCP("rbd-api-websocket", 6060),
 	}
 }
 
