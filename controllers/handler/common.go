@@ -299,10 +299,19 @@ func copyLabels(m map[string]string) map[string]string {
 
 func hostsAliases(cluster *rainbondv1alpha1.RainbondCluster) []corev1.HostAlias {
 	var hostAliases []corev1.HostAlias
-	if rbdutil.GetImageRepository(cluster) == constants.DefImageRepository {
+	imageRepo := rbdutil.GetImageRepository(cluster)
+
+	// 提取域名部分(去除端口),支持 "goodrain.me" 和 "goodrain.me:9443" 格式
+	domain := imageRepo
+	if strings.Contains(imageRepo, ":") {
+		domain = strings.Split(imageRepo, ":")[0]
+	}
+
+	// 判断域名是否为默认镜像仓库(支持带端口或不带端口)
+	if domain == constants.DefImageRepository || imageRepo == constants.DefImageRepository {
 		hostAliases = append(hostAliases, corev1.HostAlias{
 			IP:        cluster.InnerGatewayIngressIP(),
-			Hostnames: []string{rbdutil.GetImageRepository(cluster)},
+			Hostnames: []string{domain}, // 使用不带端口的域名
 		})
 	}
 	return hostAliases
