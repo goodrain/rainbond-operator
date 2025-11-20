@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"os"
 	"strconv"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
@@ -183,8 +184,13 @@ func etcdSSLArgs() []string {
 }
 
 func storageClassNameFromLocalPath() *pvcParameters {
+	// Check environment variable first, fall back to local-path
+	scName := os.Getenv("STORAGE_CLASS_NAME")
+	if scName == "" {
+		scName = "local-path"
+	}
 	return &pvcParameters{
-		storageClassName: "local-path",
+		storageClassName: scName,
 	}
 }
 
@@ -293,10 +299,19 @@ func copyLabels(m map[string]string) map[string]string {
 
 func hostsAliases(cluster *rainbondv1alpha1.RainbondCluster) []corev1.HostAlias {
 	var hostAliases []corev1.HostAlias
-	if rbdutil.GetImageRepository(cluster) == constants.DefImageRepository {
+	imageRepo := rbdutil.GetImageRepository(cluster)
+
+	// 提取域名部分(去除端口),支持 "goodrain.me" 和 "goodrain.me:9443" 格式
+	domain := imageRepo
+	if strings.Contains(imageRepo, ":") {
+		domain = strings.Split(imageRepo, ":")[0]
+	}
+
+	// 判断域名是否为默认镜像仓库(支持带端口或不带端口)
+	if domain == constants.DefImageRepository || imageRepo == constants.DefImageRepository {
 		hostAliases = append(hostAliases, corev1.HostAlias{
 			IP:        cluster.InnerGatewayIngressIP(),
-			Hostnames: []string{rbdutil.GetImageRepository(cluster)},
+			Hostnames: []string{domain}, // 使用不带端口的域名
 		})
 	}
 	return hostAliases

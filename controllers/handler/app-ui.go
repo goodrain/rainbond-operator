@@ -101,7 +101,6 @@ func (a *appui) Resources() []client.Object {
 
 	res = append(res, a.deploymentForAppUI())
 	res = append(res, a.serviceForAppUI(int32(p)))
-	res = append(res, rbdDefaultRouteTemplateForTCP("rbd-app-ui", 7070))
 
 	return res
 }
@@ -115,7 +114,9 @@ func (a *appui) ListPods() ([]corev1.Pod, error) {
 }
 
 func (a *appui) ResourcesCreateIfNotExists() []client.Object {
-	return []client.Object{}
+	return []client.Object{
+		rbdDefaultRouteTemplateForTCP("rbd-app-ui", 7070),
+	}
 }
 
 func (a *appui) deploymentForAppUI() client.Object {
