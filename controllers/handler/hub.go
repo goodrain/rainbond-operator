@@ -214,6 +214,10 @@ func (h *hub) deployment() client.Object {
 			Name:  "REGISTRY_STORAGE_DELETE_ENABLED",
 			Value: "true",
 		},
+		{
+			Name:  "REGISTRY_HTTP_RELATIVEURLS",
+			Value: "true",
+		},
 	}
 	volumeMounts := []corev1.VolumeMount{
 		{
