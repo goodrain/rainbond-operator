@@ -137,6 +137,46 @@ func (r *RbdComponentReconciler) Reconcile(ctx context.Context, request ctrl.Req
 		}
 	}
 
+	replicaser, ok := hdl.(chandler.Replicaser)
+	if ok {
+		mgr.SetReplicaser(replicaser)
+	}
+
+	// Create or update Resources first to ensure Services exist before ApisixRoutes
+	resources := hdl.Resources()
+	for _, res := range resources {
+		if res == nil {
+			continue
+		}
+		if res.GetNamespace() != "" {
+			// Set RbdComponent cpt as the owner and controller
+			if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.Scheme); err != nil {
+				log.Error(err, "set controller reference")
+				condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse,
+					"SetControllerReferenceFailed", err.Error())
+				changed := cpt.Status.UpdateCondition(condition)
+				if changed {
+					r.Recorder.Event(cpt, corev1.EventTypeWarning, condition.Reason, condition.Message)
+					return reconcile.Result{Requeue: true}, mgr.UpdateStatus()
+				}
+				return reconcile.Result{}, err
+			}
+		}
+		// Check if the resource already exists, if not create a new one
+		reconcileResult, err := mgr.UpdateOrCreateResource(res)
+		if err != nil {
+			log.Error(err, "update or create resource")
+			condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse, "ErrCreateResources", err.Error())
+			changed := cpt.Status.UpdateCondition(condition)
+			if changed {
+				r.Recorder.Event(cpt, corev1.EventTypeWarning, condition.Reason, condition.Message)
+				return reconcile.Result{Requeue: true}, mgr.UpdateStatus()
+			}
+			return reconcileResult, err
+		}
+	}
+
+	// Create ResourcesCreateIfNotExists after Resources to ensure dependencies exist
 	resourceCreator, ok := hdl.(chandler.ResourcesCreator)
 	if ok {
 		log.V(6).Info("ResourcesCreator create resources create if not exists")
@@ -191,44 +231,6 @@ func (r *RbdComponentReconciler) Reconcile(ctx context.Context, request ctrl.Req
 				}
 				return reconcile.Result{}, err
 			}
-		}
-	}
-
-	replicaser, ok := hdl.(chandler.Replicaser)
-	if ok {
-		mgr.SetReplicaser(replicaser)
-	}
-
-	resources := hdl.Resources()
-	for _, res := range resources {
-		if res == nil {
-			continue
-		}
-		if res.GetNamespace() != "" {
-			// Set RbdComponent cpt as the owner and controller
-			if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.Scheme); err != nil {
-				log.Error(err, "set controller reference")
-				condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse,
-					"SetControllerReferenceFailed", err.Error())
-				changed := cpt.Status.UpdateCondition(condition)
-				if changed {
-					r.Recorder.Event(cpt, corev1.EventTypeWarning, condition.Reason, condition.Message)
-					return reconcile.Result{Requeue: true}, mgr.UpdateStatus()
-				}
-				return reconcile.Result{}, err
-			}
-		}
-		// Check if the resource already exists, if not create a new one
-		reconcileResult, err := mgr.UpdateOrCreateResource(res)
-		if err != nil {
-			log.Error(err, "update or create resource")
-			condition := rainbondv1alpha1.NewRbdComponentCondition(rainbondv1alpha1.RbdComponentReady, corev1.ConditionFalse, "ErrCreateResources", err.Error())
-			changed := cpt.Status.UpdateCondition(condition)
-			if changed {
-				r.Recorder.Event(cpt, corev1.EventTypeWarning, condition.Reason, condition.Message)
-				return reconcile.Result{Requeue: true}, mgr.UpdateStatus()
-			}
-			return reconcileResult, err
 		}
 	}
 
