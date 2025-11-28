@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/utils/pointer"
@@ -60,7 +61,9 @@ func NewHub(ctx context.Context, client client.Client, component *rainbondv1alph
 }
 
 func (h *hub) Before() error {
-	if h.cluster.Spec.ImageHub != nil && h.cluster.Spec.ImageHub.Domain != constants.DefImageRepository {
+	// Check if using custom image repository (not goodrain.me or goodrain.me:port)
+	domain := h.cluster.Spec.ImageHub.Domain
+	if domain != constants.DefImageRepository && !strings.HasPrefix(domain, constants.DefImageRepository+":") {
 		return NewIgnoreError("use custom image repository")
 	}
 
