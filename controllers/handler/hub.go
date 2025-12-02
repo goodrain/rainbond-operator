@@ -61,14 +61,14 @@ func NewHub(ctx context.Context, client client.Client, component *rainbondv1alph
 }
 
 func (h *hub) Before() error {
+	if h.cluster.Spec.ImageHub == nil {
+		return NewIgnoreError("imageHub is empty")
+	}
+
 	// Check if using custom image repository (not goodrain.me or goodrain.me:port)
 	domain := h.cluster.Spec.ImageHub.Domain
 	if domain != constants.DefImageRepository && !strings.HasPrefix(domain, constants.DefImageRepository+":") {
 		return NewIgnoreError("use custom image repository")
-	}
-
-	if h.cluster.Spec.ImageHub == nil {
-		return NewIgnoreError("imageHub is empty")
 	}
 
 	htpasswd, err := h.generateHtpasswd()
