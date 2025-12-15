@@ -186,7 +186,7 @@ func (g *gateway) daemonset() client.Object {
 							Env:       envs,
 							Resources: g.component.Spec.Resources,
 							ReadinessProbe: &corev1.Probe{
-								ProbeHandler: corev1.ProbeHandler{
+								Handler: corev1.Handler{
 									TCPSocket: &corev1.TCPSocketAction{
 										Port: intstr.FromInt(80),
 									},
@@ -196,7 +196,7 @@ func (g *gateway) daemonset() client.Object {
 								PeriodSeconds:       10,
 							},
 							LivenessProbe: &corev1.Probe{
-								ProbeHandler: corev1.ProbeHandler{
+								Handler: corev1.Handler{
 									TCPSocket: &corev1.TCPSocketAction{
 										Port: intstr.FromInt(80),
 									},
