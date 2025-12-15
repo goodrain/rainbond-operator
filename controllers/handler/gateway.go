@@ -3,15 +3,17 @@ package handler
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/sirupsen/logrus"
-	"strings"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -70,7 +72,7 @@ func (g *gateway) Before() error {
 	nodeForGateway := g.cluster.Spec.NodesForGateway
 	if nodeForGateway != nil {
 		for _, currentNode := range nodeForGateway {
-			if  _, ok := k8sNodeNames[currentNode.Name]; !ok {
+			if _, ok := k8sNodeNames[currentNode.Name]; !ok {
 				fmt.Printf("\033[1;31;40m%s\033[0m\n", fmt.Sprintf("Node %v cannot be found in the cluster", currentNode.Name))
 			}
 			if _, ok := nodeLabels[currentNode.Name]; !ok {
@@ -181,7 +183,28 @@ func (g *gateway) daemonset() client.Object {
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: commonutil.Bool(true),
 							},
-							Env: envs,
+							Env:       envs,
+							Resources: g.component.Spec.Resources,
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(80),
+									},
+								},
+								InitialDelaySeconds: 10,
+								TimeoutSeconds:      5,
+								PeriodSeconds:       10,
+							},
+							LivenessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(80),
+									},
+								},
+								InitialDelaySeconds: 15,
+								TimeoutSeconds:      5,
+								PeriodSeconds:       15,
+							},
 						},
 					},
 					Volumes: volumes,
