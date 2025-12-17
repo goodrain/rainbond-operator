@@ -224,8 +224,6 @@ func (a *appui) deploymentForAppUI() client.Object {
 	volumeMounts = mergeVolumeMounts(volumeMounts, a.component.Spec.VolumeMounts)
 	volumes = mergeVolumes(volumes, a.component.Spec.Volumes)
 
-	// prepare probe
-	readinessProbe := probeutil.MakeReadinessProbeTCP("", 7070)
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      AppUIName,
@@ -253,8 +251,20 @@ func (a *appui) deploymentForAppUI() client.Object {
 							ImagePullPolicy: cpt.ImagePullPolicy(),
 							Env:             envs,
 							VolumeMounts:    volumeMounts,
-							ReadinessProbe:  readinessProbe,
-							Resources:       a.component.Spec.Resources,
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/console/config/info",
+										Port: intstr.FromInt(7070),
+									},
+								},
+								InitialDelaySeconds: 5,
+								TimeoutSeconds:      3,
+								PeriodSeconds:       3,
+								SuccessThreshold:    1,
+								FailureThreshold:    6,
+							},
+							Resources: a.component.Spec.Resources,
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -263,7 +273,7 @@ func (a *appui) deploymentForAppUI() client.Object {
 									},
 								},
 								InitialDelaySeconds: 120,
-								TimeoutSeconds:      5,
+								TimeoutSeconds:      10,
 								PeriodSeconds:       30,
 								SuccessThreshold:    1,
 								FailureThreshold:    5,
