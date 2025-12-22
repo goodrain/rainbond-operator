@@ -622,12 +622,12 @@ func (r *RainbondClusteMgr) createHealthConsoleSecret(namespace string) error {
 		secretData["REGISTRY_1_URL"] = r.cluster.Spec.ImageHub.Domain
 		secretData["REGISTRY_1_USER"] = r.cluster.Spec.ImageHub.Username
 		secretData["REGISTRY_1_PASSWORD"] = r.cluster.Spec.ImageHub.Password
-		// 判断是否为不安全的 registry
-		if strings.HasPrefix(r.cluster.Spec.ImageHub.Domain, "http://") ||
-			!strings.Contains(r.cluster.Spec.ImageHub.Domain, ".") {
-			secretData["REGISTRY_1_INSECURE"] = "true"
-		} else {
+		// 判断是否为安全的 registry（只有明确指定 https:// 才认为是 secure）
+		// 默认私有镜像仓库都是 http（insecure）
+		if strings.HasPrefix(r.cluster.Spec.ImageHub.Domain, "https://") {
 			secretData["REGISTRY_1_INSECURE"] = "false"
+		} else {
+			secretData["REGISTRY_1_INSECURE"] = "true"
 		}
 	} else {
 		secretData["REGISTRY_1_NAME"] = "rbd-registry"
