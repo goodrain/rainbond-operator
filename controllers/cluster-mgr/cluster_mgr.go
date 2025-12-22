@@ -833,6 +833,7 @@ func (r *RainbondClusteMgr) createHealthConsoleDeployment(namespace string) erro
 							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 						},
 					},
+					HostAliases:                   hostsAliases(r.cluster),
 					DNSPolicy:                     corev1.DNSClusterFirst,
 					RestartPolicy:                 corev1.RestartPolicyAlways,
 					SchedulerName:                 "default-scheduler",
@@ -1077,4 +1078,24 @@ func (r *RainbondClusteMgr) createNodeExporterService(namespace string) error {
 
 	r.log.Info("service created", "name", svc.Name)
 	return nil
+}
+
+func hostsAliases(cluster *rainbondv1alpha1.RainbondCluster) []corev1.HostAlias {
+	var hostAliases []corev1.HostAlias
+	imageRepo := rbdutil.GetImageRepository(cluster)
+
+	// 提取域名部分(去除端口),支持 "goodrain.me" 和 "goodrain.me:9443" 格式
+	domain := imageRepo
+	if strings.Contains(imageRepo, ":") {
+		domain = strings.Split(imageRepo, ":")[0]
+	}
+
+	// 判断域名是否为默认镜像仓库(支持带端口或不带端口)
+	if domain == constants.DefImageRepository || imageRepo == constants.DefImageRepository {
+		hostAliases = append(hostAliases, corev1.HostAlias{
+			IP:        cluster.InnerGatewayIngressIP(),
+			Hostnames: []string{domain}, // 使用不带端口的域名
+		})
+	}
+	return hostAliases
 }
