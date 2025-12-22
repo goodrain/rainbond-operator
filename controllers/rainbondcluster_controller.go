@@ -235,8 +235,8 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 		// Create monitoring resources
 		if err := mgr.CreateOrUpdateMonitoringResources(); err != nil {
 			reqLogger.Error(err, "failed to create health-console monitoring resources")
-			// Don't return error, will retry on next reconcile
-			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+			// Retry after 5 minutes if creation fails
+			return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
 		}
 
 		// Mark as created
