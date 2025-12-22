@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -14,12 +16,15 @@ import (
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"github.com/pquerna/ffjson/ffjson"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -65,7 +70,7 @@ func (s k8sNodesSortByName) Len() int           { return len(s) }
 func (s k8sNodesSortByName) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s k8sNodesSortByName) Less(i, j int) bool { return s[i].Name < s[j].Name }
 
-//RainbondClusteMgr -
+// RainbondClusteMgr -
 type RainbondClusteMgr struct {
 	ctx    context.Context
 	client client.Client
@@ -75,7 +80,7 @@ type RainbondClusteMgr struct {
 	cluster *rainbondv1alpha1.RainbondCluster
 }
 
-//NewClusterMgr new Cluster Mgr
+// NewClusterMgr new Cluster Mgr
 func NewClusterMgr(ctx context.Context, client client.Client, log logr.Logger, cluster *rainbondv1alpha1.RainbondCluster, scheme *runtime.Scheme) *RainbondClusteMgr {
 	mgr := &RainbondClusteMgr{
 		ctx:     ctx,
@@ -235,7 +240,7 @@ func (r *RainbondClusteMgr) listMasterNodes(masterRoleLabelKey string) []*rainbo
 	return r.listNodesByLabels(labels)
 }
 
-//CreateImagePullSecret create image pull secret
+// CreateImagePullSecret create image pull secret
 func (r *RainbondClusteMgr) CreateImagePullSecret() error {
 	var secret corev1.Secret
 	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: RdbHubCredentialsName}, &secret); err != nil {
@@ -451,4 +456,609 @@ func (r *RainbondClusteMgr) listRbdComponents() ([]rainbondv1alpha1.RbdComponent
 		return nil, err
 	}
 	return rbdcomponentList.Items, nil
+}
+
+// CreateOrUpdateMonitoringResources 在集群就绪后创建监控资源
+func (r *RainbondClusteMgr) CreateOrUpdateMonitoringResources() error {
+	r.log.Info("Creating health-console monitoring resources after cluster is ready")
+
+	monitorNamespace := rbdutil.GetenvDefault("RBD_MONITOR_NAMESPACE", "rbd-monitor-system")
+
+	// 1. 创建命名空间
+	if err := r.createMonitorNamespace(monitorNamespace); err != nil {
+		return fmt.Errorf("create monitor namespace: %v", err)
+	}
+
+	// 2. 创建 ConfigMap
+	if err := r.createHealthConsoleConfigMap(monitorNamespace); err != nil {
+		return fmt.Errorf("create health-console configmap: %v", err)
+	}
+
+	// 3. 创建 Secret (从实际配置获取)
+	if err := r.createHealthConsoleSecret(monitorNamespace); err != nil {
+		return fmt.Errorf("create health-console secret: %v", err)
+	}
+
+	// 4. 创建 Deployment
+	if err := r.createHealthConsoleDeployment(monitorNamespace); err != nil {
+		return fmt.Errorf("create health-console deployment: %v", err)
+	}
+
+	// 5. 创建 Service
+	if err := r.createHealthConsoleService(monitorNamespace); err != nil {
+		return fmt.Errorf("create health-console service: %v", err)
+	}
+
+	// 6. 创建 node-exporter DaemonSet
+	if err := r.createNodeExporterDaemonSet(monitorNamespace); err != nil {
+		return fmt.Errorf("create node-exporter daemonset: %v", err)
+	}
+
+	// 7. 创建 node-exporter Service
+	if err := r.createNodeExporterService(monitorNamespace); err != nil {
+		return fmt.Errorf("create node-exporter service: %v", err)
+	}
+
+	r.log.Info("Health-console and node-exporter monitoring resources created successfully")
+	return nil
+}
+
+// createMonitorNamespace 创建监控命名空间
+func (r *RainbondClusteMgr) createMonitorNamespace(namespace string) error {
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+			Labels: map[string]string{
+				"belongTo": "rainbond-operator",
+				"creator":  "Rainbond",
+			},
+		},
+	}
+
+	if err := r.client.Create(r.ctx, ns); err != nil {
+		if k8sErrors.IsAlreadyExists(err) {
+			r.log.V(5).Info("namespace already exists", "namespace", namespace)
+			return nil
+		}
+		return err
+	}
+
+	r.log.Info("namespace created", "namespace", namespace)
+	return nil
+}
+
+// createHealthConsoleConfigMap 创建 health-console ConfigMap
+func (r *RainbondClusteMgr) createHealthConsoleConfigMap(namespace string) error {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "health-console-config",
+			Namespace: namespace,
+			Labels: map[string]string{
+				"belongTo": "rainbond-operator",
+				"creator":  "Rainbond",
+				"name":     "health-console",
+			},
+		},
+		Data: map[string]string{
+			"METRICS_PORT":     "9090",
+			"COLLECT_INTERVAL": "30s",
+			"IN_CLUSTER":       "true",
+		},
+	}
+
+	if err := r.client.Create(r.ctx, cm); err != nil {
+		if k8sErrors.IsAlreadyExists(err) {
+			r.log.V(5).Info("configmap already exists, updating", "name", cm.Name)
+			return r.client.Update(r.ctx, cm)
+		}
+		return err
+	}
+
+	r.log.Info("configmap created", "name", cm.Name)
+	return nil
+}
+
+// createHealthConsoleSecret 创建 health-console Secret，从实际配置获取信息
+func (r *RainbondClusteMgr) createHealthConsoleSecret(namespace string) error {
+	secretData := make(map[string]string)
+
+	// 获取数据库配置 - Region Database
+	if r.cluster.Spec.RegionDatabase != nil {
+		secretData["DB_1_NAME"] = "rbd-db-region"
+		secretData["DB_1_HOST"] = r.cluster.Spec.RegionDatabase.Host
+		secretData["DB_1_PORT"] = strconv.Itoa(r.cluster.Spec.RegionDatabase.Port)
+		secretData["DB_1_USER"] = r.cluster.Spec.RegionDatabase.Username
+		secretData["DB_1_PASSWORD"] = r.cluster.Spec.RegionDatabase.Password
+		secretData["DB_1_DATABASE"] = "region"
+	} else {
+		// 使用默认的 rbd-db 服务
+		secretData["DB_1_NAME"] = "rbd-db-region"
+		secretData["DB_1_HOST"] = "rbd-db-rw"
+		secretData["DB_1_PORT"] = "3306"
+		secretData["DB_1_USER"] = "root"
+		// 尝试从 rbd-db secret 获取密码
+		dbPassword, err := r.getDBPasswordFromSecret()
+		if err != nil {
+			r.log.Error(err, "failed to get db password from secret, using default")
+			secretData["DB_1_PASSWORD"] = "21ce5b9f"
+		} else {
+			secretData["DB_1_PASSWORD"] = dbPassword
+		}
+		secretData["DB_1_DATABASE"] = "region"
+	}
+
+	// 获取数据库配置 - Console Database
+	if r.cluster.Spec.UIDatabase != nil {
+		secretData["DB_2_NAME"] = "rbd-db-console"
+		secretData["DB_2_HOST"] = r.cluster.Spec.UIDatabase.Host
+		secretData["DB_2_PORT"] = strconv.Itoa(r.cluster.Spec.UIDatabase.Port)
+		secretData["DB_2_USER"] = r.cluster.Spec.UIDatabase.Username
+		secretData["DB_2_PASSWORD"] = r.cluster.Spec.UIDatabase.Password
+		secretData["DB_2_DATABASE"] = "console"
+	} else {
+		// 使用默认的 rbd-db 服务
+		secretData["DB_2_NAME"] = "rbd-db-console"
+		secretData["DB_2_HOST"] = "rbd-db-rw"
+		secretData["DB_2_PORT"] = "3306"
+		secretData["DB_2_USER"] = "root"
+		dbPassword, err := r.getDBPasswordFromSecret()
+		if err != nil {
+			r.log.Error(err, "failed to get db password from secret, using default")
+			secretData["DB_2_PASSWORD"] = "21ce5b9f"
+		} else {
+			secretData["DB_2_PASSWORD"] = dbPassword
+		}
+		secretData["DB_2_DATABASE"] = "console"
+	}
+
+	// 获取镜像仓库配置
+	if r.cluster.Spec.ImageHub != nil {
+		secretData["REGISTRY_1_NAME"] = "rbd-registry"
+		secretData["REGISTRY_1_URL"] = r.cluster.Spec.ImageHub.Domain
+		secretData["REGISTRY_1_USER"] = r.cluster.Spec.ImageHub.Username
+		secretData["REGISTRY_1_PASSWORD"] = r.cluster.Spec.ImageHub.Password
+		// 判断是否为不安全的 registry
+		if strings.HasPrefix(r.cluster.Spec.ImageHub.Domain, "http://") ||
+			!strings.Contains(r.cluster.Spec.ImageHub.Domain, ".") {
+			secretData["REGISTRY_1_INSECURE"] = "true"
+		} else {
+			secretData["REGISTRY_1_INSECURE"] = "false"
+		}
+	} else {
+		secretData["REGISTRY_1_NAME"] = "rbd-registry"
+		secretData["REGISTRY_1_URL"] = "rbd-hub:5000"
+		secretData["REGISTRY_1_USER"] = "admin"
+		secretData["REGISTRY_1_PASSWORD"] = rbdutil.GetenvDefault("RBD_HUB_PASSWORD", "admin1234")
+		secretData["REGISTRY_1_INSECURE"] = "true"
+	}
+
+	// MinIO 配置 - 可选
+	secretData["MINIO_ENDPOINT"] = "minio-service:9000"
+	secretData["MINIO_ACCESS_KEY"] = "admin"
+	secretData["MINIO_SECRET_KEY"] = "admin1234"
+	secretData["MINIO_USE_SSL"] = "false"
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "health-console-secrets",
+			Namespace: namespace,
+			Labels: map[string]string{
+				"belongTo": "rainbond-operator",
+				"creator":  "Rainbond",
+				"name":     "health-console",
+			},
+		},
+		Type:       corev1.SecretTypeOpaque,
+		StringData: secretData,
+	}
+
+	if err := r.client.Create(r.ctx, secret); err != nil {
+		if k8sErrors.IsAlreadyExists(err) {
+			r.log.V(5).Info("secret already exists, updating", "name", secret.Name)
+			return r.client.Update(r.ctx, secret)
+		}
+		return err
+	}
+
+	r.log.Info("secret created", "name", secret.Name)
+	return nil
+}
+
+// getDBPasswordFromSecret 从 rbd-db secret 获取密码
+func (r *RainbondClusteMgr) getDBPasswordFromSecret() (string, error) {
+	secret := &corev1.Secret{}
+	err := r.client.Get(r.ctx, types.NamespacedName{
+		Namespace: r.cluster.Namespace,
+		Name:      "rbd-db",
+	}, secret)
+	if err != nil {
+		return "", err
+	}
+
+	if password, ok := secret.Data["mysql-root-password"]; ok {
+		return string(password), nil
+	}
+
+	return "", fmt.Errorf("mysql-root-password not found in secret")
+}
+
+// createHealthConsoleDeployment 创建 health-console Deployment
+func (r *RainbondClusteMgr) createHealthConsoleDeployment(namespace string) error {
+	labels := map[string]string{
+		"belongTo": "rainbond-operator",
+		"creator":  "Rainbond",
+		"name":     "health-console",
+	}
+
+	replicas := int32(1)
+	maxSurge := intstr.FromString("25%")
+	maxUnavailable := intstr.FromString("25%")
+
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "health-console",
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Spec: appsv1.DeploymentSpec{
+			ProgressDeadlineSeconds: func() *int32 { v := int32(600); return &v }(),
+			Replicas:                &replicas,
+			RevisionHistoryLimit:    func() *int32 { v := int32(10); return &v }(),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
+					MaxSurge:       &maxSurge,
+					MaxUnavailable: &maxUnavailable,
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "health-console",
+					Labels: labels,
+					Annotations: map[string]string{
+						"prometheus.io/scrape": "true",
+						"prometheus.io/port":   "9090",
+						"prometheus.io/path":   "/metrics",
+					},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "rainbond-operator",
+					Containers: []corev1.Container{
+						{
+							Name:            "health-console",
+							Image:           rbdutil.GetenvDefault("HEALTH_CONSOLE_IMAGE", "registry.cn-hangzhou.aliyuncs.com/zhangqihang/rainbond-health-console:122201"),
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 9090,
+									Name:          "metrics",
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name: "POD_IP",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											APIVersion: "v1",
+											FieldPath:  "status.podIP",
+										},
+									},
+								},
+								{
+									Name: "POD_NAME",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											APIVersion: "v1",
+											FieldPath:  "metadata.name",
+										},
+									},
+								},
+								{
+									Name: "POD_NAMESPACE",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											APIVersion: "v1",
+											FieldPath:  "metadata.namespace",
+										},
+									},
+								},
+							},
+							EnvFrom: []corev1.EnvFromSource{
+								{
+									ConfigMapRef: &corev1.ConfigMapEnvSource{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "health-console-config",
+										},
+									},
+								},
+								{
+									SecretRef: &corev1.SecretEnvSource{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "health-console-secrets",
+										},
+									},
+								},
+							},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: func() resource.Quantity { q, _ := resource.ParseQuantity("128Mi"); return q }(),
+									corev1.ResourceCPU:    func() resource.Quantity { q, _ := resource.ParseQuantity("100m"); return q }(),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceMemory: func() resource.Quantity { q, _ := resource.ParseQuantity("256Mi"); return q }(),
+									corev1.ResourceCPU:    func() resource.Quantity { q, _ := resource.ParseQuantity("200m"); return q }(),
+								},
+							},
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/health",
+										Port: intstr.FromInt(9090),
+									},
+								},
+								InitialDelaySeconds: 30,
+								PeriodSeconds:       30,
+								TimeoutSeconds:      10,
+								FailureThreshold:    3,
+								SuccessThreshold:    1,
+							},
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/health",
+										Port: intstr.FromInt(9090),
+									},
+								},
+								InitialDelaySeconds: 5,
+								PeriodSeconds:       10,
+								TimeoutSeconds:      5,
+								FailureThreshold:    3,
+								SuccessThreshold:    1,
+							},
+							TerminationMessagePath:   "/dev/termination-log",
+							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+						},
+					},
+					DNSPolicy:                     corev1.DNSClusterFirst,
+					RestartPolicy:                 corev1.RestartPolicyAlways,
+					SchedulerName:                 "default-scheduler",
+					SecurityContext:               &corev1.PodSecurityContext{},
+					TerminationGracePeriodSeconds: func() *int64 { v := int64(30); return &v }(),
+				},
+			},
+		},
+	}
+
+	if err := r.client.Create(r.ctx, deployment); err != nil {
+		if k8sErrors.IsAlreadyExists(err) {
+			r.log.V(5).Info("deployment already exists, updating", "name", deployment.Name)
+			return r.client.Update(r.ctx, deployment)
+		}
+		return err
+	}
+
+	r.log.Info("deployment created", "name", deployment.Name)
+	return nil
+}
+
+// createHealthConsoleService 创建 health-console Service
+func (r *RainbondClusteMgr) createHealthConsoleService(namespace string) error {
+	labels := map[string]string{
+		"belongTo": "rainbond-operator",
+		"creator":  "Rainbond",
+		"name":     "health-console",
+	}
+
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "health-console",
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeClusterIP,
+			Ports: []corev1.ServicePort{
+				{
+					Port:       9090,
+					TargetPort: intstr.FromInt(9090),
+					Protocol:   corev1.ProtocolTCP,
+					Name:       "metrics",
+				},
+			},
+			Selector: labels,
+		},
+	}
+
+	if err := r.client.Create(r.ctx, svc); err != nil {
+		if k8sErrors.IsAlreadyExists(err) {
+			r.log.V(5).Info("service already exists, updating", "name", svc.Name)
+			return r.client.Update(r.ctx, svc)
+		}
+		return err
+	}
+
+	r.log.Info("service created", "name", svc.Name)
+	return nil
+}
+
+// createNodeExporterDaemonSet 创建 node-exporter DaemonSet
+func (r *RainbondClusteMgr) createNodeExporterDaemonSet(namespace string) error {
+	labels := map[string]string{
+		"app.kubernetes.io/name":    "node-exporter",
+		"app.kubernetes.io/version": "v1.7.0",
+	}
+
+	maxUnavailable := intstr.FromInt(1)
+	hostPathType := corev1.HostPathUnset
+
+	ds := &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "node-exporter",
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Spec: appsv1.DaemonSetSpec{
+			RevisionHistoryLimit: func() *int32 { v := int32(10); return &v }(),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/name": "node-exporter",
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+				Spec: corev1.PodSpec{
+					HostNetwork: true,
+					HostPID:     true,
+					Containers: []corev1.Container{
+						{
+							Name:            "prometheus-node-exporter",
+							Image:           rbdutil.GetenvDefault("NODE_EXPORTER_IMAGE", "registry.cn-hangzhou.aliyuncs.com/zhangqihang/node-exporter:v1.7.0"),
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Args: []string{
+								"--path.procfs=/host/proc",
+								"--path.sysfs=/host/sys",
+								"--path.rootfs=/host",
+								"--web.listen-address=:9100",
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          "metrics",
+									ContainerPort: 9100,
+									HostPort:      9100,
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    func() resource.Quantity { q, _ := resource.ParseQuantity("102m"); return q }(),
+									corev1.ResourceMemory: func() resource.Quantity { q, _ := resource.ParseQuantity("30Mi"); return q }(),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    func() resource.Quantity { q, _ := resource.ParseQuantity("250m"); return q }(),
+									corev1.ResourceMemory: func() resource.Quantity { q, _ := resource.ParseQuantity("50Mi"); return q }(),
+								},
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "proc",
+									MountPath: "/host/proc",
+								},
+								{
+									Name:      "sys",
+									MountPath: "/host/sys",
+								},
+								{
+									Name:      "rootfs",
+									MountPath: "/host",
+								},
+							},
+							TerminationMessagePath:   "/dev/termination-log",
+							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "proc",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/proc",
+									Type: &hostPathType,
+								},
+							},
+						},
+						{
+							Name: "sys",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/sys",
+									Type: &hostPathType,
+								},
+							},
+						},
+						{
+							Name: "rootfs",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/",
+									Type: &hostPathType,
+								},
+							},
+						},
+					},
+					DNSPolicy:                     corev1.DNSClusterFirst,
+					RestartPolicy:                 corev1.RestartPolicyAlways,
+					SchedulerName:                 "default-scheduler",
+					SecurityContext:               &corev1.PodSecurityContext{},
+					TerminationGracePeriodSeconds: func() *int64 { v := int64(30); return &v }(),
+				},
+			},
+			UpdateStrategy: appsv1.DaemonSetUpdateStrategy{
+				Type: appsv1.RollingUpdateDaemonSetStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDaemonSet{
+					MaxUnavailable: &maxUnavailable,
+				},
+			},
+		},
+	}
+
+	if err := r.client.Create(r.ctx, ds); err != nil {
+		if k8sErrors.IsAlreadyExists(err) {
+			r.log.V(5).Info("daemonset already exists, updating", "name", ds.Name)
+			return r.client.Update(r.ctx, ds)
+		}
+		return err
+	}
+
+	r.log.Info("daemonset created", "name", ds.Name)
+	return nil
+}
+
+// createNodeExporterService 创建 node-exporter Service
+func (r *RainbondClusteMgr) createNodeExporterService(namespace string) error {
+	labels := map[string]string{
+		"app.kubernetes.io/name":    "node-exporter",
+		"app.kubernetes.io/version": "v1.0.0",
+	}
+
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "node-exporter",
+			Namespace: namespace,
+			Labels:    labels,
+			Annotations: map[string]string{
+				"prometheus.io/scrape": "true",
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeClusterIP,
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "http",
+					Port:       9100,
+					TargetPort: intstr.FromInt(9100),
+					Protocol:   corev1.ProtocolTCP,
+				},
+			},
+			Selector: map[string]string{
+				"app.kubernetes.io/name": "node-exporter",
+			},
+		},
+	}
+
+	if err := r.client.Create(r.ctx, svc); err != nil {
+		if k8sErrors.IsAlreadyExists(err) {
+			r.log.V(5).Info("service already exists, updating", "name", svc.Name)
+			return r.client.Update(r.ctx, svc)
+		}
+		return err
+	}
+
+	r.log.Info("service created", "name", svc.Name)
+	return nil
 }

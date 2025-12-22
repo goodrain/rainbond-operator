@@ -222,6 +222,42 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 		}
 	}
 
+	// All services are ready, create health-console monitoring resources
+	const monitoringCreatedAnnotation = "rainbond.io/monitoring-resources-created"
+
+	if rainbondcluster.Annotations == nil {
+		rainbondcluster.Annotations = make(map[string]string)
+	}
+
+	if rainbondcluster.Annotations[monitoringCreatedAnnotation] != "true" {
+		reqLogger.Info("All Rainbond services are ready, creating health-console monitoring resources")
+
+		// Create monitoring resources
+		if err := mgr.CreateOrUpdateMonitoringResources(); err != nil {
+			reqLogger.Error(err, "failed to create health-console monitoring resources")
+			// Don't return error, will retry on next reconcile
+			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+		}
+
+		// Mark as created
+		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			rc := &rainbondv1alpha1.RainbondCluster{}
+			if err := r.Get(ctx, request.NamespacedName, rc); err != nil {
+				return err
+			}
+			if rc.Annotations == nil {
+				rc.Annotations = make(map[string]string)
+			}
+			rc.Annotations[monitoringCreatedAnnotation] = "true"
+			return r.Update(ctx, rc)
+		}); err != nil {
+			reqLogger.Error(err, "failed to update monitoring annotation")
+			return reconcile.Result{RequeueAfter: time.Second * 2}, err
+		}
+
+		reqLogger.Info("Health-console monitoring resources created and marked successfully")
+	}
+
 	return ctrl.Result{}, nil
 }
 
