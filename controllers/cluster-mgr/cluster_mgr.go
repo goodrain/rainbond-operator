@@ -462,44 +462,49 @@ func (r *RainbondClusteMgr) listRbdComponents() ([]rainbondv1alpha1.RbdComponent
 func (r *RainbondClusteMgr) CreateOrUpdateMonitoringResources() error {
 	r.log.Info("Creating health-console monitoring resources after cluster is ready")
 
+	// node-exporter 使用独立的监控命名空间
 	monitorNamespace := rbdutil.GetenvDefault("RBD_MONITOR_NAMESPACE", "rbd-monitor-system")
+	// health-console 使用 rainbond 服务所在的命名空间
+	rbdNamespace := r.cluster.Namespace
 
-	// 1. 创建命名空间
+	// 1. 创建监控命名空间（仅用于 node-exporter）
 	if err := r.createMonitorNamespace(monitorNamespace); err != nil {
 		return fmt.Errorf("create monitor namespace: %v", err)
 	}
 
-	// 2. 创建 ConfigMap
-	if err := r.createHealthConsoleConfigMap(monitorNamespace); err != nil {
+	// 2. 创建 health-console ConfigMap（在 rbd-system）
+	if err := r.createHealthConsoleConfigMap(rbdNamespace); err != nil {
 		return fmt.Errorf("create health-console configmap: %v", err)
 	}
 
-	// 3. 创建 Secret (从实际配置获取)
-	if err := r.createHealthConsoleSecret(monitorNamespace); err != nil {
+	// 3. 创建 health-console Secret（在 rbd-system）
+	if err := r.createHealthConsoleSecret(rbdNamespace); err != nil {
 		return fmt.Errorf("create health-console secret: %v", err)
 	}
 
-	// 4. 创建 Deployment
-	if err := r.createHealthConsoleDeployment(monitorNamespace); err != nil {
+	// 4. 创建 health-console Deployment（在 rbd-system）
+	if err := r.createHealthConsoleDeployment(rbdNamespace); err != nil {
 		return fmt.Errorf("create health-console deployment: %v", err)
 	}
 
-	// 5. 创建 Service
-	if err := r.createHealthConsoleService(monitorNamespace); err != nil {
+	// 5. 创建 health-console Service（在 rbd-system）
+	if err := r.createHealthConsoleService(rbdNamespace); err != nil {
 		return fmt.Errorf("create health-console service: %v", err)
 	}
 
-	// 6. 创建 node-exporter DaemonSet
+	// 6. 创建 node-exporter DaemonSet（在 rbd-monitor-system）
 	if err := r.createNodeExporterDaemonSet(monitorNamespace); err != nil {
 		return fmt.Errorf("create node-exporter daemonset: %v", err)
 	}
 
-	// 7. 创建 node-exporter Service
+	// 7. 创建 node-exporter Service（在 rbd-monitor-system）
 	if err := r.createNodeExporterService(monitorNamespace); err != nil {
 		return fmt.Errorf("create node-exporter service: %v", err)
 	}
 
-	r.log.Info("Health-console and node-exporter monitoring resources created successfully")
+	r.log.Info("Health-console and node-exporter monitoring resources created successfully",
+		"health-console-namespace", rbdNamespace,
+		"node-exporter-namespace", monitorNamespace)
 	return nil
 }
 
@@ -840,13 +845,19 @@ func (r *RainbondClusteMgr) createHealthConsoleDeployment(namespace string) erro
 
 	if err := r.client.Create(r.ctx, deployment); err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
-			r.log.V(5).Info("deployment already exists, updating", "name", deployment.Name)
-			return r.client.Update(r.ctx, deployment)
+			r.log.Info("deployment already exists, updating", "name", deployment.Name)
+			if err := r.client.Update(r.ctx, deployment); err != nil {
+				r.log.Error(err, "failed to update deployment", "name", deployment.Name)
+				return err
+			}
+			r.log.Info("deployment updated", "name", deployment.Name)
+			return nil
 		}
+		r.log.Error(err, "failed to create deployment", "name", deployment.Name)
 		return err
 	}
 
-	r.log.Info("deployment created", "name", deployment.Name)
+	r.log.Info("deployment created successfully", "name", deployment.Name, "namespace", deployment.Namespace, "replicas", *deployment.Spec.Replicas)
 	return nil
 }
 
