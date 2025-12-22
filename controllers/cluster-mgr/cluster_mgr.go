@@ -675,11 +675,16 @@ func (r *RainbondClusteMgr) getDBPasswordFromSecret() (string, error) {
 		return "", err
 	}
 
-	if password, ok := secret.Data["mysql-root-password"]; ok {
-		return string(password), nil
+	// Try different possible password field names
+	passwordFields := []string{"password", "mysql-password", "mysql-root-password"}
+	for _, field := range passwordFields {
+		if password, ok := secret.Data[field]; ok && len(password) > 0 {
+			r.log.V(5).Info("found database password", "field", field)
+			return string(password), nil
+		}
 	}
 
-	return "", fmt.Errorf("mysql-root-password not found in secret")
+	return "", fmt.Errorf("no password field found in secret (tried: %v)", passwordFields)
 }
 
 // createHealthConsoleDeployment 创建 health-console Deployment
