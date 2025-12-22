@@ -216,10 +216,13 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 		}
 	}
 
-	for _, con := range rainbondcluster.Status.Conditions {
-		if con.Status != corev1.ConditionTrue {
-			return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
-		}
+	// Check if cluster is running (all components ready)
+	// We only check the "Running" condition instead of all conditions
+	// because Running already ensures all RbdComponents are ready
+	idx, runningCondition := rainbondcluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeRunning)
+	if idx == -1 || runningCondition.Status != corev1.ConditionTrue {
+		reqLogger.V(6).Info("cluster not running yet, waiting for all components to be ready")
+		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	// All services are ready, create health-console monitoring resources
@@ -230,7 +233,7 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 	}
 
 	if rainbondcluster.Annotations[monitoringCreatedAnnotation] != "true" {
-		reqLogger.Info("All Rainbond services are ready, creating health-console monitoring resources")
+		reqLogger.Info("Rainbond cluster is running, creating health-console monitoring resources")
 
 		// Create monitoring resources
 		if err := mgr.CreateOrUpdateMonitoringResources(); err != nil {
