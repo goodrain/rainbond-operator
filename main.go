@@ -19,23 +19,23 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
+	"os"
 	"time"
 
 	apisixv2 "github.com/goodrain/rainbond-operator/api/v2"
-	"os"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	kubeaggregatorv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	rainbondiov1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/controllers"
@@ -114,11 +114,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Trigger reconcile for all RainbondClusters on operator startup
+	// Add a runnable to trigger reconcile after manager starts
 	// This ensures monitoring resources are created after operator upgrade
-	if err := triggerRainbondClusterReconcile(mgr); err != nil {
-		setupLog.Error(err, "failed to trigger RainbondCluster reconcile on startup")
-		// Don't exit, just log the error and continue
+	if err := mgr.Add(&rainbondClusterReconcileTrigger{
+		Client: mgr.GetClient(),
+		Log:    setupLog,
+	}); err != nil {
+		setupLog.Error(err, "unable to add reconcile trigger runnable")
+		os.Exit(1)
 	}
 
 	setupLog.Info("starting manager")
@@ -128,39 +131,51 @@ func main() {
 	}
 }
 
-// triggerRainbondClusterReconcile updates all RainbondCluster resources to trigger reconciliation
-// This is called on operator startup to ensure monitoring resources are created after upgrade
-func triggerRainbondClusterReconcile(mgr manager.Manager) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+// rainbondClusterReconcileTrigger is a runnable that triggers reconciliation for all RainbondClusters
+// when the operator starts. This ensures monitoring resources are created after operator upgrade.
+type rainbondClusterReconcileTrigger struct {
+	Client client.Client
+	Log    logr.Logger
+}
 
-	// Get the client from manager
-	c := mgr.GetClient()
+// Start implements manager.Runnable
+func (r *rainbondClusterReconcileTrigger) Start(ctx context.Context) error {
+	// Wait a bit for the cache to be fully synced
+	time.Sleep(2 * time.Second)
+
+	r.Log.Info("triggering reconcile for all RainbondClusters after operator startup")
+
+	// Create a timeout context
+	triggerCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 
 	// List all RainbondCluster resources
 	clusterList := &rainbondiov1alpha1.RainbondClusterList{}
-	if err := c.List(ctx, clusterList); err != nil {
-		return fmt.Errorf("failed to list RainbondClusters: %v", err)
-	}
-
-	if len(clusterList.Items) == 0 {
-		setupLog.Info("no RainbondCluster found, skipping reconcile trigger")
+	if err := r.Client.List(triggerCtx, clusterList); err != nil {
+		r.Log.Error(err, "failed to list RainbondClusters")
+		// Don't return error, just log and continue
 		return nil
 	}
 
-	// Update each cluster to trigger reconcile
+	if len(clusterList.Items) == 0 {
+		r.Log.Info("no RainbondCluster found, skipping reconcile trigger")
+		return nil
+	}
+
+	// Get operator version
 	operatorVersion := os.Getenv("OPERATOR_VERSION")
 	if operatorVersion == "" {
 		operatorVersion = time.Now().Format("20060102-150405")
 	}
 
+	// Update each cluster to trigger reconcile
 	for i := range clusterList.Items {
 		cluster := &clusterList.Items[i]
 
 		// Check if already updated by this operator version
 		if cluster.Annotations != nil {
 			if lastVersion, ok := cluster.Annotations["rainbond.io/operator-version"]; ok && lastVersion == operatorVersion {
-				setupLog.Info("RainbondCluster already updated by this operator version, skipping",
+				r.Log.Info("RainbondCluster already updated by this operator version, skipping",
 					"cluster", cluster.Name,
 					"namespace", cluster.Namespace,
 					"version", operatorVersion)
@@ -175,19 +190,20 @@ func triggerRainbondClusterReconcile(mgr manager.Manager) error {
 		cluster.Annotations["rainbond.io/operator-version"] = operatorVersion
 		cluster.Annotations["rainbond.io/operator-update-time"] = time.Now().Format(time.RFC3339)
 
-		if err := c.Update(ctx, cluster); err != nil {
-			setupLog.Error(err, "failed to update RainbondCluster",
+		if err := r.Client.Update(triggerCtx, cluster); err != nil {
+			r.Log.Error(err, "failed to update RainbondCluster",
 				"cluster", cluster.Name,
 				"namespace", cluster.Namespace)
 			// Continue to update other clusters
 			continue
 		}
 
-		setupLog.Info("triggered reconcile for RainbondCluster",
+		r.Log.Info("triggered reconcile for RainbondCluster",
 			"cluster", cluster.Name,
 			"namespace", cluster.Namespace,
 			"operator-version", operatorVersion)
 	}
 
+	// This runnable completes after triggering, it doesn't need to keep running
 	return nil
 }
