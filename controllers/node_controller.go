@@ -21,7 +21,7 @@ import (
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 )
 
-// NodeReconciler watches for node changes and recreates hosts-job when new nodes are added
+// NodeReconciler watches for node changes and triggers rbd-hub reconcile to recreate hosts-job when new nodes are added
 type NodeReconciler struct {
 	client.Client
 	Log    logr.Logger
@@ -30,8 +30,10 @@ type NodeReconciler struct {
 
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;delete
+// +kubebuilder:rbac:groups=rainbond.io,resources=rbdcomponents,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=rainbond.io,resources=rainbondclusters,verbs=get;list;watch
 
-// Reconcile handles node events and recreates hosts-job when nodes change
+// Reconcile handles node events and triggers rbd-hub reconcile to recreate hosts-job when nodes change
 func (r *NodeReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("node", request.Name)
 	reqLogger.Info("NodeReconciler triggered for node event")
@@ -83,41 +85,76 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, request ctrl.Request) (c
 		return reconcile.Result{}, nil
 	}
 
-	reqLogger.Info("found RainbondCluster, proceeding to check hosts-job", "clusterCount", len(clusterList.Items))
+	reqLogger.Info("found RainbondCluster, proceeding to recreate hosts-job", "clusterCount", len(clusterList.Items))
 
-	// Delete the hosts-job to trigger recreation
+	// Step 1: Delete the existing hosts-job if it exists
+	// This is necessary because Job cannot be updated (objectCanUpdate returns false for Job)
+	// and we need to create a new Job with updated node count
 	job := &batchv1.Job{}
 	jobKey := types.NamespacedName{
 		Namespace: namespace,
 		Name:      "hosts-job",
 	}
 
-	reqLogger.Info("looking for hosts-job", "namespace", namespace, "name", "hosts-job")
+	reqLogger.Info("checking if hosts-job exists", "namespace", namespace, "name", "hosts-job")
 
 	err = r.Get(ctx, jobKey, job)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			// Job doesn't exist, nothing to delete
-			reqLogger.Info("hosts-job not found, no need to delete - it may not have been created yet")
-			return reconcile.Result{}, nil
-		}
+	if err != nil && !errors.IsNotFound(err) {
 		reqLogger.Error(err, "error getting hosts-job")
 		return reconcile.Result{}, err
 	}
 
-	// Delete the job
-	reqLogger.Info("found hosts-job, deleting it to trigger recreation for new node", "jobName", job.Name)
-	if err := r.Delete(ctx, job, client.PropagationPolicy("Background")); err != nil {
+	if err == nil {
+		// Job exists, delete it
+		reqLogger.Info("hosts-job exists, deleting it before recreation", "jobName", job.Name)
+		if err := r.Delete(ctx, job, client.PropagationPolicy("Background")); err != nil {
+			if !errors.IsNotFound(err) {
+				reqLogger.Error(err, "failed to delete hosts-job")
+				return reconcile.Result{}, err
+			}
+		}
+		reqLogger.Info("successfully deleted existing hosts-job")
+	} else {
+		reqLogger.Info("hosts-job does not exist, will create new one")
+	}
+
+	// Step 2: Trigger rbd-hub RbdComponent reconcile to recreate the Job
+	// This will cause the component to re-run its resources including hostsJob()
+	rbdHub := &rainbondv1alpha1.RbdComponent{}
+	hubKey := types.NamespacedName{
+		Namespace: namespace,
+		Name:      "rbd-hub",
+	}
+
+	reqLogger.Info("looking for rbd-hub RbdComponent", "namespace", namespace, "name", "rbd-hub")
+
+	err = r.Get(ctx, hubKey, rbdHub)
+	if err != nil {
 		if errors.IsNotFound(err) {
-			// Job was already deleted
-			reqLogger.Info("hosts-job was already deleted")
+			reqLogger.Info("rbd-hub RbdComponent not found, skipping hosts-job recreation")
 			return reconcile.Result{}, nil
 		}
-		reqLogger.Error(err, "failed to delete hosts-job")
+		reqLogger.Error(err, "error getting rbd-hub RbdComponent")
 		return reconcile.Result{}, err
 	}
 
-	reqLogger.Info("successfully deleted hosts-job, it will be recreated with updated node count")
+	// Update annotation to trigger reconcile
+	if rbdHub.Annotations == nil {
+		rbdHub.Annotations = make(map[string]string)
+	}
+
+	// Add or update the node-change timestamp annotation
+	timestamp := time.Now().Format(time.RFC3339)
+	rbdHub.Annotations["rainbond.io/node-change-time"] = timestamp
+
+	reqLogger.Info("updating rbd-hub annotation to trigger reconcile", "timestamp", timestamp)
+
+	if err := r.Update(ctx, rbdHub); err != nil {
+		reqLogger.Error(err, "failed to update rbd-hub annotation")
+		return reconcile.Result{}, err
+	}
+
+	reqLogger.Info("successfully triggered rbd-hub reconcile, hosts-job will be recreated with updated node count")
 	return reconcile.Result{}, nil
 }
 

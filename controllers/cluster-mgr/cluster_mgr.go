@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -775,6 +776,10 @@ func (r *RainbondClusteMgr) createRbdHealthDeployment(namespace string) error {
 											FieldPath:  "metadata.namespace",
 										},
 									},
+								},
+								{
+									Name:  "DEPLOY_VERSION",
+									Value: os.Getenv("DEPLOY_VERSION"),
 								},
 							},
 							EnvFrom: []corev1.EnvFromSource{
