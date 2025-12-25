@@ -739,7 +739,7 @@ func (r *RainbondClusteMgr) createHealthConsoleDeployment(namespace string) erro
 					Containers: []corev1.Container{
 						{
 							Name:            "health-console",
-							Image:           rbdutil.GetenvDefault("HEALTH_CONSOLE_IMAGE", "registry.cn-hangzhou.aliyuncs.com/zhangqihang/rainbond-health-console:122201"),
+							Image:           rbdutil.GetenvDefault("HEALTH_CONSOLE_IMAGE", "registry.cn-hangzhou.aliyuncs.com/zhangqihang/rainbond-health-console:v1.0.0"),
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports: []corev1.ContainerPort{
 								{
