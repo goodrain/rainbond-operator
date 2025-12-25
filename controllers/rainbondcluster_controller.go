@@ -227,11 +227,11 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 
 	// Cluster is running, ensure monitoring resources are created/updated
 	// We don't use annotation to skip this, so resources can be updated when needed
-	reqLogger.V(6).Info("ensuring health-console monitoring resources are up to date")
+	reqLogger.V(6).Info("ensuring rbd-health monitoring resources are up to date")
 
 	// Create or update monitoring resources
 	if err := mgr.CreateOrUpdateMonitoringResources(); err != nil {
-		reqLogger.Error(err, "failed to create/update health-console monitoring resources")
+		reqLogger.Error(err, "failed to create/update rbd-health monitoring resources")
 		// Retry after 5 minutes if creation fails
 		return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
 	}

@@ -460,11 +460,11 @@ func (r *RainbondClusteMgr) listRbdComponents() ([]rainbondv1alpha1.RbdComponent
 
 // CreateOrUpdateMonitoringResources 在集群就绪后创建监控资源
 func (r *RainbondClusteMgr) CreateOrUpdateMonitoringResources() error {
-	r.log.Info("Creating health-console monitoring resources after cluster is ready")
+	r.log.Info("Creating rbd-health monitoring resources after cluster is ready")
 
 	// node-exporter 使用独立的监控命名空间
 	monitorNamespace := rbdutil.GetenvDefault("RBD_MONITOR_NAMESPACE", "rbd-monitor-system")
-	// health-console 使用 rainbond 服务所在的命名空间
+	// rbd-health 使用 rainbond 服务所在的命名空间
 	rbdNamespace := r.cluster.Namespace
 
 	// 1. 创建监控命名空间（仅用于 node-exporter）
@@ -472,24 +472,24 @@ func (r *RainbondClusteMgr) CreateOrUpdateMonitoringResources() error {
 		return fmt.Errorf("create monitor namespace: %v", err)
 	}
 
-	// 2. 创建 health-console ConfigMap（在 rbd-system）
-	if err := r.createHealthConsoleConfigMap(rbdNamespace); err != nil {
-		return fmt.Errorf("create health-console configmap: %v", err)
+	// 2. 创建 rbd-health ConfigMap（在 rbd-system）
+	if err := r.createRbdHealthConfigMap(rbdNamespace); err != nil {
+		return fmt.Errorf("create rbd-health configmap: %v", err)
 	}
 
-	// 3. 创建 health-console Secret（在 rbd-system）
-	if err := r.createHealthConsoleSecret(rbdNamespace); err != nil {
-		return fmt.Errorf("create health-console secret: %v", err)
+	// 3. 创建 rbd-health Secret（在 rbd-system）
+	if err := r.createRbdHealthSecret(rbdNamespace); err != nil {
+		return fmt.Errorf("create rbd-health secret: %v", err)
 	}
 
-	// 4. 创建 health-console Deployment（在 rbd-system）
-	if err := r.createHealthConsoleDeployment(rbdNamespace); err != nil {
-		return fmt.Errorf("create health-console deployment: %v", err)
+	// 4. 创建 rbd-health Deployment（在 rbd-system）
+	if err := r.createRbdHealthDeployment(rbdNamespace); err != nil {
+		return fmt.Errorf("create rbd-health deployment: %v", err)
 	}
 
-	// 5. 创建 health-console Service（在 rbd-system）
-	if err := r.createHealthConsoleService(rbdNamespace); err != nil {
-		return fmt.Errorf("create health-console service: %v", err)
+	// 5. 创建 rbd-health Service（在 rbd-system）
+	if err := r.createRbdHealthService(rbdNamespace); err != nil {
+		return fmt.Errorf("create rbd-health service: %v", err)
 	}
 
 	// 6. 创建 node-exporter DaemonSet（在 rbd-monitor-system）
@@ -503,7 +503,7 @@ func (r *RainbondClusteMgr) CreateOrUpdateMonitoringResources() error {
 	}
 
 	r.log.Info("Health-console and node-exporter monitoring resources created successfully",
-		"health-console-namespace", rbdNamespace,
+		"rbd-health-namespace", rbdNamespace,
 		"node-exporter-namespace", monitorNamespace)
 	return nil
 }
@@ -532,16 +532,16 @@ func (r *RainbondClusteMgr) createMonitorNamespace(namespace string) error {
 	return nil
 }
 
-// createHealthConsoleConfigMap 创建 health-console ConfigMap
-func (r *RainbondClusteMgr) createHealthConsoleConfigMap(namespace string) error {
+// createRbdHealthConfigMap 创建 rbd-health ConfigMap
+func (r *RainbondClusteMgr) createRbdHealthConfigMap(namespace string) error {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "health-console-config",
+			Name:      "rbd-health-config",
 			Namespace: namespace,
 			Labels: map[string]string{
 				"belongTo": "rainbond-operator",
 				"creator":  "Rainbond",
-				"name":     "health-console",
+				"name":     "rbd-health",
 			},
 		},
 		Data: map[string]string{
@@ -563,8 +563,8 @@ func (r *RainbondClusteMgr) createHealthConsoleConfigMap(namespace string) error
 	return nil
 }
 
-// createHealthConsoleSecret 创建 health-console Secret，从实际配置获取信息
-func (r *RainbondClusteMgr) createHealthConsoleSecret(namespace string) error {
+// createRbdHealthSecret 创建 rbd-health Secret，从实际配置获取信息
+func (r *RainbondClusteMgr) createRbdHealthSecret(namespace string) error {
 	secretData := make(map[string]string)
 
 	// 获取数据库配置 - Region Database
@@ -645,12 +645,12 @@ func (r *RainbondClusteMgr) createHealthConsoleSecret(namespace string) error {
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "health-console-secrets",
+			Name:      "rbd-health-secrets",
 			Namespace: namespace,
 			Labels: map[string]string{
 				"belongTo": "rainbond-operator",
 				"creator":  "Rainbond",
-				"name":     "health-console",
+				"name":     "rbd-health",
 			},
 		},
 		Type:       corev1.SecretTypeOpaque,
@@ -692,12 +692,12 @@ func (r *RainbondClusteMgr) getDBPasswordFromSecret() (string, error) {
 	return "", fmt.Errorf("no password field found in secret (tried: %v)", passwordFields)
 }
 
-// createHealthConsoleDeployment 创建 health-console Deployment
-func (r *RainbondClusteMgr) createHealthConsoleDeployment(namespace string) error {
+// createRbdHealthDeployment 创建 rbd-health Deployment
+func (r *RainbondClusteMgr) createRbdHealthDeployment(namespace string) error {
 	labels := map[string]string{
 		"belongTo": "rainbond-operator",
 		"creator":  "Rainbond",
-		"name":     "health-console",
+		"name":     "rbd-health",
 	}
 
 	replicas := int32(1)
@@ -706,7 +706,7 @@ func (r *RainbondClusteMgr) createHealthConsoleDeployment(namespace string) erro
 
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "health-console",
+			Name:      "rbd-health",
 			Namespace: namespace,
 			Labels:    labels,
 		},
@@ -726,7 +726,7 @@ func (r *RainbondClusteMgr) createHealthConsoleDeployment(namespace string) erro
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   "health-console",
+					Name:   "rbd-health",
 					Labels: labels,
 					Annotations: map[string]string{
 						"prometheus.io/scrape": "true",
@@ -738,8 +738,8 @@ func (r *RainbondClusteMgr) createHealthConsoleDeployment(namespace string) erro
 					ServiceAccountName: "rainbond-operator",
 					Containers: []corev1.Container{
 						{
-							Name:            "health-console",
-							Image:           rbdutil.GetenvDefault("HEALTH_CONSOLE_IMAGE", "registry.cn-hangzhou.aliyuncs.com/zhangqihang/rainbond-health-console:v1.0.0"),
+							Name:            "rbd-health",
+							Image:           rbdutil.GetenvDefault("RBD_HEALTH_IMAGE", "registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-health:latest"),
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports: []corev1.ContainerPort{
 								{
@@ -781,14 +781,14 @@ func (r *RainbondClusteMgr) createHealthConsoleDeployment(namespace string) erro
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "health-console-config",
+											Name: "rbd-health-config",
 										},
 									},
 								},
 								{
 									SecretRef: &corev1.SecretEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "health-console-secrets",
+											Name: "rbd-health-secrets",
 										},
 									},
 								},
@@ -862,17 +862,17 @@ func (r *RainbondClusteMgr) createHealthConsoleDeployment(namespace string) erro
 	return nil
 }
 
-// createHealthConsoleService 创建 health-console Service
-func (r *RainbondClusteMgr) createHealthConsoleService(namespace string) error {
+// createRbdHealthService 创建 rbd-health Service
+func (r *RainbondClusteMgr) createRbdHealthService(namespace string) error {
 	labels := map[string]string{
 		"belongTo": "rainbond-operator",
 		"creator":  "Rainbond",
-		"name":     "health-console",
+		"name":     "rbd-health",
 	}
 
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "health-console",
+			Name:      "rbd-health",
 			Namespace: namespace,
 			Labels:    labels,
 		},
@@ -935,7 +935,7 @@ func (r *RainbondClusteMgr) createNodeExporterDaemonSet(namespace string) error 
 					Containers: []corev1.Container{
 						{
 							Name:            "prometheus-node-exporter",
-							Image:           rbdutil.GetenvDefault("NODE_EXPORTER_IMAGE", "registry.cn-hangzhou.aliyuncs.com/zhangqihang/node-exporter:v1.7.0"),
+							Image:           rbdutil.GetenvDefault("NODE_EXPORTER_IMAGE", "registry.cn-hangzhou.aliyuncs.com/goodrain/node-exporter:v1.7.0"),
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Args: []string{
 								"--path.procfs=/host/proc",
