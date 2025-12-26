@@ -14,7 +14,6 @@ import (
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
-	"github.com/goodrain/rainbond-operator/util/probeutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -173,7 +172,6 @@ func (a *api) deployment() client.Object {
 	volumes = mergeVolumes(volumes, a.component.Spec.Volumes)
 
 	// prepare probe
-	readinessProbe := probeutil.MakeReadinessProbeHTTP("", "/v2/health", 8888)
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      APIName,
@@ -202,8 +200,20 @@ func (a *api) deployment() client.Object {
 							Env:             envs,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
-							ReadinessProbe:  readinessProbe,
-							Resources:       a.component.Spec.Resources,
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/v2/health",
+										Port: intstr.FromInt(8888),
+									},
+								},
+								InitialDelaySeconds: 5,
+								TimeoutSeconds:      3,
+								PeriodSeconds:       3,
+								SuccessThreshold:    1,
+								FailureThreshold:    6,
+							},
+							Resources: a.component.Spec.Resources,
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -211,11 +221,11 @@ func (a *api) deployment() client.Object {
 										Port: intstr.FromInt(8889),
 									},
 								},
-								InitialDelaySeconds: 30,
-								TimeoutSeconds:      2,
-								PeriodSeconds:       10,
+								InitialDelaySeconds: 60,
+								TimeoutSeconds:      10,
+								PeriodSeconds:       30,
 								SuccessThreshold:    1,
-								FailureThreshold:    3,
+								FailureThreshold:    5,
 							},
 						},
 					},

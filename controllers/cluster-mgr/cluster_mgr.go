@@ -65,7 +65,7 @@ func (s k8sNodesSortByName) Len() int           { return len(s) }
 func (s k8sNodesSortByName) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s k8sNodesSortByName) Less(i, j int) bool { return s[i].Name < s[j].Name }
 
-//RainbondClusteMgr -
+// RainbondClusteMgr -
 type RainbondClusteMgr struct {
 	ctx    context.Context
 	client client.Client
@@ -75,7 +75,7 @@ type RainbondClusteMgr struct {
 	cluster *rainbondv1alpha1.RainbondCluster
 }
 
-//NewClusterMgr new Cluster Mgr
+// NewClusterMgr new Cluster Mgr
 func NewClusterMgr(ctx context.Context, client client.Client, log logr.Logger, cluster *rainbondv1alpha1.RainbondCluster, scheme *runtime.Scheme) *RainbondClusteMgr {
 	mgr := &RainbondClusteMgr{
 		ctx:     ctx,
@@ -235,7 +235,7 @@ func (r *RainbondClusteMgr) listMasterNodes(masterRoleLabelKey string) []*rainbo
 	return r.listNodesByLabels(labels)
 }
 
-//CreateImagePullSecret create image pull secret
+// CreateImagePullSecret create image pull secret
 func (r *RainbondClusteMgr) CreateImagePullSecret() error {
 	var secret corev1.Secret
 	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: RdbHubCredentialsName}, &secret); err != nil {
