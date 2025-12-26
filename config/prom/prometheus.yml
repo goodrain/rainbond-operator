@@ -19,13 +19,6 @@ scrape_configs:
     metrics_path: /api/v1/metrics
     static_configs:
       - targets: [ 'gr2dd58b.rbd-prd.svc.cluster.local:8080' ]
-  - job_name: rbd_health
-    honor_labels: true
-    scrape_interval: 1m
-    scrape_timeout: 30s
-    metrics_path: /metrics
-    static_configs:
-      - targets: [ 'rbd-health:9090' ]
   - job_name: api_gateway
     honor_labels: true
     scrape_interval: 15s
@@ -129,15 +122,6 @@ scrape_configs:
       target_label: __metrics_path__
       replacement: /api/v1/nodes/${1}/proxy/metrics
       action: replace
-  - job_name: node-exporter
-    kubernetes_sd_configs:
-    - role: node
-    relabel_configs:
-    - action: replace
-      source_labels: [__address__]
-      regex: '(.*):10250'
-      replacement: '${1}:9100'
-      target_label: __address__
   - job_name: kube-state-metrics
     honor_labels: true
     scrape_interval: 1m
