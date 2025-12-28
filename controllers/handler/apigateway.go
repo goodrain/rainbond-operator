@@ -415,6 +415,9 @@ apisix:
       - port: 443
   enable_ipv6: false
   enable_control: true
+	control:
+    ip: "127.0.0.1"
+    port: 9009
   enable_reuseport: true
   node_listen:
     - 80
