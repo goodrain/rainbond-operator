@@ -375,13 +375,7 @@ func (a *apigateway) monitorGlobalRule() client.Object {
 
 // configmap 配置文件
 func (a *apigateway) configmap() client.Object {
-	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "apisix-gw-config.yaml",
-			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
-		},
-		Data: map[string]string{
-			"config.yaml": `
+	configYaml := `
 plugin_attr:
   prometheus:
     metrics:
@@ -415,6 +409,9 @@ apisix:
       - port: 443
   enable_ipv6: false
   enable_control: true
+  control:
+    ip: "127.0.0.1"
+    port: 9009
   enable_reuseport: true
   node_listen:
     - 80
@@ -509,8 +506,17 @@ plugins: # plugin list (sorted by priority)
   - serverless-post-function       # priority: -2000
   - ext-plugin-post-req            # priority: -3000
   - ext-plugin-post-resp           # priority: -4000
-`,
+`
+	// 将 tab 替换为空格，确保 YAML 格式正确
+	configYaml = strings.ReplaceAll(configYaml, "\t", "  ")
+
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "apisix-gw-config.yaml",
+			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
+		},
+		Data: map[string]string{
+			"config.yaml": configYaml,
 		},
 	}
-
 }
