@@ -122,6 +122,15 @@ scrape_configs:
       target_label: __metrics_path__
       replacement: /api/v1/nodes/${1}/proxy/metrics
       action: replace
+  - job_name: node-exporter
+    kubernetes_sd_configs:
+    - role: node
+    relabel_configs:
+    - action: replace
+      source_labels: [__address__]
+      regex: '(.*):10250'
+      replacement: '${1}:9100'
+      target_label: __address__
   - job_name: kube-state-metrics
     honor_labels: true
     scrape_interval: 1m
