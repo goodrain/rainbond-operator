@@ -91,7 +91,12 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 		if _, ok := rainbondcluster.Annotations["meta.helm.sh/release-name"]; ok {
 			if _, ok := rainbondcluster.Annotations["enterprise_id"]; !ok {
 				if os.Getenv("ENTERPRISE_ID") == "" {
-					rainbondcluster.Annotations["enterprise_id"] = uuidutil.NewUUID()
+					kubeSystemNS := &corev1.Namespace{}
+					if err := r.Get(ctx, types.NamespacedName{Name: "kube-system"}, kubeSystemNS); err != nil {
+						reqLogger.Error(err, "failed to get kube-system namespace for EID generation")
+						return reconcile.Result{RequeueAfter: time.Second * 2}, err
+					}
+					rainbondcluster.Annotations["enterprise_id"] = uuidutil.NewStableUUID(string(kubeSystemNS.UID))
 					os.Setenv("ENTERPRISE_ID", rainbondcluster.Annotations["enterprise_id"])
 					if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 						rc := &rainbondv1alpha1.RainbondCluster{}

@@ -232,8 +232,8 @@ func (m *monitor) configmap() client.Object {
 			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 		},
 		Data: map[string]string{
-			"prometheus.yml": string(prometheus),
-			"rules.yml":      string(rules),
+			"prometheus.yml": FormatYAMLConfig(string(prometheus)),
+			"rules.yml":      FormatYAMLConfig(string(rules)),
 		},
 	}
 }

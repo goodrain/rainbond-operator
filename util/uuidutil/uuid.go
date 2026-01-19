@@ -19,12 +19,13 @@
 package uuidutil
 
 import (
-	"github.com/twinj/uuid"
-	"strings"
+	"crypto/sha256"
+	"encoding/hex"
 )
 
-// NewUUID 创建无-的32位uuid
-func NewUUID() string {
-	uid := uuid.NewV4().String()
-	return strings.Replace(uid, "-", "", -1)
+// NewStableUUID 基于输入字符串生成稳定的32位uuid
+// 相同的输入会生成相同的输出，用于确保同一集群多次安装生成相同的EID
+func NewStableUUID(input string) string {
+	hash := sha256.Sum256([]byte(input))
+	return hex.EncodeToString(hash[:])[:32]
 }
