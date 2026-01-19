@@ -8,12 +8,12 @@ import (
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
+	"github.com/goodrain/rainbond-operator/util/uuidutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -56,7 +56,6 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 		cluster:        cluster,
 		labels:         LabelsForRainbondComponent(component),
 		mysqlUser:      "root",
-		mysqlPassword:  string(uuid.NewUUID())[0:8],
 		databases:      []string{"console"},
 		storageRequest: getStorageRequest("DB_DATA_STORAGE_REQUEST", 1),
 	}
@@ -88,6 +87,12 @@ func (d *db) Before() error {
 		// use the old password
 		d.mysqlUser = string(d.secret.Data[mysqlUserKey])
 		d.mysqlPassword = string(d.secret.Data[mysqlPasswordKey])
+	} else {
+		kubeSystemNS := &corev1.Namespace{}
+		if err := d.client.Get(d.ctx, types.NamespacedName{Name: "kube-system"}, kubeSystemNS); err != nil {
+			return fmt.Errorf("failed to get kube-system namespace for password generation: %v", err)
+		}
+		d.mysqlPassword = uuidutil.NewStableUUID(string(kubeSystemNS.UID) + "-mysql-password")[:8]
 	}
 
 	if err := setStorageCassName(d.ctx, d.client, d.component.Namespace, d); err != nil {

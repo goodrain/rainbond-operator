@@ -464,3 +464,8 @@ func createIngressMeta(name, namespace string, annotations, labels map[string]st
 		Labels:      labels,
 	}
 }
+
+// FormatYAMLConfig 将 YAML 配置中的 tab 替换为空格，确保 YAML 格式正确
+func FormatYAMLConfig(config string) string {
+	return strings.ReplaceAll(config, "\t", "  ")
+}

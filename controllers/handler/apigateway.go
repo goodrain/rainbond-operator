@@ -507,16 +507,13 @@ plugins: # plugin list (sorted by priority)
   - ext-plugin-post-req            # priority: -3000
   - ext-plugin-post-resp           # priority: -4000
 `
-	// 将 tab 替换为空格，确保 YAML 格式正确
-	configYaml = strings.ReplaceAll(configYaml, "\t", "  ")
-
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "apisix-gw-config.yaml",
 			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
 		},
 		Data: map[string]string{
-			"config.yaml": configYaml,
+			"config.yaml": FormatYAMLConfig(configYaml),
 		},
 	}
 }
