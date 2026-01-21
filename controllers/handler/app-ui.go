@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"os"
 	"strconv"
 
@@ -57,20 +58,27 @@ func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1al
 }
 
 func (a *appui) Before() error {
-	db, err := getDefaultDBInfo(a.ctx, a.client, a.cluster.Spec.UIDatabase, a.component.Namespace, DBName)
-	if err != nil {
-		return fmt.Errorf("get db info: %v", err)
+	if !checksqllite.IsSQLLite() {
+		db, err := getDefaultDBInfo(a.ctx, a.client, a.cluster.Spec.UIDatabase, a.component.Namespace, DBName)
+		if err != nil {
+			return fmt.Errorf("get db info: %v", err)
+		}
+		if db.Name == "" {
+			db.Name = ConsoleDatabaseName
+		}
+		a.db = db
+		if err := isUIDBReady(a.ctx, a.client, a.component, a.cluster); err != nil {
+			return err
+		}
 	}
-	if db.Name == "" {
-		db.Name = ConsoleDatabaseName
-	}
-	a.db = db
 
-	if err := setStorageCassName(a.ctx, a.client, a.component.Namespace, a); err != nil {
-		return err
-	}
-
-	if err := isUIDBReady(a.ctx, a.client, a.component, a.cluster); err != nil {
+	if a.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
+		sc, err := storageClassNameFromRainbondVolumeRWO(a.ctx, a.client, a.component.Namespace)
+		if err != nil {
+			return err
+		}
+		a.SetStorageClassNameRWX(sc)
+	} else if err := setStorageCassName(a.ctx, a.client, a.component.Namespace, a); err != nil {
 		return err
 	}
 
@@ -95,9 +103,13 @@ func (a *appui) Resources() []client.Object {
 	res := []client.Object{
 		a.serviceForAppUI(int32(p)),
 		a.ingressForAppUI(port),
-		a.migrationsJob(),
 	}
 
+	if checksqllite.IsSQLLite() {
+		res = append(res, a.deploymentForAppUIWithSQLLite())
+		return res
+	}
+	res = append(res, a.migrationsJob())
 	if err := isUIDBMigrateOK(a.ctx, a.client, a.component); err != nil {
 		if IsIgnoreError(err) {
 			log.V(6).Info(fmt.Sprintf("check if ui db migrations is ok: %v", err))
@@ -105,7 +117,7 @@ func (a *appui) Resources() []client.Object {
 			log.Error(err, "check if ui db migrations is ok")
 		}
 	} else {
-		res = append(res, a.deploymentForAppUI())
+		res = append(res, a.deploymentForAppUIWithMysql())
 	}
 
 	return res
@@ -124,39 +136,22 @@ func (a *appui) SetStorageClassNameRWX(pvcParameters *pvcParameters) {
 }
 
 func (a *appui) ResourcesCreateIfNotExists() []client.Object {
+	if a.component.Labels["persistentVolumeClaimAccessModes"] == string(corev1.ReadWriteOnce) {
+		return []client.Object{
+			createPersistentVolumeClaimRWO(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels, a.storageRequest),
+		}
+	}
 	return []client.Object{
 		// pvc is immutable after creation except resources.requests for bound claims
 		createPersistentVolumeClaimRWX(a.component.Namespace, a.pvcName, a.pvcParametersRWX, a.labels, a.storageRequest),
 	}
 }
 
-func (a *appui) deploymentForAppUI() client.Object {
-	cpt := a.component
-
+func (a *appui) deployment(cpt *rainbondv1alpha1.RbdComponent, dbEnvs []corev1.EnvVar) *appsv1.Deployment {
 	envs := []corev1.EnvVar{
 		{
 			Name:  "CRYPTOGRAPHY_ALLOW_OPENSSL_102",
 			Value: "true",
-		},
-		{
-			Name:  "MYSQL_HOST",
-			Value: a.db.Host,
-		},
-		{
-			Name:  "MYSQL_PORT",
-			Value: strconv.Itoa(a.db.Port),
-		},
-		{
-			Name:  "MYSQL_USER",
-			Value: a.db.Username,
-		},
-		{
-			Name:  "MYSQL_PASS",
-			Value: a.db.Password,
-		},
-		{
-			Name:  "MYSQL_DB",
-			Value: a.db.Name,
 		},
 		{
 			Name:  "REGION_URL",
@@ -179,6 +174,7 @@ func (a *appui) deploymentForAppUI() client.Object {
 			Value: a.cluster.Spec.ImageHub.Domain,
 		},
 	}
+	envs = append(envs, dbEnvs...)
 	volumes := []corev1.Volume{
 		{
 			Name: "ssl",
@@ -270,8 +266,48 @@ func (a *appui) deploymentForAppUI() client.Object {
 			deploy.Spec.Template.Spec.Containers[0].Env = append(deploy.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{Name: "ENTERPRISE_ID", Value: os.Getenv("ENTERPRISE_ID")})
 		}
 	}
-
 	return deploy
+}
+
+func (a *appui) deploymentForAppUIWithMysql() client.Object {
+	cpt := a.component
+	envs := []corev1.EnvVar{
+		{
+			Name:  "DB_TYPE",
+			Value: "mysql",
+		},
+		{
+			Name:  "MYSQL_HOST",
+			Value: a.db.Host,
+		},
+		{
+			Name:  "MYSQL_PORT",
+			Value: strconv.Itoa(a.db.Port),
+		},
+		{
+			Name:  "MYSQL_USER",
+			Value: a.db.Username,
+		},
+		{
+			Name:  "MYSQL_PASS",
+			Value: a.db.Password,
+		},
+		{
+			Name:  "MYSQL_DB",
+			Value: a.db.Name,
+		},
+	}
+	return a.deployment(cpt, envs)
+}
+
+func (a *appui) deploymentForAppUIWithSQLLite() client.Object {
+	cpt := a.component
+	return a.deployment(cpt, []corev1.EnvVar{
+		{
+			Name:  "DB_TYPE",
+			Value: "sqlite",
+		},
+	})
 }
 
 func (a *appui) serviceForAppUI(port int32) client.Object {
