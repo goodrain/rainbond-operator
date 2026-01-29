@@ -6,7 +6,6 @@ import (
 
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
-	"k8s.io/apimachinery/pkg/api/resource"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
@@ -77,18 +76,7 @@ func (m *monitor) statefulset() client.Object {
 	claimName := "data" // unnecessary
 	promDataPVC := createPersistentVolumeClaimRWO(m.component.Namespace, claimName, m.pvcParametersRWO, m.labels, m.storageRequest)
 
-	resources := corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			corev1.ResourceMemory: resource.MustParse("2048Mi"),
-			corev1.ResourceCPU:    resource.MustParse("1000m"),
-		},
-		Requests: corev1.ResourceList{
-			corev1.ResourceMemory: resource.MustParse("512Mi"),
-			corev1.ResourceCPU:    resource.MustParse("200m"),
-		},
-	}
-
-	resources = mergeResources(resources, m.component.Spec.Resources)
+	resources := setDefaultResources(m.component.Spec.Resources)
 
 	vms := append(m.component.Spec.VolumeMounts, []corev1.VolumeMount{
 		{

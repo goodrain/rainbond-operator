@@ -261,6 +261,7 @@ func (h *hub) deployment() client.Object {
 	env = mergeEnvs(env, h.component.Spec.Env)
 	volumeMounts = mergeVolumeMounts(volumeMounts, h.component.Spec.VolumeMounts)
 	volumes = mergeVolumes(volumes, h.component.Spec.Volumes)
+	resources := setDefaultResources(h.component.Spec.Resources)
 
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -289,7 +290,7 @@ func (h *hub) deployment() client.Object {
 							ImagePullPolicy: h.component.ImagePullPolicy(),
 							Env:             env,
 							VolumeMounts:    volumeMounts,
-							Resources:       h.component.Spec.Resources,
+							Resources:       resources,
 						},
 					},
 					Volumes: volumes,

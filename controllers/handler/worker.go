@@ -162,6 +162,7 @@ func (w *worker) deployment() client.Object {
 	env = mergeEnvs(env, w.component.Spec.Env)
 	volumeMounts = mergeVolumeMounts(volumeMounts, w.component.Spec.VolumeMounts)
 	volumes = mergeVolumes(volumes, w.component.Spec.Volumes)
+	resources := setDefaultResources(w.component.Spec.Resources)
 
 	// prepare probe
 	ds := &appsv1.Deployment{
@@ -206,7 +207,7 @@ func (w *worker) deployment() client.Object {
 								SuccessThreshold:    1,
 								FailureThreshold:    6,
 							},
-							Resources: w.component.Spec.Resources,
+							Resources: resources,
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{

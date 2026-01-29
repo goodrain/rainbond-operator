@@ -144,7 +144,7 @@ func (l *localPath) deployment() client.Object {
 		Name:            "local-path-provisioner",
 		Image:           l.component.Spec.Image,
 		ImagePullPolicy: l.component.ImagePullPolicy(),
-		Resources:       l.component.Spec.Resources,
+		Resources:       setDefaultResources(l.component.Spec.Resources),
 		Command: []string{
 			"local-path-provisioner",
 			"--debug",

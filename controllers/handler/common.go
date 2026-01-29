@@ -25,6 +25,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	// DefaultResourceRequestCPU defines the default CPU request for components
+	DefaultResourceRequestCPU = "100m"
+	// DefaultResourceRequestMemory defines the default memory request for components
+	DefaultResourceRequestMemory = "256Mi"
+	// DefaultResourceLimitCPU defines the default CPU limit for components
+	DefaultResourceLimitCPU = "4"
+	// DefaultResourceLimitMemory defines the default memory limit for components
+	DefaultResourceLimitMemory = "8Gi"
+)
+
 // ErrNoDBEndpoints -
 var ErrNoDBEndpoints = errors.New("no ready endpoints for DB were found")
 
@@ -468,4 +479,41 @@ func createIngressMeta(name, namespace string, annotations, labels map[string]st
 // FormatYAMLConfig 将 YAML 配置中的 tab 替换为空格，确保 YAML 格式正确
 func FormatYAMLConfig(config string) string {
 	return strings.ReplaceAll(config, "\t", "  ")
+}
+
+// setDefaultResources sets default resource requests and limits if not specified
+// Returns a ResourceRequirements with default requests of 100m CPU and 256Mi memory,
+// and default limits of 4 CPU cores and 8Gi memory
+func setDefaultResources(resources corev1.ResourceRequirements) corev1.ResourceRequirements {
+	result := resources.DeepCopy()
+
+	// Initialize Requests and Limits maps if nil
+	if result.Requests == nil {
+		result.Requests = make(corev1.ResourceList)
+	}
+	if result.Limits == nil {
+		result.Limits = make(corev1.ResourceList)
+	}
+
+	// Set default CPU request if not specified
+	if _, exists := result.Requests[corev1.ResourceCPU]; !exists {
+		result.Requests[corev1.ResourceCPU] = resource.MustParse(DefaultResourceRequestCPU)
+	}
+
+	// Set default memory request if not specified
+	if _, exists := result.Requests[corev1.ResourceMemory]; !exists {
+		result.Requests[corev1.ResourceMemory] = resource.MustParse(DefaultResourceRequestMemory)
+	}
+
+	// Set default CPU limit if not specified
+	if _, exists := result.Limits[corev1.ResourceCPU]; !exists {
+		result.Limits[corev1.ResourceCPU] = resource.MustParse(DefaultResourceLimitCPU)
+	}
+
+	// Set default memory limit if not specified
+	if _, exists := result.Limits[corev1.ResourceMemory]; !exists {
+		result.Limits[corev1.ResourceMemory] = resource.MustParse(DefaultResourceLimitMemory)
+	}
+
+	return *result
 }

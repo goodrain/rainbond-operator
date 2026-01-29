@@ -253,6 +253,7 @@ func (c *chaos) deployment() client.Object {
 	volumeMounts = mergeVolumeMounts(volumeMounts, c.component.Spec.VolumeMounts)
 	volumes = mergeVolumes(volumes, c.component.Spec.Volumes)
 	args = mergeArgs(args, c.component.Spec.Args)
+	resources := setDefaultResources(c.component.Spec.Resources)
 
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -301,7 +302,7 @@ func (c *chaos) deployment() client.Object {
 								SuccessThreshold:    1,
 								FailureThreshold:    6,
 							},
-							Resources: c.component.Spec.Resources,
+							Resources: resources,
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
