@@ -104,7 +104,7 @@ func (m *minIO) statefulSet() client.Object {
 								"minio server /data --console-address :9001",
 							},
 							VolumeMounts: vms,
-							Resources:    m.component.Spec.Resources,
+							Resources:    setDefaultResources(m.component.Spec.Resources),
 							Env: []corev1.EnvVar{
 								{
 									Name:  "MINIO_BUCKETS",

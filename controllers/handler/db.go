@@ -221,6 +221,7 @@ func (d *db) statefulsetForDB() client.Object {
 	env = mergeEnvs(env, d.component.Spec.Env)
 	volumeMounts = mergeVolumeMounts(volumeMounts, d.component.Spec.VolumeMounts)
 	volumes = mergeVolumes(volumes, d.component.Spec.Volumes)
+	resources := setDefaultResources(d.component.Spec.Resources)
 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -261,7 +262,7 @@ func (d *db) statefulsetForDB() client.Object {
 								PeriodSeconds:       2,
 								TimeoutSeconds:      1,
 							},
-							Resources: d.component.Spec.Resources,
+							Resources: resources,
 						},
 					},
 					Volumes: volumes,

@@ -201,6 +201,7 @@ func (a *apigateway) deploy() client.Object {
 		},
 	}...)
 	images := strings.Split(a.component.Spec.Image, "@")
+	resources := setDefaultResources(a.component.Spec.Resources)
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ApiGatewayName,
@@ -273,6 +274,7 @@ func (a *apigateway) deploy() client.Object {
 							Env:                      envs,
 							TerminationMessagePath:   "/dev/termination-log",
 							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+							Resources:                resources,
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -311,6 +313,7 @@ func (a *apigateway) deploy() client.Object {
 							VolumeMounts:             vms,
 							TerminationMessagePath:   "/dev/termination-log",
 							TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+							Resources:                resources,
 						},
 					},
 					Volumes: vs,

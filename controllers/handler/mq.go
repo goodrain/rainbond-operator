@@ -92,6 +92,7 @@ func (m *mq) deployment() client.Object {
 	args = mergeArgs(args, m.component.Spec.Args)
 	volumeMounts = mergeVolumeMounts(volumeMounts, m.component.Spec.VolumeMounts)
 	volumes = mergeVolumes(volumes, m.component.Spec.Volumes)
+	resources := setDefaultResources(m.component.Spec.Resources)
 
 	ds := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -121,7 +122,7 @@ func (m *mq) deployment() client.Object {
 							Env:             env,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
-							Resources:       m.component.Spec.Resources,
+							Resources:       resources,
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
