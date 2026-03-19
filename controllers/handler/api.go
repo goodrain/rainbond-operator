@@ -201,6 +201,19 @@ func (a *api) deployment() client.Object {
 							Env:             envs,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
+							StartupProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/v2/health",
+										Port: intstr.FromInt(8888),
+									},
+								},
+								InitialDelaySeconds: 5,
+								TimeoutSeconds:      5,
+								PeriodSeconds:       5,
+								SuccessThreshold:    1,
+								FailureThreshold:    60,
+							},
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -343,7 +356,17 @@ func (a *api) secretAndConfigMapForAPI() []client.Object {
 		a.serverSecret = serverSecret
 		//no change,do nothing
 		if availableips, ok := serverSecret.Labels["availableips"]; ok && availableips == ips {
-			return nil
+			// Skip regeneration only when all bootstrap resources still exist.
+			clientSecret, _ := a.getSecret(apiClientSecretName)
+			regionConfig := &corev1.ConfigMap{}
+			err := a.client.Get(a.ctx, client.ObjectKey{
+				Name:      "region-config",
+				Namespace: a.component.Namespace,
+			}, regionConfig)
+			if clientSecret != nil && err == nil {
+				return nil
+			}
+			log.Info("api bootstrap resource missing, regenerating certificates")
 		}
 		caSecret, _ := a.getSecret(apiCASecretName)
 		if caSecret != nil {
