@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -68,6 +69,65 @@ func TestSecretAndConfigMapForAPIRegeneratesWhenRegionConfigMissing(t *testing.T
 	}
 	if !containsObject(resources, "region-config") {
 		t.Fatalf("expected regenerated resources to include region-config")
+	}
+}
+
+func TestAPIDeploymentConfiguresStartupProbeForSlowBoot(t *testing.T) {
+	t.Setenv("IS_SQLLITE", "true")
+
+	component := &rainbondv1alpha1.RbdComponent{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      APIName,
+			Namespace: "rbd-system",
+		},
+		Spec: rainbondv1alpha1.RbdComponentSpec{
+			Image: "example.com/rbd-api:test",
+		},
+	}
+	cluster := &rainbondv1alpha1.RainbondCluster{
+		Spec: rainbondv1alpha1.RainbondClusterSpec{
+			SuffixHTTPHost: "example.com",
+		},
+	}
+	handler := &api{
+		ctx:       context.Background(),
+		component: component,
+		cluster:   cluster,
+		labels:    LabelsForRainbondComponent(component),
+	}
+
+	deployment, ok := handler.deployment().(*appsv1.Deployment)
+	if !ok {
+		t.Fatalf("expected *appsv1.Deployment, got %T", handler.deployment())
+	}
+	if len(deployment.Spec.Template.Spec.Containers) != 1 {
+		t.Fatalf("expected one container, got %d", len(deployment.Spec.Template.Spec.Containers))
+	}
+
+	container := deployment.Spec.Template.Spec.Containers[0]
+	if container.StartupProbe == nil {
+		t.Fatalf("expected startupProbe to be configured")
+	}
+	if container.StartupProbe.HTTPGet == nil {
+		t.Fatalf("expected startupProbe to use HTTP GET")
+	}
+	if got := container.StartupProbe.HTTPGet.Path; got != "/v2/health" {
+		t.Fatalf("expected startupProbe path /v2/health, got %q", got)
+	}
+	if got := container.StartupProbe.HTTPGet.Port.IntValue(); got != 8888 {
+		t.Fatalf("expected startupProbe port 8888, got %d", got)
+	}
+	if container.ReadinessProbe == nil || container.ReadinessProbe.HTTPGet == nil {
+		t.Fatalf("expected readinessProbe HTTP GET to remain configured")
+	}
+	if got := container.ReadinessProbe.HTTPGet.Path; got != "/v2/health" {
+		t.Fatalf("expected readinessProbe path /v2/health, got %q", got)
+	}
+	if container.LivenessProbe == nil || container.LivenessProbe.HTTPGet == nil {
+		t.Fatalf("expected livenessProbe HTTP GET to remain configured")
+	}
+	if got := container.LivenessProbe.HTTPGet.Path; got != "/healthz" {
+		t.Fatalf("expected livenessProbe path /healthz, got %q", got)
 	}
 }
 

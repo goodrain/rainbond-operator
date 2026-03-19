@@ -201,6 +201,19 @@ func (a *api) deployment() client.Object {
 							Env:             envs,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
+							StartupProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/v2/health",
+										Port: intstr.FromInt(8888),
+									},
+								},
+								InitialDelaySeconds: 5,
+								TimeoutSeconds:      5,
+								PeriodSeconds:       5,
+								SuccessThreshold:    1,
+								FailureThreshold:    60,
+							},
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
