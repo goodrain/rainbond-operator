@@ -75,7 +75,7 @@ spec:
       effect: NoSchedule
   containers:
     - name: helper-pod
-      image: %s/alpine:latest
+      image: %s/alpine:3
       imagePullPolicy: IfNotPresent`, os.Getenv("RAINBOND_IMAGE_REPOSITORY"))
 	data := map[string]string{
 		"config.json": `{
