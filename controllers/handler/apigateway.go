@@ -400,9 +400,23 @@ func (a *apigateway) deploy() client.Object {
 								"sh",
 								"-c",
 								`
-		sleep 10;
-		exec apisix start
-		`,
+  	set -e
+
+  	apisix init
+
+  	until apisix init_etcd; do
+  		echo wait-etcd
+  		sleep 2
+  	done
+
+  	rm -f /usr/local/apisix/conf/config_listen.sock || true
+  	rm -f /usr/local/apisix/logs/worker_events.sock || true
+
+  	exec /usr/local/openresty/bin/openresty \
+  		-p /usr/local/apisix \
+  		-c /usr/local/apisix/conf/nginx.conf \
+  		-g 'daemon off;'
+  	`,
 							},
 							ImagePullPolicy: a.component.ImagePullPolicy(),
 							SecurityContext: &corev1.SecurityContext{
