@@ -57,7 +57,7 @@ func NewDB(ctx context.Context, client client.Client, component *rainbondv1alpha
 		labels:         LabelsForRainbondComponent(component),
 		mysqlUser:      "root",
 		databases:      []string{"console"},
-		storageRequest: getStorageRequest("DB_DATA_STORAGE_REQUEST", 1),
+		storageRequest: getStorageRequest("DB_DATA_STORAGE_REQUEST", 5),
 	}
 	regionDBName := os.Getenv("REGION_DB_NAME")
 	if regionDBName == "" {

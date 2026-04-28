@@ -44,7 +44,7 @@ func NewMonitor(ctx context.Context, client client.Client, component *rainbondv1
 		component:      component,
 		cluster:        cluster,
 		labels:         LabelsForRainbondComponent(component),
-		storageRequest: getStorageRequest("MONITOR_DATA_STORAGE_REQUEST", 1),
+		storageRequest: getStorageRequest("MONITOR_DATA_STORAGE_REQUEST", 100),
 	}
 }
 

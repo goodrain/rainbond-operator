@@ -56,7 +56,7 @@ func NewHub(ctx context.Context, client client.Client, component *rainbondv1alph
 		client:         client,
 		ctx:            ctx,
 		labels:         LabelsForRainbondComponent(component),
-		storageRequest: getStorageRequest("HUB_DATA_STORAGE_REQUEST", 1),
+		storageRequest: getStorageRequest("HUB_DATA_STORAGE_REQUEST", 200),
 	}
 }
 
