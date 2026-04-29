@@ -10,7 +10,6 @@ import (
 	"github.com/go-logr/logr"
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	clustermgr "github.com/goodrain/rainbond-operator/controllers/cluster-mgr"
-	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"github.com/goodrain/rainbond-operator/util/uuidutil"
@@ -159,10 +158,6 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 		}
 		return reconcile.Result{Requeue: true}, err
 	}
-	// set gatewayIngressIP to local host file
-	hostPath := "/etc/hosts"
-	NodesForGateway := rainbondcluster.Spec.NodesForGateway[0].InternalIP
-	commonutil.WriteHosts(hostPath, NodesForGateway)
 	// setup imageHub if empty
 	if rainbondcluster.Spec.ImageHub == nil {
 		reqLogger.V(6).Info("create new image hub info")

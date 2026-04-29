@@ -49,7 +49,7 @@ func NewAppUI(ctx context.Context, client client.Client, component *rainbondv1al
 		component:      component,
 		labels:         LabelsForRainbondComponent(component),
 		cluster:        cluster,
-		storageRequest: getStorageRequest("APP_UI_DATA_STORAGE_REQUEST", 1),
+		storageRequest: getStorageRequest("APP_UI_DATA_STORAGE_REQUEST", 5),
 	}
 }
 

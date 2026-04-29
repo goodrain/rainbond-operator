@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -379,12 +380,71 @@ func (r *RainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 		r.cluster.Status.UpdateCondition(&containerNetworkCondition)
 	}
 
-	if idx, condition := r.cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeRunning); idx == -1 || condition.Status != corev1.ConditionTrue {
+	if condition := r.precheckNotReadyRunningCondition(); condition != nil {
+		r.cluster.Status.UpdateCondition(condition)
+	} else if idx, condition := r.cluster.Status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeRunning); idx == -1 || condition.Status != corev1.ConditionTrue {
 		running := r.runningCondition()
 		r.cluster.Status.UpdateCondition(&running)
 	}
 
 	return r.cluster.Status.Conditions
+}
+
+func (r *RainbondClusteMgr) precheckNotReadyRunningCondition() *rainbondv1alpha1.RainbondClusterCondition {
+	var blockers []string
+	for _, conditionType := range r.requiredPrecheckConditionTypes() {
+		_, condition := r.cluster.Status.GetCondition(conditionType)
+		if condition == nil || condition.Status == corev1.ConditionTrue {
+			continue
+		}
+
+		blocker := string(condition.Type)
+		if condition.Reason != "" {
+			blocker = fmt.Sprintf("%s(%s)", blocker, condition.Reason)
+		}
+		if condition.Message != "" {
+			blocker = fmt.Sprintf("%s: %s", blocker, condition.Message)
+		}
+		blockers = append(blockers, blocker)
+	}
+	if len(blockers) == 0 {
+		return nil
+	}
+
+	return &rainbondv1alpha1.RainbondClusterCondition{
+		Type:              rainbondv1alpha1.RainbondClusterConditionTypeRunning,
+		Status:            corev1.ConditionFalse,
+		LastHeartbeatTime: metav1.NewTime(time.Now()),
+		Reason:            "PrecheckNotReady",
+		Message:           fmt.Sprintf("precheck not ready: %s", strings.Join(blockers, "; ")),
+	}
+}
+
+func (r *RainbondClusteMgr) requiredPrecheckConditionTypes() []rainbondv1alpha1.RainbondClusterConditionType {
+	spec := r.cluster.Spec
+	conditionTypes := []rainbondv1alpha1.RainbondClusterConditionType{
+		rainbondv1alpha1.RainbondClusterConditionTypeKubernetesVersion,
+		rainbondv1alpha1.RainbondClusterConditionTypeStorage,
+		rainbondv1alpha1.RainbondClusterConditionTypeMemory,
+	}
+
+	if spec.RegionDatabase != nil {
+		conditionTypes = append(conditionTypes, rainbondv1alpha1.RainbondClusterConditionTypeDatabaseRegion)
+	}
+	if spec.UIDatabase != nil {
+		conditionTypes = append(conditionTypes, rainbondv1alpha1.RainbondClusterConditionTypeDatabaseConsole)
+	}
+	if spec.ImageHub != nil {
+		conditionTypes = append(conditionTypes, rainbondv1alpha1.RainbondClusterConditionTypeImageRepository)
+	}
+	if spec.InstallMode != rainbondv1alpha1.InstallationModeOffline {
+		conditionTypes = append(conditionTypes, rainbondv1alpha1.RainbondClusterConditionTypeDNS)
+	}
+	if spec.SentinelImage != "" {
+		conditionTypes = append(conditionTypes, rainbondv1alpha1.RainbondClusterConditionTypeContainerNetwork)
+	}
+
+	return conditionTypes
 }
 
 func (r *RainbondClusteMgr) isConditionTrue(typ3 rainbondv1alpha1.RainbondClusterConditionType) bool {

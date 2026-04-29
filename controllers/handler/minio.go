@@ -35,7 +35,7 @@ func NewMinIO(ctx context.Context, client client.Client, component *rainbondv1al
 		client:         client,
 		component:      component,
 		labels:         LabelsForRainbondComponent(component),
-		storageRequest: getStorageRequest("MINIO_DATA_STORAGE_REQUEST", 1),
+		storageRequest: getStorageRequest("MINIO_DATA_STORAGE_REQUEST", 100),
 		cluster:        cluster,
 	}
 }

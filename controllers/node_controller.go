@@ -114,6 +114,10 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, request ctrl.Request) (c
 			}
 		}
 		reqLogger.Info("successfully deleted existing hosts-job")
+		// Wait for the Job to fully disappear from the API before triggering
+		// rbd-hub reconcile. Jobs cannot be updated in place, and if reconcile
+		// runs while the old Job still exists it will skip recreation entirely.
+		return reconcile.Result{RequeueAfter: 2 * time.Second}, nil
 	} else {
 		reqLogger.Info("hosts-job does not exist, will create new one")
 	}
