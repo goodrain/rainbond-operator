@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func TestHostsJobToleratesTaintedNodesAndSpreadsAcrossHostnames(t *testing.T) {
+func TestHostsJobToleratesTaintedNodesAndSpreadsOnlyAcrossHostsJobPods(t *testing.T) {
 	t.Parallel()
 
 	component := &rainbondv1alpha1.RbdComponent{
@@ -91,6 +91,9 @@ func TestHostsJobToleratesTaintedNodesAndSpreadsAcrossHostnames(t *testing.T) {
 	if got := job.Spec.Template.Spec.Tolerations[0].Operator; got != corev1.TolerationOpExists {
 		t.Fatalf("expected toleration operator %q, got %q", corev1.TolerationOpExists, got)
 	}
+	if got := job.Spec.Template.Labels["rainbond.io/hosts-job"]; got != "true" {
+		t.Fatalf("expected hosts-job template label rainbond.io/hosts-job=true, got %q", got)
+	}
 
 	affinity := job.Spec.Template.Spec.Affinity
 	if affinity == nil || affinity.PodAntiAffinity == nil {
@@ -106,10 +109,11 @@ func TestHostsJobToleratesTaintedNodesAndSpreadsAcrossHostnames(t *testing.T) {
 	if terms[0].LabelSelector == nil {
 		t.Fatalf("expected pod anti-affinity label selector to be configured")
 	}
-	for key, value := range handler.labels {
-		if got := terms[0].LabelSelector.MatchLabels[key]; got != value {
-			t.Fatalf("expected pod anti-affinity selector %s=%s, got %q", key, value, got)
-		}
+	if got := terms[0].LabelSelector.MatchLabels["rainbond.io/hosts-job"]; got != "true" {
+		t.Fatalf("expected pod anti-affinity selector rainbond.io/hosts-job=true, got %q", got)
+	}
+	if _, ok := terms[0].LabelSelector.MatchLabels["name"]; ok {
+		t.Fatalf("expected pod anti-affinity selector not to match shared component labels, got %v", terms[0].LabelSelector.MatchLabels)
 	}
 }
 

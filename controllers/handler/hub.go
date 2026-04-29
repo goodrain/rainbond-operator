@@ -31,6 +31,12 @@ var hubDataPvcName = "rbd-hub"
 var hubImageRepository = "hub-image-repository"
 var hubPasswordSecret = "hub-password"
 
+const (
+	hostsJobName       = "hosts-job"
+	hostsJobLabelKey   = "rainbond.io/hosts-job"
+	hostsJobLabelValue = "true"
+)
+
 type hub struct {
 	ctx       context.Context
 	client    client.Client
@@ -314,12 +320,15 @@ func (h *hub) hostsJob() client.Object {
 		logrus.Errorf("get node len failure: %v", err)
 		return nil
 	}
+	hostsJobLabels := copyLabels(h.labels)
+	hostsJobLabels[hostsJobLabelKey] = hostsJobLabelValue
 
 	// 创建 Job 对象
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "hosts-job",
+			Name:      hostsJobName,
 			Namespace: h.component.Namespace,
+			Labels:    hostsJobLabels,
 		},
 		Spec: batchv1.JobSpec{
 			TTLSecondsAfterFinished: pointer.Int32Ptr(60),
@@ -328,7 +337,7 @@ func (h *hub) hostsJob() client.Object {
 			BackoffLimit:            pointer.Int32Ptr(0),                          // 设置重试次数
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: h.labels,
+					Labels: hostsJobLabels,
 				},
 				Spec: corev1.PodSpec{
 					Affinity: &corev1.Affinity{
@@ -350,7 +359,9 @@ func (h *hub) hostsJob() client.Object {
 							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 								{
 									LabelSelector: &metav1.LabelSelector{
-										MatchLabels: h.labels,
+										MatchLabels: map[string]string{
+											hostsJobLabelKey: hostsJobLabelValue,
+										},
 									},
 									TopologyKey: "kubernetes.io/hostname",
 								},
@@ -364,7 +375,7 @@ func (h *hub) hostsJob() client.Object {
 					},
 					Containers: []corev1.Container{
 						{
-							Name:            "hosts-job",
+							Name:            hostsJobName,
 							Image:           os.Getenv("RAINBOND_IMAGE_REPOSITORY") + "/alpine:3",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Command: []string{
