@@ -281,16 +281,15 @@ func (r *RainbondClusterReconciler) GetRainbondGatewayNodeAndChaosNodes() (gatew
 }
 
 func getK8sNode(node corev1.Node) *rainbondv1alpha1.K8sNode {
-	var Knode rainbondv1alpha1.K8sNode
+	Knode := rainbondv1alpha1.K8sNode{
+		Name: node.Name,
+	}
 	for _, address := range node.Status.Addresses {
 		if address.Type == corev1.NodeInternalIP {
 			Knode.InternalIP = address.Address
 		}
 		if address.Type == corev1.NodeExternalIP {
 			Knode.ExternalIP = address.Address
-		}
-		if address.Type == corev1.NodeHostName {
-			Knode.Name = address.Address
 		}
 	}
 	return &Knode
