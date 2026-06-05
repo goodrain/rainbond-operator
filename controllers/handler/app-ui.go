@@ -2,19 +2,16 @@ package handler
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"os"
-	"runtime"
 	"strconv"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	checksqllite "github.com/goodrain/rainbond-operator/util/check-sqllite"
 	"github.com/goodrain/rainbond-operator/util/commonutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
-	"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/mem"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +24,15 @@ var AppUIName = "rbd-app-ui"
 
 // AppUIDBMigrationsName -
 var AppUIDBMigrationsName = "rbd-app-ui-migrations"
+
+const (
+	// appUISecretName is the Secret holding rbd-app-ui's Django SECRET_KEY.
+	// The key is generated once and persisted, so it survives pod restarts,
+	// node reschedules and platform upgrades — keeping issued JWTs valid.
+	appUISecretName = "rbd-app-ui-secret"
+	// appUISecretKey is the data key inside appUISecretName.
+	appUISecretKey = "SECRET_KEY"
+)
 
 type appui struct {
 	ctx              context.Context
@@ -98,6 +104,9 @@ func (a *appui) Resources() []client.Object {
 	appUIPVC := createPersistentVolumeClaimRWO(a.component.Namespace, "rbd-app-ui-data", a.pvcParametersRWO, a.labels, a.storageRequest)
 	res = append(res, appUIPVC)
 
+	// SECRET_KEY Secret must precede the Deployment that references it.
+	res = append(res, a.secretForAppUI())
+
 	res = append(res, a.deploymentForAppUI())
 	res = append(res, a.serviceForAppUI(int32(p)))
 
@@ -150,8 +159,13 @@ func (a *appui) deploymentForAppUI() client.Object {
 			Value: a.cluster.Spec.ImageHub.Domain,
 		},
 		{
-			Name:  "SECRET_KEY",
-			Value: getHashMac(),
+			Name: "SECRET_KEY",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: appUISecretName},
+					Key:                  appUISecretKey,
+				},
+			},
 		},
 	}
 	if !checksqllite.IsSQLLite() {
@@ -322,58 +336,37 @@ func (a *appui) serviceForAppUI(port int32) client.Object {
 	return svc
 }
 
-func getSystemInfo() string {
-	// 获取操作系统信息
-	os := runtime.GOOS
-
-	// 获取系统架构
-	arch := runtime.GOARCH
-
-	// 获取 CPU 核心数
-	cpuCount := runtime.NumCPU()
-
-	// 获取 CPU 相关信息
-	cpus, err := cpu.Info()
-	if err != nil {
-		fmt.Println("Error getting CPU info:", err)
-		return ""
+// secretForAppUI returns the Secret carrying rbd-app-ui's Django SECRET_KEY.
+// An existing key is always reused so the value stays stable across reconciles
+// and upgrades; a new cryptographically-random key is generated only when the
+// Secret is absent. Stability is what keeps already-issued JWTs valid.
+func (a *appui) secretForAppUI() client.Object {
+	secretKey := randomSecretKey()
+	if existing, err := getSecret(a.ctx, a.client, a.component.Namespace, appUISecretName); err == nil && existing != nil {
+		if current := existing.Data[appUISecretKey]; len(current) > 0 {
+			secretKey = string(current)
+		}
 	}
-
-	// 获取内存信息
-	vmStat, err := mem.VirtualMemory()
-	if err != nil {
-		fmt.Println("Error getting memory info:", err)
-		return ""
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      appUISecretName,
+			Namespace: a.component.Namespace,
+			Labels:    a.labels,
+		},
+		Data: map[string][]byte{
+			appUISecretKey: []byte(secretKey),
+		},
 	}
-
-	// 获取总内存（GB）
-	totalMemory := vmStat.Total / (1024 * 1024 * 1024) // 转换为 GB
-
-	// 将系统信息拼接成一个字符串
-	systemInfo := fmt.Sprintf("OS:%s-Arch:%s-CPUs:%d-Mem:%dGB-CPU:%s",
-		os,
-		arch,
-		cpuCount,
-		totalMemory,
-		cpus[0].ModelName)
-
-	return systemInfo
 }
 
-// 计算MD5值
-func calculateMD5(input string) string {
-	hash := md5.New()
-	hash.Write([]byte(input))
-	hashInBytes := hash.Sum(nil)
-	return hex.EncodeToString(hashInBytes)
-}
-
-// 获取系统信息并计算 MD5 值
-func getHashMac() string {
-	// 获取系统信息
-	systemInfo := getSystemInfo()
-	// 计算系统信息的 MD5 值
-	md5Value := calculateMD5(systemInfo)
-	// 返回一个包含 "SECRET_KEY" 和 MD5 值的映射
-	return md5Value
+// randomSecretKey returns a 256-bit cryptographically-random key, hex-encoded.
+func randomSecretKey() string {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		// crypto/rand failure means the host CSPRNG is unavailable; surface it
+		// rather than emitting a weak all-zero key.
+		log.Error(err, "generate rbd-app-ui SECRET_KEY")
+		return ""
+	}
+	return hex.EncodeToString(b)
 }
