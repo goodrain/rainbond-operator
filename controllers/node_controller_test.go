@@ -175,6 +175,37 @@ func TestNodeReconcilerTriggersHubReconcileWhenHostsJobIsGone(t *testing.T) {
 	}
 }
 
+func TestGetK8sNodeUsesKubernetesNodeName(t *testing.T) {
+	t.Parallel()
+
+	node := corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "172.16.0.227",
+		},
+		Status: corev1.NodeStatus{
+			Addresses: []corev1.NodeAddress{
+				{
+					Type:    corev1.NodeInternalIP,
+					Address: "172.16.0.227",
+				},
+				{
+					Type:    corev1.NodeHostName,
+					Address: "iv-yenrgw32m8k36d397gc7",
+				},
+			},
+		},
+	}
+
+	k8sNode := getK8sNode(node)
+
+	if k8sNode.Name != "172.16.0.227" {
+		t.Fatalf("expected gateway node name to match Kubernetes node metadata name, got %q", k8sNode.Name)
+	}
+	if k8sNode.InternalIP != "172.16.0.227" {
+		t.Fatalf("expected internal IP to be preserved, got %q", k8sNode.InternalIP)
+	}
+}
+
 type nodeControllerTestClient struct {
 	scheme  *runtime.Scheme
 	node    *corev1.Node
