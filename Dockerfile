@@ -15,6 +15,7 @@ RUN go mod download
 COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
+COPY pkg/ pkg/
 COPY util util/
 
 # Build
@@ -22,11 +23,19 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH="${TARGETARCH}" GO111MODULE=on go build -a -
 
 
 FROM alpine:3.11.2
+ARG RELEASE_DESC=
+ARG RAINBOND_ERROR_REPORTING_DSN=
+ARG RAINBOND_ERROR_REPORTING_REGION_DSN=
+ARG RAINBOND_ERROR_REPORTING_BACKEND_DSN=
 RUN apk add --update tzdata \
     && mkdir /app \
     && apk add --update apache2-utils \
     && rm -rf /var/cache/apk/*
 ENV TZ=Asia/Shanghai
+ENV RELEASE_DESC=${RELEASE_DESC}
+ENV RAINBOND_ERROR_REPORTING_DSN=${RAINBOND_ERROR_REPORTING_DSN}
+ENV RAINBOND_ERROR_REPORTING_REGION_DSN=${RAINBOND_ERROR_REPORTING_REGION_DSN}
+ENV RAINBOND_ERROR_REPORTING_BACKEND_DSN=${RAINBOND_ERROR_REPORTING_BACKEND_DSN}
 WORKDIR /
 
 COPY config/prom config/prom/
