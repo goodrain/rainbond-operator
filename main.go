@@ -20,10 +20,12 @@ import (
 	"context"
 	"flag"
 	"os"
+	"runtime/debug"
 	"time"
 
 	"github.com/go-logr/logr"
 	apisixv2 "github.com/goodrain/rainbond-operator/api/v2"
+	sentryobs "github.com/goodrain/rainbond-operator/pkg/observability/sentry"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "github.com/go-sql-driver/mysql"
@@ -74,14 +76,25 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	sentryobs.Init("rainbond-operator")
+	defer sentryobs.Flush()
+	defer capturePanic()
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	cfg, err := ctrl.GetConfig()
+	if err != nil {
+		captureStartupError(err, "get-kube-config")
+		setupLog.Error(err, "unable to get kubeconfig")
+		os.Exit(1)
+	}
+
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:                 scheme,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "c3e7a49c.rainbond.io",
 	})
 	if err != nil {
+		captureStartupError(err, "new-manager")
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
@@ -91,6 +104,7 @@ func main() {
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("RainbondCluster"),
 	}).SetupWithManager(mgr); err != nil {
+		captureStartupError(err, "setup-rainbondcluster-controller")
 		setupLog.Error(err, "unable to create controller", "controller", "RainbondCluster")
 		os.Exit(1)
 	}
@@ -100,6 +114,7 @@ func main() {
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("RbdComponent"),
 	}).SetupWithManager(mgr); err != nil {
+		captureStartupError(err, "setup-rbdcomponent-controller")
 		setupLog.Error(err, "unable to create controller", "controller", "RbdComponent")
 		os.Exit(1)
 	}
@@ -108,6 +123,7 @@ func main() {
 		Log:    ctrl.Log.WithName("controllers").WithName("Node"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
+		captureStartupError(err, "setup-node-controller")
 		setupLog.Error(err, "unable to create controller", "controller", "Node")
 		os.Exit(1)
 	}
@@ -115,10 +131,12 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("health", healthz.Ping); err != nil {
+		captureStartupError(err, "setup-health-check")
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)
 	}
 	if err := mgr.AddReadyzCheck("check", healthz.Ping); err != nil {
+		captureStartupError(err, "setup-ready-check")
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
@@ -129,14 +147,35 @@ func main() {
 		Client: mgr.GetClient(),
 		Log:    setupLog,
 	}); err != nil {
+		captureStartupError(err, "add-reconcile-trigger")
 		setupLog.Error(err, "unable to add reconcile trigger runnable")
 		os.Exit(1)
 	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		captureStartupError(err, "start-manager")
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
+	}
+}
+
+func captureStartupError(err error, phase string) {
+	sentryobs.CaptureException(err, map[string]string{
+		"component": "rainbond-operator",
+		"phase":     phase,
+	})
+	sentryobs.Flush()
+}
+
+func capturePanic() {
+	if rvr := recover(); rvr != nil {
+		sentryobs.CapturePanic(rvr, debug.Stack(), map[string]string{
+			"component": "rainbond-operator",
+			"phase":     "panic",
+		})
+		sentryobs.Flush()
+		panic(rvr)
 	}
 }
 
@@ -161,6 +200,10 @@ func (r *rainbondClusterReconcileTrigger) Start(ctx context.Context) error {
 	// List all RainbondCluster resources
 	clusterList := &rainbondiov1alpha1.RainbondClusterList{}
 	if err := r.Client.List(triggerCtx, clusterList); err != nil {
+		sentryobs.CaptureException(err, map[string]string{
+			"component": "rainbond-operator",
+			"phase":     "list-rainbondclusters",
+		})
 		r.Log.Error(err, "failed to list RainbondClusters")
 		// Don't return error, just log and continue
 		return nil
@@ -200,6 +243,10 @@ func (r *rainbondClusterReconcileTrigger) Start(ctx context.Context) error {
 		cluster.Annotations["rainbond.io/operator-update-time"] = time.Now().Format(time.RFC3339)
 
 		if err := r.Client.Update(triggerCtx, cluster); err != nil {
+			sentryobs.CaptureException(err, map[string]string{
+				"component": "rainbond-operator",
+				"phase":     "trigger-rainbondcluster-reconcile",
+			})
 			r.Log.Error(err, "failed to update RainbondCluster",
 				"cluster", cluster.Name,
 				"namespace", cluster.Namespace)
