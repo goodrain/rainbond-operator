@@ -236,17 +236,17 @@ func (r *RainbondClusteMgr) listMasterNodes(masterRoleLabelKey string) []*rainbo
 	return r.listNodesByLabels(labels)
 }
 
-// CreateImagePullSecret create image pull secret
-func (r *RainbondClusteMgr) CreateImagePullSecret() error {
+// CreateImagePullSecret create image pull secret.
+func (r *RainbondClusteMgr) CreateImagePullSecret() (bool, error) {
 	var secret corev1.Secret
 	if err := r.client.Get(r.ctx, types.NamespacedName{Namespace: r.cluster.Namespace, Name: RdbHubCredentialsName}, &secret); err != nil {
 		if !k8sErrors.IsNotFound(err) {
-			return err
+			return false, err
 		}
 	}
 	if config, exist := secret.Data[".dockerconfigjson"]; exist && string(config) == string(r.generateDockerConfig()) {
 		r.log.V(5).Info("dockerconfig not change")
-		return nil
+		return false, nil
 	}
 	secret = corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -260,7 +260,7 @@ func (r *RainbondClusteMgr) CreateImagePullSecret() error {
 	}
 
 	if err := controllerutil.SetControllerReference(r.cluster, &secret, r.scheme); err != nil {
-		return fmt.Errorf("set controller reference for secret %s: %v", RdbHubCredentialsName, err)
+		return false, fmt.Errorf("set controller reference for secret %s: %v", RdbHubCredentialsName, err)
 	}
 
 	err := r.client.Create(r.ctx, &secret)
@@ -269,13 +269,13 @@ func (r *RainbondClusteMgr) CreateImagePullSecret() error {
 			r.log.V(7).Info("update image pull secret", "name", RdbHubCredentialsName)
 			err = r.client.Update(r.ctx, &secret)
 			if err == nil {
-				return nil
+				return true, nil
 			}
 		}
-		return fmt.Errorf("create secret for pulling images: %v", err)
+		return false, fmt.Errorf("create secret for pulling images: %v", err)
 	}
 
-	return nil
+	return true, nil
 }
 
 func (r *RainbondClusteMgr) checkIfImagePullSecretExists() bool {
@@ -337,13 +337,6 @@ func (r *RainbondClusteMgr) generateConditions() []rainbondv1alpha1.RainbondClus
 	// console database
 	if spec.UIDatabase != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseConsole) {
 		preChecker := precheck.NewDatabasePrechecker(rainbondv1alpha1.RainbondClusterConditionTypeDatabaseConsole, spec.UIDatabase)
-		condition := preChecker.Check()
-		r.cluster.Status.UpdateCondition(&condition)
-	}
-
-	// image repository
-	if spec.ImageHub != nil && !r.isConditionTrue(rainbondv1alpha1.RainbondClusterConditionTypeImageRepository) {
-		preChecker := precheck.NewImageRepoPrechecker(r.ctx, r.log, r.cluster)
 		condition := preChecker.Check()
 		r.cluster.Status.UpdateCondition(&condition)
 	}
@@ -433,9 +426,6 @@ func (r *RainbondClusteMgr) requiredPrecheckConditionTypes() []rainbondv1alpha1.
 	}
 	if spec.UIDatabase != nil {
 		conditionTypes = append(conditionTypes, rainbondv1alpha1.RainbondClusterConditionTypeDatabaseConsole)
-	}
-	if spec.ImageHub != nil {
-		conditionTypes = append(conditionTypes, rainbondv1alpha1.RainbondClusterConditionTypeImageRepository)
 	}
 	if spec.InstallMode != rainbondv1alpha1.InstallationModeOffline {
 		conditionTypes = append(conditionTypes, rainbondv1alpha1.RainbondClusterConditionTypeDNS)

@@ -210,9 +210,12 @@ func (r *RainbondClusterReconciler) Reconcile(ctx context.Context, request ctrl.
 
 	// create secret for pulling images.
 	if rainbondcluster.Spec.ImageHub != nil && rainbondcluster.Spec.ImageHub.Username != "" && rainbondcluster.Spec.ImageHub.Password != "" {
-		err := mgr.CreateImagePullSecret()
+		changed, err := mgr.CreateImagePullSecret()
 		if err != nil {
 			return reconcile.Result{}, err
+		}
+		if changed {
+			return reconcile.Result{Requeue: true}, nil
 		}
 	}
 

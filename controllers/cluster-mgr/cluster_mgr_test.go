@@ -149,8 +149,139 @@ func TestGenerateConditionsIgnoresIrrelevantHistoricalPrecheckFailures(t *testin
 	}
 }
 
+func TestGenerateConditionsDoesNotBlockOnImageRepository(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("add corev1 to scheme: %v", err)
+	}
+	if err := rainbondv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("add rainbondv1alpha1 to scheme: %v", err)
+	}
+
+	cluster := &rainbondv1alpha1.RainbondCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rainbondcluster",
+			Namespace: "rbd-system",
+		},
+		Spec: rainbondv1alpha1.RainbondClusterSpec{
+			InstallMode:           rainbondv1alpha1.InstallationModeOffline,
+			RainbondVolumeSpecRWX: &rainbondv1alpha1.RainbondVolumeSpec{},
+			ImageHub: &rainbondv1alpha1.ImageHub{
+				Domain:   "127.0.0.1:1",
+				Username: "admin",
+				Password: "wrong-password",
+			},
+		},
+		Status: rainbondv1alpha1.RainbondClusterStatus{
+			Conditions: []rainbondv1alpha1.RainbondClusterCondition{
+				{
+					Type:    rainbondv1alpha1.RainbondClusterConditionTypeImageRepository,
+					Status:  corev1.ConditionFalse,
+					Reason:  "ImageRepoFailed",
+					Message: "historical image repository failure",
+				},
+			},
+		},
+	}
+
+	k8sClient := &clusterStatusTestClient{
+		scheme: scheme,
+		nodes: []corev1.Node{
+			{
+				ObjectMeta: metav1.ObjectMeta{Name: "node-a"},
+				Status: corev1.NodeStatus{
+					Allocatable: corev1.ResourceList{
+						corev1.ResourceMemory: resource.MustParse("4Gi"),
+					},
+					NodeInfo: corev1.NodeSystemInfo{
+						KubeletVersion: "v1.20.0",
+					},
+				},
+			},
+		},
+		components: readyRbdComponents("rbd-system"),
+	}
+	mgr := NewClusterMgr(context.Background(), k8sClient, ctrl.Log.WithName("test"), cluster, scheme)
+
+	status, err := mgr.GenerateRainbondClusterStatus()
+	if err != nil {
+		t.Fatalf("generate status: %v", err)
+	}
+
+	_, running := status.GetCondition(rainbondv1alpha1.RainbondClusterConditionTypeRunning)
+	if running == nil {
+		t.Fatal("expected Running condition")
+	}
+	if running.Status != corev1.ConditionTrue {
+		t.Fatalf("expected ImageRepository not to block Running, got reason %q with message %q", running.Reason, running.Message)
+	}
+}
+
+func TestCreateImagePullSecretReportsWhetherSecretChanged(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("add corev1 to scheme: %v", err)
+	}
+	if err := rainbondv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("add rainbondv1alpha1 to scheme: %v", err)
+	}
+
+	cluster := &rainbondv1alpha1.RainbondCluster{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "rainbond.io/v1alpha1",
+			Kind:       "RainbondCluster",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rainbondcluster",
+			Namespace: "rbd-system",
+		},
+		Spec: rainbondv1alpha1.RainbondClusterSpec{
+			ImageHub: &rainbondv1alpha1.ImageHub{
+				Domain:   "goodrain.me",
+				Username: "admin",
+				Password: "admin1234",
+			},
+		},
+	}
+	k8sClient := &clusterStatusTestClient{
+		scheme:  scheme,
+		secrets: map[string]*corev1.Secret{},
+	}
+	mgr := NewClusterMgr(context.Background(), k8sClient, ctrl.Log.WithName("test"), cluster, scheme)
+
+	changed, err := mgr.CreateImagePullSecret()
+	if err != nil {
+		t.Fatalf("create image pull secret: %v", err)
+	}
+	if !changed {
+		t.Fatal("expected newly created image pull secret to report changed")
+	}
+
+	changed, err = mgr.CreateImagePullSecret()
+	if err != nil {
+		t.Fatalf("create unchanged image pull secret: %v", err)
+	}
+	if changed {
+		t.Fatal("expected unchanged image pull secret not to report changed")
+	}
+
+	cluster.Spec.ImageHub.Password = "new-password"
+	changed, err = mgr.CreateImagePullSecret()
+	if err != nil {
+		t.Fatalf("update image pull secret: %v", err)
+	}
+	if !changed {
+		t.Fatal("expected updated image pull secret to report changed")
+	}
+}
+
 func readyRbdComponents(namespace string) []rainbondv1alpha1.RbdComponent {
 	names := []string{
+		"rbd-chaos",
 		"rbd-db",
 		"rbd-etcd",
 		"rbd-gateway",
@@ -203,11 +334,18 @@ type clusterStatusTestClient struct {
 	scheme     *runtime.Scheme
 	nodes      []corev1.Node
 	components []rainbondv1alpha1.RbdComponent
+	secrets    map[string]*corev1.Secret
 }
 
 func (c *clusterStatusTestClient) Get(_ context.Context, key client.ObjectKey, obj client.Object) error {
-	switch obj.(type) {
+	switch out := obj.(type) {
 	case *corev1.Secret:
+		if c.secrets != nil {
+			if secret, ok := c.secrets[key.Namespace+"/"+key.Name]; ok {
+				secret.DeepCopyInto(out)
+				return nil
+			}
+		}
 		return apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, key.Name)
 	default:
 		return apierrors.NewBadRequest("unsupported object type")
@@ -230,7 +368,17 @@ func (c *clusterStatusTestClient) List(_ context.Context, list client.ObjectList
 	}
 }
 
-func (c *clusterStatusTestClient) Create(context.Context, client.Object, ...client.CreateOption) error {
+func (c *clusterStatusTestClient) Create(_ context.Context, obj client.Object, _ ...client.CreateOption) error {
+	if c.secrets != nil {
+		if secret, ok := obj.(*corev1.Secret); ok {
+			key := secret.Namespace + "/" + secret.Name
+			if _, exists := c.secrets[key]; exists {
+				return apierrors.NewAlreadyExists(schema.GroupResource{Resource: "secrets"}, secret.Name)
+			}
+			c.secrets[key] = secret.DeepCopy()
+			return nil
+		}
+	}
 	panic("unexpected Create call in test")
 }
 
@@ -238,7 +386,13 @@ func (c *clusterStatusTestClient) Delete(context.Context, client.Object, ...clie
 	panic("unexpected Delete call in test")
 }
 
-func (c *clusterStatusTestClient) Update(context.Context, client.Object, ...client.UpdateOption) error {
+func (c *clusterStatusTestClient) Update(_ context.Context, obj client.Object, _ ...client.UpdateOption) error {
+	if c.secrets != nil {
+		if secret, ok := obj.(*corev1.Secret); ok {
+			c.secrets[secret.Namespace+"/"+secret.Name] = secret.DeepCopy()
+			return nil
+		}
+	}
 	panic("unexpected Update call in test")
 }
 
