@@ -46,6 +46,25 @@ func findEnv(envs []corev1.EnvVar, name string) (corev1.EnvVar, bool) {
 	return corev1.EnvVar{}, false
 }
 
+func TestAppUIDeploymentDisablesDefaultMarketForOfflineInstall(t *testing.T) {
+	t.Setenv("IS_SQLLITE", "true")
+
+	handler := newAppUIHandlerForTest(nil)
+	handler.cluster.Spec.InstallMode = rainbondv1alpha1.InstallationModeOffline
+	handler.component.Spec.Env = []corev1.EnvVar{
+		{Name: "DISABLE_DEFAULT_APP_MARKET", Value: "false"},
+	}
+
+	deployment := handler.deploymentForAppUI().(*appsv1.Deployment)
+	env, ok := findEnv(deployment.Spec.Template.Spec.Containers[0].Env, "DISABLE_DEFAULT_APP_MARKET")
+	if !ok {
+		t.Fatalf("expected DISABLE_DEFAULT_APP_MARKET env to be present")
+	}
+	if got := env.Value; got != "true" {
+		t.Fatalf("expected DISABLE_DEFAULT_APP_MARKET=true, got %q", got)
+	}
+}
+
 // SECRET_KEY must be injected from the persistent Secret via secretKeyRef,
 // never as an inline value derived from volatile host hardware info.
 func TestAppUIDeploymentInjectsSecretKeyFromSecretRef(t *testing.T) {

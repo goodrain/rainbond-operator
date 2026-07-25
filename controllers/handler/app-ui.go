@@ -234,6 +234,11 @@ func (a *appui) deploymentForAppUI() client.Object {
 	}
 
 	envs = mergeEnvs(envs, a.component.Spec.Env)
+	if a.cluster.Spec.InstallMode == rainbondv1alpha1.InstallationModeOffline {
+		envs = mergeEnvs(envs, []corev1.EnvVar{
+			{Name: "DISABLE_DEFAULT_APP_MARKET", Value: "true"},
+		})
+	}
 	volumeMounts = mergeVolumeMounts(volumeMounts, a.component.Spec.VolumeMounts)
 	volumes = mergeVolumes(volumes, a.component.Spec.Volumes)
 	resources := setDefaultResources(a.component.Spec.Resources)
