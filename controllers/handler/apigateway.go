@@ -23,6 +23,8 @@ import (
 // ApiGatewayName name for rbd-gateway.
 var ApiGatewayName = "rbd-gateway"
 
+const apiGatewayPriorityClassName = "system-cluster-critical"
+
 type apigateway struct {
 	ctx       context.Context
 	client    client.Client
@@ -153,6 +155,7 @@ func (a *apigateway) deploy() client.Object {
 	if affinity == nil {
 		return nil
 	}
+	affinity = addAPIGatewayPodAntiAffinity(affinity)
 	replicas := int32(len(nodeNames))
 	envs := append(a.component.Spec.Env, []corev1.EnvVar{
 		{
@@ -224,6 +227,7 @@ func (a *apigateway) deploy() client.Object {
 				},
 				Spec: corev1.PodSpec{
 					Affinity:                      affinity,
+					PriorityClassName:             apiGatewayPriorityClassName,
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					HostNetwork:                   true,
@@ -321,6 +325,23 @@ func (a *apigateway) deploy() client.Object {
 			},
 		},
 	}
+}
+
+func addAPIGatewayPodAntiAffinity(affinity *corev1.Affinity) *corev1.Affinity {
+	result := affinity.DeepCopy()
+	if result.PodAntiAffinity == nil {
+		result.PodAntiAffinity = &corev1.PodAntiAffinity{}
+	}
+	result.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = append(
+		result.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution,
+		corev1.PodAffinityTerm{
+			LabelSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"name": ApiGatewayName},
+			},
+			TopologyKey: "kubernetes.io/hostname",
+		},
+	)
+	return result
 }
 
 // monitorService 这里地址不能改变，因为rbd-monitor 会读取这个service
