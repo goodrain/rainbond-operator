@@ -15,6 +15,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,6 +23,8 @@ import (
 
 // ApiGatewayName name for rbd-gateway.
 var ApiGatewayName = "rbd-gateway"
+
+const apiGatewayResourceRequestEphemeralStorage = "512Mi"
 
 type apigateway struct {
 	ctx       context.Context
@@ -153,6 +156,7 @@ func (a *apigateway) deploy() client.Object {
 	if affinity == nil {
 		return nil
 	}
+	affinity = addAPIGatewayPodAntiAffinity(affinity)
 	replicas := int32(len(nodeNames))
 	envs := append(a.component.Spec.Env, []corev1.EnvVar{
 		{
@@ -201,7 +205,9 @@ func (a *apigateway) deploy() client.Object {
 		},
 	}...)
 	images := strings.Split(a.component.Spec.Image, "@")
-	resources := setDefaultResources(a.component.Spec.Resources)
+	resources := setDefaultAPIGatewayResources(a.component.Spec.Resources)
+	maxUnavailable := intstr.FromInt(1)
+	maxSurge := intstr.FromInt(0)
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ApiGatewayName,
@@ -214,7 +220,11 @@ func (a *apigateway) deploy() client.Object {
 				MatchLabels: a.labels,
 			},
 			Strategy: appsv1.DeploymentStrategy{
-				Type: appsv1.RecreateDeploymentStrategyType,
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
+					MaxUnavailable: &maxUnavailable,
+					MaxSurge:       &maxSurge,
+				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -224,6 +234,7 @@ func (a *apigateway) deploy() client.Object {
 				},
 				Spec: corev1.PodSpec{
 					Affinity:                      affinity,
+					PriorityClassName:             constants.SystemClusterCriticalPriorityClassName,
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
 					HostNetwork:                   true,
@@ -321,6 +332,31 @@ func (a *apigateway) deploy() client.Object {
 			},
 		},
 	}
+}
+
+func setDefaultAPIGatewayResources(resources corev1.ResourceRequirements) corev1.ResourceRequirements {
+	result := setDefaultResources(resources)
+	if _, exists := resources.Requests[corev1.ResourceEphemeralStorage]; !exists {
+		result.Requests[corev1.ResourceEphemeralStorage] = resource.MustParse(apiGatewayResourceRequestEphemeralStorage)
+	}
+	return result
+}
+
+func addAPIGatewayPodAntiAffinity(affinity *corev1.Affinity) *corev1.Affinity {
+	result := affinity.DeepCopy()
+	if result.PodAntiAffinity == nil {
+		result.PodAntiAffinity = &corev1.PodAntiAffinity{}
+	}
+	result.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = append(
+		result.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution,
+		corev1.PodAffinityTerm{
+			LabelSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"name": ApiGatewayName},
+			},
+			TopologyKey: "kubernetes.io/hostname",
+		},
+	)
+	return result
 }
 
 // monitorService 这里地址不能改变，因为rbd-monitor 会读取这个service

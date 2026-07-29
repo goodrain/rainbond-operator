@@ -68,7 +68,7 @@ kind: Pod
 metadata:
   name: helper-pod
 spec:
-  priorityClassName: system-node-critical
+  priorityClassName: system-cluster-critical
   tolerations:
     - key: node.kubernetes.io/disk-pressure
       operator: Exists
@@ -76,7 +76,10 @@ spec:
   containers:
     - name: helper-pod
       image: %s/alpine:3
-      imagePullPolicy: IfNotPresent`, os.Getenv("RAINBOND_IMAGE_REPOSITORY"))
+      imagePullPolicy: IfNotPresent
+      resources:
+        requests:
+          ephemeral-storage: 256Mi`, os.Getenv("RAINBOND_IMAGE_REPOSITORY"))
 	data := map[string]string{
 		"config.json": `{
         "nodePathMap": [

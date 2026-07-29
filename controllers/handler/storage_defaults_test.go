@@ -5,8 +5,32 @@ import (
 	"testing"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+func TestDefaultResourcesIncludeEphemeralStorageRequest(t *testing.T) {
+	t.Parallel()
+
+	resources := setDefaultResources(corev1.ResourceRequirements{})
+	if got := resources.Requests[corev1.ResourceEphemeralStorage]; got.String() != "256Mi" {
+		t.Fatalf("expected default ephemeral-storage request 256Mi, got %s", got.String())
+	}
+}
+
+func TestDefaultResourcesPreserveConfiguredEphemeralStorageRequest(t *testing.T) {
+	t.Parallel()
+
+	resources := setDefaultResources(corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceEphemeralStorage: resource.MustParse("2Gi"),
+		},
+	})
+	if got := resources.Requests[corev1.ResourceEphemeralStorage]; got.String() != "2Gi" {
+		t.Fatalf("expected configured ephemeral-storage request 2Gi, got %s", got.String())
+	}
+}
 
 func TestComponentPVCStorageRequestDefaults(t *testing.T) {
 	t.Setenv("DB_DATA_STORAGE_REQUEST", "")

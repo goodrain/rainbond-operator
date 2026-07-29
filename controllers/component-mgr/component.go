@@ -15,6 +15,7 @@ import (
 
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/logutil"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 
@@ -325,6 +326,19 @@ func (r *RbdcomponentMgr) UpdateOrCreateResource(obj client.Object) (reconcile.R
 }
 
 func (r *RbdcomponentMgr) updateRuntimeObject(old, new client.Object) client.Object {
+	if n, ok := new.(*appsv1.StatefulSet); ok {
+		o := old.(*appsv1.StatefulSet)
+		n.ResourceVersion = o.ResourceVersion
+		n.Spec.ServiceName = o.Spec.ServiceName
+		n.Spec.PodManagementPolicy = o.Spec.PodManagementPolicy
+		n.Spec.Selector = o.Spec.Selector.DeepCopy()
+		n.Spec.VolumeClaimTemplates = make([]corev1.PersistentVolumeClaim, len(o.Spec.VolumeClaimTemplates))
+		for i := range o.Spec.VolumeClaimTemplates {
+			o.Spec.VolumeClaimTemplates[i].DeepCopyInto(&n.Spec.VolumeClaimTemplates[i])
+		}
+		return n
+	}
+
 	if n, ok := new.(*corev1.Service); ok {
 		r.log.V(6).Info("copy necessary fields from old service before updating")
 		o := old.(*corev1.Service)
@@ -378,8 +392,12 @@ func objectCanUpdate(obj client.Object) bool {
 	if _, ok := obj.(*batchv1.Job); ok {
 		return false
 	}
-	if obj.GetName() == "rbd-db" || obj.GetName() == "rbd-etcd" {
+	if obj.GetName() == "rbd-etcd" {
 		return false
+	}
+	if obj.GetName() == "rbd-db" {
+		_, isStatefulSet := obj.(*appsv1.StatefulSet)
+		return isStatefulSet
 	}
 	return true
 }
