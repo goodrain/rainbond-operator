@@ -6,8 +6,23 @@ import (
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+func TestAPIGatewayResourcesPreserveConfiguredEphemeralStorageRequest(t *testing.T) {
+	t.Parallel()
+
+	resources := setDefaultAPIGatewayResources(corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceEphemeralStorage: resource.MustParse("2Gi"),
+		},
+	})
+	if got := resources.Requests[corev1.ResourceEphemeralStorage]; got.String() != "2Gi" {
+		t.Fatalf("expected configured ephemeral-storage request 2Gi, got %s", got.String())
+	}
+}
 
 func TestAPIGatewayDeploymentIsCriticalAndRunsOncePerGatewayNode(t *testing.T) {
 	t.Parallel()
@@ -43,6 +58,21 @@ func TestAPIGatewayDeploymentIsCriticalAndRunsOncePerGatewayNode(t *testing.T) {
 	podSpec := deployment.Spec.Template.Spec
 	if got := podSpec.PriorityClassName; got != "system-cluster-critical" {
 		t.Fatalf("expected priority class system-cluster-critical, got %q", got)
+	}
+	if got := deployment.Spec.Strategy.Type; got != appsv1.RollingUpdateDeploymentStrategyType {
+		t.Fatalf("expected rolling update strategy, got %q", got)
+	}
+	rollingUpdate := deployment.Spec.Strategy.RollingUpdate
+	if rollingUpdate == nil || rollingUpdate.MaxUnavailable == nil || rollingUpdate.MaxUnavailable.IntValue() != 1 {
+		t.Fatalf("expected maxUnavailable 1, got %#v", rollingUpdate)
+	}
+	if rollingUpdate.MaxSurge == nil || rollingUpdate.MaxSurge.IntValue() != 0 {
+		t.Fatalf("expected maxSurge 0, got %#v", rollingUpdate.MaxSurge)
+	}
+	for _, container := range podSpec.Containers {
+		if got := container.Resources.Requests[corev1.ResourceEphemeralStorage]; got.String() != "512Mi" {
+			t.Fatalf("expected %s ephemeral-storage request 512Mi, got %s", container.Name, got.String())
+		}
 	}
 	if podSpec.Affinity == nil || podSpec.Affinity.NodeAffinity == nil {
 		t.Fatalf("expected gateway node affinity to remain configured")

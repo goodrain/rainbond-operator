@@ -34,6 +34,8 @@ const (
 	DefaultResourceLimitCPU = "4"
 	// DefaultResourceLimitMemory defines the default memory limit for components
 	DefaultResourceLimitMemory = "8Gi"
+	// DefaultResourceRequestEphemeralStorage defines the default ephemeral storage request for components
+	DefaultResourceRequestEphemeralStorage = "256Mi"
 )
 
 // ErrNoDBEndpoints -
@@ -482,8 +484,8 @@ func FormatYAMLConfig(config string) string {
 }
 
 // setDefaultResources sets default resource requests and limits if not specified
-// Returns a ResourceRequirements with default requests of 100m CPU and 256Mi memory,
-// and default limits of 4 CPU cores and 8Gi memory
+// Returns a ResourceRequirements with default requests of 100m CPU, 256Mi memory,
+// and 256Mi ephemeral storage, plus default limits of 4 CPU cores and 8Gi memory.
 func setDefaultResources(resources corev1.ResourceRequirements) corev1.ResourceRequirements {
 	result := resources.DeepCopy()
 
@@ -503,6 +505,11 @@ func setDefaultResources(resources corev1.ResourceRequirements) corev1.ResourceR
 	// Set default memory request if not specified
 	if _, exists := result.Requests[corev1.ResourceMemory]; !exists {
 		result.Requests[corev1.ResourceMemory] = resource.MustParse(DefaultResourceRequestMemory)
+	}
+
+	// Set default ephemeral storage request if not specified
+	if _, exists := result.Requests[corev1.ResourceEphemeralStorage]; !exists {
+		result.Requests[corev1.ResourceEphemeralStorage] = resource.MustParse(DefaultResourceRequestEphemeralStorage)
 	}
 
 	// Set default CPU limit if not specified

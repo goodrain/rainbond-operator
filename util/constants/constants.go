@@ -16,6 +16,9 @@ const (
 	// Namespace namespace
 	Namespace = "rbd-system"
 
+	// SystemClusterCriticalPriorityClassName is the priority class for critical Rainbond workloads.
+	SystemClusterCriticalPriorityClassName = "system-cluster-critical"
+
 	// DefInstallPkgDestPath  Default destination path of the installation package extraction.
 	DefInstallPkgDestPath = "/tmp/DefInstallPkgDestPath"
 

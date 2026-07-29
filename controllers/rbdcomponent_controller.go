@@ -22,6 +22,9 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -148,6 +151,7 @@ func (r *RbdComponentReconciler) Reconcile(ctx context.Context, request ctrl.Req
 		if res == nil {
 			continue
 		}
+		applySystemCriticalDefaults(res)
 		if res.GetNamespace() != "" {
 			// Set RbdComponent cpt as the owner and controller
 			if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.Scheme); err != nil {
@@ -185,6 +189,7 @@ func (r *RbdComponentReconciler) Reconcile(ctx context.Context, request ctrl.Req
 			if res == nil {
 				continue
 			}
+			applySystemCriticalDefaults(res)
 			// Set RbdComponent cpt as the owner and controller
 			if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.Scheme); err != nil {
 				log.Error(err, "set controller reference")
@@ -270,6 +275,38 @@ func (r *RbdComponentReconciler) Reconcile(ctx context.Context, request ctrl.Req
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func applySystemCriticalDefaults(obj client.Object) {
+	var podSpec *corev1.PodSpec
+	switch workload := obj.(type) {
+	case *appsv1.Deployment:
+		podSpec = &workload.Spec.Template.Spec
+	case *appsv1.StatefulSet:
+		podSpec = &workload.Spec.Template.Spec
+	case *appsv1.DaemonSet:
+		podSpec = &workload.Spec.Template.Spec
+	case *batchv1.Job:
+		podSpec = &workload.Spec.Template.Spec
+	}
+	if podSpec == nil {
+		return
+	}
+
+	podSpec.PriorityClassName = constants.SystemClusterCriticalPriorityClassName
+	setDefaultEphemeralStorageRequest(podSpec.InitContainers)
+	setDefaultEphemeralStorageRequest(podSpec.Containers)
+}
+
+func setDefaultEphemeralStorageRequest(containers []corev1.Container) {
+	for i := range containers {
+		if containers[i].Resources.Requests == nil {
+			containers[i].Resources.Requests = make(corev1.ResourceList)
+		}
+		if _, exists := containers[i].Resources.Requests[corev1.ResourceEphemeralStorage]; !exists {
+			containers[i].Resources.Requests[corev1.ResourceEphemeralStorage] = resource.MustParse(chandler.DefaultResourceRequestEphemeralStorage)
+		}
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
