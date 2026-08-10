@@ -16,6 +16,7 @@ import (
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/logutil"
 	appsv1 "k8s.io/api/apps/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 
@@ -314,6 +315,14 @@ func (r *RbdcomponentMgr) UpdateOrCreateResource(obj client.Object) (reconcile.R
 	}
 
 	obj = r.updateRuntimeObject(oldOjb, obj)
+	if oldStatefulSet, ok := oldOjb.(*appsv1.StatefulSet); ok {
+		newStatefulSet := obj.(*appsv1.StatefulSet)
+		if !statefulSetNeedsUpdate(oldStatefulSet, newStatefulSet) {
+			r.log.V(5).Info("StatefulSet already matches desired state, skipping update",
+				"Namespace", newStatefulSet.Namespace, "Name", newStatefulSet.Name)
+			return reconcile.Result{}, nil
+		}
+	}
 
 	r.log.V(5).Info("Object exists.", "Kind", obj.GetObjectKind().GroupVersionKind().Kind,
 		"Namespace", obj.GetNamespace(), "Name", obj.GetName())
@@ -323,6 +332,17 @@ func (r *RbdcomponentMgr) UpdateOrCreateResource(obj client.Object) (reconcile.R
 	}
 
 	return reconcile.Result{}, nil
+}
+
+// statefulSetNeedsUpdate reports whether the operator-managed fields differ.
+// The API server populates default values that are not present in handler output;
+// DeepDerivative intentionally ignores those unset desired fields so a readiness
+// requeue cannot continuously update a StatefulSet and restart its Pod.
+func statefulSetNeedsUpdate(old, desired *appsv1.StatefulSet) bool {
+	return !apiequality.Semantic.DeepDerivative(desired.Labels, old.Labels) ||
+		!apiequality.Semantic.DeepDerivative(desired.Annotations, old.Annotations) ||
+		!apiequality.Semantic.DeepDerivative(desired.OwnerReferences, old.OwnerReferences) ||
+		!apiequality.Semantic.DeepDerivative(desired.Spec, old.Spec)
 }
 
 func (r *RbdcomponentMgr) updateRuntimeObject(old, new client.Object) client.Object {
