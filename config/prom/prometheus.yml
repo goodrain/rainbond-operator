@@ -166,6 +166,7 @@ scrape_configs:
     - source_labels: [__meta_kubernetes_pod_container_port_number]
       regex: 9400
       action: keep
+  # BEGIN rainbond-vm managed
   - job_name: kubevirt-vm
     honor_labels: true
     scrape_interval: 15s
@@ -188,6 +189,7 @@ scrape_configs:
     - source_labels: [__meta_kubernetes_endpoint_port_name]
       regex: metrics
       action: keep
+  # END rainbond-vm managed
   - job_name: gpu-observer
     honor_labels: true
     scrape_interval: 5s

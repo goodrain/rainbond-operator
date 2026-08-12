@@ -108,7 +108,9 @@ Not applicable.
 ### 6.1 关键逻辑
 
 - Add static `kubevirt-vm` and `gpu-observer` jobs to the operator-owned
-  `config/prom/prometheus.yml`.
+  `config/prom/prometheus.yml`. Keep the KubeVirt job inside the legacy VM
+  managed-block markers during migration, so an older VM plugin recognizes it
+  as already managed instead of inserting a duplicate job.
 - Make the monitor ConfigMap fully operator-owned again; remove the temporary
   external-data bypass so configuration upgrades are not ignored.
 - Hash the exact ConfigMap data used by monitor and set the checksum in the

@@ -35,8 +35,36 @@ func TestMonitorPrometheusConfigIncludesPluginDiscoveryJobs(t *testing.T) {
 	for _, job := range parsed.ScrapeConfigs {
 		jobs[job.JobName] = struct{}{}
 	}
+	legacyVMManagedBlock := strings.Join([]string{
+		"  # BEGIN rainbond-vm managed",
+		"  - job_name: kubevirt-vm",
+		"    honor_labels: true",
+		"    scrape_interval: 15s",
+		"    scrape_timeout: 10s",
+		"    metrics_path: /metrics",
+		"    scheme: https",
+		"    kubernetes_sd_configs:",
+		"    - role: endpoints",
+		"    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token",
+		"    tls_config:",
+		"      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+		"      insecure_skip_verify: true",
+		"    relabel_configs:",
+		"    - source_labels: [__meta_kubernetes_namespace]",
+		"      regex: rbd-plugins",
+		"      action: keep",
+		"    - source_labels: [__meta_kubernetes_service_label_prometheus_kubevirt_io]",
+		"      regex: true",
+		"      action: keep",
+		"    - source_labels: [__meta_kubernetes_endpoint_port_name]",
+		"      regex: metrics",
+		"      action: keep",
+		"  # END rainbond-vm managed",
+	}, "\n")
+	if !strings.Contains(config, legacyVMManagedBlock) {
+		t.Fatal("expected kubevirt-vm job to exactly match the legacy VM managed block")
+	}
 	for _, expected := range []string{
-		"job_name: kubevirt-vm",
 		"__meta_kubernetes_service_label_prometheus_kubevirt_io",
 		"job_name: gpu-observer",
 		"__meta_kubernetes_service_name",
@@ -52,6 +80,9 @@ func TestMonitorPrometheusConfigIncludesPluginDiscoveryJobs(t *testing.T) {
 		if _, found := jobs[jobName]; !found {
 			t.Fatalf("expected parsed monitor Prometheus config to contain job %q", jobName)
 		}
+	}
+	if count := strings.Count(config, "job_name: kubevirt-vm"); count != 1 {
+		t.Fatalf("expected exactly one operator-managed kubevirt-vm job, got %d", count)
 	}
 }
 
