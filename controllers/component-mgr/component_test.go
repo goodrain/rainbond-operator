@@ -8,6 +8,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -168,6 +169,106 @@ func TestStatefulSetNeedsUpdateDetectsPodTemplateChange(t *testing.T) {
 
 	if !statefulSetNeedsUpdate(old, desired) {
 		t.Fatal("expected a pod template change to update the StatefulSet")
+	}
+}
+
+func TestStatefulSetNeedsUpdateIgnoresUnmanagedSpecFields(t *testing.T) {
+	t.Parallel()
+
+	replicas := int32(1)
+	old := &appsv1.StatefulSet{
+		Spec: appsv1.StatefulSetSpec{
+			Replicas:             &replicas,
+			RevisionHistoryLimit: int32Ptr(30),
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "rbd-monitor", Image: "monitor:v1"}}},
+			},
+		},
+	}
+	desired := &appsv1.StatefulSet{
+		Spec: appsv1.StatefulSetSpec{
+			Replicas: &replicas,
+			Template: old.Spec.Template,
+		},
+	}
+
+	if statefulSetNeedsUpdate(old, desired) {
+		t.Fatal("expected unmanaged StatefulSet fields to be ignored")
+	}
+}
+
+func TestResourceNeedsUpdateSkipsEquivalentConfigMapAndService(t *testing.T) {
+	t.Parallel()
+
+	mgr := &RbdcomponentMgr{log: logr.Discard()}
+	ownerReferences := []metav1.OwnerReference{{UID: "component-uid", Controller: boolPtr(true)}}
+	currentConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "prometheus-config",
+			Namespace:       "rbd-system",
+			ResourceVersion: "42",
+			OwnerReferences: ownerReferences,
+		},
+		Data: map[string]string{
+			"prometheus.yml": "global: {}",
+			"rules.yml":      "groups: []",
+			"plugin-rules":   "groups: []",
+		},
+	}
+	desiredConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            currentConfigMap.Name,
+			Namespace:       currentConfigMap.Namespace,
+			OwnerReferences: ownerReferences,
+		},
+		Data: map[string]string{
+			"prometheus.yml": "global: {}",
+			"rules.yml":      "groups: []",
+		},
+	}
+	normalizedConfigMap := mgr.updateRuntimeObject(currentConfigMap, desiredConfigMap).(*corev1.ConfigMap)
+	if normalizedConfigMap.ResourceVersion != currentConfigMap.ResourceVersion {
+		t.Fatalf("expected resource version %q, got %q", currentConfigMap.ResourceVersion, normalizedConfigMap.ResourceVersion)
+	}
+	if got := normalizedConfigMap.Data["plugin-rules"]; got != "groups: []" {
+		t.Fatalf("expected plugin ConfigMap key to be preserved, got %q", got)
+	}
+	if resourceNeedsUpdate(currentConfigMap, normalizedConfigMap) {
+		t.Fatal("expected ConfigMap with only plugin-owned keys to skip update")
+	}
+	normalizedConfigMap.Data["prometheus.yml"] = "global:\n  scrape_interval: 15s"
+	if !resourceNeedsUpdate(currentConfigMap, normalizedConfigMap) {
+		t.Fatal("expected a change to an operator-managed ConfigMap key to update")
+	}
+
+	currentService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "rbd-monitor",
+			Namespace:       "rbd-system",
+			ResourceVersion: "42",
+			OwnerReferences: ownerReferences,
+		},
+		Spec: corev1.ServiceSpec{
+			ClusterIP: "10.43.1.2",
+			Ports:     []corev1.ServicePort{{Name: "http", Port: 9999, TargetPort: intstr.FromInt(9090), Protocol: corev1.ProtocolTCP}},
+			Selector:  map[string]string{"name": "rbd-monitor"},
+			Type:      corev1.ServiceTypeClusterIP,
+		},
+	}
+	desiredService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            currentService.Name,
+			Namespace:       currentService.Namespace,
+			OwnerReferences: ownerReferences,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports:    []corev1.ServicePort{{Name: "http", Port: 9999, TargetPort: intstr.FromInt(9090)}},
+			Selector: map[string]string{"name": "rbd-monitor"},
+		},
+	}
+	normalizedService := mgr.updateRuntimeObject(currentService, desiredService).(*corev1.Service)
+	if resourceNeedsUpdate(currentService, normalizedService) {
+		t.Fatal("expected equivalent Service to skip update")
 	}
 }
 
