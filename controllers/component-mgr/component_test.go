@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
+	"github.com/goodrain/rainbond-operator/controllers/handler"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -172,6 +173,25 @@ func TestStatefulSetNeedsUpdateDetectsPodTemplateChange(t *testing.T) {
 	}
 }
 
+func TestStatefulSetNeedsUpdateDetectsMonitorConfigChecksumChange(t *testing.T) {
+	t.Parallel()
+
+	old := &appsv1.StatefulSet{
+		Spec: appsv1.StatefulSetSpec{
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"rainbond.io/monitor-config-checksum": "before"}},
+				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "rbd-monitor", Image: "monitor:v1"}}},
+			},
+		},
+	}
+	desired := old.DeepCopy()
+	desired.Spec.Template.Annotations["rainbond.io/monitor-config-checksum"] = "after"
+
+	if !statefulSetNeedsUpdate(old, desired) {
+		t.Fatal("expected a changed monitor config checksum to roll the StatefulSet")
+	}
+}
+
 func TestStatefulSetNeedsUpdateIgnoresUnmanagedSpecFields(t *testing.T) {
 	t.Parallel()
 
@@ -197,7 +217,7 @@ func TestStatefulSetNeedsUpdateIgnoresUnmanagedSpecFields(t *testing.T) {
 	}
 }
 
-func TestResourceNeedsUpdateSkipsEquivalentConfigMapAndService(t *testing.T) {
+func TestResourceNeedsUpdateNormalizesMonitorConfigMapAndSkipsEquivalentService(t *testing.T) {
 	t.Parallel()
 
 	mgr := &RbdcomponentMgr{log: logr.Discard()}
@@ -220,6 +240,9 @@ func TestResourceNeedsUpdateSkipsEquivalentConfigMapAndService(t *testing.T) {
 			Name:            currentConfigMap.Name,
 			Namespace:       currentConfigMap.Namespace,
 			OwnerReferences: ownerReferences,
+			Annotations: map[string]string{
+				handler.MonitorConfigMapOwnerAnnotation: handler.MonitorName,
+			},
 		},
 		Data: map[string]string{
 			"prometheus.yml": "global: {}",
@@ -230,11 +253,11 @@ func TestResourceNeedsUpdateSkipsEquivalentConfigMapAndService(t *testing.T) {
 	if normalizedConfigMap.ResourceVersion != currentConfigMap.ResourceVersion {
 		t.Fatalf("expected resource version %q, got %q", currentConfigMap.ResourceVersion, normalizedConfigMap.ResourceVersion)
 	}
-	if got := normalizedConfigMap.Data["plugin-rules"]; got != "groups: []" {
-		t.Fatalf("expected plugin ConfigMap key to be preserved, got %q", got)
+	if _, found := normalizedConfigMap.Data["plugin-rules"]; found {
+		t.Fatal("expected monitor ConfigMap to discard the obsolete plugin-owned key")
 	}
-	if resourceNeedsUpdate(currentConfigMap, normalizedConfigMap) {
-		t.Fatal("expected ConfigMap with only plugin-owned keys to skip update")
+	if !resourceNeedsUpdate(currentConfigMap, normalizedConfigMap) {
+		t.Fatal("expected monitor ConfigMap with obsolete plugin-owned key to update")
 	}
 	normalizedConfigMap.Data["prometheus.yml"] = "global:\n  scrape_interval: 15s"
 	if !resourceNeedsUpdate(currentConfigMap, normalizedConfigMap) {
@@ -272,6 +295,49 @@ func TestResourceNeedsUpdateSkipsEquivalentConfigMapAndService(t *testing.T) {
 	}
 }
 
+func TestUpdateRuntimeObjectUpdatesChangedMonitorConfigMapData(t *testing.T) {
+	t.Parallel()
+
+	mgr := &RbdcomponentMgr{log: logr.Discard()}
+	current := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "prometheus-config",
+			Namespace:       "rbd-system",
+			ResourceVersion: "42",
+		},
+		Data: map[string]string{
+			"prometheus.yml": "operator scrape configuration",
+			"rules.yml":      "operator rules",
+		},
+	}
+	desired := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      current.Name,
+			Namespace: current.Namespace,
+		},
+		Data: map[string]string{
+			"prometheus.yml": "operator scrape configuration with kubevirt",
+			"rules.yml":      "operator rules",
+		},
+	}
+
+	normalized := mgr.updateRuntimeObject(current, desired).(*corev1.ConfigMap)
+	if normalized.ResourceVersion != current.ResourceVersion {
+		t.Fatalf("expected resource version %q, got %q", current.ResourceVersion, normalized.ResourceVersion)
+	}
+	if normalized.Data["prometheus.yml"] != desired.Data["prometheus.yml"] {
+		t.Fatalf("expected desired monitor ConfigMap data, got %q", normalized.Data["prometheus.yml"])
+	}
+	if !resourceNeedsUpdate(current, normalized) {
+		t.Fatal("expected a changed operator-managed monitor ConfigMap to update")
+	}
+
+	equivalent := current.DeepCopy()
+	if resourceNeedsUpdate(current, equivalent) {
+		t.Fatal("expected equivalent monitor ConfigMap data to skip update")
+	}
+}
+
 func TestUpdateOrCreateResourceSkipsEquivalentStatefulSet(t *testing.T) {
 	t.Parallel()
 
@@ -299,10 +365,112 @@ func TestUpdateOrCreateResourceSkipsEquivalentStatefulSet(t *testing.T) {
 	}
 }
 
+func TestMonitorConfigDriftTriggersOneConfigMapAndStatefulSetUpdate(t *testing.T) {
+	t.Parallel()
+
+	currentConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            handler.MonitorConfigMapName,
+			Namespace:       "rbd-system",
+			ResourceVersion: "42",
+		},
+		Data: map[string]string{
+			"prometheus.yml": "stale plugin configuration",
+			"rules.yml":      "rules: []",
+			"plugin-rules":   "obsolete",
+		},
+	}
+	desiredConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      currentConfigMap.Name,
+			Namespace: currentConfigMap.Namespace,
+			Annotations: map[string]string{
+				handler.MonitorConfigMapOwnerAnnotation: handler.MonitorName,
+			},
+		},
+		Data: map[string]string{
+			"prometheus.yml": "operator configuration",
+			"rules.yml":      "rules: []",
+		},
+	}
+	currentStatefulSet := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: handler.MonitorName, Namespace: "rbd-system", ResourceVersion: "42"},
+		Spec: appsv1.StatefulSetSpec{
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"rainbond.io/monitor-config-checksum": "stale"}},
+				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: handler.MonitorName, Image: "monitor:v1"}}},
+			},
+		},
+	}
+	desiredStatefulSet := currentStatefulSet.DeepCopy()
+	desiredStatefulSet.ResourceVersion = ""
+	desiredStatefulSet.Spec.Template.Annotations["rainbond.io/monitor-config-checksum"] = "current"
+
+	trackingClient := &monitorUpdateCountingClient{
+		configMap:   currentConfigMap,
+		statefulSet: currentStatefulSet,
+	}
+	mgr := &RbdcomponentMgr{ctx: context.Background(), client: trackingClient, log: logr.Discard()}
+	for _, resource := range []client.Object{desiredConfigMap.DeepCopy(), desiredStatefulSet.DeepCopy()} {
+		if _, err := mgr.UpdateOrCreateResource(resource); err != nil {
+			t.Fatalf("reconcile monitor resource: %v", err)
+		}
+	}
+	if trackingClient.configMapUpdates != 1 {
+		t.Fatalf("expected one monitor ConfigMap update, got %d", trackingClient.configMapUpdates)
+	}
+	if trackingClient.statefulSetUpdates != 1 {
+		t.Fatalf("expected one monitor StatefulSet update, got %d", trackingClient.statefulSetUpdates)
+	}
+
+	for _, resource := range []client.Object{desiredConfigMap.DeepCopy(), desiredStatefulSet.DeepCopy()} {
+		if _, err := mgr.UpdateOrCreateResource(resource); err != nil {
+			t.Fatalf("reconcile unchanged monitor resource: %v", err)
+		}
+	}
+	if trackingClient.configMapUpdates != 1 || trackingClient.statefulSetUpdates != 1 {
+		t.Fatalf("expected no extra updates after convergence, got ConfigMap=%d StatefulSet=%d", trackingClient.configMapUpdates, trackingClient.statefulSetUpdates)
+	}
+}
+
 type updateCountingClient struct {
 	client.Client
 	statefulSet *appsv1.StatefulSet
 	updateCalls int
+}
+
+type monitorUpdateCountingClient struct {
+	client.Client
+	configMap          *corev1.ConfigMap
+	statefulSet        *appsv1.StatefulSet
+	configMapUpdates   int
+	statefulSetUpdates int
+}
+
+func (c *monitorUpdateCountingClient) Get(_ context.Context, _ client.ObjectKey, obj client.Object) error {
+	switch target := obj.(type) {
+	case *corev1.ConfigMap:
+		c.configMap.DeepCopyInto(target)
+	case *appsv1.StatefulSet:
+		c.statefulSet.DeepCopyInto(target)
+	default:
+		panic("unexpected monitor resource type")
+	}
+	return nil
+}
+
+func (c *monitorUpdateCountingClient) Update(_ context.Context, obj client.Object, _ ...client.UpdateOption) error {
+	switch updated := obj.(type) {
+	case *corev1.ConfigMap:
+		c.configMap = updated.DeepCopy()
+		c.configMapUpdates++
+	case *appsv1.StatefulSet:
+		c.statefulSet = updated.DeepCopy()
+		c.statefulSetUpdates++
+	default:
+		panic("unexpected monitor resource type")
+	}
+	return nil
 }
 
 func (c *updateCountingClient) Get(_ context.Context, _ client.ObjectKey, obj client.Object) error {
