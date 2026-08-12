@@ -1,0 +1,157 @@
+meta:
+  name: monitor-config-ownership
+  version: "1.0"
+  repo: "/Users/zhangqihang/MyWork/push/github/rainbond-operator"
+  branch: v6.9.8-dev
+  design_doc: docs/plans/2026-08-12-monitor-config-ownership-design.md
+
+sprints:
+  - id: sprint-1
+    name: Remove competing plugin owners
+    commits:
+      - id: commit-vm
+        message: "fix: remove vm monitor config mutation"
+        tasks: [vm-1]
+      - id: commit-ai
+        message: "fix: remove ai monitor config mutation"
+        tasks: [ai-1]
+    tasks:
+      - id: vm-1
+        name: Remove VM monitor reconciler
+        status: pending
+        files:
+          delete:
+            - path: "/Users/zhangqihang/MyWork/workrc/rainbond-plugins/rainbond-vm/backend/internal/reconciler/prometheus_config.go"
+            - path: "/Users/zhangqihang/MyWork/workrc/rainbond-plugins/rainbond-vm/backend/internal/reconciler/prometheus_config_test.go"
+          modify:
+            - path: "/Users/zhangqihang/MyWork/workrc/rainbond-plugins/rainbond-vm/backend/cmd/plugin/main.go"
+              lines: "45-85"
+            - path: "/Users/zhangqihang/MyWork/workrc/rainbond-plugins/rainbond-vm/backend/internal/config/config.go"
+              lines: "28-35"
+        steps:
+          - action: write-test
+            description: Add a source-ownership regression test/search proving VM has no monitor writer before deletion.
+            code: |
+              rg -n 'prometheus-config|rbd-monitor|PrometheusConfigReconciler' backend --glob '*.go'
+            run: "test -z \"$(rg -n 'prometheus-config|rbd-monitor|PrometheusConfigReconciler' backend --glob '*.go')\""
+            expect: FAIL
+          - action: implement
+            description: Delete the reconciler and startup wiring, then remove only constants made unused.
+            code: |
+              // cmd/plugin/main.go no longer creates or starts a PrometheusConfigReconciler.
+              // internal/config/config.go no longer defines Prometheus ConfigMap or Pod selector constants.
+            run: "make check"
+            expect: PASS
+        acceptance:
+          - cmd: "test -z \"$(rg -n 'prometheus-config|rbd-monitor|PrometheusConfigReconciler' backend --glob '*.go')\""
+            expect: "no output"
+      - id: ai-1
+        name: Remove AI Engine monitor controller
+        status: pending
+        files:
+          delete:
+            - path: "/Users/zhangqihang/MyWork/workrc/rainbond-ai-engine/backend/pkg/deployer/monitor.go"
+            - path: "/Users/zhangqihang/MyWork/workrc/rainbond-ai-engine/backend/pkg/deployer/monitor_controller.go"
+            - path: "/Users/zhangqihang/MyWork/workrc/rainbond-ai-engine/backend/pkg/deployer/monitor_controller_test.go"
+          modify:
+            - path: "/Users/zhangqihang/MyWork/workrc/rainbond-ai-engine/backend/cmd/plugin/main.go"
+              lines: "118-135"
+            - path: "/Users/zhangqihang/MyWork/workrc/rainbond-ai-engine/backend/pkg/deployer/deployer_test.go"
+              lines: "459-645"
+        steps:
+          - action: write-test
+            description: Run the existing monitor-writer test to characterize the obsolete behavior.
+            code: |
+              go test ./pkg/deployer -run TestEnsureGPUObserverMonitoring_AddsPrometheusScrapeTargetAndRestartsMonitorPods -count=1
+            run: "go test ./pkg/deployer -run TestEnsureGPUObserverMonitoring_AddsPrometheusScrapeTargetAndRestartsMonitorPods -count=1"
+            expect: PASS
+          - action: implement
+            description: Delete obsolete implementation and tests; remove startup invocations while preserving unrelated dirty hunks.
+            code: |
+              // AI Engine manages gpu-observer resources only. Prometheus configuration is operator-owned.
+            run: "make check"
+            expect: PASS
+        acceptance:
+          - cmd: "test -z \"$(rg -n 'prometheus-config|rbd-monitor|EnsureGPUObserverMonitoring|GPUObserverMonitoring' backend --glob '*.go')\""
+            expect: "no output"
+
+  - id: sprint-2
+    name: Make operator the sole owner
+    commits:
+      - id: commit-operator
+        message: "fix: centralize monitor scrape configuration"
+        tasks: [operator-1, operator-2]
+    tasks:
+      - id: operator-1
+        name: Add static discovery and configuration checksum
+        status: pending
+        files:
+          modify:
+            - path: "config/prom/prometheus.yml"
+              lines: "7-168"
+            - path: "controllers/handler/monitor.go"
+              lines: "69-160,220-240"
+            - path: "controllers/handler/monitor_test.go"
+              lines: "new"
+        steps:
+          - action: write-test
+            description: Assert the generated ConfigMap has kubevirt-vm and gpu-observer jobs and its Pod template checksum changes when data changes.
+            code: |
+              func TestMonitorConfigChecksumChangesWithConfigData(t *testing.T) { /* construct two maps; expect unequal checksum */ }
+            run: "go test ./controllers/handler -run 'TestMonitor' -count=1"
+            expect: FAIL
+          - action: implement
+            description: Add canonical jobs and SHA-256 ConfigMap checksum annotation to monitor template.
+            code: |
+              annotations["rainbond.io/monitor-config-checksum"] = checksumMonitorConfigMapData(configMap.Data)
+            run: "go test ./controllers/handler -run 'TestMonitor' -count=1"
+            expect: PASS
+        acceptance:
+          - cmd: "go test ./controllers/handler -count=1"
+            expect: PASS
+      - id: operator-2
+        name: Restore normal ConfigMap reconciliation
+        status: pending
+        files:
+          modify:
+            - path: "controllers/component-mgr/component.go"
+              lines: "349-466"
+            - path: "controllers/component-mgr/component_test.go"
+              lines: "276-321"
+        steps:
+          - action: write-test
+            description: Replace the external ownership test with one that detects a changed managed monitor config and ignores an equivalent one.
+            code: |
+              if !resourceNeedsUpdate(current, changed) { t.Fatal("expected managed config change") }
+            run: "go test ./controllers/component-mgr -run 'Test.*ConfigMap' -count=1"
+            expect: FAIL
+          - action: implement
+            description: Remove the temporary external ConfigMap annotation/data bypass while retaining generic no-op comparisons.
+            code: |
+              // ConfigMap comparison uses metadata and desired data equality only.
+            run: "go test ./controllers/component-mgr -run 'Test.*ConfigMap' -count=1"
+            expect: PASS
+        acceptance:
+          - cmd: "go test ./controllers/component-mgr -count=1"
+            expect: PASS
+
+  - id: sprint-3
+    name: Cross-repository regression
+    commits: []
+    tasks:
+      - id: verify-1
+        name: Run full verification and source ownership audit
+        status: pending
+        files: {}
+        steps:
+          - action: verify
+            description: Run unit tests, vet, builds, static ownership searches, and inspect staged diffs.
+            code: |
+              (cd rainbond-operator && go test ./... && go vet ./... && go build ./...)
+              (cd rainbond-vm/backend && make check)
+              (cd rainbond-ai-engine/backend && make check)
+            run: "repository-specific commands"
+            expect: PASS
+        acceptance:
+          - cmd: "rg -n 'prometheus-config|rbd-monitor' <plugin backends> --glob '*.go'"
+            expect: "no plugin ownership hits"
