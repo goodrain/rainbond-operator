@@ -2,6 +2,7 @@ package componentmgr
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -375,9 +376,15 @@ func TestMonitorConfigDriftTriggersOneConfigMapAndStatefulSetUpdate(t *testing.T
 			ResourceVersion: "42",
 		},
 		Data: map[string]string{
-			"prometheus.yml": "stale plugin configuration",
-			"rules.yml":      "rules: []",
-			"plugin-rules":   "obsolete",
+			"prometheus.yml": strings.Join([]string{
+				"scrape_configs:",
+				"  - job_name: kubevirt-vm",
+				"  # BEGIN rainbond-vm managed",
+				"  - job_name: kubevirt-vm",
+				"  # END rainbond-vm managed",
+			}, "\n"),
+			"rules.yml":    "rules: []",
+			"plugin-rules": "obsolete",
 		},
 	}
 	desiredConfigMap := &corev1.ConfigMap{
@@ -389,8 +396,13 @@ func TestMonitorConfigDriftTriggersOneConfigMapAndStatefulSetUpdate(t *testing.T
 			},
 		},
 		Data: map[string]string{
-			"prometheus.yml": "operator configuration",
-			"rules.yml":      "rules: []",
+			"prometheus.yml": strings.Join([]string{
+				"scrape_configs:",
+				"  # BEGIN rainbond-vm managed",
+				"  - job_name: kubevirt-vm",
+				"  # END rainbond-vm managed",
+			}, "\n"),
+			"rules.yml": "rules: []",
 		},
 	}
 	currentStatefulSet := &appsv1.StatefulSet{
@@ -421,6 +433,9 @@ func TestMonitorConfigDriftTriggersOneConfigMapAndStatefulSetUpdate(t *testing.T
 	}
 	if trackingClient.statefulSetUpdates != 1 {
 		t.Fatalf("expected one monitor StatefulSet update, got %d", trackingClient.statefulSetUpdates)
+	}
+	if count := strings.Count(trackingClient.configMap.Data["prometheus.yml"], "job_name: kubevirt-vm"); count != 1 {
+		t.Fatalf("expected monitor ConfigMap to normalize duplicate kubevirt jobs, got %d", count)
 	}
 
 	for _, resource := range []client.Object{desiredConfigMap.DeepCopy(), desiredStatefulSet.DeepCopy()} {
