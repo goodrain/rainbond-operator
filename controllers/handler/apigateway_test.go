@@ -37,7 +37,7 @@ func TestAPIGatewayDeploymentIsCriticalAndRunsOncePerGatewayNode(t *testing.T) {
 			Namespace: "rbd-system",
 		},
 		Spec: rainbondv1alpha1.RbdComponentSpec{
-			Image: "example.com/apisix-ingress:1.8.3@registry.cn-hangzhou.aliyuncs.com/goodrain/apisix:3.14.1-debian",
+			Image: "example.com/apisix-ingress:1.8.4@registry.cn-hangzhou.aliyuncs.com/goodrain/apisix:3.14.1-debian",
 		},
 	}
 	cluster := &rainbondv1alpha1.RainbondCluster{
@@ -71,6 +71,9 @@ func TestAPIGatewayDeploymentIsCriticalAndRunsOncePerGatewayNode(t *testing.T) {
 	}
 	if ingressContainer == nil {
 		t.Fatal("expected ingress-apisix container")
+	}
+	if got := ingressContainer.Image; got != "example.com/apisix-ingress:1.8.4" {
+		t.Fatalf("expected APISIX ingress controller 1.8.4 image, got %q", got)
 	}
 	if !strings.Contains(strings.Join(ingressContainer.Command, " "), "--apisix-admin-api-version v3") {
 		t.Fatalf("expected ingress controller to use APISIX Admin API v3, got %v", ingressContainer.Command)
