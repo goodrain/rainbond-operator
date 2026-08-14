@@ -12,6 +12,7 @@ import (
 	"github.com/goodrain/rainbond-operator/util/k8sutil"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -24,7 +25,10 @@ import (
 // ApiGatewayName name for rbd-gateway.
 var ApiGatewayName = "rbd-gateway"
 
-const apiGatewayResourceRequestEphemeralStorage = "512Mi"
+const (
+	apiGatewayResourceRequestEphemeralStorage = "512Mi"
+	apisixAdminKey                            = "edd1c9f034335f136f87ad84b625c8f1"
+)
 
 type apigateway struct {
 	ctx       context.Context
@@ -114,8 +118,19 @@ func (a *apigateway) Resources() []client.Object {
 		Name:      "apisix-gw-config.yaml",
 		Namespace: a.component.Namespace,
 	}, &cm)
-	if err != nil && apierrors.IsNotFound(err) {
-		objs = append(objs, a.configmap())
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			objs = append(objs, a.configmap())
+		} else {
+			logrus.WithError(err).Warn("failed to get APISIX config map")
+		}
+	} else {
+		changed, migrateErr := ensureAPISIXAdminConfig(&cm)
+		if migrateErr != nil {
+			logrus.WithError(migrateErr).Warn("failed to migrate APISIX admin configuration")
+		} else if changed {
+			objs = append(objs, &cm)
+		}
 	}
 	objs = append(objs,
 		a.deploy(),
@@ -123,6 +138,111 @@ func (a *apigateway) Resources() []client.Object {
 		a.monitorService(),
 	)
 	return objs
+}
+
+func ensureAPISIXAdminConfig(configMap *corev1.ConfigMap) (bool, error) {
+	config, ok := configMap.Data["config.yaml"]
+	if !ok {
+		return false, fmt.Errorf("config.yaml not found in ConfigMap %s/%s", configMap.Namespace, configMap.Name)
+	}
+
+	var document yaml.Node
+	if err := yaml.Unmarshal([]byte(config), &document); err != nil {
+		return false, fmt.Errorf("parse config.yaml: %w", err)
+	}
+	if len(document.Content) != 1 || document.Content[0].Kind != yaml.MappingNode {
+		return false, fmt.Errorf("config.yaml root must be a mapping")
+	}
+
+	root := document.Content[0]
+	deployment, changed := ensureYAMLMapping(root, "deployment")
+	admin, adminChanged := ensureYAMLMapping(deployment, "admin")
+	changed = changed || adminChanged
+	changed = setYAMLScalar(admin, "admin_key_required", "!!bool", "true") || changed
+	changed = setYAMLScalar(admin, "admin_api_version", "!!str", "v3") || changed
+
+	adminKeys, keysChanged := ensureYAMLSequence(admin, "admin_key")
+	changed = changed || keysChanged
+	adminEntry := findYAMLMappingByScalar(adminKeys, "name", "admin")
+	if adminEntry == nil {
+		adminEntry = &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+		adminKeys.Content = append(adminKeys.Content, adminEntry)
+		changed = true
+	}
+	changed = setYAMLScalar(adminEntry, "name", "!!str", "admin") || changed
+	changed = setYAMLScalar(adminEntry, "key", "!!str", apisixAdminKey) || changed
+	changed = setYAMLScalar(adminEntry, "role", "!!str", "admin") || changed
+
+	if !changed {
+		return false, nil
+	}
+	updated, err := yaml.Marshal(&document)
+	if err != nil {
+		return false, fmt.Errorf("marshal config.yaml: %w", err)
+	}
+	configMap.Data["config.yaml"] = string(updated)
+	return true, nil
+}
+
+func ensureYAMLMapping(parent *yaml.Node, key string) (*yaml.Node, bool) {
+	if existing := yamlMappingValue(parent, key); existing != nil && existing.Kind == yaml.MappingNode {
+		return existing, false
+	}
+	value := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+	setYAMLValue(parent, key, value)
+	return value, true
+}
+
+func ensureYAMLSequence(parent *yaml.Node, key string) (*yaml.Node, bool) {
+	if existing := yamlMappingValue(parent, key); existing != nil && existing.Kind == yaml.SequenceNode {
+		return existing, false
+	}
+	value := &yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq"}
+	setYAMLValue(parent, key, value)
+	return value, true
+}
+
+func setYAMLScalar(parent *yaml.Node, key, tag, value string) bool {
+	existing := yamlMappingValue(parent, key)
+	if existing != nil && existing.Kind == yaml.ScalarNode && existing.Tag == tag && existing.Value == value {
+		return false
+	}
+	setYAMLValue(parent, key, &yaml.Node{Kind: yaml.ScalarNode, Tag: tag, Value: value})
+	return true
+}
+
+func setYAMLValue(parent *yaml.Node, key string, value *yaml.Node) {
+	for i := 0; i+1 < len(parent.Content); i += 2 {
+		if parent.Content[i].Value == key {
+			parent.Content[i+1] = value
+			return
+		}
+	}
+	parent.Content = append(parent.Content,
+		&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: key},
+		value,
+	)
+}
+
+func yamlMappingValue(parent *yaml.Node, key string) *yaml.Node {
+	for i := 0; i+1 < len(parent.Content); i += 2 {
+		if parent.Content[i].Value == key {
+			return parent.Content[i+1]
+		}
+	}
+	return nil
+}
+
+func findYAMLMappingByScalar(sequence *yaml.Node, key, value string) *yaml.Node {
+	for _, item := range sequence.Content {
+		if item.Kind != yaml.MappingNode {
+			continue
+		}
+		if field := yamlMappingValue(item, key); field != nil && field.Value == value {
+			return item
+		}
+	}
+	return nil
 }
 
 // After -
@@ -273,8 +393,10 @@ func (a *apigateway) deploy() client.Object {
 								"default",
 								"--default-apisix-cluster-base-url",
 								"http://127.0.0.1:9180/apisix/admin",
+								"--apisix-admin-api-version",
+								"v3",
 								"--default-apisix-cluster-admin-key",
-								"edd1c9f034335f136f87ad84b625c8f1",
+								apisixAdminKey,
 								"--api-version",
 								"apisix.apache.org/v2",
 								"--ingress-status-address",
@@ -400,12 +522,6 @@ func (a *apigateway) monitorGlobalRule() client.Object {
 					Config: v2.ApisixRoutePluginConfig{
 						"prefer_name": true,
 					},
-				}, {
-					Name:   "k8s-upstream-metrics",
-					Enable: true,
-					Config: v2.ApisixRoutePluginConfig{
-						"enable_service_id": true,
-					},
 				},
 			},
 		},
@@ -414,7 +530,7 @@ func (a *apigateway) monitorGlobalRule() client.Object {
 
 // configmap 配置文件
 func (a *apigateway) configmap() client.Object {
-	configYaml := `
+	configYaml := fmt.Sprintf(`
 plugin_attr:
   prometheus:
     metrics:
@@ -428,6 +544,12 @@ plugin_attr:
 
 deployment:
   admin:
+    admin_key_required: true
+    admin_key:
+      - name: admin
+        key: %s
+        role: admin
+    admin_api_version: v3
     allow_admin:
       - 127.0.0.0/24
       - 0.0.0.0/0
@@ -545,7 +667,7 @@ plugins: # plugin list (sorted by priority)
   - serverless-post-function       # priority: -2000
   - ext-plugin-post-req            # priority: -3000
   - ext-plugin-post-resp           # priority: -4000
-`
+`, apisixAdminKey)
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "apisix-gw-config.yaml",
