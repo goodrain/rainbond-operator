@@ -2,7 +2,10 @@ package handler
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
+	"sort"
 
 	"github.com/goodrain/rainbond-operator/util/constants"
 	"github.com/goodrain/rainbond-operator/util/rbdutil"
@@ -19,6 +22,12 @@ import (
 
 // MonitorName name for rbd-monitor.
 var MonitorName = "rbd-monitor"
+
+const (
+	MonitorConfigMapName            = "prometheus-config"
+	MonitorConfigMapOwnerAnnotation = "rainbond.io/config-owner"
+	monitorConfigChecksumAnnotation = "rainbond.io/monitor-config-checksum"
+)
 
 type monitor struct {
 	ctx        context.Context
@@ -77,6 +86,7 @@ func (m *monitor) statefulset() client.Object {
 	promDataPVC := createPersistentVolumeClaimRWO(m.component.Namespace, claimName, m.pvcParametersRWO, m.labels, m.storageRequest)
 
 	resources := setDefaultResources(m.component.Spec.Resources)
+	monitorConfig := m.configmap().(*corev1.ConfigMap)
 
 	vms := append(m.component.Spec.VolumeMounts, []corev1.VolumeMount{
 		{
@@ -102,7 +112,7 @@ func (m *monitor) statefulset() client.Object {
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					DefaultMode: commonutil.Int32(420),
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "prometheus-config",
+						Name: MonitorConfigMapName,
 					},
 				},
 			},
@@ -113,7 +123,7 @@ func (m *monitor) statefulset() client.Object {
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					DefaultMode: commonutil.Int32(420),
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "prometheus-config",
+						Name: MonitorConfigMapName,
 					},
 				},
 			},
@@ -133,8 +143,9 @@ func (m *monitor) statefulset() client.Object {
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   MonitorName,
-					Labels: m.labels,
+					Name:        MonitorName,
+					Labels:      m.labels,
+					Annotations: map[string]string{monitorConfigChecksumAnnotation: monitorConfigChecksum(monitorConfig.Data)},
 				},
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(m.component, m.cluster),
@@ -216,12 +227,32 @@ func (m *monitor) configmap() client.Object {
 	rules, _ := os.ReadFile("/config/prom/rules.yml")
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "prometheus-config",
+			Name:      MonitorConfigMapName,
 			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
+			Annotations: map[string]string{
+				MonitorConfigMapOwnerAnnotation: MonitorName,
+			},
 		},
 		Data: map[string]string{
 			"prometheus.yml": FormatYAMLConfig(string(prometheus)),
 			"rules.yml":      FormatYAMLConfig(string(rules)),
 		},
 	}
+}
+
+func monitorConfigChecksum(data map[string]string) string {
+	keys := make([]string, 0, len(data))
+	for key := range data {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	hash := sha256.New()
+	for _, key := range keys {
+		_, _ = hash.Write([]byte(key))
+		_, _ = hash.Write([]byte{'\n'})
+		_, _ = hash.Write([]byte(data[key]))
+		_, _ = hash.Write([]byte{'\n'})
+	}
+	return hex.EncodeToString(hash.Sum(nil))
 }
