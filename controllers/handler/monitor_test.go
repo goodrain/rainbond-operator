@@ -23,7 +23,13 @@ func TestMonitorPrometheusConfigIncludesPluginDiscoveryJobs(t *testing.T) {
 	config := string(prometheusConfig)
 	var parsed struct {
 		ScrapeConfigs []struct {
-			JobName string `json:"job_name"`
+			JobName       string `json:"job_name"`
+			StaticConfigs []struct {
+				Targets []string `json:"targets"`
+			} `json:"static_configs"`
+			KubernetesSDConfigs []struct {
+				Role string `json:"role"`
+			} `json:"kubernetes_sd_configs"`
 		} `json:"scrape_configs"`
 	}
 	decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewReader(prometheusConfig), 4096)
@@ -32,8 +38,18 @@ func TestMonitorPrometheusConfigIncludesPluginDiscoveryJobs(t *testing.T) {
 	}
 
 	jobs := make(map[string]struct{}, len(parsed.ScrapeConfigs))
+	var hamiDevicePluginTargets []string
+	var hamiDevicePluginDiscoveryRoles []string
 	for _, job := range parsed.ScrapeConfigs {
 		jobs[job.JobName] = struct{}{}
+		if job.JobName == "hami-device-plugin" {
+			for _, staticConfig := range job.StaticConfigs {
+				hamiDevicePluginTargets = append(hamiDevicePluginTargets, staticConfig.Targets...)
+			}
+			for _, discoveryConfig := range job.KubernetesSDConfigs {
+				hamiDevicePluginDiscoveryRoles = append(hamiDevicePluginDiscoveryRoles, discoveryConfig.Role)
+			}
+		}
 	}
 	legacyVMManagedBlock := strings.Join([]string{
 		"  # BEGIN rainbond-vm managed",
@@ -66,6 +82,11 @@ func TestMonitorPrometheusConfigIncludesPluginDiscoveryJobs(t *testing.T) {
 	}
 	for _, expected := range []string{
 		"__meta_kubernetes_service_label_prometheus_kubevirt_io",
+		"job_name: hami-device-plugin",
+		"regex: hami-device-plugin-monitor",
+		"__meta_kubernetes_endpoint_port_name",
+		"regex: monitorport",
+		"__meta_kubernetes_endpoint_node_name",
 		"job_name: gpu-observer",
 		"__meta_kubernetes_service_name",
 		"regex: gpu-observer",
@@ -76,10 +97,16 @@ func TestMonitorPrometheusConfigIncludesPluginDiscoveryJobs(t *testing.T) {
 			t.Fatalf("expected monitor Prometheus config to contain %q", expected)
 		}
 	}
-	for _, jobName := range []string{"kubevirt-vm", "gpu-observer"} {
+	for _, jobName := range []string{"hami-device-plugin", "kubevirt-vm", "gpu-observer"} {
 		if _, found := jobs[jobName]; !found {
 			t.Fatalf("expected parsed monitor Prometheus config to contain job %q", jobName)
 		}
+	}
+	if len(hamiDevicePluginTargets) != 0 {
+		t.Fatalf("expected hami-device-plugin to avoid static targets, got %v", hamiDevicePluginTargets)
+	}
+	if len(hamiDevicePluginDiscoveryRoles) != 1 || hamiDevicePluginDiscoveryRoles[0] != "endpoints" {
+		t.Fatalf("expected hami-device-plugin to discover Service endpoints, got %v", hamiDevicePluginDiscoveryRoles)
 	}
 	if count := strings.Count(config, "job_name: kubevirt-vm"); count != 1 {
 		t.Fatalf("expected exactly one operator-managed kubevirt-vm job, got %d", count)
