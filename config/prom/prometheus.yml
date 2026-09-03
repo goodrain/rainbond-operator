@@ -147,6 +147,25 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ['hami-scheduler.rbd-plugins.svc.cluster.local:31993']
+  - job_name: hami-device-plugin
+    honor_labels: true
+    scrape_interval: 5s
+    scrape_timeout: 3s
+    metrics_path: /metrics
+    kubernetes_sd_configs:
+    - role: endpoints
+      namespaces:
+        names:
+        - rbd-plugins
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_service_name]
+      regex: hami-device-plugin-monitor
+      action: keep
+    - source_labels: [__meta_kubernetes_endpoint_port_name]
+      regex: monitorport
+      action: keep
+    - source_labels: [__meta_kubernetes_endpoint_node_name]
+      target_label: node
   - job_name: dcgm-exporter
     honor_labels: true
     scrape_interval: 5s
