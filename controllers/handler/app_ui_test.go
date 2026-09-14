@@ -65,6 +65,28 @@ func TestAppUIDeploymentDisablesDefaultMarketForOfflineInstall(t *testing.T) {
 	}
 }
 
+func TestAppUIDeploymentMapsDefaultImageRepositoryToInternalGateway(t *testing.T) {
+	t.Setenv("IS_SQLLITE", "true")
+
+	handler := newAppUIHandlerForTest(nil)
+	handler.cluster.Spec.ImageHub.Domain = "goodrain.me"
+	handler.cluster.Spec.NodesForGateway = []*rainbondv1alpha1.K8sNode{
+		{InternalIP: "10.0.0.10"},
+	}
+
+	deployment := handler.deploymentForAppUI().(*appsv1.Deployment)
+	hostAliases := deployment.Spec.Template.Spec.HostAliases
+	if len(hostAliases) != 1 {
+		t.Fatalf("expected one host alias, got %v", hostAliases)
+	}
+	if got := hostAliases[0].IP; got != "10.0.0.10" {
+		t.Fatalf("expected host alias IP %q, got %q", "10.0.0.10", got)
+	}
+	if len(hostAliases[0].Hostnames) != 1 || hostAliases[0].Hostnames[0] != "goodrain.me" {
+		t.Fatalf("expected goodrain.me host alias, got %v", hostAliases[0].Hostnames)
+	}
+}
+
 // SECRET_KEY must be injected from the persistent Secret via secretKeyRef,
 // never as an inline value derived from volatile host hardware info.
 func TestAppUIDeploymentInjectsSecretKeyFromSecretRef(t *testing.T) {

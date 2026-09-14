@@ -262,6 +262,7 @@ func (a *appui) deploymentForAppUI() client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(a.component, a.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
+					HostAliases:                   hostsAliases(a.cluster),
 					Affinity:                      a.component.Spec.Affinity,
 					Containers: []corev1.Container{
 						{

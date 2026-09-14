@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -311,23 +312,30 @@ func copyLabels(m map[string]string) map[string]string {
 }
 
 func hostsAliases(cluster *rainbondv1alpha1.RainbondCluster) []corev1.HostAlias {
-	var hostAliases []corev1.HostAlias
-	imageRepo := rbdutil.GetImageRepository(cluster)
-
-	// 提取域名部分(去除端口),支持 "goodrain.me" 和 "goodrain.me:9443" 格式
-	domain := imageRepo
-	if strings.Contains(imageRepo, ":") {
-		domain = strings.Split(imageRepo, ":")[0]
+	if cluster == nil {
+		return nil
 	}
 
-	// 判断域名是否为默认镜像仓库(支持带端口或不带端口)
-	if domain == constants.DefImageRepository || imageRepo == constants.DefImageRepository {
-		hostAliases = append(hostAliases, corev1.HostAlias{
-			IP:        cluster.InnerGatewayIngressIP(),
-			Hostnames: []string{domain}, // 使用不带端口的域名
-		})
+	domain := rbdutil.GetImageRepositoryDomain(cluster)
+	hostname := domain
+	if host, _, err := net.SplitHostPort(domain); err == nil {
+		hostname = host
 	}
-	return hostAliases
+	if hostname != constants.DefImageRepository {
+		return nil
+	}
+
+	gatewayIP := cluster.InnerGatewayIngressIP()
+	if gatewayIP == "" {
+		return nil
+	}
+
+	return []corev1.HostAlias{
+		{
+			IP:        gatewayIP,
+			Hostnames: []string{hostname},
+		},
+	}
 }
 
 func listPods(ctx context.Context, cli client.Client, namespace string, labels map[string]string) ([]corev1.Pod, error) {
