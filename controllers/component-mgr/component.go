@@ -335,10 +335,12 @@ func (r *RbdcomponentMgr) UpdateOrCreateResource(obj client.Object) (reconcile.R
 // The API server populates default values that are not present in handler output;
 // DeepDerivative intentionally ignores those unset desired fields so a readiness
 // requeue cannot continuously update a StatefulSet and restart its Pod.
+// Tolerations are compared exactly so clearing the CR removes old entries.
 func statefulSetNeedsUpdate(old, desired *appsv1.StatefulSet) bool {
 	return !apiequality.Semantic.DeepDerivative(desired.Labels, old.Labels) ||
 		!apiequality.Semantic.DeepDerivative(desired.Annotations, old.Annotations) ||
 		!apiequality.Semantic.DeepDerivative(desired.OwnerReferences, old.OwnerReferences) ||
+		!apiequality.Semantic.DeepEqual(desired.Spec.Template.Spec.Tolerations, old.Spec.Template.Spec.Tolerations) ||
 		!apiequality.Semantic.DeepDerivative(desired.Spec, old.Spec)
 }
 

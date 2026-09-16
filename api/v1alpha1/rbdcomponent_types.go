@@ -72,6 +72,10 @@ type RbdComponentSpec struct {
 	// If specified, the pod's scheduling constraints
 	// +optional
 	Affinity *corev1.Affinity `json:"affinity,omitempty" protobuf:"bytes,18,opt,name=affinity"`
+	// Tolerations for this component's pods. A non-empty list replaces the
+	// component's default tolerations; omitted or empty lists preserve defaults.
+	// +optional
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
 // RbdComponentConditionType is a valid value for RbdComponentCondition.Type

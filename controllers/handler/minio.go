@@ -88,6 +88,7 @@ func (m *minIO) statefulSet() client.Object {
 					Labels: m.labels,
 				},
 				Spec: corev1.PodSpec{
+					Affinity:                      m.component.Spec.Affinity,
 					ImagePullSecrets:              imagePullSecrets(m.component, m.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
 					ServiceAccountName:            rbdutil.GetenvDefault("SERVICE_ACCOUNT_NAME", "rainbond-operator"),
