@@ -152,6 +152,7 @@ func (r *RbdComponentReconciler) Reconcile(ctx context.Context, request ctrl.Req
 			continue
 		}
 		applySystemCriticalDefaults(res)
+		applyComponentTolerations(res, cpt.Spec.Tolerations)
 		if res.GetNamespace() != "" {
 			// Set RbdComponent cpt as the owner and controller
 			if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.Scheme); err != nil {
@@ -190,6 +191,7 @@ func (r *RbdComponentReconciler) Reconcile(ctx context.Context, request ctrl.Req
 				continue
 			}
 			applySystemCriticalDefaults(res)
+			applyComponentTolerations(res, cpt.Spec.Tolerations)
 			// Set RbdComponent cpt as the owner and controller
 			if err := controllerutil.SetControllerReference(cpt, res.(metav1.Object), r.Scheme); err != nil {
 				log.Error(err, "set controller reference")
@@ -278,17 +280,7 @@ func (r *RbdComponentReconciler) Reconcile(ctx context.Context, request ctrl.Req
 }
 
 func applySystemCriticalDefaults(obj client.Object) {
-	var podSpec *corev1.PodSpec
-	switch workload := obj.(type) {
-	case *appsv1.Deployment:
-		podSpec = &workload.Spec.Template.Spec
-	case *appsv1.StatefulSet:
-		podSpec = &workload.Spec.Template.Spec
-	case *appsv1.DaemonSet:
-		podSpec = &workload.Spec.Template.Spec
-	case *batchv1.Job:
-		podSpec = &workload.Spec.Template.Spec
-	}
+	podSpec := workloadPodSpec(obj)
 	if podSpec == nil {
 		return
 	}
@@ -296,6 +288,38 @@ func applySystemCriticalDefaults(obj client.Object) {
 	podSpec.PriorityClassName = constants.SystemClusterCriticalPriorityClassName
 	setDefaultEphemeralStorageRequest(podSpec.InitContainers)
 	setDefaultEphemeralStorageRequest(podSpec.Containers)
+}
+
+func applyComponentTolerations(obj client.Object, tolerations []corev1.Toleration) {
+	if len(tolerations) == 0 {
+		return
+	}
+	podSpec := workloadPodSpec(obj)
+	if podSpec == nil {
+		return
+	}
+	podSpec.Tolerations = make([]corev1.Toleration, len(tolerations))
+	for i := range tolerations {
+		tolerations[i].DeepCopyInto(&podSpec.Tolerations[i])
+		// Match API server defaulting to avoid repeatedly updating StatefulSets.
+		if podSpec.Tolerations[i].Operator == "" {
+			podSpec.Tolerations[i].Operator = corev1.TolerationOpEqual
+		}
+	}
+}
+
+func workloadPodSpec(obj client.Object) *corev1.PodSpec {
+	switch workload := obj.(type) {
+	case *appsv1.Deployment:
+		return &workload.Spec.Template.Spec
+	case *appsv1.StatefulSet:
+		return &workload.Spec.Template.Spec
+	case *appsv1.DaemonSet:
+		return &workload.Spec.Template.Spec
+	case *batchv1.Job:
+		return &workload.Spec.Template.Spec
+	}
+	return nil
 }
 
 func setDefaultEphemeralStorageRequest(containers []corev1.Container) {
