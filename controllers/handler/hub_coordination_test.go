@@ -49,7 +49,7 @@ func TestRegistryCoordinationRendersOnePersistentIngress(t *testing.T) {
 		t.Fatal("wrong coordinator entrypoint")
 	}
 	args := strings.Join(sidecar.Args, " ")
-	for _, want := range []string{"--console-enterprise=enterprise", "--console-region=rainbond", "--credential-file=/control/key", "--permit-key-file=/permit/key"} {
+	for _, want := range []string{"--console-system-identity=true", "--console-enterprise=enterprise", "--console-region=rainbond", "--credential-file=/control/key", "--permit-key-file=/permit/key"} {
 		if !strings.Contains(args, want) {
 			t.Fatal("missing bound identity", want)
 		}

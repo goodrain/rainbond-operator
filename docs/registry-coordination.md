@@ -14,6 +14,12 @@ An enabled configuration needs:
 - Separate `controlSecret` and `permitSecret`, each projecting the `key` entry.
   Secret values must not be written into the RbdComponent.
 - The Core API independently mounted to the same permit-signing Secret.
+- Console's `CLEANUP_SYSTEM_COORDINATION_FILE` points at a mounted platform-owned
+  Secret entry: one JSON document containing exactly `enterprise`, `region`, and
+  `key` (base64 of the control key bytes). The sidecar's `controlSecret.key` holds
+  the raw bytes of that same independent key. Do not copy the plugin gateway key.
+  Console verifies the enterprise-region association on every request. The client
+  and GC use the separate signed system endpoint, with no plugin-key fallback.
 
 The Operator generates a storage-identity initializer, a read-only coordinator
 sidecar, loopback-only native Registry listening, disabled legacy upload purging,
@@ -24,7 +30,8 @@ replica is supported for this installation. Resources can be supplied through
 
 The initializer only creates/verifies this installation's storage identity; it
 does not run GC. GC remains a separate Core-generated, explicitly confirmed Job.
-The sidecar uses its installation credential for control requests and an
+The sidecar explicitly uses `--console-system-identity=true` with a platform-owned
+control credential independent of plugin installation, and an
 independent permit key for deletion verification. GC does not receive the latter.
 
 ## Rollout status and boundaries
