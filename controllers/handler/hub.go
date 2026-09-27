@@ -77,6 +77,13 @@ func (h *hub) Before() error {
 		return NewIgnoreError("use custom image repository")
 	}
 
+	if err := h.protectRegistryCoordination(); err != nil {
+		return err
+	}
+	if h.component.Spec.RegistryCoordination != nil && h.deployment() == nil {
+		return errRegistryCoordination
+	}
+
 	htpasswd, err := h.generateHtpasswd()
 	if err != nil {
 		return fmt.Errorf("generate htpasswd: %v", err)
@@ -305,6 +312,9 @@ func (h *hub) deployment() client.Object {
 		},
 	}
 
+	if err := h.applyRegistryCoordination(ds); err != nil {
+		return nil
+	}
 	return ds
 }
 
@@ -433,6 +443,9 @@ func (h *hub) serviceForHub() client.Object {
 		},
 	}
 
+	if h.component.Spec.RegistryCoordination != nil {
+		svc.Spec.Ports[0].TargetPort = intstr.FromInt(5001)
+	}
 	return svc
 }
 
