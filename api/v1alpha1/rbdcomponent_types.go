@@ -24,6 +24,11 @@ import (
 
 // RbdComponentSpec defines the desired state of RbdComponent
 type RbdComponentSpec struct {
+	// RegistryCoordination enables the reviewed, operator-managed rbd-hub ingress.
+	// Omitted preserves the existing single-container registry configuration.
+	// +optional
+	RegistryCoordination *RegistryCoordinationSpec `json:"registryCoordination,omitempty"`
+
 	// Number of desired pods. This is a pointer to distinguish between explicit
 	// zero and not specified. Defaults to 1.
 	// +optional
@@ -220,4 +225,24 @@ func (r *RbdComponentStatus) UpdateCondition(condition *RbdComponentCondition) b
 	r.Conditions[conditionIndex] = *condition
 	// Return true if one of the fields have changed.
 	return !isEqual
+}
+
+// RegistryCoordinationSpec binds a coordinator to an observed Registry volume.
+// Credentials are Secret references; no secret values belong in this resource.
+type RegistryCoordinationSpec struct {
+	Image         string `json:"image"`
+	ConsoleURL    string `json:"consoleURL"`
+	EnterpriseID  string `json:"enterpriseID"`
+	RegionName    string `json:"regionName"`
+	ControlSecret string `json:"controlSecret"`
+	PermitSecret  string `json:"permitSecret"`
+	StorageID     string `json:"storageID"`
+	Generation    string `json:"generation"`
+	VolumeUID     string `json:"volumeUID"`
+	RegistryPath  string `json:"registryPath"`
+	// AllowHTTP explicitly permits a trusted internal Console HTTP origin.
+	// +optional
+	AllowHTTP bool `json:"allowHTTP,omitempty"`
+	// +optional
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
