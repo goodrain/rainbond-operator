@@ -84,6 +84,7 @@ func (h *hub) Before() error {
 		return errRegistryCoordination
 	}
 
+	h.password = h.cluster.Spec.ImageHub.Password
 	htpasswd, err := h.generateHtpasswd()
 	if err != nil {
 		return fmt.Errorf("generate htpasswd: %v", err)

@@ -26,6 +26,19 @@ func coordinatedHubFixture() *hub {
 	return &hub{ctx: context.Background(), component: component, cluster: cluster, labels: LabelsForRainbondComponent(component)}
 }
 
+func TestHubPasswordSecretKeepsConfiguredPassword(t *testing.T) {
+	h := coordinatedHubFixture()
+	h.cluster.Spec.ImageHub.Username = "fixture-user"
+	h.cluster.Spec.ImageHub.Password = "fixture-password"
+	if err := h.Before(); err != nil {
+		t.Fatal(err)
+	}
+	secret := h.passwordSecret().(*corev1.Secret)
+	if len(secret.Data["HTPASSWD"]) == 0 || string(secret.Data["password"]) != "fixture-password" {
+		t.Fatal("hub password secret lost configured credentials")
+	}
+}
+
 func TestRegistryCoordinationRendersOnePersistentIngress(t *testing.T) {
 	h := coordinatedHubFixture()
 	original := h.component.DeepCopy()
