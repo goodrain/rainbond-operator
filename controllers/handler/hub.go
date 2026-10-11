@@ -331,15 +331,16 @@ func (h *hub) hostsJob() client.Object {
 		logrus.Errorf("get node len failure: %v", err)
 		return nil
 	}
-	hostsJobLabels := copyLabels(h.labels)
-	hostsJobLabels[hostsJobLabelKey] = hostsJobLabelValue
+	jobLabels := copyLabels(h.labels)
+	jobLabels[hostsJobLabelKey] = hostsJobLabelValue
+	hostsJobLabels := map[string]string{hostsJobLabelKey: hostsJobLabelValue}
 
 	// 创建 Job 对象
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      hostsJobName,
 			Namespace: h.component.Namespace,
-			Labels:    hostsJobLabels,
+			Labels:    jobLabels,
 		},
 		Spec: batchv1.JobSpec{
 			TTLSecondsAfterFinished: pointer.Int32Ptr(60),
