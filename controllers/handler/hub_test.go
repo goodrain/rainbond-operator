@@ -94,6 +94,9 @@ func TestHostsJobToleratesTaintedNodesAndSpreadsOnlyAcrossHostsJobPods(t *testin
 	if got := job.Spec.Template.Labels["rainbond.io/hosts-job"]; got != "true" {
 		t.Fatalf("expected hosts-job template label rainbond.io/hosts-job=true, got %q", got)
 	}
+	if _, ok := job.Spec.Template.Labels["name"]; ok {
+		t.Fatalf("hosts-job pod must not match the rbd-hub Service selector: %v", job.Spec.Template.Labels)
+	}
 
 	affinity := job.Spec.Template.Spec.Affinity
 	if affinity == nil || affinity.PodAntiAffinity == nil {

@@ -83,6 +83,22 @@ func (h *hub) applyRegistryCoordination(deployment *appsv1.Deployment) error {
 		}
 	}
 	native.Env = mergeEnvs(native.Env, []corev1.EnvVar{{Name: "REGISTRY_HTTP_ADDR", Value: "127.0.0.1:5000"}, {Name: "REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_ENABLED", Value: "false"}})
+	native.Command = []string{"/bin/sh", "-ec"}
+	native.Args = []string{strings.Join([]string{
+		"cat >/tmp/registry-coordination.yml <<'EOF'",
+		"version: 0.1",
+		"storage:",
+		"  filesystem:",
+		"    rootdirectory: /var/lib/registry",
+		"  maintenance:",
+		"    uploadpurging:",
+		"      enabled: false",
+		"http:",
+		"  addr: :5000",
+		"EOF",
+		"unset REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_ENABLED",
+		"exec /bin/registry serve /tmp/registry-coordination.yml",
+	}, "\n")}
 	for _, v := range pod.Volumes {
 		if v.Name == "cleanup-control" || v.Name == "cleanup-permit" {
 			return errRegistryCoordination

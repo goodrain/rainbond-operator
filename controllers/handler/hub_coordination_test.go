@@ -26,6 +26,19 @@ func coordinatedHubFixture() *hub {
 	return &hub{ctx: context.Background(), component: component, cluster: cluster, labels: LabelsForRainbondComponent(component)}
 }
 
+func TestHubPasswordSecretKeepsConfiguredPassword(t *testing.T) {
+	h := coordinatedHubFixture()
+	h.cluster.Spec.ImageHub.Username = "fixture-user"
+	h.cluster.Spec.ImageHub.Password = "fixture-password"
+	if err := h.Before(); err != nil {
+		t.Fatal(err)
+	}
+	secret := h.passwordSecret().(*corev1.Secret)
+	if len(secret.Data["HTPASSWD"]) == 0 || string(secret.Data["password"]) != "fixture-password" {
+		t.Fatal("hub password secret lost configured credentials")
+	}
+}
+
 func TestRegistryCoordinationRendersOnePersistentIngress(t *testing.T) {
 	h := coordinatedHubFixture()
 	original := h.component.DeepCopy()
@@ -44,6 +57,14 @@ func TestRegistryCoordinationRendersOnePersistentIngress(t *testing.T) {
 	}
 	if env["REGISTRY_HTTP_ADDR"] != "127.0.0.1:5000" || env["REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_ENABLED"] != "false" {
 		t.Fatal("native bypass remains")
+	}
+	if !reflect.DeepEqual(native.Command, []string{"/bin/sh", "-ec"}) || len(native.Args) != 1 {
+		t.Fatal("missing registry compatibility entrypoint")
+	}
+	for _, want := range []string{"uploadpurging:\n", "enabled: false", "unset REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_ENABLED", "exec /bin/registry serve /tmp/registry-coordination.yml"} {
+		if !strings.Contains(native.Args[0], want) {
+			t.Fatal("missing registry compatibility guard", want)
+		}
 	}
 	if sidecar.Name != "registry-coordinator" || len(sidecar.Command) != 1 || sidecar.Command[0] != "/registry-coordinator" {
 		t.Fatal("wrong coordinator entrypoint")
