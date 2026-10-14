@@ -3,6 +3,8 @@ package constants
 const (
 	// ApisixRoute -
 	ApisixRoute = "ApisixRoute"
+	// ApisixUpstream -
+	ApisixUpstream = "ApisixUpstream"
 
 	// ApisixTls -
 	ApisixTls = "ApisixTls"

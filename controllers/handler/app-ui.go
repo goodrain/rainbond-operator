@@ -114,7 +114,8 @@ func (a *appui) Resources() []client.Object {
 }
 
 func (a *appui) After() error {
-	return nil
+	_, err := migrateLegacySystemTCPRoute(a.ctx, a.client, a.component, "rbd-app-ui", 7070)
+	return err
 }
 
 func (a *appui) ListPods() ([]corev1.Pod, error) {
@@ -123,6 +124,7 @@ func (a *appui) ListPods() ([]corev1.Pod, error) {
 
 func (a *appui) ResourcesCreateIfNotExists() []client.Object {
 	return []client.Object{
+		rbdDefaultUpstreamForTCP("rbd-app-ui", 7070),
 		rbdDefaultRouteTemplateForTCP("rbd-app-ui", 7070),
 	}
 }

@@ -89,6 +89,18 @@ func (a *api) Resources() []client.Object {
 }
 
 func (a *api) After() error {
+	for _, route := range []struct {
+		name string
+		port int
+	}{
+		{name: "rbd-api-api", port: 8443},
+		{name: "rbd-api-healthz", port: 8889},
+		{name: "rbd-api-websocket", port: 6060},
+	} {
+		if _, err := migrateLegacySystemTCPRoute(a.ctx, a.client, a.component, route.name, route.port); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -100,8 +112,11 @@ func (a *api) ResourcesCreateIfNotExists() []client.Object {
 	return []client.Object{
 		a.upstreamForExternalDomain(),
 		a.ingressForLangProxy(),
+		rbdDefaultUpstreamForTCP("rbd-api-api", 8443),
 		rbdDefaultRouteTemplateForTCP("rbd-api-api", 8443),
+		rbdDefaultUpstreamForTCP("rbd-api-healthz", 8889),
 		rbdDefaultRouteTemplateForTCP("rbd-api-healthz", 8889),
+		rbdDefaultUpstreamForTCP("rbd-api-websocket", 6060),
 		rbdDefaultRouteTemplateForTCP("rbd-api-websocket", 6060),
 	}
 }

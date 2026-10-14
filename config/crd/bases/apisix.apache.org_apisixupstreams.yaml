@@ -139,7 +139,7 @@ spec:
                             type: string
                           tcpFailures:
                             type: integer
-                          timeout:
+                          timeouts:
                             type: integer
                         type: object
                     type: object
@@ -175,7 +175,7 @@ spec:
                             type: integer
                           tcpFailures:
                             type: integer
-                          timeout:
+                          timeouts:
                             type: integer
                         type: object
                     type: object
@@ -295,7 +295,7 @@ spec:
                                   type: string
                                 tcpFailures:
                                   type: integer
-                                timeout:
+                                timeouts:
                                   type: integer
                               type: object
                           type: object
@@ -331,7 +331,7 @@ spec:
                                   type: integer
                                 tcpFailures:
                                   type: integer
-                                timeout:
+                                timeouts:
                                   type: integer
                               type: object
                           type: object

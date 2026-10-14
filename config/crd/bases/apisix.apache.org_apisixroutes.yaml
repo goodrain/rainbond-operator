@@ -103,10 +103,13 @@ spec:
                         properties:
                           resolveGranularity:
                             description: |-
-                              The resolve granularity, can be "endpoints" or "service",
-                              when set to "endpoints", the pod ips will be used; other
+                              The resolve granularity, can be "endpoint" or "service",
+                              when set to "endpoint", the pod ips will be used; other
                               wise, the service ClusterIP or ExternalIP will be used,
-                              default is endpoints.
+                              default is endpoint.
+                            enum:
+                            - endpoint
+                            - service
                             type: string
                           serviceName:
                             description: |-
@@ -252,6 +255,8 @@ spec:
                         properties:
                           config:
                             description: Plugin configuration.
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
                           enable:
                             description: Whether this plugin is in use, default is
                               true.
@@ -318,10 +323,13 @@ spec:
                       properties:
                         resolveGranularity:
                           description: |-
-                            The resolve granularity, can be "endpoints" or "service",
-                            when set to "endpoints", the pod ips will be used; other
+                            The resolve granularity, can be "endpoint" or "service",
+                            when set to "endpoint", the pod ips will be used; other
                             wise, the service ClusterIP or ExternalIP will be used,
-                            default is endpoints.
+                            default is endpoint.
+                          enum:
+                          - endpoint
+                          - service
                           type: string
                         serviceName:
                           description: |-
@@ -368,6 +376,8 @@ spec:
                         properties:
                           config:
                             description: Plugin configuration.
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
                           enable:
                             description: Whether this plugin is in use, default is
                               true.

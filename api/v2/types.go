@@ -85,10 +85,11 @@ type ApisixRouteHTTPBackend struct {
 	ServiceName string `json:"serviceName" yaml:"serviceName"`
 	// The service port, could be the name or the port number.
 	ServicePort intstr.IntOrString `json:"servicePort" yaml:"servicePort"`
-	// The resolve granularity, can be "endpoints" or "service",
-	// when set to "endpoints", the pod ips will be used; other
+	// The resolve granularity, can be "endpoint" or "service",
+	// when set to "endpoint", the pod ips will be used; other
 	// wise, the service ClusterIP or ExternalIP will be used,
-	// default is endpoints.
+	// default is endpoint.
+	// +kubebuilder:validation:Enum=endpoint;service
 	ResolveGranularity string `json:"resolveGranularity,omitempty" yaml:"resolveGranularity,omitempty"`
 	// Weight of this backend.
 	Weight *int `json:"weight" yaml:"weight"`
@@ -255,10 +256,11 @@ type ApisixRouteStreamBackend struct {
 	ServiceName string `json:"serviceName" yaml:"serviceName"`
 	// The service port, could be the name or the port number.
 	ServicePort intstr.IntOrString `json:"servicePort" yaml:"servicePort"`
-	// The resolve granularity, can be "endpoints" or "service",
-	// when set to "endpoints", the pod ips will be used; other
+	// The resolve granularity, can be "endpoint" or "service",
+	// when set to "endpoint", the pod ips will be used; other
 	// wise, the service ClusterIP or ExternalIP will be used,
-	// default is endpoints.
+	// default is endpoint.
+	// +kubebuilder:validation:Enum=endpoint;service
 	ResolveGranularity string `json:"resolveGranularity,omitempty" yaml:"resolveGranularity,omitempty"`
 	// Subset specifies a subset for the target Service. The subset should be pre-defined
 	// in ApisixUpstream about this service.
@@ -666,7 +668,7 @@ type PassiveHealthCheckUnhealthy struct {
 	HTTPCodes    []int `json:"httpCodes,omitempty" yaml:"httpCodes,omitempty"`
 	HTTPFailures int   `json:"httpFailures,omitempty" yaml:"http_failures,omitempty"`
 	TCPFailures  int   `json:"tcpFailures,omitempty" yaml:"tcpFailures,omitempty"`
-	Timeouts     int   `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+	Timeouts     int   `json:"timeouts,omitempty" yaml:"timeouts,omitempty"`
 }
 
 // Discovery defines Service discovery related configuration.
