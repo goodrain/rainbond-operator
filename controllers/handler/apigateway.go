@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	rainbondv1alpha1 "github.com/goodrain/rainbond-operator/api/v1alpha1"
 	v2 "github.com/goodrain/rainbond-operator/api/v2"
@@ -15,9 +16,11 @@ import (
 	"gopkg.in/yaml.v3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -28,6 +31,8 @@ var ApiGatewayName = "rbd-gateway"
 const (
 	apiGatewayResourceRequestEphemeralStorage = "512Mi"
 	apisixAdminKey                            = "edd1c9f034335f136f87ad84b625c8f1"
+	systemTCPRouteVersionAnnotation           = "rainbond.io/system-tcp-route-version"
+	systemTCPRouteVersion                     = "v2-endpoint"
 )
 
 type apigateway struct {
@@ -50,6 +55,14 @@ func NewApiGateway(ctx context.Context, client client.Client, component *rainbon
 }
 
 func rbdDefaultRouteTemplateForTCP(name string, port int) client.Object {
+	route := rbdRouteTemplateForTCP(name, port, "endpoint")
+	route.Annotations = map[string]string{
+		systemTCPRouteVersionAnnotation: systemTCPRouteVersion,
+	}
+	return route
+}
+
+func rbdRouteTemplateForTCP(name string, port int, resolveGranularity string) *v2.ApisixRoute {
 	return &v2.ApisixRoute{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -70,12 +83,91 @@ func rbdDefaultRouteTemplateForTCP(name string, port int) client.Object {
 					Backend: v2.ApisixRouteStreamBackend{
 						ServiceName:        name,
 						ServicePort:        intstr.FromInt(port),
-						ResolveGranularity: "service",
+						ResolveGranularity: resolveGranularity,
 					},
 				},
 			},
 		},
 	}
+}
+
+func rbdDefaultUpstreamForTCP(name string, port int) client.Object {
+	return &v2.ApisixUpstream{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: rbdutil.GetenvDefault("RBD_NAMESPACE", constants.Namespace),
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       constants.ApisixUpstream,
+			APIVersion: constants.APISixAPIVersion,
+		},
+		Spec: &v2.ApisixUpstreamSpec{
+			ApisixUpstreamConfig: v2.ApisixUpstreamConfig{
+				Retries: commonutil.Int(1),
+				HealthCheck: &v2.HealthCheck{
+					Active: &v2.ActiveHealthCheck{
+						Type:        "tcp",
+						Concurrency: 1,
+						Port:        int32(port),
+						Healthy: &v2.ActiveHealthCheckHealthy{
+							PassiveHealthCheckHealthy: v2.PassiveHealthCheckHealthy{Successes: 1},
+							Interval:                  metav1.Duration{Duration: 2 * time.Second},
+						},
+						Unhealthy: &v2.ActiveHealthCheckUnhealthy{
+							PassiveHealthCheckUnhealthy: v2.PassiveHealthCheckUnhealthy{
+								TCPFailures: 2,
+								Timeouts:    2,
+							},
+							Interval: metav1.Duration{Duration: time.Second},
+						},
+					},
+					Passive: &v2.PassiveHealthCheck{
+						Type:    "tcp",
+						Healthy: &v2.PassiveHealthCheckHealthy{Successes: 1},
+						Unhealthy: &v2.PassiveHealthCheckUnhealthy{
+							TCPFailures: 1,
+							Timeouts:    1,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// migrateLegacySystemTCPRoute upgrades an untouched operator-owned route from
+// Service-level resolution to endpoint-level resolution. Customized or
+// independently managed routes are deliberately left unchanged.
+func migrateLegacySystemTCPRoute(ctx context.Context, cli client.Client, component *rainbondv1alpha1.RbdComponent, name string, port int) (bool, error) {
+	route := &v2.ApisixRoute{}
+	key := types.NamespacedName{Name: name, Namespace: component.Namespace}
+	if err := cli.Get(ctx, key, route); err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if !metav1.IsControlledBy(route, component) {
+		return false, nil
+	}
+	if route.Annotations[systemTCPRouteVersionAnnotation] != "" {
+		return false, nil
+	}
+	legacy := rbdRouteTemplateForTCP(name, port, "service")
+	if !apiequality.Semantic.DeepEqual(route.Spec, legacy.Spec) {
+		return false, nil
+	}
+
+	before := route.DeepCopy()
+	route.Spec.Stream[0].Backend.ResolveGranularity = "endpoint"
+	if route.Annotations == nil {
+		route.Annotations = make(map[string]string)
+	}
+	route.Annotations[systemTCPRouteVersionAnnotation] = systemTCPRouteVersion
+	if err := cli.Patch(ctx, route, client.MergeFrom(before)); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // Before -
