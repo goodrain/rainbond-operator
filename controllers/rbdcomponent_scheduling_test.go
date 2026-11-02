@@ -151,3 +151,99 @@ func TestApplyComponentTolerationsDefaultsOperator(t *testing.T) {
 		t.Fatal("defaulting must not mutate the component configuration")
 	}
 }
+
+func TestRbdDBReconcileDoesNotTolerateFaultyNodesByDefault(t *testing.T) {
+	t.Setenv("DISABLE_LOG", "true")
+	for _, existing := range []bool{false, true} {
+		name := "new installation"
+		if existing {
+			name = "upgrade existing StatefulSet"
+		}
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			scheme := runtime.NewScheme()
+			for _, add := range []func(*runtime.Scheme) error{corev1.AddToScheme, appsv1.AddToScheme, rainbondv1alpha1.AddToScheme} {
+				if err := add(scheme); err != nil {
+					t.Fatal(err)
+				}
+			}
+			component := &rainbondv1alpha1.RbdComponent{
+				ObjectMeta: metav1.ObjectMeta{Name: "rbd-db", Namespace: "rbd-system", UID: "db-component"},
+			}
+			cluster := &rainbondv1alpha1.RainbondCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "rainbondcluster", Namespace: component.Namespace},
+				Spec: rainbondv1alpha1.RainbondClusterSpec{
+					NodesForChaos: []*rainbondv1alpha1.K8sNode{{Name: "node-1"}},
+				},
+			}
+			secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: component.Name, Namespace: component.Namespace}}
+			objects := []client.Object{component, cluster, secret}
+			storageClassName := "existing-nfs"
+			claims := []corev1.PersistentVolumeClaim{{
+				ObjectMeta: metav1.ObjectMeta{Name: "rbd-db"},
+				Spec:       corev1.PersistentVolumeClaimSpec{StorageClassName: &storageClassName},
+			}}
+			if existing {
+				objects = append(objects, &appsv1.StatefulSet{
+					ObjectMeta: metav1.ObjectMeta{Name: component.Name, Namespace: component.Namespace},
+					Spec: appsv1.StatefulSetSpec{
+						Selector:             &metav1.LabelSelector{MatchLabels: map[string]string{"name": component.Name}},
+						VolumeClaimTemplates: claims,
+						Template: corev1.PodTemplateSpec{Spec: corev1.PodSpec{
+							Tolerations: []corev1.Toleration{{Operator: corev1.TolerationOpExists}},
+						}},
+					},
+				})
+			}
+			k8sClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+			reconciler := &RbdComponentReconciler{
+				Client: k8sClient, Scheme: scheme, Log: ctrl.Log.WithName("test"), Recorder: record.NewFakeRecorder(100),
+			}
+			request := ctrl.Request{NamespacedName: client.ObjectKeyFromObject(component)}
+			reconcile := func() appsv1.StatefulSet {
+				t.Helper()
+				if _, err := reconciler.Reconcile(ctx, request); err != nil {
+					t.Fatalf("reconcile: %v", err)
+				}
+				var statefulSet appsv1.StatefulSet
+				if err := k8sClient.Get(ctx, request.NamespacedName, &statefulSet); err != nil {
+					t.Fatal(err)
+				}
+				return statefulSet
+			}
+			for _, configured := range [][]corev1.Toleration{
+				nil,
+				{{Key: "dedicated", Operator: corev1.TolerationOpExists, Effect: corev1.TaintEffectNoSchedule}},
+				nil,
+			} {
+				if err := k8sClient.Get(ctx, request.NamespacedName, component); err != nil {
+					t.Fatal(err)
+				}
+				component.Spec.Tolerations = configured
+				if err := k8sClient.Update(ctx, component); err != nil {
+					t.Fatal(err)
+				}
+				statefulSet := reconcile()
+				for _, taint := range []corev1.Taint{
+					{Key: "node.kubernetes.io/not-ready", Effect: corev1.TaintEffectNoSchedule},
+					{Key: "node.kubernetes.io/unreachable", Effect: corev1.TaintEffectNoSchedule},
+					{Key: "node.kubernetes.io/not-ready", Effect: corev1.TaintEffectNoExecute},
+					{Key: "node.kubernetes.io/unreachable", Effect: corev1.TaintEffectNoExecute},
+					{Key: "node.kubernetes.io/unschedulable", Effect: corev1.TaintEffectNoSchedule},
+				} {
+					for _, toleration := range statefulSet.Spec.Template.Spec.Tolerations {
+						if toleration.ToleratesTaint(&taint) {
+							t.Errorf("MySQL must not tolerate node taint %s:%s by default", taint.Key, taint.Effect)
+						}
+					}
+				}
+				if configured != nil && !reflect.DeepEqual(statefulSet.Spec.Template.Spec.Tolerations, configured) {
+					t.Error("explicit component tolerations must still be applied")
+				}
+				if existing && !reflect.DeepEqual(statefulSet.Spec.VolumeClaimTemplates, claims) {
+					t.Error("updating default tolerations must preserve existing volume claim templates")
+				}
+			}
+		})
+	}
+}

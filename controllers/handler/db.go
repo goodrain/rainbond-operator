@@ -242,11 +242,6 @@ func (d *db) statefulsetForDB() client.Object {
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:              imagePullSecrets(d.component, d.cluster),
 					TerminationGracePeriodSeconds: commonutil.Int64(0),
-					Tolerations: []corev1.Toleration{
-						{
-							Operator: corev1.TolerationOpExists, // tolerate everything.
-						},
-					},
 					Containers: []corev1.Container{
 						{
 							Name:            DBName,
