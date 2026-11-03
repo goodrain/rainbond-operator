@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -14,82 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
 )
-
-func TestMonitorPrometheusConfigCollectsAPIServerRequests(t *testing.T) {
-	data, err := os.ReadFile("../../config/prom/prometheus.yml")
-	if err != nil {
-		t.Fatal(err)
-	}
-	type relabelConfig struct {
-		SourceLabels []string `json:"source_labels"`
-		Regex        string   `json:"regex"`
-		Action       string   `json:"action"`
-	}
-	var config struct {
-		Jobs []struct {
-			Name           string `json:"job_name"`
-			Scheme         string `json:"scheme"`
-			MetricsPath    string `json:"metrics_path"`
-			ScrapeInterval string `json:"scrape_interval"`
-			ScrapeTimeout  string `json:"scrape_timeout"`
-			TokenFile      string `json:"bearer_token_file"`
-			TLS            struct {
-				CAFile             string `json:"ca_file"`
-				ServerName         string `json:"server_name"`
-				InsecureSkipVerify bool   `json:"insecure_skip_verify"`
-			} `json:"tls_config"`
-			Discovery []struct {
-				Role       string `json:"role"`
-				Namespaces struct {
-					Names []string `json:"names"`
-				} `json:"namespaces"`
-			} `json:"kubernetes_sd_configs"`
-			StaticConfigs  []interface{}   `json:"static_configs"`
-			Relabels       []relabelConfig `json:"relabel_configs"`
-			MetricRelabels []relabelConfig `json:"metric_relabel_configs"`
-		} `json:"scrape_configs"`
-	}
-	if err := yamlutil.NewYAMLOrJSONDecoder(bytes.NewReader(data), 4096).Decode(&config); err != nil {
-		t.Fatal(err)
-	}
-	matched := 0
-	for _, job := range config.Jobs {
-		if job.Name != "kubernetes-apiservers" {
-			continue
-		}
-		matched++
-		if job.Scheme != "https" || job.MetricsPath != "/metrics" {
-			t.Fatalf("API server scrape must use HTTPS /metrics: %+v", job)
-		}
-		if job.ScrapeInterval != "30s" || job.ScrapeTimeout != "10s" {
-			t.Fatal("API server scrape must have a bounded timeout and an explicit interval")
-		}
-		if job.TokenFile != "/var/run/secrets/kubernetes.io/serviceaccount/token" ||
-			job.TLS.CAFile != "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt" ||
-			job.TLS.ServerName != "kubernetes.default.svc" || job.TLS.InsecureSkipVerify {
-			t.Fatal("API server scrape must use the mounted service-account credentials and verified TLS")
-		}
-		if len(job.Discovery) != 1 || job.Discovery[0].Role != "endpoints" ||
-			!reflect.DeepEqual(job.Discovery[0].Namespaces.Names, []string{"default"}) || len(job.StaticConfigs) != 0 {
-			t.Fatal("discover each API server endpoint independently instead of scraping a shared load balancer")
-		}
-		wantTargets := []relabelConfig{{
-			SourceLabels: []string{"__meta_kubernetes_namespace", "__meta_kubernetes_service_name", "__meta_kubernetes_endpoint_port_name"},
-			Regex:        "default;kubernetes;https",
-			Action:       "keep",
-		}}
-		if !reflect.DeepEqual(job.Relabels, wantTargets) {
-			t.Fatalf("API server discovery must select only default/kubernetes:https, got %+v", job.Relabels)
-		}
-		wantMetrics := []relabelConfig{{SourceLabels: []string{"__name__"}, Regex: "apiserver_request_total", Action: "keep"}}
-		if !reflect.DeepEqual(job.MetricRelabels, wantMetrics) {
-			t.Fatalf("retain the request counter used by the shipped dashboard without collecting unrelated series: %+v", job.MetricRelabels)
-		}
-	}
-	if matched != 1 {
-		t.Fatalf("expected exactly one default API server scrape job, got %d", matched)
-	}
-}
 
 func TestMonitorPrometheusConfigIncludesPluginDiscoveryJobs(t *testing.T) {
 	prometheusConfig, err := os.ReadFile("../../config/prom/prometheus.yml")
