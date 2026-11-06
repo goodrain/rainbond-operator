@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: rainbondvolumes.rainbond.io
 spec:
   group: rainbond.io
@@ -21,14 +20,19 @@ spec:
         description: RainbondVolume is the Schema for the rainbondvolumes API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -44,28 +48,30 @@ spec:
               imageRepository:
                 type: string
               storageClassName:
-                description: 'The name of StorageClass, which is a kind of kubernetes
-                  resource. It will used to create pvc for rainbond components. More
-                  info: https://kubernetes.io/docs/concepts/storage/storage-classes/'
+                description: |-
+                  The name of StorageClass, which is a kind of kubernetes resource.
+                  It will used to create pvc for rainbond components.
+                  More info: https://kubernetes.io/docs/concepts/storage/storage-classes/
                 type: string
               storageClassParameters:
-                description: StorageClassParameters describes the parameters for a
-                  class of storage for which PersistentVolumes can be dynamically
-                  provisioned.
+                description: |-
+                  StorageClassParameters describes the parameters for a class of storage for
+                  which PersistentVolumes can be dynamically provisioned.
                 properties:
                   mountOptions:
-                    description: Dynamically provisioned PersistentVolumes of this
-                      storage class are created with these mountOptions, e.g. ["ro",
-                      "soft"]. Not validated - mount of the PVs will simply fail if
-                      one is invalid.
+                    description: |-
+                      Dynamically provisioned PersistentVolumes of this storage class are
+                      created with these mountOptions, e.g. ["ro", "soft"]. Not validated -
+                      mount of the PVs will simply fail if one is invalid.
                     items:
                       type: string
                     type: array
                   parameters:
                     additionalProperties:
                       type: string
-                    description: Parameters holds the parameters for the provisioner
-                      that should create volumes of this storage class.
+                    description: |-
+                      Parameters holds the parameters for the provisioner that should
+                      create volumes of this storage class.
                     type: object
                   provisioner:
                     description: Provisioner indicates the type of the provisioner.

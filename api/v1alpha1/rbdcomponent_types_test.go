@@ -7,6 +7,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/yaml"
 )
 
@@ -70,5 +71,33 @@ func TestRbdComponentDeepCopyOwnsTolerations(t *testing.T) {
 	*clone.Spec.Tolerations[0].TolerationSeconds = 60
 	if original.Spec.Tolerations[0].Key != "dedicated" || seconds != 30 {
 		t.Fatal("DeepCopy must isolate both the tolerations slice and tolerationSeconds pointers")
+	}
+}
+
+func TestRegistryCoordinationSchemaAndDeepCopy(t *testing.T) {
+	original := &RbdComponent{Spec: RbdComponentSpec{RegistryCoordination: &RegistryCoordinationSpec{Image: "pinned", Resources: corev1.ResourceRequirements{Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("128Mi")}}}}}
+	copied := original.DeepCopy()
+	copied.Spec.RegistryCoordination.Image = "changed"
+	copied.Spec.RegistryCoordination.Resources.Requests[corev1.ResourceMemory] = resource.MustParse("256Mi")
+	if original.Spec.RegistryCoordination.Image != "pinned" || original.Spec.RegistryCoordination.Resources.Requests.Memory().String() != "128Mi" {
+		t.Fatal("configuration aliases after DeepCopy")
+	}
+	data, err := os.ReadFile("../../config/crd/bases/rainbond.io_rbdcomponents.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var crd apiextensionsv1.CustomResourceDefinition
+	if err := yaml.Unmarshal(data, &crd); err != nil {
+		t.Fatal(err)
+	}
+	spec := crd.Spec.Versions[0].Schema.OpenAPIV3Schema.Properties["spec"]
+	config, ok := spec.Properties["registryCoordination"]
+	if !ok || config.Type != "object" || len(config.Required) != 10 {
+		t.Fatal("missing structural configuration schema")
+	}
+	for _, name := range spec.Required {
+		if name == "registryCoordination" {
+			t.Fatal("changed default installation")
+		}
 	}
 }
